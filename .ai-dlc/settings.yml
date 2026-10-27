@@ -1,0 +1,76 @@
+# AI-DLC project settings — Zipscribe
+# Read by orchestrator and sub-agents before any unit execution.
+
+project:
+  name: zipscribe
+  description: Zero-server browser video transcription & caption editor (WebGPU Whisper)
+  package_manager: pnpm@10
+  node: ">=22"
+
+stack:
+  language: typescript@5 (strict, noUncheckedIndexedAccess)
+  build: vite@7
+  ui: react@19 (thin render layer only)
+  state: zustand@5 + immer (undo via zundo, history ≥ 100)
+  styling: tailwindcss@4 + CSS custom-property design tokens (dark editor theme)
+  lists: "@tanstack/react-virtual@3 (transcript virtualization)"
+  media: mediabunny (WebCodecs demux/mux, Mp4OutputFormat, CanvasSource)
+  inference: "@huggingface/transformers@3.8.x (device: webgpu | wasm)"
+  fallback_media: "@ffmpeg/ffmpeg single-threaded (lazy-loaded; no COOP/COEP in v1)"
+  storage: idb (IndexedDB) for projects; Cache API for models/wasm
+  test_unit: vitest (+ jsdom at UI boundary only)
+  test_e2e: playwright (chromium first-class; webkit = view/export tier)
+  lint: eslint@9 flat + typescript-eslint + prettier
+  ci: github actions; deploy cloudflare pages via wrangler in CI
+
+version_pins:
+  # Pins are contract. Migration requires an explicit unit that changes this block.
+  "@huggingface/transformers": "~3.8.0"   # v4 preview is NOT approved (WebGPU Whisper regressions)
+  mediabunny: "latest-at-scaffold"
+  react: "~19.0"
+
+quality_gates: # hard gates — AI cannot mark a unit complete with any failing
+  - id: lint
+    command: pnpm lint
+  - id: typecheck
+    command: pnpm typecheck
+  - id: unit_tests
+    command: pnpm test
+  - id: e2e
+    command: pnpm test:e2e
+    applies: ui/export units and intent completion
+  - id: bundle_budget
+    command: pnpm build && pnpm check-bundle
+    rule: initial JS ≤ 350 KB gzip; models/wasm/ffmpeg lazy-loaded and excluded
+
+reference_hardware: # performance baselines are asserted only against this tier
+  browser: desktop Chrome stable ≥ 130, WebGPU enabled (default)
+  cpu: 8+ cores
+  gpu: Apple Silicon M-series or discrete GPU ≥ 4 GB VRAM
+  memory: 16 GB system
+
+performance_baselines:
+  transcription_throughput_webgpu: "whisper-small ≥ 4× realtime"
+  transcription_throughput_wasm: "whisper-tiny ≥ 0.5× realtime (best-effort tier)"
+  model_download_first_run: "whisper-base ≤ 60 s on 100 Mbps"
+  ui_frame_during_transcription: "≥ 55 FPS main thread (no long tasks > 50 ms from engine)"
+  transcript_scroll: "60 FPS with 10 000 blocks"
+  export_burn_in: "≥ 1× realtime at 1080p H.264 (WebCodecs tier)"
+
+git_strategy:
+  default_branch: main
+  unit_branch: "ai-dlc/<intent-slug>/<unit-slug>"
+  change_strategy: per-unit PRs into main
+  merge: squash, require green quality gates
+
+testing:
+  fixtures_dir: fixtures/ # ffmpeg-generated clips committed to repo; regen via pnpm fixtures
+  determinism: engine tests must not hit network — models served from fixtures/ onnx stubs or mocked worker sessions
+  models_in_ci: "tiny/base only (e2e smoke); diarization e2e uses 2-speaker fixture"
+
+operations:
+  host: cloudflare-pages
+  config: public/_headers (cache rules for /wasm, /models-cdn passthrough)
+  ci_secret: CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID
+  previews: per-PR preview deployments
+  analytics: none (privacy-first; no telemetry without explicit opt-in unit)
