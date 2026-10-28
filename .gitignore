@@ -10,3 +10,10 @@ coverage/
 playwright-report/
 test-results/
 *.tsbuildinfo
+logs/
+# generated perf fixtures (pnpm fixtures)
+fixtures/audio-120min.mp4
+
+# test tooling output (models cache, criteria reports)
+.cache/
+reports/

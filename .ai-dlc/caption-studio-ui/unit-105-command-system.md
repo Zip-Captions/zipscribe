@@ -20,7 +20,8 @@ Single command registry binding the `knowledge/design.md` shortcut table to edit
 
 **US-2.3.2** As an editor mid-typing, the app doesn't hijack my keys.
 - *Given* focus in any text input/contenteditable, *when* `S`/`Delete`/arrows, *then* no command fires; *when* `⌘Z`/`⌘S`/`⌘/`, *then* they still fire (save/undo/overlay always live).
-- *Given* timeline focused (no text focus), *when* `S`/`M`/`Z+←`, *then* block commands apply to selection.
+- *Given* timeline focused (no text focus), *when* `S` / `⌘⇧M` / `Z+←`, *then* block commands apply to selection.
+- *Given* a held-letter chord (`Z+←`, `C+→`), *when* the letter is held and the arrow pressed, *then* the chord command fires and the bare letter does **not** fire on release; a letter tapped alone does nothing (neither `Z` nor `C` has a solo binding).
 
 **US-2.3.3** As a new user, `⌘/` teaches me.
 - *Given* anywhere in app, *when* `⌘/`, *then* overlay lists all commands grouped (Transport / Edit / Timeline / Transcript / View) with platform-correct glyphs; Esc closes; search filter within overlay.
@@ -28,20 +29,20 @@ Single command registry binding the `knowledge/design.md` shortcut table to edit
 ## Functional Requirements
 
 - **FR-105.1** Registry: `{ id, keys: KeySpec[], when?: ContextPredicate, run(ctx) }`; registration-time duplicate-binding error (dev) / precedence order (prod: focused-panel scope > global).
-- **FR-105.2** KeySpec parser: `CmdOrCtrl`, `Shift`, `Alt`, code vs key (`KeyS` vs `Space`), platform glyphs for overlay (⌘⌥⇧⌃).
+- **FR-105.2** KeySpec parser: `CmdOrCtrl`, `Shift`, `Alt`, held-letter chords (`KeyZ+ArrowLeft`), code vs key (`KeyS` vs `Space` — bind by `code` for letters so non-QWERTY layouts keep positions; overlay shows the layout's actual key via `navigator.keyboard.getLayoutMap()` when available), platform glyphs for overlay (⌘⌥⇧⌃). Bindings for browser-overridable keys call `preventDefault`; browser-reserved keys are rejected at registration.
 - **FR-105.3** Context model: `{ focus: 'body'|'input'|'timeline'|'transcript', selection }` from `editor` slice — predicates pure/testable.
 - **FR-105.4** Overlay component (dialog role, focus-trapped, aria-modal), grouped by category, platform glyphs, live filter.
-- **FR-105.5** All Intent-2 commands migrated to registry dispatch; any `onKeyDown` outside `commands/` fails lint (rule from conventions).
+- **FR-105.5** All Intent-2 commands migrated to registry dispatch; any `onKeyDown` outside `ui/commands/**` and the conventions allowlist (`ui/**/editable/**`, `TimecodeInput`) fails lint.
 - **FR-105.6** Registry exposes JSON for future `⌘K` palette + docs generation (seed: palette UI).
 
 ## Completion Criteria
 
-- [ ] Registry snapshot test equals design-table (drift = CI fail)
-- [ ] Context suppression tests (input focus vs timeline/transcript focus)
-- [ ] Platform variant unit tests (mac/win key resolution)
-- [ ] Overlay: focus trap, Esc, filter, complete coverage of registered commands (count assertion)
-- [ ] Conflict detection unit test (duplicate binding throws in dev mode)
-- [ ] All gates green
+- [ ] **CC-105.1** Registry snapshot test equals design-table (drift = CI fail)
+- [ ] **CC-105.2** Context suppression tests (input focus vs timeline/transcript focus)
+- [ ] **CC-105.3** Platform variant unit tests (mac/win key resolution)
+- [ ] **CC-105.4** Overlay: focus trap, Esc, filter, complete coverage of registered commands (count assertion)
+- [ ] **CC-105.5** Conflict detection unit test (duplicate binding throws in dev mode)
+- [ ] **CC-105.6** All gates green
 
 ## Docs to consult
 

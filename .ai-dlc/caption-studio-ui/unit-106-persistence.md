@@ -32,19 +32,21 @@ Local-first storage: versioned project store (JSON + `PeaksData` + settings + pa
 - **FR-106.1** `state/services/persistence.ts`: stores `projects` (`{id, schemaVersion, name, updatedAt, project, peaks, panelState}`), `mediaHandles` (`{projectId, handle?, fingerprint}`), `blobCache` (`{projectId, blob, bytes, lastOpened}`); `idb` transactions; no direct IDB calls outside this module.
 - **FR-106.2** Autosave policy: command-count ≥ 1 pending ∧ idle 2 s ∧ not already in-flight; save-state indicator in status bar (unit-101 seam); `⌘S` forces immediate.
 - **FR-106.3** Migration framework: `MIGRATIONS: Record<v, up>`, unknown-future version → read-only mode + notice (never write over newer schema); v1 baseline migration = identity + test.
-- **FR-106.4** Fingerprint: `{name, size, durationMs, sampleHashes: [first, mid, last] of 64 KB chunks}` — computed in media worker, stored on import.
+- **FR-106.4** Fingerprint: `MediaFingerprint` (architecture) — stored on import; re-link compares it field by field.
 - **FR-106.5** Project list UI (Media tab): open/new/duplicate/delete, sort by updated, storage estimate display, "Open project" from list restores selection/playhead context.
-- **FR-106.6** Export/import of project file (`.zipscribe.json` — project JSON + fingerprint, no media) for backup/share; drag-in to open (also seeds future share-links).
+- **FR-106.6** Export/import of project file (`.zipscribe.json` — canonical project JSON incl. translation tracks + fingerprint, no media) for backup/share; drag-in to open (also seeds future share-links).
+- **FR-106.7** Request `navigator.storage.persist()` when the user saves their first project or makes a model available offline (and on install — unit-204); show the result honestly in the storage display, never as a blocking prompt.
+- **FR-106.8** Fingerprint comes from unit-04 (`MediaAsset.fingerprint`, computed in the media worker) — this unit stores and compares it, never recomputes it on the main thread.
 
 ## Completion Criteria
 
-- [ ] Byte-equal reload golden (project incl. peaks+settings; exclusion list documented) after autosave
-- [ ] Interrupted-transcription reopen state test (fake worker mid-stream unload)
-- [ ] Racing-save atomicity + torn-write (fail-at-each-step injection) tests
-- [ ] Re-link flows: silent handle restore, permission-denied picker fallback, fingerprint mismatch warning (all three, playwright with stubbed FSA)
-- [ ] Quota eviction LRU order + "JSON never evicted" assertion (quota mocked)
-- [ ] `.zipscribe.json` export→import round-trip byte-equal
-- [ ] All gates green
+- [ ] **CC-106.1** Byte-equal reload golden (project incl. peaks+settings; exclusion list documented) after autosave
+- [ ] **CC-106.2** Interrupted-transcription reopen state test (fake worker mid-stream unload)
+- [ ] **CC-106.3** Racing-save atomicity + torn-write (fail-at-each-step injection) tests
+- [ ] **CC-106.4** Re-link flows: silent handle restore, permission-denied picker fallback, fingerprint mismatch warning (all three, playwright with stubbed FSA)
+- [ ] **CC-106.5** Quota eviction LRU order + "JSON never evicted" assertion (quota mocked)
+- [ ] **CC-106.6** `.zipscribe.json` export→import round-trip byte-equal
+- [ ] **CC-106.7** All gates green
 
 ## Risks
 

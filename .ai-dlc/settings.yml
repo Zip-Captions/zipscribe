@@ -1,47 +1,113 @@
 # AI-DLC project settings — Zipscribe
 # Read by orchestrator and sub-agents before any unit execution.
+#
+# Key names follow the AI-DLC settings schema where one exists (`git`, `stack`,
+# `default_announcements`, `review_agents`). Project-specific blocks
+# (`tech_stack`, `version_pins`, `reference_hardware`, `performance_baselines`,
+# `testing`, `operations`) are preserved by `/ai-dlc:setup` but not interpreted
+# by the harness — they are contract for agents.
+#
+# NOTE: the harness enforces quality gates from intent/unit *frontmatter*
+# (`quality_gates: [{name, command}]`), not from this file. The canonical gate
+# list lives here; every intent.md copies it into frontmatter (additive ratchet).
 
 project:
   name: zipscribe
-  description: Zero-server browser video transcription & caption editor (WebGPU Whisper)
+  description: Zero-server, offline-capable, installable (PWA) browser video transcription & caption editor (WebGPU Whisper)
   package_manager: pnpm@10
   node: ">=22"
 
+git:
+  change_strategy: unit        # one branch + PR per unit; dependents wait for merge
+  default_branch: develop      # git flow: AI-DLC branches from and PRs into develop; main = production (releases only)
+  auto_merge: true             # solo team: unit PRs squash-merge into develop automatically once every gate is green (no review step)
+  elaboration_review: true
+  # branch naming (AI-DLC): ai-dlc/<intent-slug>/<unit-file-stem> — treated as git-flow feature branches.
+  # Full branch model + CI/CD: knowledge/conventions.md § Version control (git flow), § CI/CD.
+
+git_flow:
+  production_branch: main
+  integration_branch: develop
+  feature_prefixes: ["ai-dlc/", "feature/"]
+  release_prefix: "release/"
+  hotfix_prefix: "hotfix/"
+  version_tag_prefix: "v"
+  versioning: semver           # 0.Y.Z until intents 1–4 qualify, then 1.0.0
+
+default_announcements: [changelog]
+
+review_agents:
+  accessibility: true
+
+# AI-DLC infrastructure stack (schema key `stack`). Zero-server static app: no compute/monitoring layers.
 stack:
+  pipeline:
+    - provider: github-actions
+      workflows_path: .github/workflows/
+  secrets:
+    - provider: env            # GitHub Actions secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID
+
+# Application technology stack (project-specific; NOT the AI-DLC `stack` key).
+tech_stack:
   language: typescript@5 (strict, noUncheckedIndexedAccess)
-  build: vite@7
+  build: vite@7               # DECISION PENDING: vite@8 is current (8.3.x); confirm vitest/vite-plugin-pwa compat at unit-01 and record here
   ui: react@19 (thin render layer only)
-  state: zustand@5 + immer (undo via zundo, history ≥ 100)
+  state: zustand@5 + immer (undo via zundo@2, history ≥ 100)
   styling: tailwindcss@4 + CSS custom-property design tokens (dark editor theme)
   lists: "@tanstack/react-virtual@3 (transcript virtualization)"
-  media: mediabunny (WebCodecs demux/mux, Mp4OutputFormat, CanvasSource)
-  inference: "@huggingface/transformers@3.8.x (device: webgpu | wasm)"
-  fallback_media: "@ffmpeg/ffmpeg single-threaded (lazy-loaded; no COOP/COEP in v1)"
-  storage: idb (IndexedDB) for projects; Cache API for models/wasm
+  media: mediabunny (Input/BlobSource + AudioSampleSink for reading; Output/Mp4OutputFormat/CanvasSource for burn-in)
+  inference: "@huggingface/transformers@3.8.x (device: webgpu | wasm; onnxruntime-web wasm files self-hosted under /wasm)"
+  fallback_media: "@ffmpeg/ffmpeg + @ffmpeg/core single-threaded (lazy-loaded, self-hosted; no COOP/COEP in production)"
+  storage: idb (IndexedDB) for projects; Cache API for models (`zipscribe-models`) and runtime wasm
+  pwa: vite-plugin-pwa@2 (Workbox 7) — web app manifest + service worker (unit-204)
+  translation: Chrome built-in Translator + LanguageDetector APIs (no package; main-thread adapter; Chrome 138+/Edge 148+ desktop) — caption-translation intent
+  caption_formats: own parsers/serializers (SRT, WebVTT, SBV, TTML/DFXP, ASS/SSA, JSON, TSV) — no dependency
   test_unit: vitest (+ jsdom at UI boundary only)
   test_e2e: playwright (chromium first-class; webkit = view/export tier)
   lint: eslint@9 flat + typescript-eslint + prettier
   ci: github actions; deploy cloudflare pages via wrangler in CI
 
+# Pre-approved dependencies. Anything not listed here (or in a unit's Technical
+# Specification) must be declared in the unit report's Dependencies section.
+approved_dependencies:
+  runtime: [react, react-dom, zustand, immer, zundo, "@tanstack/react-virtual", mediabunny, "@huggingface/transformers", "@ffmpeg/ffmpeg", "@ffmpeg/core", idb, workbox-window]
+  runtime_conditional: [sherpa-onnx (only if unit-02 adopts engine B), cactus needle.wasm (only if unit-02 adopts engine C and passes network audit)]
+  dev: [vite, "@vitejs/plugin-react", vite-plugin-pwa, "@vite-pwa/assets-generator", typescript, vitest, "@vitest/coverage-v8", jsdom, "@testing-library/react", "@testing-library/user-event", fake-indexeddb, fast-check, "@playwright/test", "@axe-core/playwright", "@stryker-mutator/core", "@stryker-mutator/vitest-runner", eslint, typescript-eslint, prettier, tailwindcss, ffmpeg-static, "@lhci/cli", wrangler]
+
 version_pins:
   # Pins are contract. Migration requires an explicit unit that changes this block.
-  "@huggingface/transformers": "~3.8.0"   # v4 preview is NOT approved (WebGPU Whisper regressions)
-  mediabunny: "latest-at-scaffold"
-  react: "~19.0"
+  "@huggingface/transformers": "~3.8.1"
+  # Rationale: 3.8.1 is the last 3.x; 4.x is stable (4.3.x as of 2026-10) but carries an
+  # open WebGPU Whisper GPU-memory leak (#1739, reported on 4.2.0, fix PR #1755 open) and
+  # #1590 (fp16 segmentation regression). Whether 3.8.1 is ALSO affected is unverified —
+  # unit-02 measures it; if 3.8.1 leaks equally, the pin rationale is void and a
+  # migration decision is made from the spike data.
+  mediabunny: "exact version recorded by unit-01 (1.62.1 latest on 2026-10-27)"
+  react: "^19.0.0"            # was ~19.0 (would freeze an old patch line); 19.3.x current
+  vite-plugin-pwa: "^2.0.0"   # peer: vite 3–8, workbox 7.4
 
-quality_gates: # hard gates — AI cannot mark a unit complete with any failing
-  - id: lint
+quality_gates: # hard gates — copied into every intent.md frontmatter; AI cannot mark a unit complete with any failing
+  - name: lint
     command: pnpm lint
-  - id: typecheck
+  - name: typecheck
     command: pnpm typecheck
-  - id: unit_tests
+  - name: unit_tests
     command: pnpm test
-  - id: e2e
-    command: pnpm test:e2e
-    applies: ui/export units and intent completion
-  - id: bundle_budget
+  - name: bundle_budget
     command: pnpm build && pnpm check-bundle
-    rule: initial JS ≤ 350 KB gzip; models/wasm/ffmpeg lazy-loaded and excluded
+    rule: initial JS ≤ 350 KB gzip; models/wasm/ffmpeg/mediabunny/export lazy-loaded and excluded
+  - name: e2e
+    command: pnpm test:e2e
+    applies: ui/export/pwa units and intent completion (added in those units' frontmatter)
+  - name: criteria
+    command: pnpm verify:unit --from-branch   # unit derived from ai-dlc/<intent>/<unit-stem>; no-op on non-unit branches
+    rule: every untagged Completion Criterion has a passing test citing its CC-ID (knowledge/conventions.md § Criterion traceability)
+
+coverage:                     # enforced via vitest coverage.thresholds, not just reported
+  engine_lines_min: 85        # src/engine/** excluding worker bootstrap glue
+  engine_branches_min: 75
+  state_lines_min: 80         # src/state/**; UI = behavior coverage via criteria, not %
+  mutation_score_min: 60      # Stryker on pure engine modules at intent exit (Intent 1 records baseline only)
 
 reference_hardware: # performance baselines are asserted only against this tier
   browser: desktop Chrome stable ≥ 130, WebGPU enabled (default)
@@ -50,27 +116,35 @@ reference_hardware: # performance baselines are asserted only against this tier
   memory: 16 GB system
 
 performance_baselines:
+  # Provisional until unit-02 publishes measured numbers (it patches this block).
   transcription_throughput_webgpu: "whisper-small ≥ 4× realtime"
   transcription_throughput_wasm: "whisper-tiny ≥ 0.5× realtime (best-effort tier)"
   model_download_first_run: "whisper-base ≤ 60 s on 100 Mbps"
-  ui_frame_during_transcription: "≥ 55 FPS main thread (no long tasks > 50 ms from engine)"
-  transcript_scroll: "60 FPS with 10 000 blocks"
+  ui_main_thread_during_transcription: "no long task > 50 ms attributable to engine code; ≥ 55 FPS rAF sampling"
+  transcript_scroll: "≥ 55 FPS with 10 000 blocks (rAF frame-drop assertion)"
   export_burn_in: "≥ 1× realtime at 1080p H.264 (WebCodecs tier)"
 
-git_strategy:
-  default_branch: main
-  unit_branch: "ai-dlc/<intent-slug>/<unit-slug>"
-  change_strategy: per-unit PRs into main
-  merge: squash, require green quality gates
-
 testing:
-  fixtures_dir: fixtures/ # ffmpeg-generated clips committed to repo; regen via pnpm fixtures
-  determinism: engine tests must not hit network — models served from fixtures/ onnx stubs or mocked worker sessions
-  models_in_ci: "tiny/base only (e2e smoke); diarization e2e uses 2-speaker fixture"
+  strategy: knowledge/conventions.md § Testing strategy   # levels L0–L7 + M, criterion traceability, exit gates
+  fixtures_dir: fixtures/ # small clips committed; large perf fixtures (audio-120min) generated by `pnpm fixtures`, gitignored, checksum-verified
+  determinism: no test hits the network — models served from the local model cache (`pnpm models:fetch` → .cache/models/) or mocked worker sessions
+  models_in_ci: "whisper tiny + VAD + diarization models only (L4/L5); default/large models run in release qualification"
+  nightly: none               # deliberately no scheduled CI; slow and hardware-bound checks run as release qualification (L6)
+  release_qualification: "pnpm qualify on reference hardware → qualification/<version>.json, verified by the qualification-check job on release/*"
+  onnx_threads: 1 # force env.backends.onnx.wasm.numThreads = 1 everywhere so COOP/COEP test servers behave like production
+  memory_tests: "performance.measureUserAgentSpecificMemory() requires cross-origin isolation → memory-gate specs run against a test-only preview server sending COOP/COEP; production never sends them"
 
 operations:
   host: cloudflare-pages
-  config: public/_headers (cache rules for /wasm, /models-cdn passthrough)
-  ci_secret: CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID
-  previews: per-PR preview deployments
+  config: public/_headers (cache rules for /assets, /wasm, /sw.js, manifest; CSP)
+  ci_secret: CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID (GitHub Environments preview/staging/production)
+  environments:
+    preview: every PR branch → <branch>.<project>.pages.dev
+    staging: develop → develop.<project>.pages.dev (automatic on merge)
+    production: main → production domain (automatic on release/hotfix merge; auto-rollback on failed smoke)
+  pipelines: [ci.yml, deploy-staging.yml, start-release.yml, deploy-production.yml]   # spec: knowledge/conventions.md § CI/CD
   analytics: none (privacy-first; no telemetry without explicit opt-in unit)
+  model_hosts: # every origin the app may contact at runtime (CSP connect-src + request-audit allowlist)
+    - https://huggingface.co
+    - https://*.hf.co          # HF xet/LFS CDN redirects, e.g. us.aws.cdn.hf.co (observed 2026-10-27)
+    - https://*.huggingface.co # legacy cdn-lfs hosts

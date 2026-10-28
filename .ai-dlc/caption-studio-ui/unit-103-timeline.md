@@ -34,20 +34,20 @@ Canvas timeline: ruler with zoom/scroll, waveform from `PeaksData`, caption-bloc
 
 - **FR-103.1** Canvas renderer with dpr scaling + resize observer; layers: ruler, waveform (peaks), blocks, handles, playhead, snap indicators; re-render only on dirty regions (dirty-flag; rAF coalesced).
 - **FR-103.2** Viewport model `{ t0, pxPerSec }`; hit-test via spatial index (interval tree over visible window; O(log n + k)).
-- **FR-103.3** Interactions: click/shift-click/marquee select; drag block (move, ripples neighbors within track gap policy); handle-trim; keyboard: `Z/C+←→` ripple-trim to playhead (Clipchamp-verified), arrow-nudge moves selection focus.
+- **FR-103.3** Interactions: click/shift-click/marquee select; drag block body (moves that block only, with its words; clamped between neighbours — never pushes them); handle-trim; keyboard: `Z/C+←→` trim start/end to playhead (Clipchamp-verified), arrow-nudge moves selection focus.
 - **FR-103.4** Waveform: `PeaksData` → bucket draw with `--waveform` tokens; zoom-aware re-bucketing; silence markers.
 - **FR-103.5** Block visuals: time-width mapping, text preview (fit, ellipsize), speaker color left border, low-confidence `--warning` dot, selected/ghost/snap states per design tokens.
 - **FR-103.6** Playhead drag (scrub) through arbitrator; ruler click seeks; loop region shade + handles.
-- **FR-103.7** Accessibility: `tabindex` on timeline with `role="slider"`-style keyboard model (arrows move block focus, `Enter` select, `S`/`M` work from timeline focus); screen-reader announcement of focused block summary (live region).
+- **FR-103.7** Accessibility: `tabindex` on timeline with `role="slider"`-style keyboard model (arrows move block focus, `Enter` select, `S`/`⌘⇧M` work from timeline focus); screen-reader announcement of focused block summary (live region).
 
 ## Completion Criteria
 
-- [ ] Golden: viewport→pixel mapping tests (anchor zoom math, hit-test parity vs data model at 3 zoom levels)
-- [ ] Drag/trim/split/merge dispatch correct commands (store assertions, one-undo-step each)
-- [ ] Snap + constraint tests (adjacency clamp, no word-split without Alt)
-- [ ] 10k-block perf: input latency p95 < 16 ms; dirty-region redraw (no full-canvas repaint per frame)
-- [ ] Keyboard walkthrough spec passes (no mouse) on focused timeline
-- [ ] All gates green
+- [ ] **CC-103.1** Golden: viewport→pixel mapping tests (anchor zoom math, hit-test parity vs data model at 3 zoom levels)
+- [ ] **CC-103.2** Drag/trim/split/merge dispatch correct commands (store assertions, one-undo-step each)
+- [ ] **CC-103.3** Snap + constraint tests (adjacency clamp, no word-split without Alt)
+- [ ] **CC-103.4** 10k-block perf: input latency p95 < 16 ms; dirty-region redraw (no full-canvas repaint per frame)
+- [ ] **CC-103.5** Keyboard walkthrough spec passes (no mouse) on focused timeline
+- [ ] **CC-103.6** All gates green
 
 ## Risks
 

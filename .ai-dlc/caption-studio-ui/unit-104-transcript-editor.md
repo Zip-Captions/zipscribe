@@ -1,7 +1,7 @@
 ---
 status: pending
 discipline: frontend
-depends_on: [unit-102-editor-core-playback, unit-103-timeline, local-transcribe-engine/unit-06-speaker-diarization]
+depends_on: [unit-102-editor-core-playback, unit-103-timeline, local-transcribe-engine/unit-06-speaker-diarization, local-transcribe-engine/unit-07-caption-import]
 workflow: tdd
 mode: AHOTL
 ---
@@ -38,17 +38,21 @@ Subtitles tab: virtualized block list with speaker chips, timecodes, click-word-
 - **FR-104.4** Editing commits exclusively via command registry (conventions rule); contenteditable sanitized; IME-safe (composition events don't dispatch mid-composition).
 - **FR-104.5** Search index rebuilt lazily on block-version bump; highlight via text-range spans (no HTML injection).
 - **FR-104.6** Streaming mode: `job:segments` appends skeleton rows with shimmer beyond frontier (from `jobs` store); user edits during streaming land in committed region only.
-- **FR-104.7** Ripple-delete (US-105 binds): Shift+Delete on selected row → ripple command (media-cut semantics from `domain.md` job lifecycle — v1: block deletion + gap-fill policy flag).
+- **FR-104.7** Delete + close gap (unit-105 binds `Shift+Delete`): `block-delete-close-gap` removes the block and extends its neighbours to meet at the gap midpoint; media is never cut and later blocks never shift (domain invariant 9). True ripple with media cuts = seed.
+- **FR-104.8** Imported-caption tools (engine: `local-transcribe-engine/unit-07`): QC "Issues (n)" filter + per-row issue dots + `⌘'`/`⌘⇧'` navigation; "Align to audio" toolbar action (progress, cancel, % aligned result toast); "Shift / stretch timing…" dialog (offset or two-point sync, preview before apply); "Re-flow captions" action; dotted underline on words with `timing:'estimated'`.
+- **FR-104.9** Caption-file drop onto an open project opens the import dialog (`knowledge/design.md` § Bring-your-own captions) — replace source vs add as translation, report before confirm; one undo step.
 
 ## Completion Criteria
 
-- [ ] 10k-block: ≥ 55 FPS scroll + row-count bound (chromium trace)
-- [ ] Click-word-seek ≤ 1 frame; auto-scroll never moves viewport during edit (tested)
-- [ ] Edit-preserves-timing goldens incl. paste sanitize + IME composition test
-- [ ] Search/replace: match count + replace-all single-undo + F3 cycling (property test random corpora)
-- [ ] Speaker ops: rename/recolor/merge/reassign/filter — each one undo step, badge transitions correct
-- [ ] axe: 0 critical on populated transcript; all rows reachable by keyboard
-- [ ] All gates green
+- [ ] **CC-104.1** 10k-block: ≥ 55 FPS scroll + row-count bound (chromium trace)
+- [ ] **CC-104.2** Click-word-seek ≤ 1 frame; auto-scroll never moves viewport during edit (tested)
+- [ ] **CC-104.3** Edit-preserves-timing goldens incl. paste sanitize + IME composition test
+- [ ] **CC-104.4** Search/replace: match count + replace-all single-undo + F3 cycling (property test random corpora)
+- [ ] **CC-104.5** Speaker ops: rename/recolor/merge/reassign/filter — each one undo step, badge transitions correct
+- [ ] **CC-104.6** axe: 0 critical on populated transcript; all rows reachable by keyboard
+- [ ] **CC-104.7** Imported-caption flow e2e (mocked worker for align): drop `vendor.srt` on a project → report → confirm → QC issues listed → fix one via jump → shift timing +0.5 s → align → estimated underlines disappear on aligned words; each step one undo
+- [ ] **CC-104.8** Close-gap delete: neighbours meet at gap midpoint; later blocks' times unchanged
+- [ ] **CC-104.9** All gates green
 
 ## Risks
 
