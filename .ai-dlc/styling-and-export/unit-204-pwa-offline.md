@@ -1,7 +1,6 @@
 ---
 status: pending
 discipline: frontend
-pass: dev
 depends_on: [unit-200-style-export-offline-design, unit-203-production-deploy, local-transcribe-engine/unit-03-model-manager, caption-studio-ui/unit-106-persistence]
 workflow: tdd
 mode: HITL   # service workers are easy to get subtly wrong and hard to roll back on users' machines

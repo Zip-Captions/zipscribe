@@ -3,7 +3,7 @@ status: pending
 discipline: frontend
 depends_on: [unit-301-translation-engine, caption-studio-ui/unit-104-transcript-editor, styling-and-export/unit-202-export]
 workflow: default
-mode: OHOTL   # review UX benefits from watching real use; contracts already fixed by 301/104/202
+mode: HITL   # review UX needs the owner's judgement; contracts already fixed by 301/104/202
 ---
 
 # Unit 302: Translation Workspace (languages, side-by-side review, per-language export)

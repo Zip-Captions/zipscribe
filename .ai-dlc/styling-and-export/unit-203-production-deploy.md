@@ -1,18 +1,11 @@
 ---
 status: pending
 discipline: devops
-pass: dev
 depends_on: [unit-202-export, caption-studio-ui/unit-106-persistence]
 workflow: default
 mode: AHOTL   # infra config, strong CI verification available
-deployment:
-  target: cloudflare-pages
-  artifacts: [dist/, public/_headers, .github/workflows/deploy.yml]
-  environments: [preview, staging, production]
 operations:
-  runbooks: [docs/RELEASE.md]
-  rollback: "revert commit on main → CI redeploys previous build (or Pages dashboard rollback); rehearsed once"
-  scaling: "n/a — static assets on Cloudflare's CDN"
+  - production-deploy
 ---
 
 # Unit 203: Production Deploy & Ops (Cloudflare Pages)

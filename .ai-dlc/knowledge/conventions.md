@@ -31,7 +31,7 @@ The goal: every construction step (unit, intent, release) ends with **machine-ch
 
 ### Principles
 
-1. **Criteria-driven.** Every Completion Criterion has an ID and at least one test (or, for the few that can't be automated in CI, a recorded result) that proves it. The `test-writer` hat starts from the criteria list, not from the implementation.
+1. **Criteria-driven.** Every Completion Criterion has an ID and at least one test (or, for the few that can't be automated in CI, a recorded result) that proves it. Whoever writes the tests starts from the criteria list, not from the implementation.
 2. **Behaviour through public seams.** Test engine functions, the worker protocol, store commands and user flows — not private internals. Mock only at system boundaries (SDKs, browser APIs, workers) and only with the shared fakes in `src/test-support/`.
 3. **Hermetic and deterministic.** No network in any test (Playwright blocks all non-local requests; models come from the local model cache, below). Injected clocks, seeded property tests (seed printed on failure), checksum-verified fixtures, bundled fonts, fixed DPR for visual tests.
 4. **Privacy is tested, not trusted.** Every suite loads a *canary transcript* containing a unique marker string; a global spy on `console.*`, thrown errors, `EngineError.detail`, notices and written artifacts fails the run if the marker ever appears (SECURITY-03).
@@ -64,7 +64,7 @@ The goal: every construction step (unit, intent, release) ends with **machine-ch
 1. Quality gates green: lint, typecheck, test (with enforced coverage thresholds), build + bundle/precache budgets, e2e (for units with UI/export/PWA scope), `verify:unit`.
 2. Every untagged criterion has a passing test; `[DEPLOY]` criteria pass on the PR preview deployment.
 3. Contract suites pass for every seam the unit touched.
-4. Unit report complete (`.agent/AGENTS.md` format); the AI reviewer hat approved in-session; for `mode: HITL` units the owner approves during the session. There is no PR review step while the team is solo — the PR exists to run CI and the preview deploy, then auto-merges.
+4. Unit report complete (`.agent/AGENTS.md` format); the reviewer agent approved in-session; for `mode: HITL` units the owner approves during the session. There is no PR review step while the team is solo — the PR exists to run CI and the preview deploy, then auto-merges.
 5. No test passed only on retry (see flake policy).
 
 **Intent exit** (orchestrator flips intent `status: completed`) — all of:
@@ -90,7 +90,7 @@ The goal: every construction step (unit, intent, release) ends with **machine-ch
 
 - **Fixtures:** small media + caption + ground-truth files committed under `fixtures/` (≤ 50 MB total, `fixtures/LICENSES.md`); large ones generated deterministically by `pnpm fixtures` (gitignored, checksum-verified via `fixtures/harness/manifest.json`).
 - **Models:** `pnpm models:fetch` downloads the registry's CI models (`tiny`, diarization, VAD) at their pinned revision into `.cache/models/` with SHA-256 verification — a setup step like `pnpm install`, never during a test. CI caches it keyed by the registry hash. Tests serve models from disk via a Playwright route; the real network stays blocked.
-- **Goldens:** `fixtures/golden/` + per-format `*.expected.json`; regenerate with `pnpm test -- --update-goldens`; the PR must contain a "Golden changes" note explaining why (checked by the AI reviewer hat).
+- **Goldens:** `fixtures/golden/` + per-format `*.expected.json`; regenerate with `pnpm test -- --update-goldens`; the PR must contain a "Golden changes" note explaining why (checked by the reviewer agent).
 
 ### Mocks and fakes
 
@@ -147,7 +147,7 @@ The goal: every construction step (unit, intent, release) ends with **machine-ch
 - **Versioning:** SemVer. Pre-1.0 releases (`0.Y.Z`) while intents are in flight; `1.0.0` when the v1 scope (intents 1–4) qualifies. The version lives in `package.json` and is shown in About.
 - **Branch protection:** `main` and `develop` reject direct pushes and force-pushes and require the CI checks, with **zero required reviews** (solo team; add reviewers here if the team grows); PRs auto-merge when green; a `branch-policy` check fails any PR into `main` whose head isn't `release/*` or `hotfix/*`.
 - **Commits & PRs:** conventional commits (`feat(transcript): …`, `test(engine): …`, `fix: …`) — the changelog is generated from them. PR description links the unit file and embeds the `verify:unit` criteria table. Gate failures block merge.
-- No drive-by refactors outside unit scope (`.agent/AGENTS.md`); note desired refactors in the PR description for `/ai-dlc:seed`.
+- No drive-by refactors outside unit scope (`.agent/AGENTS.md`); note desired refactors in the PR description as backlog seeds (`knowledge/product.md` § Seeds).
 
 ## CI/CD (GitHub Actions → Cloudflare Pages)
 

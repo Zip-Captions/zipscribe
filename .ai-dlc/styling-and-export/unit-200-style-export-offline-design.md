@@ -1,12 +1,9 @@
 ---
 status: pending
 discipline: design
-pass: design
 depends_on: [caption-studio-ui/unit-101-workbench-shell]
-workflow: design
-mode: OHOTL   # visual judgement; owner observes and redirects
-design_ref: ""
-views: []
+workflow: default
+mode: HITL   # visual judgement; owner reviews each artifact
 ---
 
 # Unit 200: Style, Export & Offline — Design Pass
@@ -32,7 +29,7 @@ Design-pass output that the dev units build against: the four caption presets, o
 - [ ] **CC-200.2** `[MANUAL]` Export dialog wireframes for every tier and state above
 - [ ] **CC-200.3** `[MANUAL]` Offline/install wireframes for every state above + icon set source (SVG) for `@vite-pwa/assets-generator`
 - [ ] **CC-200.4** `[MANUAL]` Contrast check: every preset's text vs box/outline meets WCAG AA 4.5:1 on a mid-grey and a white frame
-- [ ] **CC-200.5** `[MANUAL]` Owner review recorded (OHOTL) before the intent advances to the dev pass
+- [ ] **CC-200.5** `[MANUAL]` Owner review recorded before the intent advances to the dev pass
 
 ## Boundaries
 

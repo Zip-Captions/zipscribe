@@ -1,24 +1,8 @@
 ---
 status: pending
 workflow: tdd
-git:
-  change_strategy: unit
-  auto_merge: true
 created: 2026-10-27
 announcements: [changelog, release-notes]
-passes: []
-active_pass: ""
-quality_gates:
-  - name: lint
-    command: pnpm lint
-  - name: typecheck
-    command: pnpm typecheck
-  - name: unit_tests
-    command: pnpm test
-  - name: bundle_budget
-    command: pnpm build && pnpm check-bundle
-  - name: criteria
-    command: pnpm verify:unit --from-branch
 ---
 
 # Intent: Local Transcribe Engine
@@ -78,5 +62,5 @@ Maps to Epic 1 (US 1.1–1.3) of the original product brief, corrected against r
 
 - Any React UI (Intent 2 renders engine state).
 - Burn-in/export (Intent 3).
-- Multithreaded wasm / COOP-COEP in production (explicitly deferred; revisit post-launch via `/ai-dlc:followup`). COOP/COEP on the *test* preview server for memory measurement is allowed.
+- Multithreaded wasm / COOP-COEP in production (explicitly deferred; revisit post-launch as a follow-up intent). COOP/COEP on the *test* preview server for memory measurement is allowed.
 - Service worker / install (Intent 3 unit-204) — this intent only guarantees everything it fetches is cacheable and same-origin or allowlisted.
