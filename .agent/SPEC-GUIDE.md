@@ -1,6 +1,6 @@
-# Elaboration Context — Zipscribe
+# Spec Guide — Zipscribe
 
-Standing context for every `/ai-dlc:elaborate` session in this repo.
+Standing context for anyone (human or agent) adding or changing intents and units in `.ai-dlc/` — AI-DLC Inception work (Mob Elaboration: intent → user stories, NFRs, risks, units; see docs-mcp `ai-dlc-method`).
 
 ## Required discovery areas for any new intent
 
@@ -18,8 +18,8 @@ Standing context for every `/ai-dlc:elaborate` session in this repo.
 
 - Units: Intent 1 = `unit-01…09`, Intent 2 = `unit-101…`, Intent 3 = `unit-200…`, Intent 4 = `unit-301…`; next intent starts at `unit-401`.
 - IDs: new stories `US-<unit#>.<n>`, requirements `FR-<unit#>.<n>`; legacy brief IDs only with "(orig. …)". Never reuse an ID.
-- Every unit file: frontmatter (`status`, `discipline`, `depends_on`, `workflow`, `mode`, `pass` if the intent has passes), then Description, User Stories (Given/When/Then), Functional Requirements, Technical Specification, Completion Criteria (incl. failure cases), Risks, Boundaries, Docs to consult.
-- Every intent: frontmatter `quality_gates` copied from `settings.yml` (+ `e2e` when it has UI, + `criteria`), and a "Failure cases" block in Completion Criteria.
+- Every unit file: frontmatter (`status`, `discipline`, `depends_on`, `workflow`, `mode`), then Description, User Stories (Given/When/Then), Functional Requirements, Technical Specification, Completion Criteria (incl. failure cases), Risks, Boundaries, Docs to consult.
+- Every intent: frontmatter (`status`, `workflow`, `created`, `announcements`) and a "Failure cases" block in Completion Criteria. Quality gates live only in `settings.yml` and run in CI.
 - Every Completion Criterion gets the next `CC-…` ID and, if it can't be proven in PR CI, an `[RQ]`/`[DEPLOY]`/`[MANUAL]` tag (`knowledge/conventions.md` § Criterion traceability). Prefer criteria that L1–L5 tests can prove; split mixed criteria.
 - Research goes in the intent's `discovery.md` with source links and the date verified.
 

@@ -1,7 +1,6 @@
 ---
 status: pending
 discipline: frontend
-pass: dev
 depends_on: [unit-200-style-export-offline-design, caption-studio-ui/unit-102-editor-core-playback, caption-studio-ui/unit-104-transcript-editor]
 workflow: default
 mode: HITL   # visual judgement + shared-renderer contract with export

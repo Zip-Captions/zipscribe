@@ -1,6 +1,6 @@
 # Zipscribe — Agent Instructions (orchestrator + sub-agents)
 
-Permanent instructions for any agent working in this repo (Claude Code, opencode, the AI-DLC hats and `/ai-dlc:review`). All agent-facing docs live in `.agent/`; AI-DLC workflow state lives in `.ai-dlc/`. Your job is usually one **unit**: make its Completion Criteria true with all quality gates green, then report.
+Permanent instructions for any agent working in this repo (Claude Code via `.claude/CLAUDE.md`, opencode via `opencode.json` → `instructions`, and every pipeline subagent — builder, test-author, adversary, fixer, reviewer). All agent-facing docs live in `.agent/`; AI-DLC workflow state lives in `.ai-dlc/`. Your job is usually one **unit**: make its Completion Criteria true with all quality gates green, then report.
 
 ## Read first, in order
 
@@ -30,7 +30,7 @@ If a change to a contract type is needed, stop and list it under "Contract chang
 - **Dependencies.** Use what's in `settings.yml approved_dependencies` or the unit's Technical Specification. Anything else: list it under "Dependencies" in your report with the reason.
 - **Privacy (SECURITY-03).** Transcript text, caption text, translations and audio-derived strings never go into logs, error messages/details, or test artifacts. Log codes and numbers.
 - **Network.** Runtime requests go only to `self` and `settings.yml operations.model_hosts`. Tests never touch the network: models come from the local model cache (`pnpm models:fetch`, a setup step) or mocked workers; fixtures come from `fixtures/` (`pnpm fixtures` regenerates; never download at test time).
-- **Stay in scope.** Change only what the unit needs. Note refactors you'd like under "Follow-ups" for `/ai-dlc:seed`.
+- **Stay in scope.** Change only what the unit needs. Note refactors you'd like under "Follow-ups" (candidates for the backlog seeds in `knowledge/product.md`).
 
 ## When you're stuck
 
@@ -54,7 +54,7 @@ pnpm verify:unit --from-branch    # every untagged CC-ID has a passing test → 
 
 Setup (not gates): `pnpm fixtures`, `pnpm models:fetch`. Release only: `pnpm qualify` on reference hardware.
 
-A unit is done when it meets the **unit exit gate** in `knowledge/conventions.md` § Exit gates — Completion Criteria proven **and** every gate green. Intent frontmatter `quality_gates` is what the AI-DLC harness enforces.
+A unit is done when it meets the **unit exit gate** in `knowledge/conventions.md` § Exit gates — Completion Criteria proven **and** every gate green. CI (`.github/workflows/ci.yml`) enforces these gates on every PR.
 
 ## Unit report (return this when you finish or stop)
 
@@ -84,11 +84,10 @@ Git flow — full model in `knowledge/conventions.md` § Version control and § 
 
 ## docs-mcp libraries relevant here
 
-`transformers.js` (main/4.x), `sherpa-onnx`, `mediabunny` (1.62.1, guide pages), `vite`, `vitest`, `playwright`, `react`, `@tanstack/react-virtual`, `chrome-built-in-ai` (Translator/LanguageDetector), `cactus-needle`, `github actions`, `ai-dlc` / `ai-dlc.dev` (workflow), `prompt engineering guide`. Not indexed yet (scrape at unit start): `vite-plugin-pwa`, `zustand`/`zundo`, `idb`, `@ffmpeg/ffmpeg`, `@testing-library/react`, Stryker, Web Audio API (MDN).
+`transformers.js` (main/4.x), `sherpa-onnx`, `mediabunny` (1.62.1, guide pages), `vite`, `vitest`, `playwright`, `react`, `@tanstack/react-virtual`, `chrome-built-in-ai` (Translator/LanguageDetector), `cactus-needle`, `github actions`, `ai-dlc` (official AWS AI-DLC workflow rules + guides, github.com/awslabs/aidlc-workflows), `ai-dlc-method` (AWS AI-DLC Method Definition Paper — the methodology's source of truth), `prompt engineering guide`. Not indexed yet (scrape at unit start): `vite-plugin-pwa`, `zustand`/`zundo`, `idb`, `@ffmpeg/ffmpeg`, `@testing-library/react`, Stryker, Web Audio API (MDN).
 
 ## Where agent docs live
 
-- Canonical files: `.agent/AGENTS.md` (this file) and `.agent/REVIEW.md` (review rules — every reviewer reads both). Edit these, never the pointers.
-- Root **symlinks** exist only because tools hard-code root paths: `CLAUDE.md → .agent/AGENTS.md` (Claude Code; opencode's documented fallback when no `AGENTS.md` exists; `/ai-dlc:review`'s `cat CLAUDE.md`) and `REVIEW.md → .agent/REVIEW.md` (`/ai-dlc:review`'s `cat REVIEW.md`). Don't add a root `AGENTS.md` or an `opencode.json` `instructions` entry — either would make opencode load these rules twice.
-- `.ai-dlc/hats/reviewer.md` augments the AI-DLC reviewer hat so per-unit reviews read both files.
-- `.ai-dlc/` is the AI-DLC workflow's own directory (intents, units, knowledge, `ELABORATION.md`, hat augmentations) — its location is fixed by the tool.
+- `.agent/AGENTS.md` (this file), `.agent/REVIEW.md` (review checklist — every reviewer reads both), `.agent/SPEC-GUIDE.md` (how to write and extend the spec).
+- Tool bridges, not docs: `.claude/CLAUDE.md` imports this file for Claude Code; `opencode.json` lists it under `instructions` for opencode. Don't add a root `AGENTS.md` or `CLAUDE.md` — opencode would load these rules twice.
+- `.ai-dlc/` holds the project's AI-DLC artifacts (intents, units, discovery logs, knowledge). Methodology reference: docs-mcp `ai-dlc` and `ai-dlc-method`.

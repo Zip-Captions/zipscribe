@@ -1,15 +1,7 @@
 # AI-DLC project settings — Zipscribe
 # Read by orchestrator and sub-agents before any unit execution.
-#
-# Key names follow the AI-DLC settings schema where one exists (`git`, `stack`,
-# `default_announcements`, `review_agents`). Project-specific blocks
-# (`tech_stack`, `version_pins`, `reference_hardware`, `performance_baselines`,
-# `testing`, `operations`) are preserved by `/ai-dlc:setup` but not interpreted
-# by the harness — they are contract for agents.
-#
-# NOTE: the harness enforces quality gates from intent/unit *frontmatter*
-# (`quality_gates: [{name, command}]`), not from this file. The canonical gate
-# list lives here; every intent.md copies it into frontmatter (additive ratchet).
+# Quality gates below are enforced by CI (.github/workflows/ci.yml, unit-01) and by the
+# unit exit gate in knowledge/conventions.md § Exit gates.
 
 project:
   name: zipscribe
@@ -17,13 +9,12 @@ project:
   package_manager: pnpm@10
   node: ">=22"
 
-git:
-  change_strategy: unit        # one branch + PR per unit; dependents wait for merge
-  default_branch: develop      # git flow: AI-DLC branches from and PRs into develop; main = production (releases only)
-  auto_merge: true             # solo team: unit PRs squash-merge into develop automatically once every gate is green (no review step)
-  elaboration_review: true
-  # branch naming (AI-DLC): ai-dlc/<intent-slug>/<unit-file-stem> — treated as git-flow feature branches.
-  # Full branch model + CI/CD: knowledge/conventions.md § Version control (git flow), § CI/CD.
+git_strategy:
+  model: git flow               # full model + CI/CD: knowledge/conventions.md § Version control, § CI/CD
+  default_branch: develop      # all unit work branches from and merges into develop; main = production (releases only)
+  unit_branch: "ai-dlc/<intent-slug>/<unit-file-stem>"   # git-flow feature branch
+  change_strategy: per-unit PRs into develop
+  merge: squash, auto-merge once every quality gate is green (solo team, no review step)
 
 git_flow:
   production_branch: main
@@ -34,21 +25,7 @@ git_flow:
   version_tag_prefix: "v"
   versioning: semver           # 0.Y.Z until intents 1–4 qualify, then 1.0.0
 
-default_announcements: [changelog]
-
-review_agents:
-  accessibility: true
-
-# AI-DLC infrastructure stack (schema key `stack`). Zero-server static app: no compute/monitoring layers.
 stack:
-  pipeline:
-    - provider: github-actions
-      workflows_path: .github/workflows/
-  secrets:
-    - provider: env            # GitHub Actions secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID
-
-# Application technology stack (project-specific; NOT the AI-DLC `stack` key).
-tech_stack:
   language: typescript@5 (strict, noUncheckedIndexedAccess)
   build: vite@7               # DECISION PENDING: vite@8 is current (8.3.x); confirm vitest/vite-plugin-pwa compat at unit-01 and record here
   ui: react@19 (thin render layer only)
@@ -86,7 +63,7 @@ version_pins:
   react: "^19.0.0"            # was ~19.0 (would freeze an old patch line); 19.3.x current
   vite-plugin-pwa: "^2.0.0"   # peer: vite 3–8, workbox 7.4
 
-quality_gates: # hard gates — copied into every intent.md frontmatter; AI cannot mark a unit complete with any failing
+quality_gates: # hard gates — enforced in CI on every PR; a unit cannot be marked complete with any failing
   - name: lint
     command: pnpm lint
   - name: typecheck

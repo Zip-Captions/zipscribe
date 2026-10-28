@@ -1,26 +1,8 @@
 ---
 status: pending
 workflow: default
-git:
-  change_strategy: unit
-  auto_merge: true
 created: 2026-10-27
 announcements: [changelog, release-notes, blog-draft]
-passes: []
-active_pass: ""
-quality_gates:
-  - name: lint
-    command: pnpm lint
-  - name: typecheck
-    command: pnpm typecheck
-  - name: unit_tests
-    command: pnpm test
-  - name: bundle_budget
-    command: pnpm build && pnpm check-bundle
-  - name: e2e
-    command: pnpm test:e2e
-  - name: criteria
-    command: pnpm verify:unit --from-branch
 ---
 
 # Intent: Caption Studio UI

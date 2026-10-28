@@ -20,7 +20,7 @@ Cloud captioning tools gate diarization and timeline editing behind paid tiers, 
 
 ## Status
 
-Spec phase. This repository is currently **specification only** — no application code yet. Build proceeds unit-by-unit through the AI-DLC workflow defined in `.ai-dlc/` (build order: `.ai-dlc/ELABORATION.md`).
+Spec phase. This repository is currently **specification only** — no application code yet. Build proceeds unit-by-unit through the AI-DLC workflow defined in `.ai-dlc/` (build order: `.agent/SPEC-GUIDE.md`).
 
 **Branching & delivery:** git flow — `develop` is the working branch (auto-deploys to staging), `main` is production (auto-deploys on every release/hotfix merge, with automatic rollback). Testing levels, criterion traceability (`CC-…` IDs) and exit gates: `.ai-dlc/knowledge/conventions.md` § Testing strategy, § Version control, § CI/CD.
 
@@ -29,15 +29,15 @@ Spec phase. This repository is currently **specification only** — no applicati
 | Path | Artifact |
 |---|---|
 | `.agent/AGENTS.md` | Instructions for every coding agent (precedence rules, gates, unit report format) |
-| `.agent/REVIEW.md` | Project rules for code review (AI-DLC reviewer hat + `/ai-dlc:review`) |
+| `.agent/REVIEW.md` | Review checklist for the pipeline reviewer and any other reviewer |
+| `.agent/SPEC-GUIDE.md` | How to add/extend intents and units: required discovery areas, spec conventions, build order |
 | `.ai-dlc/settings.yml` | Project config: tech stack, version pins, approved deps, quality gates, reference hardware, network allowlist, git strategy |
-| `.ai-dlc/ELABORATION.md` | Standing context for new intents: required discovery areas, spec conventions, build order |
 | `.ai-dlc/knowledge/` | Persistent project intelligence (architecture contract, design, product, domain, conventions) |
 | `.ai-dlc/local-transcribe-engine/` | **Intent 1** — video/audio → PCM → VAD → windowed ASR → caption blocks + beta speakers; caption-file import, QC, align-to-audio |
 | `.ai-dlc/caption-studio-ui/` | **Intent 2** — workbench, transcript editor, timeline, playback sync, audio playback + visualizer, shortcuts, persistence |
 | `.ai-dlc/styling-and-export/` | **Intent 3** — design pass, caption styling, sidecar + burn-in export, Cloudflare Pages deploy, installable offline PWA |
 | `.ai-dlc/caption-translation/` | **Intent 4** — on-device translation engine + translation workspace |
-| `CLAUDE.md`, `REVIEW.md` (root) | Symlinks into `.agent/` for tools that only look at the repo root (Claude Code, opencode fallback, `/ai-dlc:review`) — edit the `.agent/` files |
+| `.claude/CLAUDE.md`, `opencode.json` | Tool bridges that load `.agent/AGENTS.md` for Claude Code and opencode |
 | `docs/spikes/` | Spike reports written by units (e.g. unit-02 model evaluation) |
 | `qualification/` | Release-qualification results per version (`pnpm qualify` on reference hardware) |
 

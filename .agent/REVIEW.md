@@ -1,6 +1,6 @@
 # Review Guidelines — Zipscribe
 
-Project code-review rules for every review agent — the AI-DLC reviewer hat (via `.ai-dlc/hats/reviewer.md`) and `/ai-dlc:review` (via the root `REVIEW.md` symlink) — read together with `.agent/AGENTS.md` (root `CLAUDE.md` symlink). Findings that violate an "Always check" item are **HIGH** severity.
+Project code-review rules for every reviewer — the pipeline `reviewer` subagent and anyone else reviewing a diff — read together with `.agent/AGENTS.md`. Findings that violate an "Always check" item are **HIGH** severity.
 
 ## Always check
 
@@ -25,4 +25,3 @@ Project code-review rules for every review agent — the AI-DLC reviewer hat (vi
 - `pnpm-lock.yaml`
 - `docs/spikes/**` measurement tables (review conclusions, not numbers)
 - `.ai-dlc/**` (spec changes are reviewed in spec PRs, not code review)
-- Root `CLAUDE.md` / `REVIEW.md` (symlinks — review `.agent/` instead)
