@@ -6,12 +6,10 @@
 // gitignored public/ directories before the eval build. Same pattern as
 // scripts/copy-wasm.ts for onnxruntime-web (FR-1.0.9).
 
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-
-const require = createRequire(import.meta.url)
 
 // `vite preview` serves dist/ — vendor assets must exist in BOTH public/
 // (source of truth for the next build) and dist/ when it exists (the running
@@ -35,18 +33,34 @@ function copyMatching(source: string, target: string, pattern: RegExp, label: st
     copied.push(file)
   }
   if (copied.length === 0) throw new Error(`no ${label} files found in ${source}`)
+  // Prune stale artifacts the source no longer ships (slice-2B audit finding:
+  // public/sherpa carried superseded speech-asr/npm node-build files after
+  // the engine B source switched to the official vad-asr set — a server can
+  // only be trusted to serve what its current source declares).
+  const keep = new Set(copied)
+  const prune = (dir: string): void => {
+    if (!existsSync(dir)) return
+    for (const file of readdirSync(dir)) {
+      if (!pattern.test(file) || keep.has(file)) continue
+      rmSync(join(dir, file))
+    }
+  }
+  prune(target)
+  prune(target.replace(`${sep}public${sep}`, `${sep}dist${sep}`))
   return copied
 }
 
 export function copyVendorAssets(): { sherpa: string[]; eval4x: string[] } {
-  // Engine B: official sherpa-onnx WASM (Emscripten build + JS glue modules).
-  // The npm `sherpa-onnx` package ships the NODE wasm build (top-level
-  // require("path") — browser-hostile). speech-asr@1.1.6 (npm) republishes the
-  // official k2-fsa BROWSER wasm build: sherpa-onnx-wasm-main-asr.{js,wasm}
-  // plus the same vad/asr class wrappers used by the official wasm/vad-asr
-  // reference (https://github.com/k2-fsa/sherpa-onnx/tree/master/wasm/vad-asr).
-  const sherpaDir = dirname(require.resolve('speech-asr/dist/lib/sherpa-onnx-wasm-main-asr.js'))
-  const sherpa = copyMatching(sherpaDir, join(repoRoot, 'public', 'sherpa'), /^sherpa-onnx-.*\.(js|wasm)$/, 'sherpa-onnx wasm')
+  // Engine B: OFFICIAL k2-fsa browser wasm build of the non-streaming
+  // wasm/vad-asr path (Emscripten main + asr/vad glue), pinned in
+  // models/eval-registry.json (id sherpa-wasm-vad-asr) and fetched
+  // SHA-256-verified by scripts/models-fetch.ts from the k2-fsa Hugging Face
+  // Space (the only allowlisted host for these assets — the npm `sherpa-onnx`
+  // package ships only the node-targeted build; prebuilt browser bundles
+  // otherwise live on github.com releases, outside settings.yml model_hosts).
+  // (Slice 2C: the rejected speech-asr@1.1.6 republisher is gone.)
+  const sherpaDir = join(repoRoot, '.cache', 'models', 'sherpa-wasm-vad-asr')
+  const sherpa = copyMatching(sherpaDir, join(repoRoot, 'public', 'sherpa'), /^sherpa-onnx-.*\.(js|wasm)$/, 'sherpa-onnx wasm (official k2-fsa space)')
 
   // Engine B worker (classic worker hosted under /sherpa so importScripts of
   // the sherpa files resolves same-origin).
@@ -74,6 +88,9 @@ export function copyVendorAssets(): { sherpa: string[]; eval4x: string[] } {
   if (existsSync(registryPath)) {
     const registry = JSON.parse(readFileSync(registryPath, 'utf8')) as { models: Record<string, { repo: string; files: Array<{ path: string }> }> }
     for (const [id, model] of Object.entries(registry.models)) {
+      // 'spaces/…' entries are runtime assets (engine B's official k2-fsa wasm
+      // build) served from /sherpa, not models served from /hf-cache.
+      if (model.repo.startsWith('spaces/')) continue
       for (const file of model.files) {
         const source = join(repoRoot, '.cache', 'models', id, file.path)
         if (!existsSync(source)) continue

@@ -232,7 +232,7 @@
     "sherpa-zipformer-en-int8": {
       "repo": "csukuangfj/sherpa-onnx-zipformer-en-2023-06-26",
       "revision": "11a70a47ec5fd969c17b8d0818681d222a147781",
-      "description": "Engine B reference row (Zipformer-en int8, non-streaming transducer \u2014 the vad-asr path has no streaming runtime; documented deviation from the Candidates table)",
+      "description": "Engine B reference row (Zipformer-en int8, non-streaming transducer — the vad-asr path has no streaming runtime; documented deviation from the Candidates table)",
       "files": [
         {
           "path": "encoder-epoch-99-avg-1.int8.onnx",
@@ -259,12 +259,39 @@
     "silero-vad": {
       "repo": "deepghs/silero-vad-onnx",
       "revision": "193243f7d961b15e6de789d3f90cb0ee867e7b62",
-      "description": "VAD for engine B (vad-asr segmentation). v4 onnx (MIT): the vendored k2-fsa browser wasm build (speech-asr@1.1.6) fails to load the v5 onnx onnx-community hosts (ORT too old); v4 verified working.",
+      "description": "VAD for engine B (vad-asr segmentation). v4 onnx (MIT) — the v5 onnx onnx-community host failed to load under build-1's vendored browser wasm build (ORT too old); v4 verified working under the official k2-fsa vad-asr build (slice 2C).",
       "files": [
         {
           "path": "silero_vad.onnx",
           "sha256": "2623a2953f6ff3d2c1e61740c6cdb7168133479b267dfef114a4a3cc5bdd788f",
           "sizeBytes": 2327524
+        }
+      ]
+    },
+    "sherpa-wasm-vad-asr": {
+      "repo": "spaces/k2-fsa/web-assembly-vad-asr-sherpa-onnx-zh-zipformer-ctc",
+      "revision": "9d5fc71d88ab1222ed1af2274fb194592af48455",
+      "description": "Engine B runtime assets — official k2-fsa browser wasm build of the non-streaming wasm/vad-asr path (Emscripten main + asr/vad glue), served from the k2-fsa HF Space; zips the preloaded zh-model .data via Module.getPreloadedPackage, models come from the SHA-256-pinned HF cache",
+      "files": [
+        {
+          "path": "sherpa-onnx-wasm-main-vad-asr.js",
+          "sha256": "8a7f50a3e4e5930749e8aff9ad98f03753b87490e7796c576947611439dae9d0",
+          "sizeBytes": 95308
+        },
+        {
+          "path": "sherpa-onnx-wasm-main-vad-asr.wasm",
+          "sha256": "e4dead1d159c531282e635069fa9e028175dee71f3f90908186994655425b3ce",
+          "sizeBytes": 11722172
+        },
+        {
+          "path": "sherpa-onnx-asr.js",
+          "sha256": "6297ed7520e0b4569486cd89be89045146728605418254fec4172194abc36c8d",
+          "sizeBytes": 47391
+        },
+        {
+          "path": "sherpa-onnx-vad.js",
+          "sha256": "ca2b0844d1cfd375cbb7faba206e456c5140561578b67f5fc6e7510d09e75510",
+          "sizeBytes": 7764
         }
       ]
     },

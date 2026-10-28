@@ -38,6 +38,15 @@ const WHISPER_FILES = [
 
 const SHERPA_FILES = ['encoder.int8.onnx', 'decoder.int8.onnx', 'joiner.int8.onnx', 'tokens.txt']
 const ZIPFORMER_FILES = ['encoder-epoch-99-avg-1.int8.onnx', 'decoder-epoch-99-avg-1.int8.onnx', 'joiner-epoch-99-avg-1.int8.onnx', 'tokens.txt']
+// Slice 2C: the engine B runtime is the OFFICIAL k2-fsa browser build of the
+// non-streaming wasm/vad-asr path, published by the project as a Hugging Face
+// Space (docs-mcp sherpa-onnx: k2-fsa.github.io/sherpa/onnx/wasm — the npm
+// `sherpa-onnx` package ships only the node-targeted wasm build; prebuilt
+// browser bundles otherwise live on github.com releases, outside the
+// settings.yml allowlist). Space files are served from huggingface.co
+// (allowlisted); the .wasm SHA-256 equals the LFS oid reported by
+// https://huggingface.co/api/spaces/<repo>/tree/main — cross-verified 2026-10-28.
+const SHERPA_WASM_FILES = ['sherpa-onnx-wasm-main-vad-asr.js', 'sherpa-onnx-wasm-main-vad-asr.wasm', 'sherpa-onnx-asr.js', 'sherpa-onnx-vad.js']
 
 const MODELS = {
   'whisper-tiny-timestamped': { repo: 'onnx-community/whisper-tiny_timestamped', description: 'Engine A T1/T2 ASR (whisper-tiny, word-timestamp DTW weights)', files: WHISPER_FILES },
@@ -53,7 +62,18 @@ const MODELS = {
     description: 'Engine B reference row (Zipformer-en int8, non-streaming transducer — the vad-asr path has no streaming runtime; documented deviation from the Candidates table)',
     files: ZIPFORMER_FILES,
   },
-  'silero-vad': { repo: 'onnx-community/silero-vad', description: 'VAD for engine B (vad-asr segmentation; unit-01 CI tier)', files: ['onnx/model.onnx'], revision: 'e71cae966052b992a7eca6b17738916ce0eca4ec' },
+  'silero-vad': {
+    repo: 'deepghs/silero-vad-onnx',
+    description: 'VAD for engine B (vad-asr segmentation). v4 onnx (MIT) — the v5 onnx onnx-community host failed to load under build-1\'s vendored browser wasm build (ORT too old); v4 verified working under the official k2-fsa vad-asr build (slice 2C).',
+    files: ['silero_vad.onnx'],
+    revision: '193243f7d961b15e6de789d3f90cb0ee867e7b62',
+  },
+  'sherpa-wasm-vad-asr': {
+    repo: 'spaces/k2-fsa/web-assembly-vad-asr-sherpa-onnx-zh-zipformer-ctc',
+    description: 'Engine B runtime assets — official k2-fsa browser wasm build of the non-streaming wasm/vad-asr path (Emscripten main + asr/vad glue), served from the k2-fsa HF Space; zips the preloaded zh-model .data via Module.getPreloadedPackage, models come from the SHA-256-pinned HF cache',
+    files: SHERPA_WASM_FILES,
+    revision: '9d5fc71d88ab1222ed1af2274fb194592af48455',
+  },
   'cactus-whistle': {
     repo: 'Cactus-Compute/whistle',
     description: 'Engine C speech model (Whistle 16.9 MB, 7 langs, per-word timestamps, keyword biasing)',

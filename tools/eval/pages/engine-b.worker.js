@@ -1,30 +1,40 @@
-// tools/eval/pages/engine-b.worker.js — engine B: sherpa-onnx official WASM,
-// non-streaming VAD+ASR path (unit-02 Candidates table row B).
+// tools/eval/pages/engine-b.worker.js — engine B: OFFICIAL k2-fsa sherpa-onnx
+// WASM, non-streaming VAD+ASR path (unit-02 Candidates table row B).
 //
-// Runs as a CLASSIC worker (importScripts of the npm-published Emscripten
-// build copied to /sherpa by scripts/copy-vendor-assets.ts — self-hosted,
-// never a CDN, US-02.2). The API surface (Module factory, OfflineRecognizer
+// Runs as a CLASSIC worker (importScripts of the official k2-fsa browser
+// build — models/eval-registry.json id sherpa-wasm-vad-asr, fetched
+// SHA-256-verified from the k2-fsa HF Space by scripts/models-fetch.ts and
+// copied to /sherpa by scripts/copy-vendor-assets.ts — self-hosted, never a
+// CDN, US-02.2). The API surface (Module factory, OfflineRecognizer
 // {createStream,decode,getResult}, createVad/acceptWaveform/pop) was verified
-// against the pinned npm `sherpa-onnx` package itself (node_modules/
-// sherpa-onnx/sherpa-onnx-{wasm-nodejs,asr,vad}.js) and the official
-// wasm/vad-asr reference (https://github.com/k2-fsa/sherpa-onnx/tree/master/
-// wasm/vad-asr). Models are fetched from the allowlisted HF URLs (harness
-// route-intercepts them to the SHA-256-verified local cache) and written
-// into the Emscripten MEMFS before recognizer creation.
+// against the pinned Space assets themselves (sherpa-onnx-asr.js
+// `new OfflineRecognizer(config, Module)`, sherpa-onnx-vad.js
+// `createVad(Module, config)`, matching the official wasm/vad-asr reference
+// app-vad-asr.js on the same Space; docs-mcp sherpa-onnx:
+// https://k2-fsa.github.io/sherpa/onnx/wasm/). Models are fetched from the
+// SHA-256-verified cache served under /hf-cache (self origin, FR-02.9) and
+// written into the Emscripten MEMFS before recognizer creation.
 'use strict'
 
-// The main-asr build is NON-modularized Emscripten: it boots on script
+// The main-vad-asr build is NON-modularized Emscripten: it boots on script
 // evaluation, so the loader config (self.Module) must exist BEFORE
-// importScripts (pattern mirrored from speech-asr@1.1.6 dist/lib/
-// offline-worker.js, the official k2-fsa wasm/vad-asr reference shape).
+// importScripts. getPreloadedPackage short-circuits the bundled 367 MB
+// `.data` package (the Space's preloaded zh model — we serve our own models
+// from the pinned cache into MEMFS instead). This is Emscripten's documented
+// user hook: the generated loader calls `Module["getPreloadedPackage"](name,
+// size)` before any XHR, and slices the returned ArrayBuffer into MEMFS files
+// with no content check, so an empty buffer yields harmless zero-byte
+// entries at the demo's paths while the runtime fetches nothing over the
+// network (US-02.2: only `self` requests are made).
 const runtimeReady = new Promise((resolve, reject) => {
   self.Module = {
     locateFile: (path) => '/sherpa/' + path.replace(/^\.\//, ''),
+    getPreloadedPackage: () => new ArrayBuffer(0),
     onRuntimeInitialized: () => resolve(true),
     onAbort: (reason) => reject(new Error('sherpa runtime abort: ' + String(reason).slice(0, 120))),
   }
 })
-importScripts('/sherpa/sherpa-onnx-wasm-main-asr.js', '/sherpa/sherpa-onnx-asr.js', '/sherpa/sherpa-onnx-vad.js')
+importScripts('/sherpa/sherpa-onnx-wasm-main-vad-asr.js', '/sherpa/sherpa-onnx-asr.js', '/sherpa/sherpa-onnx-vad.js')
 
 let sherpaModule = null
 let recognizer = null
@@ -48,8 +58,9 @@ async function fetchToBytes(url) {
 async function handleRequest(request) {
   if (request.t === 'load') {
     const began = performance.now()
-    // Emscripten factory: pass wasmBinary explicitly so nothing is fetched
-    // by the loader itself (the bytes come from `self`, US-02.2).
+    // locateFile pins the loader's .wasm/.data resolution to /sherpa on
+    // `self` (and getPreloadedPackage short-circuits the .data fetch), so the
+    // boot makes no request outside the preview origin (US-02.2).
     post({ t: 'progress', stage: 'runtime-ready' })
     await Promise.race([runtimeReady, new Promise((_, reject) => setTimeout(() => reject(new Error('sherpa runtime init timeout 120s')), 120_000))])
     sherpaModule = globalThis.Module
