@@ -1,9 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": [
-      "ES2023"
-    ],
+    "lib": ["ES2023"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "moduleDetection": "force",
@@ -16,23 +14,10 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": [
-      "node"
-    ],
+    "types": ["node"],
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true
   },
-  "include": [
-    "vite.config.ts",
-    "vitest.config.ts",
-    "playwright.config.ts",
-    "scripts/**/*.ts",
-    "tests/unit/**/*.ts",
-    "tests/helpers/**/*.ts",
-    "e2e/**/*.ts",
-    "models/ci-registry.json"
-  ],
-  "exclude": [
-    "tests/fixtures"
-  ]
+  "include": ["vite.config.ts", "vitest.config.ts", "playwright.config.ts", "scripts/**/*.ts", "tests/unit/**/*.ts", "tests/helpers/**/*.ts", "e2e/**/*.ts", "models/ci-registry.json"],
+  "exclude": ["tests/fixtures"]
 }

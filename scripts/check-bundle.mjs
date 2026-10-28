@@ -45,7 +45,10 @@ function resolveChunk(spec, fromDir) {
 }
 
 function distRelative(absolute) {
-  return absolute.slice(dist.length + 1).split('\\').join('/')
+  return absolute
+    .slice(dist.length + 1)
+    .split('\\')
+    .join('/')
 }
 
 const staticImport = /(?:^|[\s;])(?:import|export)\s*(?:[^'"]*?\sfrom\s*)?['"]([^'"]+\.js)['"]/g

@@ -6,7 +6,7 @@ import type { ReactNode } from 'react'
 
 export function WorkbenchShell(): ReactNode {
   return (
-    <div className="zipscribe-shell">
+    <div data-testid="workbench-shell" className="zipscribe-shell">
       <header role="banner" className="zipscribe-header">
         <span className="zipscribe-brand">Zipscribe</span>
         <span data-testid="build-info" className="zipscribe-build">

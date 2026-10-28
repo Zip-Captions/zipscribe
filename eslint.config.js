@@ -10,19 +10,7 @@ const FRAMEWORK_PACKAGES = ['react', 'react-dom', 'react-dom/*', 'react/*']
 
 export default tseslint.config(
   {
-    ignores: [
-      'dist/**',
-      'coverage/**',
-      'node_modules/**',
-      'public/wasm/**',
-      'fixtures/**',
-      'reports/**',
-      'test-results/**',
-      'playwright-report/**',
-      '.cache/**',
-      'logs/**',
-      '.vite/**',
-    ],
+    ignores: ['dist/**', 'coverage/**', 'node_modules/**', 'public/wasm/**', 'fixtures/**', 'reports/**', 'test-results/**', 'playwright-report/**', '.cache/**', 'logs/**', '.vite/**'],
   },
 
   // All TypeScript: syntax-level rules (no type information required, so
@@ -57,7 +45,15 @@ export default tseslint.config(
     ignores: ['src/engine/**/adapters/**/*.ts'],
     plugins: { '2:zipscribe': purityPlugin },
     rules: {
-      'no-restricted-imports': ['error', { patterns: [{ group: FRAMEWORK_PACKAGES, message: 'src/engine is framework-agnostic (FR-1.0.5)' }, { group: SDK_PACKAGES, message: 'SDK glue lives in src/workers or src/engine/**/adapters (FR-1.0.5)' }] }],
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            { group: FRAMEWORK_PACKAGES, message: 'src/engine is framework-agnostic (FR-1.0.5)' },
+            { group: SDK_PACKAGES, message: 'SDK glue lives in src/workers or src/engine/**/adapters (FR-1.0.5)' },
+          ],
+        },
+      ],
       'no-restricted-globals': ['error', 'document', 'window', 'localStorage'],
       '2:zipscribe/restricted-imports': ['error', { framework: FRAMEWORK_PACKAGES, sdk: SDK_PACKAGES, allowSdkUnder: '/adapters/' }],
       '2:zipscribe/restricted-globals': ['error', { globals: ['document', 'window', 'localStorage'] }],

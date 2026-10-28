@@ -38,7 +38,7 @@ export default defineConfig({
       // tier", enabled per-unit once those specs exist.
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
-      testIgnore: (file) => !process.env.E2E_WEBKIT && file.endsWith('.spec.ts'),
+      testIgnore: process.env.E2E_WEBKIT ? undefined : /.*/,
     },
   ],
 })

@@ -1,0 +1,118 @@
+name: ci
+
+# PR pipeline (knowledge/conventions.md § CI/CD): install → L0 (lint,
+# typecheck, spec-lint, license-check) → L1–L3 (vitest + enforced coverage
+# thresholds) → build + budgets → models:fetch (cached by registry hash) →
+# L4–L5 Playwright → verify:unit for the changed unit → artifacts. The preview
+# deploy + L7 smoke run only when the Cloudflare secrets exist (unit-01 ships
+# the workflows; owner adds repo-level secrets — see unit report).
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+      - release/*
+      - release/**
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: corepack pnpm install --frozen-lockfile
+      - name: L0 — lint
+        run: corepack pnpm lint
+      - name: L0 — typecheck
+        run: corepack pnpm typecheck
+      - name: L0 — spec lint (criteria IDs, depends_on, frontmatter)
+        run: corepack pnpm spec-lint
+      - name: L0 — dependency license check
+        run: corepack pnpm license-check
+      - name: L0 — formatting
+        run: corepack pnpm format:check
+      - name: L1–L3 — unit tests with coverage thresholds
+        run: corepack pnpm test --coverage
+      - name: build
+        run: corepack pnpm build
+      - name: bundle budget
+        run: corepack pnpm check-bundle
+      - name: 'models (CI tier: tiny + VAD, checksum-verified)'
+        uses: actions/cache@v4
+        id: models-cache
+        with:
+          path: .cache/models
+          key: "models-${{ hashFiles('models/ci-registry.json') }}"
+      - run: corepack pnpm models:fetch
+        if: steps.models-cache.outputs.cache-hit != 'true'
+      - name: install playwright browsers
+        run: corepack pnpm exec playwright install --with-deps chromium
+      - name: L4–L5 — Playwright (chromium)
+        run: corepack pnpm test:e2e
+      - name: criteria traceability (unit branch)
+        run: corepack pnpm verify:unit --from-branch
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reports
+          path: |
+            coverage/
+            reports/
+            playwright-report/
+          if-no-files-found: ignore
+
+  fixtures-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: corepack pnpm install --frozen-lockfile
+      - name: regenerate committed fixtures + checksum/license verification
+        run: |
+          corepack pnpm fixtures
+          corepack pnpm fixtures:verify
+
+  preview-deploy:
+    # FR-1.0.13 (Adaptation 3: deferred until the owner adds repo-level
+    # CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID; then every PR deploys a
+    # preview and the smoke runs against it).
+    needs: quality
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    environment: preview
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: corepack pnpm install --frozen-lockfile
+      - run: corepack pnpm build
+      - name: deploy PR preview (skips without Cloudflare secrets)
+        id: deploy
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: |
+          corepack pnpm exec wrangler pages deploy dist --project-name zipscribe --branch "${{ github.head_ref }}" | tee deploy.log
+          URL=$(grep -oE 'https://[a-z0-9.-]+pages\.dev' deploy.log | tail -1)
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
+      - name: minimal deploy smoke
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: corepack pnpm exec node scripts/deploy-smoke.mjs "${{ steps.deploy.outputs.url }}"

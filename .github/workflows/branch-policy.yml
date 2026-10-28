@@ -1,0 +1,38 @@
+name: branch-policy
+
+# CC-01.13 / FR-1.0.7 — git-flow guard: the only branches allowed to open a PR
+# into `main` are `release/*` and `hotfix/*`. Feature branches (`ai-dlc/**`,
+# `feature/**`) merge into `develop` only. Platform branch protection is not
+# available on this plan (private repo, Free org — .agent/overnight-pipeline.md
+# Adaptation 2), so this check is the enforced substitute.
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  pull-requests: read
+
+jobs:
+  branch-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject PRs into main from anything but release/* or hotfix/*
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          echo "PR into main requested from '${HEAD_REF}'"
+          case "${HEAD_REF}" in
+            release/*|hotfix/*)
+              echo "allowed: ${HEAD_REF} is a release or hotfix branch"
+              ;;
+            ai-dlc/*|feature/*)
+              echo "::error::feature branches (${HEAD_REF}) must target develop, not main"
+              exit 1
+              ;;
+            *)
+              echo "::error::only release/* and hotfix/* may merge into main; got ${HEAD_REF}"
+              exit 1
+              ;;
+          esac

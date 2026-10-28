@@ -32,7 +32,7 @@ describe('onnx runtime boot config (FR-1.0.9)', () => {
   test('warm-up reports a coded error (never content) on a bad status', async () => {
     const error = await warmRuntimeWasm({
       origin: 'http://127.0.0.1:4178',
-      fetchImpl: (() => Promise.resolve(new Response('missing', { status: 404 }))),
+      fetchImpl: () => Promise.resolve(new Response('missing', { status: 404 })),
     })
     expect(error).not.toBeNull()
     expect(error?.code).toBe('NETWORK')
@@ -42,7 +42,7 @@ describe('onnx runtime boot config (FR-1.0.9)', () => {
   test('warm-up reports a coded error on fetch failure', async () => {
     const error = await warmRuntimeWasm({
       origin: 'http://127.0.0.1:4178',
-      fetchImpl: (() => Promise.reject(new Error('offline'))),
+      fetchImpl: () => Promise.reject(new Error('offline')),
     })
     expect(error?.code).toBe('NETWORK')
   })

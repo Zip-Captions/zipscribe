@@ -74,10 +74,7 @@ export interface Notice {
 
 // Events shared by all workers
 export type JobEvent =
-  | { t: 'job:progress'; jobId: string; processedSec: number; totalSec: number }
-  | { t: 'job:done'; jobId: string }
-  | { t: 'job:error'; jobId: string; error: EngineError }
-  | { t: 'notice'; jobId?: string; notice: Notice }
+  { t: 'job:progress'; jobId: string; processedSec: number; totalSec: number } | { t: 'job:done'; jobId: string } | { t: 'job:error'; jobId: string; error: EngineError } | { t: 'notice'; jobId?: string; notice: Notice }
 
 export type ModelEvent =
   | { t: 'model:confirm-required'; model: ModelId; bytes: number } // > 100 MB gate (unit-03)
@@ -103,18 +100,10 @@ export type AsrRequest =
   | { t: 'cancel'; jobId: string }
   | { t: 'unload' }
 
-export type AsrEvent =
-  | JobEvent
-  | ModelEvent
-  | { t: 'vad:segments'; jobId: string; segments: VadSegment[] }
-  | { t: 'job:segments'; jobId: string; segments: RawSegment[] } // streamed batches, sorted
+export type AsrEvent = JobEvent | ModelEvent | { t: 'vad:segments'; jobId: string; segments: VadSegment[] } | { t: 'job:segments'; jobId: string; segments: RawSegment[] } // streamed batches, sorted
 
 // diarize.worker
-export type DiarizeRequest =
-  | { t: 'loadModels' }
-  | { t: 'diarize'; jobId: string; pcm: PcmSource; sampleRate: 16000; vad?: VadSegment[]; maxSpeakers?: number }
-  | { t: 'cancel'; jobId: string }
-  | { t: 'unload' }
+export type DiarizeRequest = { t: 'loadModels' } | { t: 'diarize'; jobId: string; pcm: PcmSource; sampleRate: 16000; vad?: VadSegment[]; maxSpeakers?: number } | { t: 'cancel'; jobId: string } | { t: 'unload' }
 
 export type DiarizeEvent = JobEvent | ModelEvent | { t: 'diar:frames'; jobId: string; frames: DiarFrames }
 

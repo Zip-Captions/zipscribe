@@ -10,6 +10,9 @@ playwright-report
 logs
 pnpm-lock.yaml
 docs/overnight-ledger.md
+# orchestrator-owned spec files — never reformatted by build agents
+.ai-dlc
+.agent
 # test-tree files are author-owned and frozen for unit-01 (byte-identical
 # contract) — formatting them is not allowed, so they are not checked.
 tests
