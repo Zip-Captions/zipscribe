@@ -73,26 +73,40 @@ export async function peakJsMemory<T>(work: () => Promise<T>): Promise<{ result:
   let reason: string | null = isolated ? null : 'not-cross-origin-isolated'
   if (isolated && !measure) reason = 'measureUserAgentSpecificMemory-unavailable'
   let stop = false
+  const measureOnce = async (): Promise<boolean> => {
+    if (!measure || !isolated) return false
+    try {
+      const value = await measure.call(performance)
+      const bytes = typeof value === 'number' ? value : value?.bytes
+      if (typeof bytes === 'number' && Number.isFinite(bytes)) {
+        samples += 1
+        if (peak === null || bytes > peak) peak = bytes
+        return true
+      }
+      return false
+    } catch (error) {
+      reason = `sample-threw:${error instanceof Error ? error.name : 'unknown'}`
+      return false
+    }
+  }
   const poll = async (): Promise<void> => {
     if (!measure || !isolated) return
     while (!stop) {
-      try {
-        const value = await measure.call(performance)
-        const bytes = typeof value === 'number' ? value : value?.bytes
-        if (typeof bytes === 'number' && Number.isFinite(bytes)) {
-          samples += 1
-          if (peak === null || bytes > peak) peak = bytes
-        }
-      } catch (error) {
-        reason = `sample-threw:${error instanceof Error ? error.name : 'unknown'}`
-        return
-      }
+      if (!(await measureOnce())) return
       await new Promise((resolve) => setTimeout(resolve, 250))
     }
   }
   const poller = poll()
   try {
     const result = await work()
+    // The tracking API resolves on a ~3 s cadence; on a short run the poller
+    // may not have landed a sample before work() settles (slice-2B: the
+    // whisper-tiny forced-T2 row sampled zero and froze the CC-02.1 record
+    // incomplete). Take at least one post-run measurement (bounded wait) —
+    // still "peak over real samples", never 0-as-data.
+    for (let attempt = 0; samples === 0 && attempt < 4 && reason === null; attempt += 1) {
+      await Promise.race([measureOnce(), new Promise((resolve) => setTimeout(resolve, 4000))])
+    }
     if (samples === 0 && reason === null) reason = 'no-samples-in-run-window'
     return { result, peakJsHeapBytes: peak, jsHeapSamples: samples, peakJsHeapReason: samples > 0 ? null : reason, isolated }
   } finally {

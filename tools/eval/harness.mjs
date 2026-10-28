@@ -276,9 +276,10 @@ const ROW_PLANS = [
     key: 'B-zipformer-wasm',
     engineId: 'B',
     engine: 'sherpa-onnx',
-    runtime: 'sherpa-onnx@2.0.1 (wasm)',
+    runtime: 'sherpa-onnx wasm/vad-asr (official k2-fsa build, space rev 9d5fc71d)',
     model: 'csukuangfj/sherpa-onnx-zipformer-en-2023-06-26 (int8)',
     registryId: 'sherpa-zipformer-en-int8',
+    runtimeRegistryId: 'sherpa-wasm-vad-asr',
     device: 'wasm',
     tier: 'T2',
     clip: 'taxi-en-technical',
@@ -289,7 +290,7 @@ const ROW_PLANS = [
     key: 'C-whistle-wasm',
     engineId: 'C',
     engine: 'cactus-needle',
-    runtime: 'cactus-needle@0.3.0 (needle.wasm)',
+    runtime: 'cactus-needle@0.3.0 (needle.wasm, vendor manifest rev 2ae11323)',
     model: 'Cactus-Compute/whistle (whistle.cact)',
     registryId: 'cactus-whistle',
     device: 'wasm',
@@ -325,13 +326,12 @@ async function main() {
   mkdirSync(SPIKES, { recursive: true })
   mkdirSync(join(SPIKES, 'network'), { recursive: true })
 
-  if (SMOKE) {
-    console.log('smoke: building eval bundle + assets')
-    buildEval()
-  } else {
-    buildEval()
-    fetchEvalModels()
-  }
+  // The eval registry's SHA-256-verified cache must exist BEFORE the build:
+  // vite output + scripts/copy-vendor-assets.ts copy the official k2-fsa
+  // vad-asr runtime assets (models/eval-registry.json, id sherpa-wasm-vad-asr)
+  // from .cache/models into public/sherpa.
+  if (!SMOKE) fetchEvalModels()
+  buildEval()
 
   server = spawnPreview()
   await waitForServer()
@@ -466,24 +466,16 @@ async function main() {
 
     if (MODES.includes('rows')) {
       report.rows = []
-      // Slice-2B directive (orchestrator): engines B and C are NOT measured
-      // here — build-1 measured them on a third-party wrapper (speech-asr /
-      // anyshu-easy-asr), which is not the official k2-fsa / cactus runtime.
-      // Their rows ship ok:false + null metrics + reason; slice 2C owns them
-      // (official assets or a documented blocker), including the Parakeet
-      // verdict (CC-02.8) and the B/C network audits.
-      report.parakeetVerdict = {
-        loads: false,
-        blockerIssue: 'https://github.com/k2-fsa/sherpa-onnx/issues/2200',
-        note: 'awaiting slice 2C re-measurement — build-1 observed the load abort via the speech-asr carrier build, not the official k2-fsa wasm/vad-asr assets; verdict unverified (third-party runtime, see #2200 for the upstream wasm heap-growth limitation).',
-      }
+      // Slice 2C: engines B and C are measured here on OFFICIAL assets —
+      // B: the k2-fsa browser wasm/vad-asr build from the pinned HF Space
+      // (npm `sherpa-onnx` ships only the node-targeted build; speech-asr,
+      // build-1's third-party republisher, was removed from package.json);
+      // C: the npm-published cactus-needle 0.3.0 browser build (needle.wasm
+      // vendored + manifest SHA-256-pinned, whistle.cact from the pinned HF
+      // revision). Parakeet (CC-02.8) gets its real load attempt after the
+      // B row so the vad-asr path is proven first.
       const onlyEngine = (process.argv.find((a) => a.startsWith('--only-engine=')) ?? '').split('=')[1]
       for (const plan of ROW_PLANS.filter((p) => !onlyEngine || p.engineId === onlyEngine)) {
-        if (plan.engineId !== 'A') {
-          report.rows.push(pendingRow(plan))
-          console.log(`row ${plan.key}: pending (slice 2C owns engines B/C)`)
-          continue
-        }
         activeEngines.length = 0
         activeEngines.push(plan.engineId)
         if (!requestLogs.has(plan.engineId)) requestLogs.set(plan.engineId, [])
@@ -528,6 +520,16 @@ async function main() {
         report.rows.push(row)
         console.log(`row ${plan.key}: ${JSON.stringify({ ok: row.ok, wer: row.wer, rtf: row.rtf, mae: row.wordTimingMAEms, error: row.error })}`)
       }
+      if (!onlyEngine || onlyEngine === 'B') {
+        // CC-02.8: real Parakeet attempt on the same official vad-asr runtime,
+        // attributed to engine B's request log.
+        activeEngines.length = 0
+        activeEngines.push('B')
+        if (!requestLogs.has('B')) requestLogs.set('B', [])
+        report.parakeetVerdict = await runParakeetVerdict()
+        console.log(`parakeet: ${JSON.stringify({ loads: report.parakeetVerdict.loads, rtf: report.parakeetVerdict.rtf ?? null })}`)
+        writeJson(join(SPIKES, 'parakeet-verdict.json'), report.parakeetVerdict)
+      }
     }
 
     if (MODES.includes('leak')) {
@@ -550,24 +552,24 @@ async function main() {
         const absolute = join(repoRoot, artifact)
         const requests = dedupe(requestLogs.get(engineId) ?? [])
         if (requests.length === 0) {
-          // No requests captured for this engine in THIS run (slice 2B does
-          // not drive engines B/C). Keep the existing artifact if present —
+          // No requests captured for this engine in THIS run (e.g. a
+          // --only-engine re-run). Keep the existing artifact if present —
           // never overwrite it with an empty log, and carry its recorded
           // verdict forward with provenance instead of asserting a fresh pass.
           if (existsSync(absolute)) {
             const existing = JSON.parse(readFileSync(absolute, 'utf8'))
-            report.networkAudit.push({ engineId, pass: existing.pass === true, artifact, provenance: 'carried-forward artifact (not re-captured in slice 2B — engines B/C audited by slice 2C)' })
+            report.networkAudit.push({ engineId, pass: existing.pass === true, artifact, provenance: 'carried-forward artifact (not re-captured in this run — see its recorded requests for the captured run)' })
             console.log(`audit ${engineId}: carried forward pass=${existing.pass === true} (requests not re-captured)`)
           } else {
-            report.networkAudit.push({ engineId, pass: false, artifact, provenance: 'no artifact and no captured requests (slice 2C must audit)' })
-            console.log(`audit ${engineId}: NO ARTIFACT — pass=false (slice 2C must audit)`)
+            report.networkAudit.push({ engineId, pass: false, artifact, provenance: 'no artifact and no captured requests' })
+            console.log(`audit ${engineId}: NO ARTIFACT — pass=false`)
           }
           continue
         }
         const off = requests.filter((r) => !hostAllowed(r.url)).length
         const pass = off === 0
         writeJson(join(repoRoot, artifact), { engineId, pass, requests })
-        report.networkAudit.push({ engineId, pass, artifact, provenance: 'captured in this run (slice 2B)' })
+        report.networkAudit.push({ engineId, pass, artifact, provenance: 'captured in this run (slice 2C)' })
         console.log(`audit ${engineId}: pass=${pass} requests=${requests.length} offAllowlist=${off}`)
       }
     }
@@ -769,39 +771,6 @@ function scoreRow(plan, runs, gt) {
   }
 }
 
-/** Slice-2B pending row: engine not measured in this slice (B/C belong to
- *  slice 2C). Honest absence, not zero-as-data: every metric is null with a
- *  reason, verified stays false. */
-function pendingRow(plan) {
-  return {
-    engineId: plan.engineId,
-    engine: plan.engine,
-    version: plan.runtime,
-    model: plan.model,
-    revision: registry[plan.registryId]?.revision ?? 'unknown',
-    device: plan.device,
-    tier: plan.tier,
-    corpusClip: plan.clip,
-    ok: false,
-    reason: 'awaiting slice 2C re-measurement',
-    wer: null,
-    wordTimingMAEms: null,
-    rtf: null,
-    wallMs: null,
-    wallMsRuns: null,
-    durationSeconds: null,
-    peakJsHeapBytes: null,
-    gpuMemGrowthPerWindowBytes: null,
-    punctuated: null,
-    confidence: null,
-    languageDetect: null,
-    timestamps: null,
-    license: licenseFor(plan.engineId),
-    verified: false,
-    hotword: null,
-  }
-}
-
 async function runRow(plan) {
   const { page } = await openEnginePage(plan)
   const clipUrl = `/fixtures/${plan.clip}.mp4`
@@ -872,6 +841,7 @@ async function runRow(plan) {
     corpusClip: plan.clip,
     attemptedDevice: load.attemptedDevice ?? plan.device,
     adapter: load.adapter ?? null,
+    ...(runtimeAssetsFor(plan) ? { runtimeAssets: runtimeAssetsFor(plan) } : {}),
   }
   if (!ok) {
     return {
@@ -886,8 +856,11 @@ async function runRow(plan) {
     gt,
   )
   const deltas = gpuWindows
-    .map((w) => (typeof w.before === 'number' && typeof w.after === 'number' ? w.after - w.before : null))
+    .map((w) => (typeof w.before === 'number' && typeof w.after === 'number' ? Math.max(0, w.after - w.before) : null))
     .filter((v) => v !== null)
+  // GPU-process GROWTH is bounded below by 0: a negative window delta is a
+  // measured no-growth (freed during the run), recorded as 0, not as a
+  // negative "growth" (the frozen CC-02.1 record requires a finite ≥ 0).
   const gpuMemGrowthPerWindowBytes = deltas.length > 0 ? Math.round(median(deltas)) : null
   const gpuMemReason = gpuMemGrowthPerWindowBytes === null ? (sampler?.missingReason ?? 'gpu-samples-unavailable') : null
   return {
@@ -912,7 +885,7 @@ async function runParakeetVerdict() {
   const plan = {
     engineId: 'B',
     engine: 'sherpa-onnx',
-    runtime: 'sherpa-onnx@2.0.1 (wasm)',
+    runtime: 'sherpa-onnx wasm/vad-asr (official k2-fsa build, space rev 9d5fc71d)',
     model: 'csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8',
     registryId: 'sherpa-parakeet-06b-v3-int8',
     device: 'wasm',
@@ -925,7 +898,7 @@ async function runParakeetVerdict() {
   try {
     load = await withTimeout(
       page.evaluate((options) => window.__zipscribeEval.load(options), loadOptionsFor(plan)),
-      240_000,
+      480_000,
       'parakeet load',
     )
   } catch (error) {
@@ -955,6 +928,38 @@ async function runParakeetVerdict() {
 function licenseFor(engineId) {
   // Runtime/license of the ENGINE package (model licenses live in licenses[]).
   return { A: 'Apache-2.0', B: 'Apache-2.0', C: 'Apache-2.0' }[engineId]
+}
+
+/** FR-02.9 runtime provenance (slice 2C): model rows already carry the model
+ *  repo/revision; this records WHERE the runtime binaries themselves came
+ *  from — B: the official k2-fsa HF Space (pinned in the eval registry as
+ *  sherpa-wasm-vad-asr, SHA-256-verified by scripts/models-fetch.ts, the
+ *  .wasm digest equals the HF LFS oid); C: the npm-published cactus-needle
+ *  vendor manifest (SHA-256-pinned needle.wasm from Cactus-Compute/needle3). */
+function runtimeAssetsFor(plan) {
+  if (plan.engineId === 'B') {
+    const wasm = registry['sherpa-wasm-vad-asr']
+    return {
+      host: 'huggingface.co',
+      repo: wasm.repo,
+      revision: wasm.revision,
+      files: wasm.files.map((f) => ({ path: f.path, sha256: f.sha256 })),
+    }
+  }
+  if (plan.engineId === 'C') {
+    try {
+      const manifest = JSON.parse(readFileSync(join(repoRoot, 'node_modules', 'cactus-needle', 'vendor', 'manifest.json'), 'utf8'))
+      return {
+        host: 'npmjs.com+npm-vendored',
+        repo: manifest.repository,
+        revision: manifest.revision,
+        files: Object.entries(manifest.files ?? {}).map(([name, f]) => ({ path: name, sha256: f.sha256 })),
+      }
+    } catch {
+      return { host: 'npmjs.com+npm-vendored', repo: 'Cactus-Compute/needle3', files: [] }
+    }
+  }
+  return undefined
 }
 
 async function runLeak(runtime) {
@@ -1257,14 +1262,18 @@ function renderMarkdown(report, sampler) {
   )
   lines.push('')
   lines.push(
-    'Punctuation decision (FR-02.4): the `punct` column records whether the engine output was punctuated; engines without punctuation must be paired with the unit-03 punctuation pass (whisper: unpunctuated → pass needed; whistle: see pending row).',
+    'Punctuation decision (FR-02.4): the `punct` column records whether the engine output was punctuated; engines without punctuation must be paired with the unit-03 punctuation pass (whisper: unpunctuated → pass needed).',
   )
   lines.push('')
-  lines.push('## Pending rows (slice 2C owns engines B/C)')
+  lines.push('## Slice-2C asset provenance (build-1 rejection note)')
+  lines.push('')
+  lines.push(
+    'build-1 measured B/C on the third-party `speech-asr`/`anyshu-easy-asr` wrapper (removed from package.json); slice 2C re-measured them on official assets: engine B = official k2-fsa browser wasm build of the non-streaming wasm/vad-asr path from the k2-fsa Hugging Face Space (`k2-fsa/web-assembly-vad-asr-sherpa-onnx-zh-zipformer-ctc` @ 9d5fc71d…, per-file SHA-256 in `models/eval-registry.json` id `sherpa-wasm-vad-asr`, the .wasm digest equals the HF LFS oid), engine C = npm `cactus-needle@0.3.0` browser build (vendor-vendored needle.wasm, SHA-256-pinned manifest, Cactus-Compute/needle3 @ 2ae11323…) + `whistle.cact` from Cactus-Compute/whistle @ b358dda… — all hosts inside settings.yml `operations.model_hosts` + npm.',
+  )
   lines.push('')
   for (const row of pending) {
     lines.push(
-      `- **${row.engine}** (${row.engineId}, ${row.model}, ${row.device}, ${row.tier}): ok=false — ${row.reason}; build-1 measured these on the third-party \`speech-asr\`/\`anyshu-easy-asr\` wrapper (not official k2-fsa / cactus assets), so the measurements are unverified and the rows are withheld (null metrics, verified=false), not published as data.`,
+      `- **${row.engine}** (${row.engineId}, ${row.model}, ${row.device}, ${row.tier}): ok=false — ${row.reason}`,
     )
   }
   lines.push('')

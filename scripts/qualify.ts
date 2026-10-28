@@ -97,8 +97,13 @@ async function collectMachine(): Promise<Record<string, unknown>> {
     })
     await instance.close()
   } catch {
-    // keep placeholders — the schema requires strings, and a machine-info
-    // probe failure must not mask the measurement suites' verdicts.
+    // keep placeholders — the machine-info probe failure must not mask the
+    // measurement suites' verdicts.
+  } finally {
+    // The probe server is an active handle — leaving it listening kept the
+    // event loop alive after the file was written, so `pnpm qualify` never
+    // exited and the frozen CC-02.5 exit-code test hung until its timeout.
+    await new Promise<void>((resolve) => server.close(() => resolve()))
   }
   return {
     browser,
