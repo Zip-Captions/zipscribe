@@ -1,24 +1,14 @@
 // CC-01.12: a test that passes only on Playwright retry fails the CI run.
 //
 // Runs with retries (the guarded config sets `retries: 1` in CI); the local
-// flake passes on its first attempt and fails on the second, so the run ends
+// flake fails on its first attempt and passes on the retry, so the run ends
 // with a retry-pass. The CI-visible detector must flag that and exit non-zero.
 import { test, expect } from '@playwright/test'
-import { readFileSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 
-const attempts = join(tmpdir(), 'zipscribe-retry-detection-attempts')
-
-test('CC-01.12: local flake — passes on retry, so the run must be red', async () => {
-  let count = 0
-  try {
-    count = Number(readFileSync(attempts, 'utf8')) || 0
-  } catch {
-    count = 0
-  }
-  writeFileSync(attempts, String(count + 1))
-  expect(count, 'attempt #1 passes, attempt #2 fails (the classic retry-pass flake)').toBe(0)
+test('CC-01.12: local flake — passes on retry, so the run must be red', async ({}, testInfo) => {
+  // Attempt 1: retry === 0 → fails. Retry: retry === 1 → passes. A run where
+  // this test is "passed" yet retried is the retry-pass the detector bans.
+  expect(testInfo.retry, 'attempt #1 fails, attempt #2 (the retry) passes').toBe(1)
 })
 
 test('CC-01.12: a genuinely passing test in the same run', () => {
