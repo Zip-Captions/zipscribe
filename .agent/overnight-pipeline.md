@@ -24,6 +24,30 @@ Step 0 ledger entry must cite this file.
   to have delivered the workflow. If unit-01 merged without `ci.yml`,
   that is a morning-review finding, not something later units paper over.
 
+## Adaptation 2 — branch protection unavailable (Free org)
+
+`Zip-Captions` is a private repo on the **Free** plan: the branch-protection
+and ruleset APIs return 403 "Upgrade to GitHub Pro". FR-1.0.7's
+platform-level protection (required checks, no direct/force pushes) therefore
+cannot be created, and there is nowhere for unit-01 to test it.
+
+- The enforced substitute is the `branch-policy` CI check (rejects PRs into
+  `main` from anything but `release/*`/`hotfix/*`) plus git-flow and the
+  orchestrator's own rule against pushing to `main`/`develop`.
+- CC-01.13 is reported as **partially met (adapted)**: `develop` exists and
+  is the default branch (verified via API `default_branch=develop`);
+  platform-level rejection is **deferred to the owner** (needs Pro/org plan
+  or a public repo) and is never marked done.
+- Unit-01's report must record this as an adaptation, not as passing.
+
+## Adaptation 3 — `[DEPLOY]` criteria deferred for this run
+
+No Cloudflare Pages project, no GitHub Environments (API: `total_count: 0`)
+and no `CLOUDFLARE_*` secrets exist. Owner decision (2026-10-28): run the
+deterministic work; record CC-01.14/15/16 as **awaiting-credentials** in the
+ledger and the report, flag them for morning review. Environment secrets are
+repo-level on this plan, so the owner can add them later without a re-run.
+
 ## Fixed run-config values (agreed, don't re-ask at kickoff)
 
 | Key | Value |
