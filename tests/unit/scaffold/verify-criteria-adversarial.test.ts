@@ -15,35 +15,100 @@
 // - `.agent/REVIEW.md` Always-check 13 + `knowledge/conventions.md`
 //   § Criterion traceability: "Tests name the criterion", "tests citing unknown
 //   IDs" fail the gate.
-import { afterAll, describe, expect, test } from 'vitest'
+//
+// Hermeticity (post-merge fix, develop deploy-staging run 40666707433): the
+// `--from-branch` probes below require a checkout that IS a unit branch, so
+// they never run in the ambient checkout — on develop/feature branches
+// `--from-branch` correctly no-ops (conventions § Criterion traceability:
+// "no-op on non-unit branches", settings.yml criteria gate), which made the
+// old ambient control assertion unsatisfiable off a unit branch. Instead the
+// probes run inside scratch git worktrees on a synthetic branch
+// `ai-dlc/spec-lint/unit-999-fixture` whose only extra commit contributes the
+// committed fixture (`tests/fixtures/criteria/unit-999-fixture.md`, defines
+// CC-999.1/CC-999.2) as `.ai-dlc/spec-lint/unit-999-fixture.md` — the path
+// `unitFileFromBranch()` (scripts/verify-criteria.ts) resolves for that branch
+// name. The scratch commit is contained by no other ref, so the detached
+// variant's `git branch --contains HEAD` fallback resolves ONLY the synthetic
+// branch regardless of what the ambient checkout is. GITHUB_HEAD_REF/GITHUB_REF
+// are cleared so both probes exercise the same fallback chain CI's detached
+// `actions/checkout@v4` state does, not the ambient PR env. Assertions are
+// unchanged in semantics and strengthened in depth: non-zero exit AND the
+// uncovered CC-999 IDs named AND (R2-5) the canonical report never written.
+import { describe, expect, test } from 'vitest'
 import { spawnSync } from 'node:child_process'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { REPO_ROOT, runCommand, scratchDir, removeScratch, writeFixtureFile, linkScratchToolchain } from '../../helpers/repo'
+import { REPO_ROOT, removeScratch, scratchDir, writeFixtureFile, linkScratchToolchain } from '../../helpers/repo'
 
 const FIXTURE_UNIT = 'tests/fixtures/criteria/unit-999-fixture.md'
+const SCRATCH_BRANCH = 'ai-dlc/spec-lint/unit-999-fixture'
+const SCRATCH_UNIT_FILE = '.ai-dlc/spec-lint/unit-999-fixture.md'
+
+function git(args: string[], cwd: string = REPO_ROOT): { status: number | null; stderr: string } {
+  const result = spawnSync('git', args, { cwd, encoding: 'utf8', timeout: 15_000 })
+  return { status: result.status, stderr: result.stderr ?? '' }
+}
+
+/** Drop the scratch branch and any worktree still holding it (crash-residual idempotence). */
+function destroyScratchBranch(): void {
+  const list = spawnSync('git', ['worktree', 'list', '--porcelain'], { cwd: REPO_ROOT, encoding: 'utf8', timeout: 15_000 })
+  let path = ''
+  for (const line of (list.stdout ?? '').split('\n')) {
+    if (line.startsWith('worktree ')) path = line.slice('worktree '.length)
+    else if (line === `branch refs/heads/${SCRATCH_BRANCH}`) spawnSync('git', ['worktree', 'remove', '--force', path], { cwd: REPO_ROOT, encoding: 'utf8', timeout: 15_000 })
+  }
+  git(['worktree', 'prune'])
+  git(['branch', '-D', SCRATCH_BRANCH])
+}
 
 describe('adversarial: verify:unit as the CI-enforced criteria gate', () => {
   test('ADVERSARIAL CC-01.9/CC-01.1: --from-branch enforces the unit gate on a detached checkout at the unit-branch commit (CI PR state)', () => {
-    const tree = scratchDir('verify-detached')
-    const add = spawnSync('git', ['worktree', 'add', '--detach', tree, 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf8' })
-    expect(add.status, `git worktree add failed\n${add.stderr}`).toBe(0)
+    const namedTree = scratchDir('verify-named')
+    const detachedTree = scratchDir('verify-detached')
     try {
-      // The worktree is checked out DETACHED at this unit-branch commit — the
-      // same git state GitHub Actions `actions/checkout@v4` produces for every
-      // PR. The criteria gate must either verify or fail loudly here.
-      const detached = spawnSync('node', ['scripts/verify-criteria.ts', 'unit', '--from-branch', '--no-run'], { cwd: tree, encoding: 'utf8', timeout: 60_000 })
-      const output = `${detached.stdout ?? ''}\n${detached.stderr ?? ''}`
-      // Control: the same commit on a named unit branch does resolve and does
-      // fail under --no-run (criteria present, nothing proven).
-      const named = runCommand('node', ['scripts/verify-criteria.ts', 'unit', '--from-branch', '--no-run'])
-      expect(named.status, `control: on the named unit branch --no-run must fail (uncovered criteria)\n${named.output.slice(-2000)}`).not.toBe(0)
-      expect(
-        detached.status,
-        `verify:unit --from-branch exited ${detached.status} in the CI PR state (detached HEAD at the unit-branch commit) — "${output.split('\n')[0] ?? ''}". The criteria gate silently no-ops precisely where CI enforces it (ci.yml runs it after a detached actions/checkout), so no PR is ever criteria-checked (settings.yml: gates "enforced in CI on every PR")\n${output.slice(-2000)}`,
-      ).not.toBe(0)
+      destroyScratchBranch()
+      const add = git(['worktree', 'add', '-b', SCRATCH_BRANCH, namedTree, 'HEAD'])
+      expect(add.status, `git worktree add -b ${SCRATCH_BRANCH} failed\n${add.stderr}`).toBe(0)
+      // The fixture lives in the committed tree, so it is present in the
+      // scratch checkout; stage it at the path `--from-branch` resolves for
+      // SCRATCH_BRANCH and commit it on the scratch branch alone.
+      writeFixtureFile(join(namedTree, SCRATCH_UNIT_FILE), readFileSync(join(namedTree, FIXTURE_UNIT), 'utf8'))
+      expect(git(['add', SCRATCH_UNIT_FILE], namedTree).status, 'git add scratch unit file').toBe(0)
+      const commit = git(['-c', 'user.name=zipscribe-test-harness', '-c', 'user.email=harness@zipscribe.invalid', 'commit', '--no-verify', '-m', 'test: scratch unit-999 fixture for hermetic verify:unit control'], namedTree)
+      expect(commit.status, `git commit scratch fixture failed\n${commit.stderr}`).toBe(0)
+      // DETACHED at the unit-branch commit — the same git state GitHub Actions
+      // `actions/checkout@v4` produces for every PR. The criteria gate must
+      // either verify or fail loudly here, never silently no-op.
+      const addDetached = git(['worktree', 'add', '--detach', detachedTree, SCRATCH_BRANCH])
+      expect(addDetached.status, `git worktree add --detach ${SCRATCH_BRANCH} failed\n${addDetached.stderr}`).toBe(0)
+
+      for (const [label, cwd] of [
+        ['named unit branch', namedTree],
+        ['detached HEAD at the unit-branch commit (the CI PR state)', detachedTree],
+      ] as const) {
+        const probe = spawnSync('node', ['scripts/verify-criteria.ts', 'unit', '--from-branch', '--no-run'], {
+          cwd,
+          encoding: 'utf8',
+          env: { ...process.env, CI: '1', NO_COLOR: '1', GITHUB_HEAD_REF: undefined, GITHUB_REF: undefined },
+          timeout: 20_000,
+        })
+        const output = `${probe.stdout ?? ''}\n${probe.stderr ?? ''}`
+        expect(probe.status, `verify:unit --from-branch --no-run exited ${probe.status} on the ${label} — the criteria gate no-ops or green-lights where settings.yml requires it to fail (untagged CC-999.1/CC-999.2 of the scratch fixture proven by no tests)\n${output.slice(-2000)}`).not.toBe(0)
+        for (const id of ['CC-999.1', 'CC-999.2']) {
+          expect(output, `the ${label} probe must name the uncovered fixture criterion ${id}, not no-op on an ambient branch\n${output.slice(-2000)}`).toContain(`UNCOVERED: ${id}`)
+        }
+        // R2-5: a `--no-run` control prints its all-FAIL table but never
+        // writes the canonical reports/criteria/<name>.md.
+        expect(output, `the ${label} probe must announce the R2-5 no-write guard\n${output.slice(-2000)}`).toContain('canonical report NOT written')
+        expect(existsSync(join(cwd, 'reports', 'criteria', 'unit-999-fixture.md')), `--no-run on the ${label} wrote the canonical criteria report`).toBe(false)
+      }
     } finally {
-      spawnSync('git', ['worktree', 'remove', '--force', tree], { cwd: REPO_ROOT, encoding: 'utf8' })
-      removeScratch(tree)
+      git(['worktree', 'remove', '--force', namedTree])
+      git(['worktree', 'remove', '--force', detachedTree])
+      git(['worktree', 'prune'])
+      git(['branch', '-D', SCRATCH_BRANCH])
+      removeScratch(namedTree)
+      removeScratch(detachedTree)
     }
   })
 
