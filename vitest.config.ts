@@ -20,6 +20,10 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'tests/unit/**/*.test.ts'],
+    // The gate-spawning scaffold tests mutate shared state (`dist/`, `src/`
+    // probes, scratch previews) and shell out to build/e2e commands — files
+    // must not overlap (gates.test.ts documents the same expectation).
+    fileParallelism: false,
     sequence: {
       concurrent: true,
     },

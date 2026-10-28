@@ -1,0 +1,16 @@
+dist
+coverage
+node_modules
+public/wasm
+fixtures
+reports
+test-results
+playwright-report
+.cache
+logs
+pnpm-lock.yaml
+docs/overnight-ledger.md
+# test-tree files are author-owned and frozen for unit-01 (byte-identical
+# contract) — formatting them is not allowed, so they are not checked.
+tests
+e2e
