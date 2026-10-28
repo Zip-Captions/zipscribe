@@ -51,8 +51,13 @@ export function findGpuHelperPid(browserPid) {
 
 /** Alternative discovery for a launched persistent context: all processes
  *  carrying the harness's --user-data-dir, of which the one with
- *  `--type=gpu-process` is the GPU process (WebGPU requires headed mode on
- *  macOS — headless/new never spawns a GPU process there). */
+ *  `--type=gpu-process` is the GPU process. Headless Chrome disables the GPU
+ *  by default (crbug 1416283, cited in
+ *  https://developer.chrome.com/blog/supercharge-web-ai-testing); the harness
+ *  launches new-headless (Playwright channel 'chromium') with the documented
+ *  GPU flags and falls back to a headed window when this lookup still finds
+ *  no GPU process on macOS — the mode actually used is recorded in the
+ *  report (`environment.launchMode`). */
 export function findGpuHelperPidByUserDataDir(userDataDir) {
   if (!userDataDir) return null
   const result = spawnSync('ps', ['-axww', '-o', 'pid,args'], { encoding: 'utf8', timeout: 10_000 })

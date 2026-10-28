@@ -2,7 +2,7 @@
 // decode (FR-02.2 "incl. audio decode" — measured inside run()) and the
 // JS-memory peak sampler; inference happens in the worker module selected by
 // ?runtime= (3.8.1 pinned | 4x isolated leak-study copy).
-import { decodeClip, peakJsMemory, webgpuAvailable, type EnginePageApi } from './common'
+import { decodeClip, peakJsMemory, probeWebgpu, type EnginePageApi, type WebGpuProbe } from './common'
 import EngineAWorker from './engine-a.worker.ts?worker&module'
 import EngineA4xWorker from './engine-a4x.worker.ts?worker&module'
 
@@ -56,31 +56,51 @@ function bridge(worker: Worker): {
 const worker = createWorker()
 const rpc = bridge(worker)
 
+// Fail-closed WebGPU gate (slice-2B defect #1): the adapter is probed BEFORE
+// the pipeline is asked for device:'webgpu'. No adapter → load fails with the
+// attempted device + reason recorded, never an ok:true webgpu row.
+let lastAdapter: WebGpuProbe | null = null
+
 const api: EnginePageApi = {
   async ready() {
-    return { ok: true, webgpu: webgpuAvailable(), isolated: window.crossOriginIsolated === true }
+    const probe = await probeWebgpu()
+    return { ok: true, webgpu: probe.adapter && probe.fallbackAdapter !== true, isolated: window.crossOriginIsolated === true, detail: probe.error ?? (probe.adapterInfo?.description ?? 'adapter-ok') }
   },
   async load(options) {
     const began = performance.now()
+    const device = String(options.device)
+    const probe = await probeWebgpu()
+    lastAdapter = probe
+    if (device === 'webgpu') {
+      if (!probe.adapter || probe.fallbackAdapter === true) {
+        return {
+          ok: false,
+          ms: performance.now() - began,
+          error: `webgpu-adapter-unavailable:${probe.error ?? (probe.fallbackAdapter === true ? 'fallback-adapter' : 'no-adapter')}`,
+          attemptedDevice: device,
+          adapter: probe,
+        }
+      }
+    }
     try {
       const reply = await rpc.request(
         {
           t: 'load',
           repo: String(options.repo),
-          device: String(options.device),
+          device,
           wasmPaths: String(options.wasmPaths ?? '/wasm/'),
         },
         'loaded',
         15 * 60_000,
       )
-      return { ok: true, ms: Number(reply.ms ?? performance.now() - began) }
+      return { ok: true, ms: Number(reply.ms ?? performance.now() - began), attemptedDevice: device, adapter: probe }
     } catch (error) {
-      return { ok: false, ms: performance.now() - began, error: error instanceof Error ? `${error.name}:${error.message.slice(0, 200)}` : 'load-failed' }
+      return { ok: false, ms: performance.now() - began, error: error instanceof Error ? `${error.name}:${error.message.slice(0, 200)}` : 'load-failed', attemptedDevice: device, adapter: probe }
     }
   },
   async run(clipUrl, options) {
     try {
-      const { result, peakJsHeapBytes, isolated } = await peakJsMemory(async () => {
+      const { result, peakJsHeapBytes, peakJsHeapReason, jsHeapSamples, isolated } = await peakJsMemory(async () => {
         const began = performance.now()
         const clip = await decodeClip(clipUrl)
         const decodeMs = performance.now() - began
@@ -97,6 +117,12 @@ const api: EnginePageApi = {
         )
         return { ...reply, decodeMs, durationSeconds: clip.durationSeconds } as { t: string; wallMs: number; decodeMs: number; durationSeconds: number; output: unknown }
       })
+      if (!isolated) {
+        // FR-02.2: heap sampling (and the numThreads:1 WASM contract) is only
+        // valid on the COOP/COEP isolated preview — fail closed, never sample
+        // a non-isolated page and call the 0 it produces "data".
+        return { ok: false, wallMs: 0, error: 'not-cross-origin-isolated' }
+      }
       return {
         ok: true,
         wallMs: Number(result.wallMs) + Number(result.decodeMs ?? 0),
@@ -104,11 +130,17 @@ const api: EnginePageApi = {
         durationSeconds: Number(result.durationSeconds ?? 0),
         output: result.output,
         peakJsHeapBytes,
+        peakJsHeapReason,
+        jsHeapSamples,
         isolated,
       }
     } catch (error) {
       return { ok: false, wallMs: 0, error: error instanceof Error ? `${error.name}:${error.message.slice(0, 200)}` : 'run-failed' }
     }
+  },
+  async adapterProbe() {
+    if (!lastAdapter) lastAdapter = await probeWebgpu()
+    return lastAdapter as unknown as Record<string, unknown>
   },
   async leakRun(clipUrl, options) {
     const windowSeconds = Number(options.windowSeconds ?? 28)

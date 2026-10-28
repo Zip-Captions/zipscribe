@@ -29,10 +29,11 @@ import { GpuMemorySampler } from './gpu-sampler.mjs'
 import { wordErrorRate, alignedWordPairs } from './wer-core.mjs'
 
 const require = createRequire(import.meta.url)
-// WebGPU needs a GPU process — on macOS that exists only in headed Chrome
-// (headless/headless=new never spawn one here). We drive playwright's core
-// directly (playwright-core via .pnpm) with headless:false + a unique
-// user-data-dir, which also identifies our GPU process for the sampler.
+// We drive playwright's core directly (playwright-core via .pnpm) with a
+// persistent context + unique user-data-dir: the user-data-dir identifies OUR
+// GPU process for the out-of-band sampler (findGpuHelperPidByUserDataDir).
+// Launch mode (new-headless via channel:'chromium' vs headed) is doc-justified
+// next to LAUNCH_BASE_ARGS below.
 async function loadCoreChromium() {
   // playwright-core ships inside the pnpm store (dependency of @playwright/test).
   const candidates = []
@@ -80,11 +81,37 @@ function pkgVersion(pkgPath) {
   return JSON.parse(readFileSync(pkgPath, 'utf8')).version
 }
 
-// Live browser state (a GPU-process crash under --headless=new is a known
-// flake on macOS Chrome — every phase reconnects through ensureAlive()).
+/**
+ * Launch modes, each justified by a doc read this slice (grounding block):
+ *  - 'new-headless': Playwright `channel:'chromium'` + headless:true.
+ *    https://playwright.dev/docs/browsers — "You can opt into the new headless
+ *    mode by using 'chromium' channel… New Headless… is the real Chrome
+ *    browser"; Playwright's plain headless is the separate chrome-headless-
+ *    shell build. WebGPU is on by default in stable Chrome ≥113 on macOS
+ *    (secure context — we run on http://localhost) and `--enable-unsafe-webgpu`
+ *    additionally lifts the adapter blocklist:
+ *    https://developer.chrome.com/docs/web-platform/webgpu/troubleshooting-tips
+ *    Headless Chrome disables the GPU by default and needs the ANGLE backend
+ *    flag (vulkan on the Linux doc example; Metal is macOS's native ANGLE
+ *    backend) + enable-unsafe-webgpu — hardware-accelerated WebGPU under
+ *    --headless=new is the documented outcome:
+ *    https://developer.chrome.com/blog/supercharge-web-ai-testing
+ *  - 'headed': fallback if the new-headless GPU process is absent on this
+ *    machine (the out-of-band sampler needs it): plain headed real browser.
+ * `--enable-unsafe-swiftshader` is a playwright-core default arg, NOT a
+ * measurement argument: a SwiftShader fallback adapter would make a T1 number
+ * meaningless, so the page-side probe (common.ts probeWebgpu) records
+ * `isFallbackAdapter` and gates webgpu rows on a non-fallback adapter.
+ */
+const LAUNCH_BASE_ARGS = ['--no-sandbox', '--enable-unsafe-webgpu', '--use-angle=metal', '--enable-features=SharedArrayBuffer']
+const LAUNCH_MODES = ['new-headless', 'headed']
+
+// Live browser state (a GPU-process crash under headless is a known flake on
+// macOS Chrome — every phase reconnects through ensureAlive()).
 let ctx = null
 let sampler = null
 let server = null
+let launchState = { mode: null, args: [...LAUNCH_BASE_ARGS], gpuPid: null, missingReason: null }
 function previewAlive() {
   try {
     const res = spawnSync('curl', ['-s', '-o', '/dev/null', '--max-time', '2', `${ORIGIN}/`], { timeout: 4000 })
@@ -95,7 +122,7 @@ function previewAlive() {
 }
 let userDataDir = ''
 let launchFn = null
-let lastLaunchArgs = null
+let lastLaunchMode = 'new-headless'
 async function ensureAlive() {
   if (!previewAlive()) {
     console.log('preview: (re)starting preview server')
@@ -111,9 +138,11 @@ async function ensureAlive() {
       // already dead
     }
   }
-  console.log('browser: (re)launching browser')
-  ctx = await launchFn(lastLaunchArgs)
+  console.log(`browser: (re)launching browser (${lastLaunchMode})`)
+  ctx = await launchFn(lastLaunchMode)
   sampler = new GpuMemorySampler({ userDataDir })
+  launchState.gpuPid = sampler.gpuPid ?? null
+  launchState.missingReason = sampler.missingReason ?? null
 }
 
 /** settings.yml operations.model_hosts — same list the frozen audit helper parses. */
@@ -307,7 +336,15 @@ async function main() {
   server = spawnPreview()
   await waitForServer()
   const requestLogs = new Map() // engineId -> [{url}]
-  const report = {}
+  // Seed from the committed report so a partial-mode re-run (e.g.
+  // --mode=calibrate alone) updates only the sections it actually measured —
+  // each mode below still overwrites its own section wholesale.
+  let report = {}
+  try {
+    report = JSON.parse(readFileSync(join(SPIKES, 'model-eval-report.json'), 'utf8'))
+  } catch {
+    // first run — start empty
+  }
   try {
     const chromium = await loadCoreChromium()
     const activeEngines = [] // requests are attributed to the engine currently under test
@@ -339,13 +376,17 @@ async function main() {
       }
       return route.abort('blockedbyclient')
     }
-    const launchPersistent = async (extraArgs) => {
+    // `channel: 'chromium'` + headless:true opts into NEW headless (the real
+    // Chromium build), NOT the chrome-headless-shell default (grounded above);
+    // 'headed' is the same build with a visible window.
+    const launchPersistent = async (mode) => {
       userDataDir = join(tmpdir(), `zipscribe-eval-udd-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`)
       const context = await withTimeout(
         chromium.launchPersistentContext(userDataDir, {
-          headless: false,
+          channel: 'chromium',
+          headless: mode === 'new-headless',
           viewport: { width: 1280, height: 800 },
-          args: ['--no-sandbox', '--enable-unsafe-webgpu', '--use-angle=metal', '--enable-features=SharedArrayBuffer', ...extraArgs],
+          args: LAUNCH_BASE_ARGS,
         }),
         90_000,
         'browser launch',
@@ -355,21 +396,31 @@ async function main() {
         context.__zipscribeClosed = true
       })
       await context.route('**/*', contextRouteHandler)
+      launchState.mode = mode
       return context
     }
     launchFn = launchPersistent
-    lastLaunchArgs = ['--headless=new']
-    // WebGPU requires a real GPU process; on macOS headless Chrome never
-    // spawns one — try the low-noise --headless=new first, fall back to a
-    // visible window (this runs on the reference hardware only, where the
-    // measurements must be taken anyway).
+    // WebGPU needs a real GPU process (the out-of-band sampler reads its
+    // phys_footprint). New headless spawns one only when the GPU isn't
+    // disabled (see grounding above); if the sampler still finds no GPU
+    // process, fall back to the headed real browser — reference hardware runs
+    // the measurements anyway.
+    lastLaunchMode = 'new-headless'
     await ensureAlive()
     if (!sampler.gpuPid) {
-      console.log('sampler: no GPU process under --headless=new — relaunching headed')
-      lastLaunchArgs = []
+      console.log('sampler: no GPU process under new-headless — relaunching headed')
+      lastLaunchMode = 'headed'
       await ensureAlive()
     }
-    console.log(`sampler: gpuPid=${sampler.gpuPid ?? 'MISSING'} missingReason=${sampler.missingReason ?? '-'}`)
+    launchState.gpuPid = sampler?.gpuPid ?? null
+    launchState.missingReason = sampler?.missingReason ?? null
+    console.log(`launch: mode=${launchState.mode} gpuPid=${launchState.gpuPid ?? 'MISSING'} missingReason=${launchState.missingReason ?? '-'} args=${LAUNCH_BASE_ARGS.join(' ')}`)
+
+    // Environment record (measurement-honesty): exactly how the browser was
+    // launched + what navigator.gpu/requestAdapter() actually saw, recorded
+    // alongside the rows they produced.
+    report.environment = await captureEnvironment()
+    console.log(`environment: ${JSON.stringify(report.environment)}`)
 
     if (SMOKE) {
       await ensureAlive()
@@ -384,6 +435,26 @@ async function main() {
       const sample = sampler.sample()
       console.log('smoke sampler sample:', sample)
       await page.close()
+      // Heap-API preflight: confirm measureUserAgentSpecificMemory resolves a
+      // {bytes} sample on the ISOLATED engine page (slice-2B defect #4 —
+      // build-1 compared the resolved MemoryInfo object as a number and
+      // recorded 0 forever; see common.ts peakJsMemory).
+      const heapPage = await ctx.newPage()
+      await heapPage.goto(`${ORIGIN}/tools/eval/pages/engine-a.html?runtime=3.8.1`, { waitUntil: 'load' })
+      await heapPage.waitForFunction(() => window.__zipscribeEval !== undefined, null, { timeout: 30_000 })
+      const heapProbe = await heapPage.evaluate(async () => {
+        const perf = performance
+        if (typeof perf.measureUserAgentSpecificMemory !== 'function') return { ok: false, reason: 'api-missing', isolated: window.crossOriginIsolated === true }
+        try {
+          const m = await perf.measureUserAgentSpecificMemory()
+          const bytes = typeof m === 'number' ? m : m?.bytes
+          return { ok: typeof bytes === 'number' && bytes > 0, bytes, isolated: window.crossOriginIsolated === true }
+        } catch (error) {
+          return { ok: false, reason: `threw:${error instanceof Error ? `${error.name}:${error.message.slice(0, 80)}` : 'unknown'}`, isolated: window.crossOriginIsolated === true }
+        }
+      })
+      console.log('smoke heap probe:', JSON.stringify(heapProbe))
+      await heapPage.close()
       return
     }
 
@@ -395,16 +466,24 @@ async function main() {
 
     if (MODES.includes('rows')) {
       report.rows = []
-      if (!process.argv.includes('--skip-parakeet')) {
-        report.parakeetVerdict = await runParakeetVerdict()
-        console.log(`parakeet: ${JSON.stringify(report.parakeetVerdict)}`)
-        // The Parakeet wasm-heap exhaustion is violent (wasm OOM takes the
-        // whole browser process with it on Chrome 156) — always recycle.
-        ctx = null
-        await ensureAlive()
+      // Slice-2B directive (orchestrator): engines B and C are NOT measured
+      // here — build-1 measured them on a third-party wrapper (speech-asr /
+      // anyshu-easy-asr), which is not the official k2-fsa / cactus runtime.
+      // Their rows ship ok:false + null metrics + reason; slice 2C owns them
+      // (official assets or a documented blocker), including the Parakeet
+      // verdict (CC-02.8) and the B/C network audits.
+      report.parakeetVerdict = {
+        loads: false,
+        blockerIssue: 'https://github.com/k2-fsa/sherpa-onnx/issues/2200',
+        note: 'awaiting slice 2C re-measurement — build-1 observed the load abort via the speech-asr carrier build, not the official k2-fsa wasm/vad-asr assets; verdict unverified (third-party runtime, see #2200 for the upstream wasm heap-growth limitation).',
       }
       const onlyEngine = (process.argv.find((a) => a.startsWith('--only-engine=')) ?? '').split('=')[1]
       for (const plan of ROW_PLANS.filter((p) => !onlyEngine || p.engineId === onlyEngine)) {
+        if (plan.engineId !== 'A') {
+          report.rows.push(pendingRow(plan))
+          console.log(`row ${plan.key}: pending (slice 2C owns engines B/C)`)
+          continue
+        }
         activeEngines.length = 0
         activeEngines.push(plan.engineId)
         if (!requestLogs.has(plan.engineId)) requestLogs.set(plan.engineId, [])
@@ -467,12 +546,28 @@ async function main() {
     if (MODES.includes('audit')) {
       report.networkAudit = []
       for (const engineId of ['A', 'B', 'C']) {
-        const requests = dedupe(requestLogs.get(engineId) ?? [])
-        const off = requests.filter((r) => !hostAllowed(r.url)).length
-        const pass = off === 0 && requests.length > 0
         const artifact = `docs/spikes/network/${engineId}.json`
+        const absolute = join(repoRoot, artifact)
+        const requests = dedupe(requestLogs.get(engineId) ?? [])
+        if (requests.length === 0) {
+          // No requests captured for this engine in THIS run (slice 2B does
+          // not drive engines B/C). Keep the existing artifact if present —
+          // never overwrite it with an empty log, and carry its recorded
+          // verdict forward with provenance instead of asserting a fresh pass.
+          if (existsSync(absolute)) {
+            const existing = JSON.parse(readFileSync(absolute, 'utf8'))
+            report.networkAudit.push({ engineId, pass: existing.pass === true, artifact, provenance: 'carried-forward artifact (not re-captured in slice 2B — engines B/C audited by slice 2C)' })
+            console.log(`audit ${engineId}: carried forward pass=${existing.pass === true} (requests not re-captured)`)
+          } else {
+            report.networkAudit.push({ engineId, pass: false, artifact, provenance: 'no artifact and no captured requests (slice 2C must audit)' })
+            console.log(`audit ${engineId}: NO ARTIFACT — pass=false (slice 2C must audit)`)
+          }
+          continue
+        }
+        const off = requests.filter((r) => !hostAllowed(r.url)).length
+        const pass = off === 0
         writeJson(join(repoRoot, artifact), { engineId, pass, requests })
-        report.networkAudit.push({ engineId, pass, artifact })
+        report.networkAudit.push({ engineId, pass, artifact, provenance: 'captured in this run (slice 2B)' })
         console.log(`audit ${engineId}: pass=${pass} requests=${requests.length} offAllowlist=${off}`)
       }
     }
@@ -485,8 +580,28 @@ async function main() {
     killServer(server)
   }
 
-  if (SMOKE) return
+  if (SMOKE) {
+    process.exit(0)
+  }
   finishReport(report, sampler)
+  // Explicit teardown: headless GPU/helper processes surviving the persistent-
+  // context close kept the event loop alive after the report was flushed.
+  try {
+    if (userDataDir) {
+      const out = spawnSync('pgrep', ['-f', userDataDir], { encoding: 'utf8' }).stdout ?? ''
+      for (const pid of out.split(/\s+/).filter(Boolean)) {
+        try {
+          process.kill(Number(pid), 'SIGKILL')
+        } catch {
+          // already gone
+        }
+      }
+    }
+  } catch {
+    // best effort
+  }
+  killServer(server)
+  process.exit(0)
 }
 
 function buildEval() {
@@ -561,6 +676,33 @@ async function openEnginePage(plan) {
   return { page, ready }
 }
 
+/** What the harness actually got from the browser: launch mode + args, UA,
+ *  the fail-closed WebGPU probe (navigator.gpu + requestAdapter + info +
+ *  isFallbackAdapter) and the isolated flag. Rows are only believable with
+ *  this recorded next to them. */
+async function captureEnvironment() {
+  await ensureAlive()
+  const page = await ctx.newPage()
+  try {
+    await page.goto(`${ORIGIN}/tools/eval/pages/engine-a.html?runtime=3.8.1`, { waitUntil: 'load' })
+    await page.waitForFunction(() => window.__zipscribeEval !== undefined, null, { timeout: 30_000 })
+    const userAgent = await page.evaluate(() => navigator.userAgent)
+    const ready = await page.evaluate(() => window.__zipscribeEval.ready())
+    const adapter = await page.evaluate(() => (window.__zipscribeEval.adapterProbe ? window.__zipscribeEval.adapterProbe() : null))
+    return {
+      launchMode: launchState.mode,
+      launchArgs: launchState.args,
+      chromium: userAgent,
+      isolated: ready?.isolated === true,
+      webgpu: adapter ?? ready?.detail ?? null,
+      gpuSamplerPid: launchState.gpuPid,
+      gpuSamplerMissing: launchState.missingReason,
+    }
+  } finally {
+    await page.close()
+  }
+}
+
 function outputText(output) {
   if (output && typeof output.text === 'string') return output.text
   return ''
@@ -571,6 +713,18 @@ function outputChunks(output) {
   return []
 }
 
+/**
+ * Score the three measured runs of one row (FR-02.1/02.2/02.7):
+ *  • rtf = median wall / audio duration, wall = page decode + worker
+ *    transcription (model load excluded) — the FR-02.2 formula, with every
+ *    per-run wallMs kept in the artifact (`wallMsRuns`) so a median can never
+ *    hide a copied number (slice-2B defect #2);
+ *  • wordTimingMAEms = mean |hyp − ref| over BOTH endpoints of
+ *    edit-script-aligned words (FR-02.7), computed from THIS row's own runs
+ *    only — never shared across models (defect #3);
+ *  • peakJsHeapBytes null + reason when the isolated heap API produced no
+ *    sample — 0 is never used as a stand-in for "unmeasurable" (defect #4).
+ */
 function scoreRow(plan, runs, gt) {
   const best = [...runs].sort((a, b) => a.wallMs - b.wallMs)[0] ?? runs[0]
   const hypothesis = outputText(best.output)
@@ -578,46 +732,73 @@ function scoreRow(plan, runs, gt) {
   const pairs = alignedWordPairs(gt.transcript, hypothesis)
   const refWords = gt.words
   const hypWords = outputChunks(best.output)
-  // Word-timing MAE (FR-02.7) over edit-script-aligned pairs (seconds → ms).
-  let mae = 0
-  if (pairs.length > 0 && refWords.length > 0 && hypWords.length > 0) {
-    let total = 0
-    for (const [refIndex, hypIndex] of pairs) {
-      const ref = refWords[refIndex]
-      const chunk = hypWords[hypIndex]
-      if (!ref || !Array.isArray(chunk.timestamp)) continue
-      total += Math.abs(chunk.timestamp[0] - ref.start) * 1000
-    }
-    mae = total / pairs.length
-  } else if (pairs.length > 0) {
-    // Aligned pairs exist but one side lacks per-word timing → compare
-    // against segment-level timing at index 0 (word-dtw would be the fair
-    // mode; recorded as such in `timestamps` by the caller if downgraded).
-    let total = 0
-    for (const [refIndex] of pairs) {
-      const ref = refWords[refIndex]
-      total += ref ? ref.start * 1000 + 1000 : 0
-    }
-    mae = total / pairs.length
-  } else {
-    // Empty alignment (e.g. CTC on sine-formant audio): documented sentinel
-    // = clip duration in ms (every word maximally late), not 0 (FR-02.7
-    // manual-correction burden is maximal).
-    mae = (best.durationSeconds ?? 0) * 1000
+  let total = 0
+  let endpoints = 0
+  for (const [refIndex, hypIndex] of pairs) {
+    const ref = refWords[refIndex]
+    const chunk = hypWords[hypIndex]
+    const ts = chunk?.timestamp
+    if (!ref || !Array.isArray(ts) || ts.length < 2 || !Number.isFinite(ts[0]) || !Number.isFinite(ts[1])) continue
+    total += Math.abs(ts[0] - ref.start) + Math.abs(ts[1] - ref.end)
+    endpoints += 2
   }
+  // No usable per-word timings (empty alignment, or aligned words whose side
+  // carries no timestamps — e.g. CTC on sine-formant audio): documented
+  // sentinel = clip duration in ms (every word maximally late), never 0 —
+  // FR-02.7's manual-correction burden is maximal in that case.
+  const mae = endpoints > 0 ? (total / endpoints) * 1000 : (best.durationSeconds ?? 0) * 1000
   const wallMs = median(runs.map((r) => r.wallMs))
   const durationSeconds = best.durationSeconds ?? 0
   const rtf = durationSeconds > 0 ? wallMs / 1000 / durationSeconds : 0
   const texts = runs.map((r) => outputText(r.output))
   const punctuated = texts.some((text) => /[.!?]/.test(text))
+  const heaps = runs.map((r) => r.peakJsHeapBytes).filter((v) => typeof v === 'number' && Number.isFinite(v))
+  const peakJsHeapBytes = heaps.length > 0 ? Math.max(...heaps) : null
+  const peakJsHeapReason = heaps.length > 0 ? null : (runs.find((r) => typeof r.peakJsHeapReason === 'string')?.peakJsHeapReason ?? 'no-heap-samples')
   return {
     wer: Number.isFinite(wer) ? Math.round(wer * 10000) / 10000 : 1,
     wordTimingMAEms: Math.round(mae * 10) / 10,
     rtf: Math.round(rtf * 10000) / 10000,
     wallMs,
+    wallMsRuns: runs.map((r) => Math.round(r.wallMs * 10) / 10),
+    decodeMsRuns: runs.map((r) => Math.round((r.decodeMs ?? 0) * 10) / 10),
     durationSeconds,
-    peakJsHeapBytes: Math.max(...runs.map((r) => (Number.isFinite(r.peakJsHeapBytes) ? Math.max(0, r.peakJsHeapBytes) : 0)), 0),
+    peakJsHeapBytes,
+    peakJsHeapReason,
     punctuated,
+  }
+}
+
+/** Slice-2B pending row: engine not measured in this slice (B/C belong to
+ *  slice 2C). Honest absence, not zero-as-data: every metric is null with a
+ *  reason, verified stays false. */
+function pendingRow(plan) {
+  return {
+    engineId: plan.engineId,
+    engine: plan.engine,
+    version: plan.runtime,
+    model: plan.model,
+    revision: registry[plan.registryId]?.revision ?? 'unknown',
+    device: plan.device,
+    tier: plan.tier,
+    corpusClip: plan.clip,
+    ok: false,
+    reason: 'awaiting slice 2C re-measurement',
+    wer: null,
+    wordTimingMAEms: null,
+    rtf: null,
+    wallMs: null,
+    wallMsRuns: null,
+    durationSeconds: null,
+    peakJsHeapBytes: null,
+    gpuMemGrowthPerWindowBytes: null,
+    punctuated: null,
+    confidence: null,
+    languageDetect: null,
+    timestamps: null,
+    license: licenseFor(plan.engineId),
+    verified: false,
+    hotword: null,
   }
 }
 
@@ -630,13 +811,22 @@ async function runRow(plan) {
     `${plan.key} load`,
   )
   const runs = []
+  // GPU-process sampler wiring (slice-2B defect #4): phys_footprint of the
+  // Chrome GPU process before/after each of the three measured runs (each run
+  // is a pipeline-call "window", the same unit as the US-02.3 leak study).
+  // The sampler is calibrated standalone first (`--mode=calibrate`, FR-02.2);
+  // genuinely-unmeasurable stays null + reason below, never 0-as-data.
+  const gpuWindows = []
   if (load.ok) {
     for (let attempt = 0; attempt < 3; attempt += 1) {
+      const gpuBefore = sampler.sample()
       const result = await withTimeout(
         page.evaluate((args) => window.__zipscribeEval.run(args.clipUrl, args.options), { clipUrl, options: { language: plan.language ?? undefined } }),
         300_000,
         `${plan.key} run`,
       )
+      const gpuAfter = sampler.sample()
+      if (result.ok) gpuWindows.push({ before: gpuBefore, after: gpuAfter })
       runs.push(result)
       if (!result.ok) break
     }
@@ -671,16 +861,21 @@ async function runRow(plan) {
   await page.close()
   const ok = load.ok && runs.length === 3 && runs.every((r) => r.ok)
   const gt = groundTruth(plan.clip)
+  const identity = {
+    engineId: plan.engineId,
+    engine: plan.engine,
+    version: plan.runtime,
+    model: plan.model,
+    revision: registry[plan.registryId]?.revision ?? 'unknown',
+    device: plan.device,
+    tier: plan.tier,
+    corpusClip: plan.clip,
+    attemptedDevice: load.attemptedDevice ?? plan.device,
+    adapter: load.adapter ?? null,
+  }
   if (!ok) {
     return {
-      engineId: plan.engineId,
-      engine: plan.engine,
-      version: plan.runtime,
-      model: plan.model,
-      revision: registry[plan.registryId]?.revision ?? 'unknown',
-      device: plan.device,
-      tier: plan.tier,
-      corpusClip: plan.clip,
+      ...identity,
       ok: false,
       error: load.error ?? runs.find((r) => !r.ok)?.error ?? 'run-failed',
     }
@@ -690,18 +885,17 @@ async function runRow(plan) {
     runs.filter((r) => r.ok),
     gt,
   )
+  const deltas = gpuWindows
+    .map((w) => (typeof w.before === 'number' && typeof w.after === 'number' ? w.after - w.before : null))
+    .filter((v) => v !== null)
+  const gpuMemGrowthPerWindowBytes = deltas.length > 0 ? Math.round(median(deltas)) : null
+  const gpuMemReason = gpuMemGrowthPerWindowBytes === null ? (sampler?.missingReason ?? 'gpu-samples-unavailable') : null
   return {
-    engineId: plan.engineId,
-    engine: plan.engine,
-    version: plan.runtime,
-    model: plan.model,
-    revision: registry[plan.registryId]?.revision ?? 'unknown',
-    device: plan.device,
-    tier: plan.tier,
-    corpusClip: plan.clip,
+    ...identity,
     ok: true,
     ...scores,
-    gpuMemGrowthPerWindowBytes: 0,
+    gpuMemGrowthPerWindowBytes,
+    gpuMemReason,
     languageDetect,
     confidence,
     timestamps: plan.timestamps,
@@ -777,7 +971,7 @@ async function runLeak(runtime) {
     timestamps: 'word-native',
     language: 'en',
   }
-  const { page } = await openEnginePage(plan)
+  const { page, ready } = await openEnginePage(plan)
   await page.exposeFunction('__zipscribeSampleGpuMemNode', () => sampler.sample())
   await page.evaluate(() => {
     const fn = window.__zipscribeSampleGpuMemNode
@@ -786,56 +980,102 @@ async function runLeak(runtime) {
   const clipUrl = `/fixtures/${plan.clip}.mp4`
   const load = await withTimeout(
     page.evaluate((options) => window.__zipscribeEval.load(options), loadOptionsFor(plan)),
-    plan.engineId === 'B' ? 480_000 : 600_000,
-    `${plan.key} load`,
+    600_000,
+    `leak-${runtime} load`,
   )
+  const isolated = ready?.isolated === true
+  const failure = (reason) => ({
+    version,
+    model: plan.model,
+    device: 'webgpu',
+    attemptedDevice: load.attemptedDevice ?? 'webgpu',
+    adapter: load.adapter ?? null,
+    isolated,
+    ok: false,
+    windowSeconds: 28,
+    windowCount: 20,
+    gpuMemBytesAfterWindow: [],
+    sampleCount: 0,
+    perWindowGrowthBytes: null,
+    disposeReclaims: null,
+    recycleCeilingBytes: null,
+    baselineBytes: null,
+    error: reason,
+  })
   if (!load.ok) {
     await page.close()
-    return { version, model: plan.model, device: 'webgpu', windowSeconds: 28, windowCount: 20, gpuMemBytesAfterWindow: [], perWindowGrowthBytes: 0, disposeReclaims: false, recycleCeilingBytes: 0, error: load.error }
+    return failure(`load: ${load.error}`)
   }
-  const baseline = sampler.sample() ?? 0
+  if (!isolated) {
+    await page.close()
+    return failure('not-cross-origin-isolated')
+  }
+  const baseline = sampler.sample()
   const leak = await withTimeout(
     page.evaluate((args) => window.__zipscribeEval.leakRun(args.clipUrl, args.options), { clipUrl, options: { windowSeconds: 28, windowCount: 20 } }),
     40 * 60_000,
     'leak run',
   )
   const windows = Array.isArray(leak.windows) ? leak.windows : []
-  const samples = windows.map((w) => w.gpuMemBytes).filter((s) => typeof s === 'number')
-  let disposeReclaims = false
-  let recycleCeilingBytes = 0
-  let perWindowGrowthBytes = 0
-  if (samples.length >= 20) {
-    const first = samples[0] ?? 0
-    const last = samples[samples.length - 1] ?? 0
-    perWindowGrowthBytes = Math.max(0, Math.round((last - first) / Math.max(1, samples.length - 1)))
-    const peak = Math.max(...samples)
-    const beforeDispose = sampler.sample() ?? peak
+  // Per-window GPU-process phys_footprint readings from the WIRED out-of-band
+  // sampler (page awaits the node-side sampler between pipeline calls, then
+  // acks the worker). Unsampled windows stay null — build-1 padded a short
+  // series with duplicated values to satisfy the ≥20 shape (fabrication
+  // vector); honest nulls and a red release suite are the correct outcome.
+  const samples = windows.map((w) => (typeof w.gpuMemBytes === 'number' && Number.isFinite(w.gpuMemBytes) ? w.gpuMemBytes : null))
+  const finiteIdx = samples.map((s, i) => (s !== null ? i : -1)).filter((i) => i >= 0)
+  let perWindowGrowthBytes = null
+  let disposeReclaims = null
+  let recycleCeilingBytes = null
+  let disposeBefore = null
+  let disposeAfter = null
+  if (finiteIdx.length >= 2) {
+    const firstIdx = finiteIdx[0]
+    const lastIdx = finiteIdx[finiteIdx.length - 1]
+    const first = samples[firstIdx]
+    const last = samples[lastIdx]
+    perWindowGrowthBytes = Math.max(0, Math.round((last - first) / Math.max(1, lastIdx - firstIdx)))
+    const peak = Math.max(...finiteIdx.map((i) => samples[i]))
+    disposeBefore = sampler.sample()
     await withTimeout(
       page.evaluate(() => window.__zipscribeEval.dispose()),
       60_000,
       'leak dispose',
     )
+    // Settle so deferred GPU-process frees land before the after-sample
+    // (issue #1739 protocol: sample the GPU process between calls).
     await new Promise((resolve) => setTimeout(resolve, 3000))
-    const afterDispose = sampler.sample() ?? beforeDispose
-    const grew = Math.max(1, peak - baseline)
-    disposeReclaims = beforeDispose - afterDispose > grew * 0.5
-    // Recycle ceiling (unit-05): restart the worker once the GPU process
+    disposeAfter = sampler.sample()
+    if (disposeBefore !== null && disposeAfter !== null && baseline !== null) {
+      const grew = Math.max(1, peak - baseline)
+      disposeReclaims = disposeBefore - disposeAfter > grew * 0.5
+    }
+    // Recycle ceiling (unit-05): restart the worker once the GPU-process
     // growth since baseline would exceed ~1.5 GB at the observed rate —
     // floor(perWindowGrowth) multiples of the growth, ≥ 200 MB, ≤ 2 GB.
-    recycleCeilingBytes = perWindowGrowthBytes > 0 ? Math.min(2_000_000_000, Math.max(200_000_000, Math.floor(1_500_000_000 / perWindowGrowthBytes) * perWindowGrowthBytes)) : 0
+    recycleCeilingBytes = perWindowGrowthBytes > 0 ? Math.min(2_000_000_000, Math.max(200_000_000, Math.floor(1_500_000_000 / perWindowGrowthBytes) * perWindowGrowthBytes)) : null
   }
   await page.close()
+  const measured = finiteIdx.length >= 2 && disposeReclaims !== null
   return {
     version,
     model: plan.model,
     device: 'webgpu',
+    attemptedDevice: load.attemptedDevice ?? 'webgpu',
+    adapter: load.adapter ?? null,
+    isolated,
+    ok: measured,
     windowSeconds: 28,
     windowCount: 20,
-    gpuMemBytesAfterWindow: samples.length >= 20 ? samples : Array.from({ length: 20 }, (_, i) => samples[Math.min(i, samples.length - 1)] ?? baseline),
+    gpuMemBytesAfterWindow: samples,
+    sampleCount: finiteIdx.length,
     perWindowGrowthBytes,
     disposeReclaims,
+    disposeBeforeBytes: disposeBefore,
+    disposeAfterBytes: disposeAfter,
     recycleCeilingBytes,
     baselineBytes: baseline,
+    ...(!measured ? { reason: sampler?.missingReason ?? 'gpu-samples-insufficient' } : {}),
     ...(leak.error ? { error: leak.error } : {}),
   }
 }
@@ -900,7 +1140,12 @@ function writeJson(path, value) {
 }
 
 function finishReport(report, sampler) {
-  const rows = (report.rows ?? []).filter((row) => row.ok)
+  // `report.rows` keeps EVERY row in plan order — measured (ok:true) AND
+  // pending/unmeasured (ok:false + null metrics + reason). Selection below
+  // (baseline, tier recommendation) may only ever consider ok:true rows, so a
+  // pending row can never back a recommendation (CC-02.11 traceability).
+  const allRows = report.rows ?? []
+  const rows = allRows.filter((row) => row.ok === true)
   const licensesPath = join(repoRoot, 'tools', 'eval', 'licenses.json')
   report.licenses = existsSync(licensesPath) ? JSON.parse(readFileSync(licensesPath, 'utf8')) : []
 
@@ -954,23 +1199,37 @@ function finishReport(report, sampler) {
     T3: pick(t3, 'transformers.js', 'onnx-community/whisper-tiny_timestamped'),
   }
 
-  const failed = rows.filter((r) => !r.ok)
-  report.failedRuns = failed
-  report.rows = rows.filter((r) => r.ok)
+  report.failedRuns = allRows.filter((r) => r.ok !== true && r.reason !== 'awaiting slice 2C re-measurement')
+  report.rows = allRows
   writeJson(join(SPIKES, 'model-eval-report.json'), report)
   writeFileSync(join(SPIKES, 'model-eval-report.md'), renderMarkdown(report, sampler))
-  console.log(`harness: wrote docs/spikes/model-eval-report.{json,md} (${rows.length} rows)`)
+  console.log(`harness: wrote docs/spikes/model-eval-report.{json,md} (${rows.length} measured + ${allRows.length - rows.length} pending rows)`)
+}
+
+function heapCell(row) {
+  if (typeof row.peakJsHeapBytes === 'number' && Number.isFinite(row.peakJsHeapBytes)) return `${(row.peakJsHeapBytes / 1_000_000).toFixed(0)}`
+  return `n/a (${row.peakJsHeapReason ?? 'unmeasured'})`
 }
 
 function renderMarkdown(report, sampler) {
-  const rows = (report.rows ?? []).filter((r) => r.ok)
-  const failed = (report.rows ?? []).filter((r) => !r.ok)
+  const allRows = report.rows ?? []
+  const rows = allRows.filter((r) => r.ok === true)
+  const failed = allRows.filter((r) => r.ok !== true && r.reason !== 'awaiting slice 2C re-measurement')
+  const pending = allRows.filter((r) => r.reason === 'awaiting slice 2C re-measurement')
   const lines = []
   lines.push('# Model evaluation spike — unit-02 (FR-02)')
   lines.push('')
   lines.push(
-    `Machine: ${sampler.gpuPid ? 'GPU helper pid present' : 'GPU helper MISSING'}; calibration: ${report.gpuCalibration ? (report.gpuCalibration.passed ? 'PASSED' : 'FAILED') : 'not run'} (observed ${report.gpuCalibration?.observedGrowthBytes ?? 0} bytes of 512 MB allocated).`,
+    `Machine: ${sampler.gpuPid ? 'GPU helper pid present' : 'GPU helper MISSING'}; calibration: ${report.gpuCalibration ? (report.gpuCalibration.passed ? 'PASSED' : 'FAILED') : 'not run'} (observed ${report.gpuCalibration?.observedGrowthBytes ?? 0} bytes of ${report.gpuCalibration?.allocatedBytes ?? (512 * 1024 * 1024)} allocated).`,
   )
+  if (report.environment) {
+    const env = report.environment
+    const gpu = env.webgpu && typeof env.webgpu === 'object' ? env.webgpu : null
+    lines.push('')
+    lines.push(
+      `Browser: launch mode **${env.launchMode}** (new-headless via Playwright \`channel:'chromium'\`, headed fallback — [playwright.dev/docs/browsers](https://playwright.dev/docs/browsers)), args \`${(env.launchArgs ?? []).join(' ')}\`; crossOriginIsolated=${env.isolated}; navigator.gpu adapter=${gpu ? (gpu.adapter === true ? (gpu.fallbackAdapter === true ? 'YES(fallback/SwiftShader)' : 'YES') : 'NO') : '?'}${gpu?.adapterInfo?.description ? ` (${gpu.adapterInfo.description})` : ''}; gpuSamplerPid=${env.gpuSamplerPid ?? 'MISSING'}.`,
+    )
+  }
   lines.push('')
   lines.push('## Measured rows (US-02.1) — median-of-3 wall incl. audio decode, numThreads:1')
   lines.push('')
@@ -978,34 +1237,50 @@ function renderMarkdown(report, sampler) {
     'CORPUS PROVISIONAL: ground truth is synthesized TTS (unit-01 fixtures) — WER/MAE numbers are valid for CROSS-ENGINE comparison on this machine, NOT as absolute accuracy claims (see domain notes). vendor figures (degraded-vs-vendor) cannot be adjudicated on synthetic audio and are omitted (no vendor comparison rows).',
   )
   lines.push('')
-  lines.push('| engine | engineId | version | model | revision | device | tier | clip | WER | wordTimingMAEms | RTF | peak JS heap (MB) | lang | conf | punct | timestamps | license |')
-  lines.push('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |')
+  lines.push('| engine | engineId | version | model | revision | device | adapter | tier | clip | WER | wordTimingMAEms | RTF | per-run wall ms | peak JS heap (MB) | GPU Δ/window | lang | conf | punct | timestamps | license |')
+  lines.push('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |')
   for (const row of rows) {
+    const info = row.adapter?.adapterInfo
+    const adapterText = info ? [info.vendor, info.architecture, info.description].filter((s) => typeof s === 'string' && s !== '').join(' ') : ''
+    const adapterCell = adapterText !== '' ? `${adapterText}${row.adapter?.fallbackAdapter === true ? ' (fallback)' : ''}` : row.device === 'webgpu' ? 'webgpu(unrecorded)' : '-'
+    const gpuCell = typeof row.gpuMemGrowthPerWindowBytes === 'number' ? row.gpuMemGrowthPerWindowBytes : `n/a (${row.gpuMemReason ?? 'unmeasured'})`
     lines.push(
-      `| ${row.engine} | ${row.engineId} | ${row.version} | ${row.model} | ${String(row.revision).slice(0, 10)} | ${row.device} | ${row.tier} | ${row.corpusClip} | ${row.wer} | ${row.wordTimingMAEms} | ${row.rtf} | ${(row.peakJsHeapBytes / 1_000_000).toFixed(0)} | ${row.languageDetect} | ${row.confidence} | ${row.punctuated} | ${row.timestamps} | ${row.license} |`,
+      `| ${row.engine} | ${row.engineId} | ${row.version} | ${row.model} | ${String(row.revision).slice(0, 10)} | ${row.device} | ${adapterCell} | ${row.tier} | ${row.corpusClip} | ${row.wer} | ${row.wordTimingMAEms} | ${row.rtf} | ${(row.wallMsRuns ?? [row.wallMs]).join(' / ')} | ${heapCell(row)} | ${gpuCell} | ${row.languageDetect} | ${row.confidence} | ${row.punctuated} | ${row.timestamps} | ${row.license} |`,
     )
   }
   for (const row of failed) {
-    lines.push(`| ${row.engine} | ${row.engineId} | ${row.version} | ${row.model} | — | ${row.device} | ${row.tier} | ${row.corpusClip} | FAILED: ${row.error} | | | | | | | | |`)
+    lines.push(`| ${row.engine} | ${row.engineId} | ${row.version} | ${row.model} | — | ${row.device} | — | ${row.tier} | ${row.corpusClip} | FAILED: ${row.error} | | | | | | | | | | |`)
   }
   lines.push('')
   lines.push(
-    'peak JS heap 0 means `performance.measureUserAgentSpecificMemory()` was unavailable on the run page (it throws while engine workers hold wasm memory) — the US-02.3 leak protocol samples the heap directly and is the heap evidence of record.',
+    '`peak JS heap` n/a means `performance.measureUserAgentSpecificMemory()` (which requires the COOP/COEP `preview:isolated` server, [MDN](https://developer.mozilla.org/en-US/docs/Web/API/Performance/measureUserAgentSpecificMemory)) produced no sample on the run page — the reason is recorded per-row; it is never reported as 0. `GPU Δ/window` is the median of the out-of-band GPU-process phys_footprint delta sampled before/after each of the three runs (sampler calibrated first).',
   )
   lines.push('')
   lines.push(
-    'Punctuation decision (FR-02.4): the `punct` column records whether the engine output was punctuated; engines without punctuation must be paired with the unit-03 punctuation pass (whisper: unpunctuated → pass needed; whistle: see row).',
+    'Punctuation decision (FR-02.4): the `punct` column records whether the engine output was punctuated; engines without punctuation must be paired with the unit-03 punctuation pass (whisper: unpunctuated → pass needed; whistle: see pending row).',
   )
+  lines.push('')
+  lines.push('## Pending rows (slice 2C owns engines B/C)')
+  lines.push('')
+  for (const row of pending) {
+    lines.push(
+      `- **${row.engine}** (${row.engineId}, ${row.model}, ${row.device}, ${row.tier}): ok=false — ${row.reason}; build-1 measured these on the third-party \`speech-asr\`/\`anyshu-easy-asr\` wrapper (not official k2-fsa / cactus assets), so the measurements are unverified and the rows are withheld (null metrics, verified=false), not published as data.`,
+    )
+  }
   lines.push('')
   lines.push('## #1739 leak study (US-02.3)')
   lines.push('')
   lines.push(
-    'whisper-small_timestamped, T1 (webgpu), pinned dtype recipe `{ encoder_model: "fp32", decoder_model_merged: "q4" }`, 20 consecutive 28 s windows as separate pipeline calls on `speech-10min`; per-window GPU-process phys_footprint via out-of-band macOS `footprint` (RSS does not show Metal allocations on macOS — issue #1739 guidance).',
+    'whisper-small_timestamped, T1 (webgpu), pinned dtype recipe `{ encoder_model: "fp32", decoder_model_merged: "q4" }`, 20 consecutive 28 s windows as separate pipeline calls on `speech-10min`; per-window GPU-process phys_footprint via out-of-band macOS `footprint` (RSS does not show Metal allocations on macOS — issue #1739 guidance). Windows the sampler could not observe are recorded null, never duplicated to pad the count.',
   )
   lines.push('')
   for (const entry of report.leak ?? []) {
+    if (entry.ok === false) {
+      lines.push(`- ${entry.version} (${entry.model}, ${entry.device}): **unmeasured** — ${entry.reason ?? entry.error ?? 'failure'} (samples ${entry.sampleCount ?? 0}/20).`)
+      continue
+    }
     lines.push(
-      `- ${entry.version} (${entry.model}, ${entry.device}): per-window growth ${entry.perWindowGrowthBytes} bytes; dispose() reclaims: ${entry.disposeReclaims}; worker-recycle ceiling recommendation: ${entry.recycleCeilingBytes} bytes (unit-05).`,
+      `- ${entry.version} (${entry.model}, ${entry.device}): per-window growth ${entry.perWindowGrowthBytes} bytes over ${entry.sampleCount ?? entry.windowCount}/20 windows; dispose() reclaims: ${entry.disposeReclaims} (${entry.disposeBeforeBytes} → ${entry.disposeAfterBytes} bytes); worker-recycle ceiling recommendation: ${entry.recycleCeilingBytes} bytes (unit-05).`,
     )
   }
   lines.push('')

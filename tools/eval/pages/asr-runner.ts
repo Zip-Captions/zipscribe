@@ -103,6 +103,15 @@ function toRunOutput(raw: AsrRawOutput | AsrRawOutput[]): AsrRunOutput {
 /** One measured transcription of the full clip (word timestamps). */
 export async function runAsr(pipeline: AsrPipeline, samples: Float32Array, _sampleRate: number, language: string | undefined, ts: string = 'word'): Promise<AsrRunOutput> {
   const options: Record<string, unknown> = { return_timestamps: ts === 'none' ? false : ts === 'segment' ? true : 'word' }
+  // Long-form recipe per the pinned 3.8.1 docs example (src/pipelines.js:1728,
+  // `chunk_length_s: 30, stride_length_s: 5`). Without chunk_length_s the
+  // WhisperFeatureExtractor SILENTLY TRUNCATES to 30 s
+  // (src/models/whisper/feature_extraction_whisper.js:70-83), which would bias
+  // every >30 s clip's RTF low and drop word coverage — measured rows use a
+  // 33.984 s corpus clip. A no-op for the leak study's 28 s windows (single
+  // chunk, identical to the unchunked path).
+  options.chunk_length_s = 30
+  options.stride_length_s = 5
   if (language) options.language = language
   // v3.8.1 WhisperASRProcessor takes the Float32Array directly (16 kHz —
   // matching the pipeline's feature extractor default sampling_rate).

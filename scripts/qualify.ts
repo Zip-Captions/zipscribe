@@ -11,6 +11,8 @@
 // Exit code: 0 iff every recorded [RQ] result passes (an honest gate — never
 // a rubber stamp).
 import { spawnSync } from 'node:child_process'
+import { createServer } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -32,24 +34,66 @@ interface TestResult {
   assertionResults?: AssertionResult[]
 }
 
+/**
+ * Machine-info probe (slice-2B honesty fix). Build-1's probe launched
+ * `headless: true` with no channel — that is Playwright's chrome-headless-
+ * shell, which disables the GPU by default (https://playwright.dev/docs/browsers,
+ * https://developer.chrome.com/blog/supercharge-web-ai-testing) — and then
+ * reported 'webgpu-unavailable' whenever `adapter.info` was falsy even though
+ * an ADAPTER existed (adapter.info is the Chrome-130+ surface; pre-130 needs
+ * requestAdapterInfo()). The consequence was the qualification file claiming
+ * gpu=webgpu-unavailable while webgpu rows claimed ok:true. Probe the SAME
+ * way the harness measures: channel 'chromium' (new headless — the real
+ * browser, GPU flags per https://developer.chrome.com/docs/web-platform/webgpu/troubleshooting-tips),
+ * gate on navigator.gpu + requestAdapter(), record isFallbackAdapter, and
+ * only call it unavailable when requestAdapter() genuinely returns null.
+ */
 async function collectMachine(): Promise<Record<string, unknown>> {
   let browser = 'unknown'
   let gpu = 'unknown'
   const launchArgs = ['--no-sandbox', '--enable-unsafe-webgpu', '--use-angle=metal']
+  // WebGPU requires a secure context (https://developer.chrome.com/docs/web-
+  // platform/webgpu/troubleshooting-tips) — about:blank is not one, so the
+  // probe serves itself from loopback (a trustworthy origin), no dist needed.
+  const server = createServer((_req, res) => {
+    res.writeHead(200, { 'content-type': 'text/plain' })
+    res.end('ok')
+  })
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const port = (server.address() as AddressInfo).port
   try {
-    const instance = await chromium.launch({ headless: true, args: launchArgs })
+    const instance = await chromium.launch({ channel: 'chromium', headless: true, args: launchArgs })
     const context = await instance.newContext()
     const page = await context.newPage()
-    await page.goto('about:blank')
+    await page.goto(`http://127.0.0.1:${port}/`)
     browser = await page.evaluate(() => navigator.userAgent)
     gpu = await page.evaluate(async () => {
-      interface Adapter {
-        info?: { vendor?: string; architecture?: string; description?: string }
+      interface AdapterInfoLike {
+        vendor?: string
+        architecture?: string
+        device?: string
+        description?: string
       }
-      const nav = navigator as unknown as { gpu?: { requestAdapter(): Promise<Adapter | null> } }
-      const adapter = nav.gpu ? await nav.gpu.requestAdapter() : null
-      if (adapter?.info) return `${adapter.info.vendor ?? 'gpu'} ${adapter.info.architecture ?? ''} ${adapter.info.description ?? ''}`.trim()
-      return 'webgpu-unavailable'
+      interface AdapterLike {
+        isFallbackAdapter?: boolean
+        info?: AdapterInfoLike
+        requestAdapterInfo?: () => Promise<AdapterInfoLike>
+      }
+      const nav = navigator as unknown as { gpu?: { requestAdapter(): Promise<AdapterLike | null> } }
+      if (!nav.gpu) return 'webgpu-unavailable(navigator.gpu)'
+      const adapter = await nav.gpu.requestAdapter()
+      if (!adapter) return 'webgpu-unavailable(no-adapter)'
+      if (adapter.isFallbackAdapter === true) return 'webgpu-fallback-adapter(swiftshader)'
+      let info = adapter.info
+      if (!info && typeof adapter.requestAdapterInfo === 'function') {
+        try {
+          info = await adapter.requestAdapterInfo()
+        } catch {
+          info = undefined
+        }
+      }
+      const text = info ? `${info.vendor ?? 'gpu'} ${info.architecture ?? ''} ${info.description ?? ''}`.trim() : ''
+      return text !== '' ? text : 'webgpu(adapter, no-info)'
     })
     await instance.close()
   } catch {

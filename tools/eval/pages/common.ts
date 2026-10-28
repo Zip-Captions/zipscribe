@@ -45,23 +45,46 @@ async function decodeToMono16k(bytes: ArrayBuffer): Promise<DecodedClip> {
 
 /**
  * JS-heap peak sampler (FR-02.2): performance.measureUserAgentSpecificMemory()
- * — only exposed on the cross-origin-isolated `pnpm preview:isolated` server
- * (settings.yml testing.memory_tests). Sampled every 250 ms while `work()`
- * runs; returns the peak bytes (null when unavailable).
+ * — only usable on the cross-origin-isolated `pnpm preview:isolated` server
+ * (settings.yml testing.memory_tests). Per MDN the promise resolves to a
+ * MemoryInfo object whose `bytes` field carries the total (window + workers
+ * included) — sampling the resolved value as a number (build-1) compared an
+ * object and kept the peak null forever:
+ * https://developer.mozilla.org/en-US/docs/Web/API/Performance/measureUserAgentSpecificMemory
+ * MDN also prescribes periodic calls (it is a tracking API, not a one-shot)
+ * and a SecurityError when the isolation requirements are unmet; a genuinely
+ * unmeasurable heap returns null + reason, never 0-as-data (slice-2B defect
+ * #4).
  */
-export async function peakJsMemory<T>(work: () => Promise<T>): Promise<{ result: T; peakJsHeapBytes: number | null; isolated: boolean }> {
+export interface JsHeapSample {
+  result: unknown
+  peakJsHeapBytes: number | null
+  jsHeapSamples: number
+  peakJsHeapReason: string | null
+  isolated: boolean
+}
+
+export async function peakJsMemory<T>(work: () => Promise<T>): Promise<{ result: T } & Omit<JsHeapSample, 'result'>> {
   const isolated = window.crossOriginIsolated === true
-  const measure = (performance as unknown as { measureUserAgentSpecificMemory?: () => Promise<number> }).measureUserAgentSpecificMemory
+  const perf = performance as unknown as { measureUserAgentSpecificMemory?: () => Promise<{ bytes?: number } | number> }
+  const measure = perf.measureUserAgentSpecificMemory
   let peak: number | null = null
+  let samples = 0
+  let reason: string | null = isolated ? null : 'not-cross-origin-isolated'
+  if (isolated && !measure) reason = 'measureUserAgentSpecificMemory-unavailable'
   let stop = false
   const poll = async (): Promise<void> => {
     if (!measure || !isolated) return
     while (!stop) {
       try {
         const value = await measure.call(performance)
-        if (peak === null || value > peak) peak = value
-      } catch {
-        // The API throws when the page is not isolated; nothing to sample.
+        const bytes = typeof value === 'number' ? value : value?.bytes
+        if (typeof bytes === 'number' && Number.isFinite(bytes)) {
+          samples += 1
+          if (peak === null || bytes > peak) peak = bytes
+        }
+      } catch (error) {
+        reason = `sample-threw:${error instanceof Error ? error.name : 'unknown'}`
         return
       }
       await new Promise((resolve) => setTimeout(resolve, 250))
@@ -70,16 +93,78 @@ export async function peakJsMemory<T>(work: () => Promise<T>): Promise<{ result:
   const poller = poll()
   try {
     const result = await work()
-    return { result, peakJsHeapBytes: peak, isolated }
+    if (samples === 0 && reason === null) reason = 'no-samples-in-run-window'
+    return { result, peakJsHeapBytes: peak, jsHeapSamples: samples, peakJsHeapReason: samples > 0 ? null : reason, isolated }
   } finally {
     stop = true
     await poller
   }
 }
 
-/** GPU availability probe (device policy): navigator.gpu presence. */
+/** GPU presence check (navigator.gpu only) — the weak probe kept for the
+ *  engine B/C pages (T2 wasm runs). Engine A must use probeWebgpu() instead:
+ *  navigator.gpu existing without a usable adapter is NOT WebGPU availability
+ *  (slice-2B defect #1, fail-closed gate). */
 export function webgpuAvailable(): boolean {
   return typeof (navigator as unknown as { gpu?: unknown }).gpu !== 'undefined'
+}
+
+/** Fail-closed WebGPU probe (slice-2B defect #1): navigator.gpu AND a real
+ *  requestAdapter() result, with adapter info + fallback flag recorded.
+ *  requestAdapter() returning null means "no adapter" per
+ *  https://developer.chrome.com/docs/web-platform/webgpu/troubleshooting-tips
+ *  (adapter-null causes listed there); `isFallbackAdapter === true` means the
+ *  adapter is the SwiftShader software fallback — measurements taken on it
+ *  would not represent T1 hardware, so it is recorded and gated too.
+ *  `adapter.info` is the current surface (Chrome 130+);
+ *  `requestAdapterInfo()` was the pre-130 path — both handled defensively. */
+export interface WebGpuProbe {
+  probed: true
+  navigatorGpu: boolean
+  adapter: boolean
+  fallbackAdapter: boolean | null
+  adapterInfo: { vendor: string | null; architecture: string | null; device: string | null; description: string | null } | null
+  error: string | null
+}
+
+interface AdapterLike {
+  isFallbackAdapter?: boolean
+  info?: { vendor?: string; architecture?: string; device?: string; description?: string }
+  requestAdapterInfo?: () => Promise<{ vendor?: string; architecture?: string; device?: string; description?: string }>
+}
+
+export async function probeWebgpu(): Promise<WebGpuProbe> {
+  const gpu = (navigator as unknown as { gpu?: { requestAdapter(): Promise<AdapterLike | null> } }).gpu
+  if (!gpu) return { probed: true, navigatorGpu: false, adapter: false, fallbackAdapter: null, adapterInfo: null, error: 'navigator.gpu-undefined' }
+  try {
+    const adapter = await gpu.requestAdapter()
+    if (!adapter) return { probed: true, navigatorGpu: true, adapter: false, fallbackAdapter: null, adapterInfo: null, error: 'requestAdapter-null' }
+    let info = adapter.info
+    if (!info && typeof adapter.requestAdapterInfo === 'function') {
+      try {
+        info = await adapter.requestAdapterInfo()
+      } catch {
+        info = undefined
+      }
+    }
+    return {
+      probed: true,
+      navigatorGpu: true,
+      adapter: true,
+      fallbackAdapter: adapter.isFallbackAdapter === true,
+      adapterInfo: info
+        ? {
+            vendor: typeof info.vendor === 'string' ? info.vendor : null,
+            architecture: typeof info.architecture === 'string' ? info.architecture : null,
+            device: typeof info.device === 'string' ? info.device : null,
+            description: typeof info.description === 'string' ? info.description : null,
+          }
+        : null,
+      error: null,
+    }
+  } catch (error) {
+    return { probed: true, navigatorGpu: true, adapter: false, fallbackAdapter: null, adapterInfo: null, error: `requestAdapter-threw:${error instanceof Error ? error.name : 'unknown'}` }
+  }
 }
 
 export interface EnginePageBridge {
@@ -95,13 +180,17 @@ export interface EnginePageApi {
   ready(): Promise<{ ok: boolean; webgpu: boolean; isolated: boolean; detail?: string }>
   /**
    * Load the engine (model bytes come from the harness's route interceptor
-   * for the allowlisted HF URLs; runtimes from `self`).
+   * for the allowlisted HF URLs; runtimes from `self`). Engine A fails closed
+   * on `device:'webgpu'` without a real adapter (defect #1) and records the
+   * probe + attempted device either way.
    */
-  load(options: Record<string, unknown>): Promise<{ ok: boolean; ms: number; error?: string }>
+  load(options: Record<string, unknown>): Promise<{ ok: boolean; ms: number; error?: string; attemptedDevice?: string; adapter?: WebGpuProbe }>
   /** One measured run over a corpus clip (already fetched+decoded by page). */
   run(clipUrl: string, options: Record<string, unknown>): Promise<{ ok: boolean; wallMs: number; error?: string; [key: string]: unknown }>
   /** US-02.3 leak protocol run (engine A only; sampled between windows). */
   leakRun?(clipUrl: string, options: Record<string, unknown>): Promise<{ ok: boolean; error?: string; [key: string]: unknown }>
+  /** Fail-closed WebGPU adapter probe (recorded on every measured row). */
+  adapterProbe?(): Promise<Record<string, unknown>>
   dispose(): Promise<{ ok: boolean }>
 }
 
