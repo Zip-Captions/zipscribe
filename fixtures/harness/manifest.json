@@ -17,7 +17,7 @@
       "sha256": "ca87ea894e05bad79220fdca0f9dbcece0347143895b6e19c1b1846bc626ac75"
     },
     "audio-120min.mp4": {
-      "sha256": "pending-run-pnpm-fixtures-with-perf",
+      "sha256": "cafbea591e6f1e0722a6a6301add4893d68aa0deac9f78f87bc12393dfd8c8b9",
       "duration": 7200,
       "kind": "perf",
       "language": "en",
