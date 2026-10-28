@@ -53,7 +53,7 @@ function distRelative(absolute) {
 // with no whitespace around braces or `from`; the pattern must accept that
 // exact emitted form (ground-truthed against vite 7.3.7 builds) while still
 // ignoring dynamic `import('./x.js')` (lazy — correctly not in the graph).
-const staticImport = /(?:^|[\s;()])(?:import|export)\s*(?:[^'"]*?from\s*)?['"]([^'"]+\.js)['"]/g
+const staticImport = /(?:^|[\s;(),{}])(?:import|export)\s*(?:[^'"]*?from\s*)?['"]([^'"]+\.js)['"]/g
 
 while (queue.length > 0) {
   const entry = queue.shift()

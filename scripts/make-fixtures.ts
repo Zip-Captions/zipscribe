@@ -9,7 +9,20 @@
 // Speech is in-repo formant-synthesized (not vendored corpus): the regen
 // contract runs `pnpm fixtures` in a scratch tree WITHOUT fixtures/sources,
 // so the generator itself must produce every committed fixture (documented
-// deviation from the LibriSpeech suggestion in US-1.0.2 — see unit report).
+// deviation from the LibriSpeech suggestion in US-1.0.2 — see unit report,
+// "Deviations from spec" item 7 and "Review round 1 · F2").
+//
+// TODO(unit-02): vendor the openly-licensed corpora US-1.0.2 names into
+// fixtures/sources/ and transcode them with ffmpeg here — LibriSpeech
+// test-clean (CC BY 4.0) for en-clean + the two-speaker mix, Common Voice
+// (CC0) for en-accented/fr-clean, a clean clip mixed with MUSAN (CC-BY) at
+// fixed SNR for en-noisy, recorded/CC0 material for en-technical; keep the
+// committed byte-determinism contract and commit the forced-alignment
+// word-timing JSONs (never run alignment at test time). This download needs
+// an approved network exception: the runtime/test allowlist only covers
+// huggingface.co origins (settings.yml operations.model_hosts), so the
+// corpora hosts are blocked for this run. Until then real-Whisper WER/MAE
+// and taxonomy-category evidence on these fixtures is provisional.
 //
 // Deviations & fixes for container nondeterminism (matroska SegmentUID /
 // DateUTC, Ogg serialno) are applied by the byte-fixers below and listed in
