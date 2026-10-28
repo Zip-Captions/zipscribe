@@ -36,11 +36,24 @@ jobs:
       - run: corepack pnpm install --frozen-lockfile
       - run: corepack pnpm lint
       - run: corepack pnpm typecheck
+      # Test prerequisites BEFORE vitest (mirrors ci.yml F1/F4 ordering —
+      # REVIEW round-2 R2-1): browsers up front so CC-01.6/network-audit's
+      # chromium.launch never hard-fails, models cache/fetch up front so the
+      # models-fetch cache-integrity tests run against a populated cache
+      # instead of vacuously skipping.
+      - name: install playwright browsers
+        run: corepack pnpm exec playwright install --with-deps chromium
+      - name: 'models (CI tier: tiny + VAD, checksum-verified)'
+        uses: actions/cache@v4
+        id: models-cache
+        with:
+          path: .cache/models
+          key: "models-${{ hashFiles('models/ci-registry.json') }}"
+      - run: corepack pnpm models:fetch
+        if: steps.models-cache.outputs.cache-hit != 'true'
       - run: corepack pnpm test --coverage
       - run: corepack pnpm build
       - run: corepack pnpm check-bundle
-      - name: install playwright browsers
-        run: corepack pnpm exec playwright install --with-deps chromium
       - run: corepack pnpm test:e2e
       - name: deploy production
         id: deploy
@@ -61,7 +74,14 @@ jobs:
         if: failure() && env.CLOUDFLARE_API_TOKEN != '' && steps.smoke.outcome == 'failure'
         run: |
           set -euo pipefail
-          PREV_TAG=$(git tag --sort=-v:refname | sed -n '2p')
+          # REVIEW round-2 R2-2: the failing release is NOT tagged yet (the tag
+          # step is success-gated after smoke), so "second tag" (sed -n 2p) is
+          # wrong: with one prior tag it aborts though a target exists, with
+          # ≥2 it silently redeploys the second-previous release. Select the
+          # newest tag EXCLUDING the version being deployed — correct on first
+          # run and on a re-run after the tag was cut.
+          VERSION=$(node -p "require('./package.json').version")
+          PREV_TAG=$(git tag --sort=-v:refname | { grep -v "^v${VERSION}$" || true; } | sed -n '1p')
           if [ -z "${PREV_TAG}" ]; then
             echo "rollback: no previous release tag exists — production stays on the failed build; escalate manually"
             exit 1
@@ -71,13 +91,22 @@ jobs:
           ( cd ../rollback && corepack pnpm install --frozen-lockfile && corepack pnpm build )
           corepack pnpm exec wrangler pages deploy ../rollback/dist --project-name zipscribe --branch main | tee rollback.log
       - name: open incident issue on failed smoke
-        if: failure() && env.GH_TOKEN != '' && steps.smoke.outcome == 'failure'
+        # REVIEW round-2 R2-4: `env.GH_TOKEN != ''` here was evaluator-dependent
+        # (step env may or may not be in scope) — tautological or silently-never.
+        # Gate on the smoke outcome only; check token presence inside the body
+        # and fail open to a log line.
+        if: failure() && steps.smoke.outcome == 'failure'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ] || ! gh auth status >/dev/null 2>&1; then
+            echo "GH_TOKEN unavailable — incident issue NOT opened; triage manually: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            exit 0
+          fi
           gh issue create --repo "$GITHUB_REPOSITORY" \
             --title "Production deploy ${GITHUB_SHA::7} failed L7 smoke — automatic rollback attempted" \
-            --body "deploy-production run ${{ github.run_id }} failed the L7 smoke against ${{ steps.deploy.outputs.url }}. The rollback step redeployed the previous release tag (see run log). Triage: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            --body "deploy-production run ${{ github.run_id }} failed the L7 smoke against ${{ steps.deploy.outputs.url }}. The rollback step attempted to redeploy the previous release tag — see the run log for its outcome. Triage: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
       - name: compute release tag from package.json version
         id: version
         run: echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"

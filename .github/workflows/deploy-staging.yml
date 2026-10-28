@@ -31,11 +31,24 @@ jobs:
       - run: corepack pnpm install --frozen-lockfile
       - run: corepack pnpm lint
       - run: corepack pnpm typecheck
+      # Test prerequisites BEFORE vitest (mirrors ci.yml F1/F4 ordering —
+      # REVIEW round-2 R2-1): browsers up front so CC-01.6/network-audit's
+      # chromium.launch never hard-fails, models cache/fetch up front so the
+      # models-fetch cache-integrity tests run against a populated cache
+      # instead of vacuously skipping.
+      - name: install playwright browsers
+        run: corepack pnpm exec playwright install --with-deps chromium
+      - name: 'models (CI tier: tiny + VAD, checksum-verified)'
+        uses: actions/cache@v4
+        id: models-cache
+        with:
+          path: .cache/models
+          key: "models-${{ hashFiles('models/ci-registry.json') }}"
+      - run: corepack pnpm models:fetch
+        if: steps.models-cache.outputs.cache-hit != 'true'
       - run: corepack pnpm test --coverage
       - run: corepack pnpm build
       - run: corepack pnpm check-bundle
-      - name: install playwright browsers
-        run: corepack pnpm exec playwright install --with-deps chromium
       - run: corepack pnpm test:e2e
       - name: deploy staging
         id: deploy
