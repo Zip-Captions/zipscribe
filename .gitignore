@@ -17,3 +17,7 @@ fixtures/audio-120min.mp4
 # test tooling output (models cache, criteria reports)
 .cache/
 reports/
+
+# overnight pipeline run scratch (see .agent/overnight-pipeline.md)
+.agent/overnight-run-config.md
+docs/overnight-ledger.md

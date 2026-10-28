@@ -1,0 +1,102 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [".agent/AGENTS.md"],
+  "permission": {
+    "docs-mcp_*": "allow",
+    "bash": {
+      "*": "allow",
+      "rm -rf*": "deny",
+      "sudo*": "deny",
+      "git push --force*": "deny",
+      "git reset --hard*": "deny",
+      "git clean -fd*": "deny",
+      "gh repo delete*": "deny",
+      "gh api -X DELETE*": "deny"
+    },
+    "edit": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny"
+    },
+    "external_directory": {
+      "/tmp/zipscribe-review-*": "allow",
+      "~/Documents/qwen-orchestrator/runs/**": "allow"
+    },
+    "webfetch": "allow",
+    "websearch": "allow",
+    "question": "allow"
+  },
+  "mcp": {
+    "puppeteer": { "enabled": true },
+    "pdf-reader": { "enabled": true },
+    "paper-search": { "enabled": true },
+    "obsidian": { "enabled": false },
+    "qdrant": { "enabled": false },
+    "grafana": { "enabled": false },
+    "home-assistant": { "enabled": false },
+    "discourse": { "enabled": false },
+    "linkedin": { "enabled": false }
+  },
+  "agent": {
+    "overnight": {
+      "description": "Unattended overnight-pipeline orchestrator: git/gh mechanics, gate re-verification, ledger, subagent spawns. Never writes feature code.",
+      "mode": "primary",
+      "permission": { "question": "deny", "doom_loop": "allow" }
+    },
+    "builder": {
+      "description": "Pipeline build subagent: implements one unit on its branch.",
+      "mode": "subagent",
+      "permission": {
+        "edit": { ".ai-dlc/**": "deny", ".agent/**": "deny", "AGENTS.md": "deny", "opencode.json": "deny", "*": "allow" },
+        "task": "deny",
+        "question": "deny"
+      }
+    },
+    "test-author": {
+      "description": "Pipeline test-author subagent: writes failing tests from the unit spec only.",
+      "mode": "subagent",
+      "permission": {
+        "edit": { "src/**": "deny", "src/**/*.test.ts": "allow", "e2e/**": "allow", "docs/**": "allow", "*.md": "allow" },
+        "task": "deny",
+        "question": "deny"
+      }
+    },
+    "adversary": {
+      "description": "Pipeline test-adversary subagent: adds counterexample regression tests post-build.",
+      "mode": "subagent",
+      "permission": {
+        "edit": { "src/**": "deny", "src/**/*.test.ts": "allow", "e2e/**": "allow", "docs/**": "allow", "*.md": "allow" },
+        "task": "deny",
+        "question": "deny"
+      }
+    },
+    "fixer": {
+      "description": "Pipeline fix subagent: addresses review findings without editing existing tests.",
+      "mode": "subagent",
+      "permission": {
+        "edit": { ".ai-dlc/**": "deny", ".agent/**": "deny", "AGENTS.md": "deny", "opencode.json": "deny", "*": "allow" },
+        "task": "deny",
+        "question": "deny"
+      }
+    },
+    "reviewer": {
+      "description": "Pipeline review subagent: read-only independent review in its own worktree.",
+      "mode": "subagent",
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "*": "allow",
+          "git push*": "deny",
+          "gh pr merge*": "deny",
+          "gh pr comment*": "deny",
+          "gh pr review*": "deny",
+          "gh pr create*": "deny",
+          "gh api -X POST*": "deny",
+          "gh api -X PATCH*": "deny"
+        },
+        "task": "deny",
+        "question": "deny"
+      }
+    }
+  }
+}
