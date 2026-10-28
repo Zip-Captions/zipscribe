@@ -28,8 +28,8 @@ Spec phase. This repository is currently **specification only** — no applicati
 
 | Path | Artifact |
 |---|---|
-| `.agent/AGENTS.md` | Instructions for every coding agent (precedence rules, gates, unit report format); loaded by opencode via `opencode.json` and by Claude Code via `.claude/CLAUDE.md` |
-| `.agent/REVIEW.md` | Project rules for code review |
+| `.agent/AGENTS.md` | Instructions for every coding agent (precedence rules, gates, unit report format) |
+| `.agent/REVIEW.md` | Project rules for code review (AI-DLC reviewer hat + `/ai-dlc:review`) |
 | `.ai-dlc/settings.yml` | Project config: tech stack, version pins, approved deps, quality gates, reference hardware, network allowlist, git strategy |
 | `.ai-dlc/ELABORATION.md` | Standing context for new intents: required discovery areas, spec conventions, build order |
 | `.ai-dlc/knowledge/` | Persistent project intelligence (architecture contract, design, product, domain, conventions) |
@@ -37,7 +37,7 @@ Spec phase. This repository is currently **specification only** — no applicati
 | `.ai-dlc/caption-studio-ui/` | **Intent 2** — workbench, transcript editor, timeline, playback sync, audio playback + visualizer, shortcuts, persistence |
 | `.ai-dlc/styling-and-export/` | **Intent 3** — design pass, caption styling, sidecar + burn-in export, Cloudflare Pages deploy, installable offline PWA |
 | `.ai-dlc/caption-translation/` | **Intent 4** — on-device translation engine + translation workspace |
-| `opencode.json`, `.claude/CLAUDE.md` | Tool bridges that load `.agent/AGENTS.md` (no agent docs at the root) |
+| `CLAUDE.md`, `REVIEW.md` (root) | Symlinks into `.agent/` for tools that only look at the repo root (Claude Code, opencode fallback, `/ai-dlc:review`) — edit the `.agent/` files |
 | `docs/spikes/` | Spike reports written by units (e.g. unit-02 model evaluation) |
 | `qualification/` | Release-qualification results per version (`pnpm qualify` on reference hardware) |
 
