@@ -3,6 +3,7 @@
 // `.prettierrc` / `pnpm format` (formatting is a separate script so the gate
 // `pnpm lint` stays focused on rules).
 import tseslint from 'typescript-eslint'
+import { purityPlugin } from './scripts/eslint-engine-purity.mjs'
 
 const SDK_PACKAGES = ['@huggingface/transformers', '@huggingface/*', '@ffmpeg/*', 'ffmpeg-static', 'mediabunny', 'onnxruntime-web', 'onnxruntime-common', 'sherpa-onnx', '@xenova/*', '@onnxproto/*']
 const FRAMEWORK_PACKAGES = ['react', 'react-dom', 'react-dom/*', 'react/*']
@@ -54,16 +55,22 @@ export default tseslint.config(
   {
     files: ['src/engine/**/*.ts'],
     ignores: ['src/engine/**/adapters/**/*.ts'],
+    plugins: { '2:zipscribe': purityPlugin },
     rules: {
       'no-restricted-imports': ['error', { patterns: [{ group: FRAMEWORK_PACKAGES, message: 'src/engine is framework-agnostic (FR-1.0.5)' }, { group: SDK_PACKAGES, message: 'SDK glue lives in src/workers or src/engine/**/adapters (FR-1.0.5)' }] }],
       'no-restricted-globals': ['error', 'document', 'window', 'localStorage'],
+      '2:zipscribe/restricted-imports': ['error', { framework: FRAMEWORK_PACKAGES, sdk: SDK_PACKAGES, allowSdkUnder: '/adapters/' }],
+      '2:zipscribe/restricted-globals': ['error', { globals: ['document', 'window', 'localStorage'] }],
     },
   },
   {
     files: ['src/engine/**/adapters/**/*.ts'],
+    plugins: { '2:zipscribe': purityPlugin },
     rules: {
       'no-restricted-imports': ['error', { patterns: [{ group: FRAMEWORK_PACKAGES, message: 'src/engine is framework-agnostic (FR-1.0.5)' }] }],
       'no-restricted-globals': ['error', 'document', 'window', 'localStorage'],
+      '2:zipscribe/restricted-imports': ['error', { framework: FRAMEWORK_PACKAGES, sdk: [], allowSdkUnder: '/adapters/' }],
+      '2:zipscribe/restricted-globals': ['error', { globals: ['document', 'window', 'localStorage'] }],
     },
   },
 

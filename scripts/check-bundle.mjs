@@ -1,0 +1,85 @@
+// FR-1.0.6 — `pnpm check-bundle`: assert initial JS <= the gzip budget declared
+// in bundle-budget.json. The initial set is what the browser loads before the
+// app runs: scripts referenced by dist/index.html plus their static (analyzable)
+// imports resolved inside dist/. Lazy chunks — workers, transformers/ORT wasm,
+// mediabunny, ffmpeg — never enter the set (they are neither referenced from
+// index.html nor statically imported by the entry), and excludePatterns is a
+// second line of defence.
+import { gzipSync } from 'node:zlib'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const dist = join(repoRoot, 'dist')
+
+function fail(message) {
+  console.error(`check-bundle: ${message}`)
+  process.exit(1)
+}
+
+const budgetPath = join(repoRoot, 'bundle-budget.json')
+if (!existsSync(budgetPath)) fail('bundle-budget.json is missing')
+const budget = JSON.parse(readFileSync(budgetPath, 'utf8'))
+const limit = budget.initialJsGzipBytes ?? budget.maxInitialJsGzipBytes ?? budget.budgetBytes
+if (typeof limit !== 'number' || limit <= 0) fail('bundle-budget.json declares no numeric initial-JS gzip budget')
+const excludePatterns = budget.excludePatterns ?? []
+
+if (!existsSync(join(dist, 'index.html'))) fail('dist/index.html not found — run `pnpm build` first')
+const html = readFileSync(join(dist, 'index.html'), 'utf8')
+
+const initial = new Set()
+const queue = []
+for (const match of html.matchAll(/<script[^>]*src="([^"]+\.js)"/g)) queue.push(match[1].replace(/^\//, ''))
+
+// Resolve a chunk reference relative to the referencing chunk's directory,
+// then relative to the dist root (vite emits siblings; a hand-injected probe
+// chunk may sit at the root).
+function resolveChunk(spec, fromDir) {
+  const candidates = [resolve(dist, fromDir, spec), resolve(dist, spec)]
+  for (const candidate of candidates) {
+    const normalized = candidate.startsWith(dist) ? candidate : null
+    if (normalized && existsSync(normalized) && statSync(normalized).isFile()) return normalized
+  }
+  return null
+}
+
+function distRelative(absolute) {
+  return absolute.slice(dist.length + 1).split('\\').join('/')
+}
+
+const staticImport = /(?:^|[\s;])(?:import|export)\s*(?:[^'"]*?\sfrom\s*)?['"]([^'"]+\.js)['"]/g
+
+while (queue.length > 0) {
+  const entry = queue.shift()
+  if (initial.has(entry)) continue
+  const absolute = resolve(dist, entry)
+  if (!absolute.startsWith(dist) || !existsSync(absolute) || !statSync(absolute).isFile()) {
+    fail(`initial script not found in dist/: ${entry}`)
+  }
+  initial.add(entry)
+  const source = readFileSync(absolute, 'utf8')
+  for (const match of source.matchAll(staticImport)) {
+    const spec = match[1]
+    if (!spec.startsWith('./') && !spec.startsWith('../') && !spec.startsWith('/')) continue
+    const resolved = resolveChunk(spec, dirname(entry))
+    if (resolved) queue.push(distRelative(resolved))
+  }
+}
+
+const counted = []
+let total = 0
+for (const chunk of [...initial].sort()) {
+  if (excludePatterns.some((pattern) => chunk.includes(pattern))) continue
+  const bytes = gzipSync(readFileSync(join(dist, chunk)), { level: 9 }).length
+  total += bytes
+  counted.push({ chunk, gzip: bytes })
+}
+
+for (const { chunk, gzip } of counted) {
+  console.log(`  ${chunk}  ${(gzip / 1024).toFixed(1)} KB gzip`)
+}
+console.log(`check-bundle: initial JS ${(total / 1024).toFixed(1)} KB gzip / budget ${(limit / 1024).toFixed(0)} KB (${counted.length} chunks)`)
+if (total > limit) {
+  fail(`initial JS ${(total / 1024).toFixed(1)} KB gzip exceeds the ${(limit / 1024).toFixed(0)} KB budget`)
+}
