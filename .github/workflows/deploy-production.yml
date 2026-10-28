@@ -43,11 +43,41 @@ jobs:
         run: corepack pnpm exec playwright install --with-deps chromium
       - run: corepack pnpm test:e2e
       - name: deploy production
+        id: deploy
         if: env.CLOUDFLARE_API_TOKEN != ''
-        run: corepack pnpm exec wrangler pages deploy dist --project-name zipscribe --branch main
+        run: |
+          corepack pnpm exec wrangler pages deploy dist --project-name zipscribe --branch main | tee deploy.log
+          URL=$(grep -oE 'https://[a-z0-9.-]+pages\.dev' deploy.log | tail -1)
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
       - name: production smoke (app boots, version visible, zero console errors)
+        id: smoke
         if: env.CLOUDFLARE_API_TOKEN != ''
-        run: corepack pnpm exec node scripts/deploy-smoke.mjs https://<project>.pages.dev
+        run: corepack pnpm exec node scripts/deploy-smoke.mjs "${{ steps.deploy.outputs.url }}"
+      # conventions § CI/CD, Push-to-main row: on smoke failure — "automatic
+      # rollback (redeploy the previous release tag's artifact) and open an
+      # incident issue". The unit-203 hardening pass replaces the tag rebuild
+      # with a retained release artifact.
+      - name: rollback production on failed smoke (redeploy previous release tag)
+        if: failure() && env.CLOUDFLARE_API_TOKEN != '' && steps.smoke.outcome == 'failure'
+        run: |
+          set -euo pipefail
+          PREV_TAG=$(git tag --sort=-v:refname | sed -n '2p')
+          if [ -z "${PREV_TAG}" ]; then
+            echo "rollback: no previous release tag exists — production stays on the failed build; escalate manually"
+            exit 1
+          fi
+          echo "rolling production back to ${PREV_TAG}"
+          git worktree add ../rollback "${PREV_TAG}"
+          ( cd ../rollback && corepack pnpm install --frozen-lockfile && corepack pnpm build )
+          corepack pnpm exec wrangler pages deploy ../rollback/dist --project-name zipscribe --branch main | tee rollback.log
+      - name: open incident issue on failed smoke
+        if: failure() && env.GH_TOKEN != '' && steps.smoke.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create --repo "$GITHUB_REPOSITORY" \
+            --title "Production deploy ${GITHUB_SHA::7} failed L7 smoke — automatic rollback attempted" \
+            --body "deploy-production run ${{ github.run_id }} failed the L7 smoke against ${{ steps.deploy.outputs.url }}. The rollback step redeployed the previous release tag (see run log). Triage: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
       - name: compute release tag from package.json version
         id: version
         run: echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"

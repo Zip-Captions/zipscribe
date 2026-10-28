@@ -44,10 +44,22 @@ export default defineConfig({
       concurrent: false,
     },
     hookTimeout: 30_000,
+    // The vitest default (5 s) is too tight for the type-aware ESLint-API
+    // probes and `pnpm fixtures` regeneration on a 2-core CI runner (CI run
+    // 40646526713: those tests died at 6.3–7.2 s). Gate-spawning tests carry
+    // their own explicit per-test timeouts and are unaffected.
+    testTimeout: 30_000,
     coverage: {
       // Opt-in until there is engine/state code to measure (see above).
       enabled: false,
       provider: 'v8',
+      // vitest cleans its reportsDirectory at startup and keeps temp results
+      // in <dir>/.tmp; coverage-gate.test.ts runs a nested `pnpm test
+      // --coverage` inside the suite and deletes `coverage/` on exit, so
+      // parent and child must never share one (CI run 40646526713: shared
+      // `coverage/.tmp` → ENOENT `coverage-N.json` killed the run). Every
+      // scaffold-spawned child carries ZIPSCRIBE_CHILD=1 (runTool).
+      reportsDirectory: process.env.ZIPSCRIBE_CHILD === '1' ? 'coverage/child' : 'coverage-main',
       reporter: ['text', 'json-summary'],
       include: ['src/engine/**', 'src/state/**'],
       exclude: ['**/*.test.ts', '**/*.test.tsx', 'src/engine/**/adapters/**', 'src/workers/**'],

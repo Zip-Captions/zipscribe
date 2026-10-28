@@ -38,8 +38,12 @@ jobs:
         run: corepack pnpm exec playwright install --with-deps chromium
       - run: corepack pnpm test:e2e
       - name: deploy staging
+        id: deploy
         if: env.CLOUDFLARE_API_TOKEN != ''
-        run: corepack pnpm exec wrangler pages deploy dist --project-name zipscribe --branch develop
+        run: |
+          corepack pnpm exec wrangler pages deploy dist --project-name zipscribe --branch develop | tee deploy.log
+          URL=$(grep -oE 'https://[a-z0-9.-]+pages\.dev' deploy.log | tail -1)
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
       - name: staging smoke (app boots, version visible, zero console errors)
         if: env.CLOUDFLARE_API_TOKEN != ''
-        run: corepack pnpm exec node scripts/deploy-smoke.mjs https://develop.<project>.pages.dev
+        run: corepack pnpm exec node scripts/deploy-smoke.mjs "${{ steps.deploy.outputs.url }}"

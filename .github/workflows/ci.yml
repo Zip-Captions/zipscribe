@@ -1,11 +1,15 @@
 name: ci
 
 # PR pipeline (knowledge/conventions.md § CI/CD): install → L0 (lint,
-# typecheck, spec-lint, license-check) → L1–L3 (vitest + enforced coverage
-# thresholds) → build + budgets → models:fetch (cached by registry hash) →
-# L4–L5 Playwright → verify:unit for the changed unit → artifacts. The preview
-# deploy + L7 smoke run only when the Cloudflare secrets exist (unit-01 ships
-# the workflows; owner adds repo-level secrets — see unit report).
+# typecheck, spec-lint, license-check) → test prerequisites (playwright
+# browsers, models:fetch cached by registry hash — both BEFORE vitest so the
+# suite runs against the real environment, not a vacuously-degraded one) →
+# L1–L3 (vitest + enforced coverage thresholds) → build + budgets → L4–L5
+# Playwright → verify:unit for the changed unit → artifacts (incl. dist/,
+# which preview-deploy ships unchanged — "the deploy job ships the exact
+# dist/ artifact the same run tested"). The preview deploy + L7 smoke run
+# only when the Cloudflare secrets exist (unit-01 ships the workflows; owner
+# adds repo-level secrets — see unit report).
 
 on:
   pull_request:
@@ -41,12 +45,8 @@ jobs:
         run: corepack pnpm license-check
       - name: L0 — formatting
         run: corepack pnpm format:check
-      - name: L1–L3 — unit tests with coverage thresholds
-        run: corepack pnpm test --coverage
-      - name: build
-        run: corepack pnpm build
-      - name: bundle budget
-        run: corepack pnpm check-bundle
+      - name: install playwright browsers
+        run: corepack pnpm exec playwright install --with-deps chromium
       - name: 'models (CI tier: tiny + VAD, checksum-verified)'
         uses: actions/cache@v4
         id: models-cache
@@ -55,8 +55,19 @@ jobs:
           key: "models-${{ hashFiles('models/ci-registry.json') }}"
       - run: corepack pnpm models:fetch
         if: steps.models-cache.outputs.cache-hit != 'true'
-      - name: install playwright browsers
-        run: corepack pnpm exec playwright install --with-deps chromium
+      - name: L1–L3 — unit tests with coverage thresholds
+        run: corepack pnpm test --coverage
+      - name: build
+        run: corepack pnpm build
+      - name: bundle budget
+        run: corepack pnpm check-bundle
+      - name: upload gated dist (preview-deploy ships this exact artifact)
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
       - name: L4–L5 — Playwright (chromium)
         run: corepack pnpm test:e2e
       - name: criteria traceability (unit branch)
@@ -67,8 +78,10 @@ jobs:
           name: reports
           path: |
             coverage/
+            coverage-main/
             reports/
             playwright-report/
+            test-results/
           if-no-files-found: ignore
 
   fixtures-verify:
@@ -105,7 +118,19 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: corepack pnpm install --frozen-lockfile
-      - run: corepack pnpm build
+      # Ship the exact artifact the quality job gated — no rebuild here
+      # (conventions § CI/CD: "the deploy job ships the exact dist/ artifact
+      # that the same run tested").
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: fetch criteria reports (for the PR comment)
+        uses: actions/download-artifact@v4
+        with:
+          name: reports
+          path: reports/
+          if-no-files-found: ignore
       - name: deploy PR preview (skips without Cloudflare secrets)
         id: deploy
         if: env.CLOUDFLARE_API_TOKEN != ''
@@ -116,3 +141,17 @@ jobs:
       - name: minimal deploy smoke
         if: env.CLOUDFLARE_API_TOKEN != ''
         run: corepack pnpm exec node scripts/deploy-smoke.mjs "${{ steps.deploy.outputs.url }}"
+      - name: PR comment — preview URL + criteria table (FR-1.0.7 / FR-1.0.13)
+        if: env.CLOUDFLARE_API_TOKEN != '' && steps.deploy.outputs.url != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          URL='${{ steps.deploy.outputs.url }}'
+          TABLE=$(ls reports/criteria/*.md 2>/dev/null | head -1 || true)
+          if [ -n "${TABLE:-}" ]; then
+            BODY="**Preview:** ${URL}"$'\n\n'"$(cat "${TABLE}")"
+          else
+            BODY="**Preview:** ${URL} (criteria table in the run's \`reports\` artifact)"
+          fi
+          gh pr comment "${{ github.event.pull_request.number }}" --repo "$GITHUB_REPOSITORY" --body "$BODY"
