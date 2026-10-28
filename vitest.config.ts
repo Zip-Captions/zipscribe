@@ -15,6 +15,13 @@ import react from '@vitejs/plugin-react'
 //   for a bare `vitest run`: unit-01 has no engine logic yet, so there is
 //   nothing to measure. `pnpm test --coverage` — CC-01.11 — turns the gate on;
 //   once unit-02+ land engine/state code the `enabled: false` line goes away.
+// Builder extension (unit report): the CC-01.2 regeneration test runs
+// `pnpm fixtures` in a scratch tree WITHOUT node_modules; the generator needs
+// to find the real repo (for the pinned ffmpeg-static) from there. The
+// scaffold helpers spawn children with a spread of this process's env, so
+// exporting it here reaches every gate/scratch child.
+process.env.ZIPSCRIBE_REPO_ROOT ??= new URL('.', import.meta.url).pathname
+
 export default defineConfig({
   plugins: [react()],
   test: {

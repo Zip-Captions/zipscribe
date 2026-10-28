@@ -1,0 +1,41 @@
+{
+  "transcript": "please record the calibration sequence again slowly",
+  "language": "en",
+  "words": [
+    {
+      "text": "please",
+      "start": 0.12,
+      "end": 4.268
+    },
+    {
+      "text": "record",
+      "start": 4.495,
+      "end": 8.643
+    },
+    {
+      "text": "the",
+      "start": 8.87,
+      "end": 12.912
+    },
+    {
+      "text": "calibration",
+      "start": 13.245,
+      "end": 17.446
+    },
+    {
+      "text": "sequence",
+      "start": 17.619,
+      "end": 21.803
+    },
+    {
+      "text": "again",
+      "start": 21.994,
+      "end": 26.143
+    },
+    {
+      "text": "slowly",
+      "start": 26.369,
+      "end": 30.518
+    }
+  ]
+}

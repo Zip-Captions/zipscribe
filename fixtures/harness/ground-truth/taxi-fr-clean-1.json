@@ -1,0 +1,46 @@
+{
+  "transcript": "le chat dort sur la table en bois",
+  "language": "fr",
+  "words": [
+    {
+      "text": "le",
+      "start": 0.12,
+      "end": 3.039
+    },
+    {
+      "text": "chat",
+      "start": 3.313,
+      "end": 6.309
+    },
+    {
+      "text": "dort",
+      "start": 6.506,
+      "end": 9.501
+    },
+    {
+      "text": "sur",
+      "start": 9.698,
+      "end": 12.617
+    },
+    {
+      "text": "la",
+      "start": 12.891,
+      "end": 15.81
+    },
+    {
+      "text": "table",
+      "start": 16.084,
+      "end": 19.08
+    },
+    {
+      "text": "en",
+      "start": 19.277,
+      "end": 22.196
+    },
+    {
+      "text": "bois",
+      "start": 22.469,
+      "end": 25.465
+    }
+  ]
+}

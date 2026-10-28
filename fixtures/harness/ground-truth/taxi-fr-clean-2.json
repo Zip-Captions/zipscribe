@@ -1,0 +1,46 @@
+{
+  "transcript": "les amis partagent un repas simple et joyeux",
+  "language": "fr",
+  "words": [
+    {
+      "text": "les",
+      "start": 0.12,
+      "end": 3.039
+    },
+    {
+      "text": "amis",
+      "start": 3.313,
+      "end": 6.309
+    },
+    {
+      "text": "partagent",
+      "start": 6.506,
+      "end": 9.527
+    },
+    {
+      "text": "un",
+      "start": 9.698,
+      "end": 12.617
+    },
+    {
+      "text": "repas",
+      "start": 12.891,
+      "end": 15.887
+    },
+    {
+      "text": "simple",
+      "start": 16.084,
+      "end": 19.08
+    },
+    {
+      "text": "et",
+      "start": 19.276,
+      "end": 22.196
+    },
+    {
+      "text": "joyeux",
+      "start": 22.469,
+      "end": 25.465
+    }
+  ]
+}

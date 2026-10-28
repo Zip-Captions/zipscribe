@@ -1,0 +1,366 @@
+{
+  "transcript": "the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter",
+  "language": "en",
+  "words": [
+    {
+      "text": "the",
+      "start": 0.12,
+      "end": 1.364
+    },
+    {
+      "text": "team",
+      "start": 1.549,
+      "end": 2.825
+    },
+    {
+      "text": "walked",
+      "start": 2.978,
+      "end": 4.254
+    },
+    {
+      "text": "across",
+      "start": 4.407,
+      "end": 5.683
+    },
+    {
+      "text": "the",
+      "start": 5.836,
+      "end": 7.08
+    },
+    {
+      "text": "old",
+      "start": 7.265,
+      "end": 8.509
+    },
+    {
+      "text": "bridge",
+      "start": 8.694,
+      "end": 9.97
+    },
+    {
+      "text": "before",
+      "start": 10.123,
+      "end": 11.399
+    },
+    {
+      "text": "sunrise",
+      "start": 11.552,
+      "end": 12.839
+    },
+    {
+      "text": "every",
+      "start": 12.981,
+      "end": 14.257
+    },
+    {
+      "text": "member",
+      "start": 14.41,
+      "end": 15.686
+    },
+    {
+      "text": "brought",
+      "start": 15.839,
+      "end": 17.126
+    },
+    {
+      "text": "a",
+      "start": 17.268,
+      "end": 18.512
+    },
+    {
+      "text": "lantern",
+      "start": 18.697,
+      "end": 19.984
+    },
+    {
+      "text": "and",
+      "start": 20.126,
+      "end": 21.37
+    },
+    {
+      "text": "a",
+      "start": 21.555,
+      "end": 22.799
+    },
+    {
+      "text": "short",
+      "start": 22.984,
+      "end": 24.26
+    },
+    {
+      "text": "letter",
+      "start": 24.413,
+      "end": 25.689
+    },
+    {
+      "text": "the",
+      "start": 30.12,
+      "end": 31.364
+    },
+    {
+      "text": "team",
+      "start": 31.549,
+      "end": 32.825
+    },
+    {
+      "text": "walked",
+      "start": 32.978,
+      "end": 34.254
+    },
+    {
+      "text": "across",
+      "start": 34.407,
+      "end": 35.683
+    },
+    {
+      "text": "the",
+      "start": 35.836,
+      "end": 37.08
+    },
+    {
+      "text": "old",
+      "start": 37.265,
+      "end": 38.509
+    },
+    {
+      "text": "bridge",
+      "start": 38.694,
+      "end": 39.97
+    },
+    {
+      "text": "before",
+      "start": 40.123,
+      "end": 41.399
+    },
+    {
+      "text": "sunrise",
+      "start": 41.552,
+      "end": 42.839
+    },
+    {
+      "text": "every",
+      "start": 42.981,
+      "end": 44.257
+    },
+    {
+      "text": "member",
+      "start": 44.41,
+      "end": 45.686
+    },
+    {
+      "text": "brought",
+      "start": 45.839,
+      "end": 47.126
+    },
+    {
+      "text": "a",
+      "start": 47.268,
+      "end": 48.512
+    },
+    {
+      "text": "lantern",
+      "start": 48.697,
+      "end": 49.984
+    },
+    {
+      "text": "and",
+      "start": 50.126,
+      "end": 51.37
+    },
+    {
+      "text": "a",
+      "start": 51.555,
+      "end": 52.799
+    },
+    {
+      "text": "short",
+      "start": 52.984,
+      "end": 54.26
+    },
+    {
+      "text": "letter",
+      "start": 54.413,
+      "end": 55.689
+    },
+    {
+      "text": "the",
+      "start": 60.12,
+      "end": 61.364
+    },
+    {
+      "text": "team",
+      "start": 61.549,
+      "end": 62.825
+    },
+    {
+      "text": "walked",
+      "start": 62.978,
+      "end": 64.254
+    },
+    {
+      "text": "across",
+      "start": 64.407,
+      "end": 65.683
+    },
+    {
+      "text": "the",
+      "start": 65.836,
+      "end": 67.08
+    },
+    {
+      "text": "old",
+      "start": 67.265,
+      "end": 68.509
+    },
+    {
+      "text": "bridge",
+      "start": 68.694,
+      "end": 69.97
+    },
+    {
+      "text": "before",
+      "start": 70.123,
+      "end": 71.399
+    },
+    {
+      "text": "sunrise",
+      "start": 71.552,
+      "end": 72.839
+    },
+    {
+      "text": "every",
+      "start": 72.981,
+      "end": 74.257
+    },
+    {
+      "text": "member",
+      "start": 74.41,
+      "end": 75.686
+    },
+    {
+      "text": "brought",
+      "start": 75.839,
+      "end": 77.126
+    },
+    {
+      "text": "a",
+      "start": 77.268,
+      "end": 78.512
+    },
+    {
+      "text": "lantern",
+      "start": 78.697,
+      "end": 79.984
+    },
+    {
+      "text": "and",
+      "start": 80.126,
+      "end": 81.37
+    },
+    {
+      "text": "a",
+      "start": 81.555,
+      "end": 82.799
+    },
+    {
+      "text": "short",
+      "start": 82.984,
+      "end": 84.26
+    },
+    {
+      "text": "letter",
+      "start": 84.413,
+      "end": 85.689
+    },
+    {
+      "text": "the",
+      "start": 90.12,
+      "end": 91.364
+    },
+    {
+      "text": "team",
+      "start": 91.549,
+      "end": 92.825
+    },
+    {
+      "text": "walked",
+      "start": 92.978,
+      "end": 94.254
+    },
+    {
+      "text": "across",
+      "start": 94.407,
+      "end": 95.683
+    },
+    {
+      "text": "the",
+      "start": 95.836,
+      "end": 97.08
+    },
+    {
+      "text": "old",
+      "start": 97.265,
+      "end": 98.509
+    },
+    {
+      "text": "bridge",
+      "start": 98.694,
+      "end": 99.97
+    },
+    {
+      "text": "before",
+      "start": 100.123,
+      "end": 101.399
+    },
+    {
+      "text": "sunrise",
+      "start": 101.552,
+      "end": 102.839
+    },
+    {
+      "text": "every",
+      "start": 102.981,
+      "end": 104.257
+    },
+    {
+      "text": "member",
+      "start": 104.41,
+      "end": 105.686
+    },
+    {
+      "text": "brought",
+      "start": 105.839,
+      "end": 107.126
+    },
+    {
+      "text": "a",
+      "start": 107.268,
+      "end": 108.512
+    },
+    {
+      "text": "lantern",
+      "start": 108.697,
+      "end": 109.984
+    },
+    {
+      "text": "and",
+      "start": 110.126,
+      "end": 111.37
+    },
+    {
+      "text": "a",
+      "start": 111.555,
+      "end": 112.799
+    },
+    {
+      "text": "short",
+      "start": 112.984,
+      "end": 114.26
+    },
+    {
+      "text": "letter",
+      "start": 114.413,
+      "end": 115.689
+    }
+  ]
+}

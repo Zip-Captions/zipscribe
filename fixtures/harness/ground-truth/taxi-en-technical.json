@@ -1,0 +1,46 @@
+{
+  "transcript": "the encoder buffers quantized spectral coefficients per frame",
+  "language": "en",
+  "words": [
+    {
+      "text": "the",
+      "start": 0.12,
+      "end": 3.443
+    },
+    {
+      "text": "encoder",
+      "start": 3.738,
+      "end": 7.177
+    },
+    {
+      "text": "buffers",
+      "start": 7.356,
+      "end": 10.795
+    },
+    {
+      "text": "quantized",
+      "start": 10.973,
+      "end": 14.413
+    },
+    {
+      "text": "spectral",
+      "start": 14.591,
+      "end": 18.03
+    },
+    {
+      "text": "coefficients",
+      "start": 18.209,
+      "end": 21.663
+    },
+    {
+      "text": "per",
+      "start": 21.826,
+      "end": 25.149
+    },
+    {
+      "text": "frame",
+      "start": 25.444,
+      "end": 28.855
+    }
+  ]
+}
