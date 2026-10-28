@@ -1,8 +1,8 @@
 # Model evaluation spike — unit-02 (FR-02)
 
-Machine: GPU helper pid present; calibration: PASSED (observed 1074790400 bytes of 536870912 allocated).
+Machine: GPU helper pid present; calibration: PASSED (observed 1112539136 bytes of 536870912 allocated).
 
-Browser: launch mode **new-headless** (new-headless via Playwright `channel:'chromium'`, headed fallback — [playwright.dev/docs/browsers](https://playwright.dev/docs/browsers)), args `--no-sandbox --enable-unsafe-webgpu --use-angle=metal --enable-features=SharedArrayBuffer`; crossOriginIsolated=true; navigator.gpu adapter=YES; gpuSamplerPid=18061.
+Browser: launch mode **new-headless** (new-headless via Playwright `channel:'chromium'`, headed fallback — [playwright.dev/docs/browsers](https://playwright.dev/docs/browsers)), args `--no-sandbox --enable-unsafe-webgpu --use-angle=metal --enable-features=SharedArrayBuffer`; crossOriginIsolated=true; navigator.gpu adapter=YES; gpuSamplerPid=44427.
 
 ## Measured rows (US-02.1) — median-of-3 wall incl. audio decode, numThreads:1
 
@@ -10,18 +10,20 @@ CORPUS PROVISIONAL: ground truth is synthesized TTS (unit-01 fixtures) — WER/M
 
 | engine | engineId | version | model | revision | device | adapter | tier | clip | WER | wordTimingMAEms | RTF | per-run wall ms | peak JS heap (MB) | GPU Δ/window | lang | conf | punct | timestamps | license |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| transformers.js | A | 3.8.1 | onnx-community/whisper-base_timestamped | 608c49e613 | webgpu | apple metal-3 | T1 | taxi-en-technical | 1 | 20189.7 | 0.0208 | 962 / 707.6 / 702.8 | 1091 | -6291456 | true | false | false | word-native | Apache-2.0 |
-| transformers.js | A | 3.8.1 | onnx-community/whisper-small_timestamped | 65caa70f29 | webgpu | apple metal-3 | T1 | taxi-en-technical | 1 | 14123.5 | 0.0423 | 1461.1 / 1438 / 1422.8 | 1462 | 32505856 | true | false | false | word-native | Apache-2.0 |
-| transformers.js | A | 3.8.1 | onnx-community/whisper-tiny_timestamped | 5172442937 | wasm | apple metal-3 | T2 | taxi-en-technical | 1 | 14719.5 | 0.0704 | 2464.1 / 2391.7 / 2386.6 | n/a (no-samples-in-run-window) | 0 | true | false | false | word-native | Apache-2.0 |
+| transformers.js | A | 3.8.1 | onnx-community/whisper-base_timestamped | 608c49e613 | webgpu | apple metal-3 | T1 | taxi-en-technical | 1 | 20189.7 | 0.0206 | 1110.7 / 696.1 / 701 | 1091 | 0 | true | false | false | word-native | Apache-2.0 |
+| transformers.js | A | 3.8.1 | onnx-community/whisper-small_timestamped | 65caa70f29 | webgpu | apple metal-3 | T1 | taxi-en-technical | 1 | 14123.5 | 0.0424 | 1518.2 / 1425.9 / 1439.9 | 1462 | 2097152 | true | false | false | word-native | Apache-2.0 |
+| transformers.js | A | 3.8.1 | onnx-community/whisper-tiny_timestamped | 5172442937 | wasm | apple metal-3 | T2 | taxi-en-technical | 1 | 14719.5 | 0.0674 | 2373.1 / 2291.8 / 2284.3 | 894 | 0 | true | false | false | word-native | Apache-2.0 |
+| sherpa-onnx | B | sherpa-onnx wasm/vad-asr (official k2-fsa build, space rev 9d5fc71d) | csukuangfj/sherpa-onnx-zipformer-en-2023-06-26 (int8) | 11a70a47ec | wasm | - | T2 | taxi-en-technical | 1.25 | 8047.5 | 0.0579 | 2027.3 / 1969.1 / 1951.2 | 89 | 0 | false | false | false | word-native | Apache-2.0 |
+| cactus-needle | C | cactus-needle@0.3.0 (needle.wasm, vendor manifest rev 2ae11323) | Cactus-Compute/whistle (whistle.cact) | b358ddadd8 | wasm | - | T2 | taxi-en-technical | 1 | 8241.1 | 0.0271 | 989.5 / 918.1 / 921.4 | 3 | 0 | true | true | true | word-native | Apache-2.0 |
 
 `peak JS heap` n/a means `performance.measureUserAgentSpecificMemory()` (which requires the COOP/COEP `preview:isolated` server, [MDN](https://developer.mozilla.org/en-US/docs/Web/API/Performance/measureUserAgentSpecificMemory)) produced no sample on the run page — the reason is recorded per-row; it is never reported as 0. `GPU Δ/window` is the median of the out-of-band GPU-process phys_footprint delta sampled before/after each of the three runs (sampler calibrated first).
 
-Punctuation decision (FR-02.4): the `punct` column records whether the engine output was punctuated; engines without punctuation must be paired with the unit-03 punctuation pass (whisper: unpunctuated → pass needed; whistle: see pending row).
+Punctuation decision (FR-02.4): the `punct` column records whether the engine output was punctuated; engines without punctuation must be paired with the unit-03 punctuation pass (whisper: unpunctuated → pass needed).
 
-## Pending rows (slice 2C owns engines B/C)
+## Slice-2C asset provenance (build-1 rejection note)
 
-- **sherpa-onnx** (B, csukuangfj/sherpa-onnx-zipformer-en-2023-06-26 (int8), wasm, T2): ok=false — awaiting slice 2C re-measurement; build-1 measured these on the third-party `speech-asr`/`anyshu-easy-asr` wrapper (not official k2-fsa / cactus assets), so the measurements are unverified and the rows are withheld (null metrics, verified=false), not published as data.
-- **cactus-needle** (C, Cactus-Compute/whistle (whistle.cact), wasm, T2): ok=false — awaiting slice 2C re-measurement; build-1 measured these on the third-party `speech-asr`/`anyshu-easy-asr` wrapper (not official k2-fsa / cactus assets), so the measurements are unverified and the rows are withheld (null metrics, verified=false), not published as data.
+build-1 measured B/C on the third-party `speech-asr`/`anyshu-easy-asr` wrapper (removed from package.json); slice 2C re-measured them on official assets: engine B = official k2-fsa browser wasm build of the non-streaming wasm/vad-asr path from the k2-fsa Hugging Face Space (`k2-fsa/web-assembly-vad-asr-sherpa-onnx-zh-zipformer-ctc` @ 9d5fc71d…, per-file SHA-256 in `models/eval-registry.json` id `sherpa-wasm-vad-asr`, the .wasm digest equals the HF LFS oid), engine C = npm `cactus-needle@0.3.0` browser build (vendor-vendored needle.wasm, SHA-256-pinned manifest, Cactus-Compute/needle3 @ 2ae11323…) + `whistle.cact` from Cactus-Compute/whistle @ b358dda… — all hosts inside settings.yml `operations.model_hosts` + npm.
+
 
 ## #1739 leak study (US-02.3)
 
@@ -40,11 +42,11 @@ Pin decision: Measured per-window GPU-process growth on the pinned @huggingface/
 
 ## Parakeet verdict (CC-02.8)
 
-- Parakeet (sherpa-onnx WASM vad-asr): loads=false, blocker: https://github.com/k2-fsa/sherpa-onnx/issues/2200. awaiting slice 2C re-measurement — build-1 observed the load abort via the speech-asr carrier build, not the official k2-fsa wasm/vad-asr assets; verdict unverified (third-party runtime, see #2200 for the upstream wasm heap-growth limitation).
+- Parakeet (sherpa-onnx WASM vad-asr): loads=false, blocker: https://github.com/k2-fsa/sherpa-onnx/issues/2200. load failed in sherpa WASM (Error:RuntimeError:Aborted(). Build with -sASSERTIONS for more info.|RuntimeError: Aborted(). Build with -sASSERTIONS for more info. at abort (http://localhost:4179/sherpa/sherpa-onnx-wasm-main-vad-asr.js:1); upstream wasm/vad-asr model-support limitation (640 MB int8 TDT)
 
 ## Baseline check (CC-02.7)
 
-- whisper-base T1 RTF 0.0208; baseline under review: settings.yml performance_baselines: whisper-small ≥ 4× realtime (T1, reference hardware); outcome **confirmed**. Measured whisper-base T1 RTF 0.0208 (≈48.1× realtime) — the settings.yml performance_baselines entry (whisper-small ≥ 4× realtime) is achievable on reference hardware; confirmed, no settings patch needed.
+- whisper-base T1 RTF 0.0206; baseline under review: settings.yml performance_baselines: whisper-small ≥ 4× realtime (T1, reference hardware); outcome **confirmed**. Measured whisper-base T1 RTF 0.0206 (≈48.5× realtime) — the settings.yml performance_baselines entry (whisper-small ≥ 4× realtime) is achievable on reference hardware; confirmed, no settings patch needed.
 
 ## License verification (CC-02.10)
 
@@ -57,8 +59,8 @@ Candidate-D [MANUAL] sign-off owner-pending; blocked-pending candidates have no 
 ## Recommendation — unit-03 default registry (CC-02.11)
 
 - **T1**: transformers.js / onnx-community/whisper-base_timestamped
-- **T2**: transformers.js / onnx-community/whisper-tiny_timestamped
-- **T3**: transformers.js / onnx-community/whisper-tiny_timestamped
+- **T2**: sherpa-onnx / csukuangfj/sherpa-onnx-zipformer-en-2023-06-26 (int8)
+- **T3**: cactus-needle / Cactus-Compute/whistle (whistle.cact)
 
 Every recommended (engine, model) pair traces to a measured row above; anything rejected/dropped carries its reason in the audit and Parakeet sections above.
 

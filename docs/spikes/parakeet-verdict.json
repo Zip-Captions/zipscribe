@@ -1,0 +1,6 @@
+{
+  "loads": false,
+  "blockerIssue": "https://github.com/k2-fsa/sherpa-onnx/issues/2200",
+  "note": "load failed in sherpa WASM (Error:RuntimeError:Aborted(). Build with -sASSERTIONS for more info.|RuntimeError: Aborted(). Build with -sASSERTIONS for more info. at abort (http://localhost:4179/sherpa/sherpa-onnx-wasm-main-vad-asr.js:1); upstream wasm/vad-asr model-support limitation (640 MB int8 TDT)",
+  "loadMs": 16112
+}

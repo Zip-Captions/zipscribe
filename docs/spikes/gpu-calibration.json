@@ -1,8 +1,8 @@
 {
-  "gpuPid": 18061,
+  "gpuPid": 44427,
   "missingReason": null,
   "allocatedBytes": 536870912,
-  "observedGrowthBytes": 1074790400,
+  "observedGrowthBytes": 1112539136,
   "passed": true,
   "isolatedPage": true,
   "allocatorOk": true

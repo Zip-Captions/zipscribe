@@ -6,22 +6,19 @@
       "url": "http://localhost:4179/tools/eval/pages/engine-b.html"
     },
     {
-      "url": "http://localhost:4179/assets/engineB-CkjQ4yiA.js"
+      "url": "http://localhost:4179/assets/engineB-s0sJD9xt.js"
     },
     {
-      "url": "http://localhost:4179/assets/common-BYFYpV1t.js"
+      "url": "http://localhost:4179/assets/common-CxsqDSEG.js"
     },
     {
       "url": "http://localhost:4179/sherpa/engine-b.worker.js"
     },
     {
-      "url": "http://localhost:4179/sherpa/sherpa-onnx-wasm-main-asr.js"
+      "url": "http://localhost:4179/sherpa/sherpa-onnx-wasm-main-vad-asr.js"
     },
     {
-      "url": "http://localhost:4179/sherpa/sherpa-onnx-wasm-main-asr.data"
-    },
-    {
-      "url": "http://localhost:4179/sherpa/sherpa-onnx-wasm-main-asr.wasm"
+      "url": "http://localhost:4179/sherpa/sherpa-onnx-wasm-main-vad-asr.wasm"
     },
     {
       "url": "http://localhost:4179/sherpa/sherpa-onnx-asr.js"
@@ -46,6 +43,18 @@
     },
     {
       "url": "http://localhost:4179/fixtures/taxi-en-technical.mp4"
+    },
+    {
+      "url": "http://localhost:4179/hf-cache/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/encoder.int8.onnx"
+    },
+    {
+      "url": "http://localhost:4179/hf-cache/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/decoder.int8.onnx"
+    },
+    {
+      "url": "http://localhost:4179/hf-cache/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/joiner.int8.onnx"
+    },
+    {
+      "url": "http://localhost:4179/hf-cache/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/tokens.txt"
     }
   ]
 }

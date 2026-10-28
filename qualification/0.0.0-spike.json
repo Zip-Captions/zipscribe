@@ -1,7 +1,7 @@
 {
   "version": "0.0.0-spike",
-  "contentHash": "9571100311477054d9cb7766132aefda5417d6edf152f972ecfe791df928e842",
-  "startedAt": "2026-10-28T20:56:29.134Z",
+  "contentHash": "fba967fe7b741795fc1cb8ef698e89d9a51c3e9af3674b9206b0551dd09fbe9d",
+  "startedAt": "2026-10-28T22:06:52.863Z",
   "machine": {
     "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
     "os": "Darwin 24.6.0 (arm64)",
@@ -12,8 +12,8 @@
   "results": [
     {
       "id": "CC-02.1",
-      "pass": false,
-      "measured": "7/8 qualify assertions passed",
+      "pass": true,
+      "measured": "8/8 qualify assertions passed",
       "threshold": "all qualify assertions for the criterion pass"
     },
     {
@@ -24,8 +24,8 @@
     },
     {
       "id": "CC-02.3",
-      "pass": false,
-      "measured": "1/2 qualify assertions passed",
+      "pass": true,
+      "measured": "2/2 qualify assertions passed",
       "threshold": "all qualify assertions for the criterion pass"
     },
     {

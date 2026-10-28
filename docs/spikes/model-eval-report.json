@@ -22,14 +22,14 @@
       },
       "error": null
     },
-    "gpuSamplerPid": 18061,
+    "gpuSamplerPid": 44427,
     "gpuSamplerMissing": null
   },
   "gpuCalibration": {
-    "gpuPid": 18061,
+    "gpuPid": 44427,
     "missingReason": null,
     "allocatedBytes": 536870912,
-    "observedGrowthBytes": 1074790400,
+    "observedGrowthBytes": 1112539136,
     "passed": true,
     "isolatedPage": true,
     "allocatorOk": true
@@ -58,7 +58,8 @@
   "parakeetVerdict": {
     "loads": false,
     "blockerIssue": "https://github.com/k2-fsa/sherpa-onnx/issues/2200",
-    "note": "awaiting slice 2C re-measurement — build-1 observed the load abort via the speech-asr carrier build, not the official k2-fsa wasm/vad-asr assets; verdict unverified (third-party runtime, see #2200 for the upstream wasm heap-growth limitation)."
+    "note": "load failed in sherpa WASM (Error:RuntimeError:Aborted(). Build with -sASSERTIONS for more info.|RuntimeError: Aborted(). Build with -sASSERTIONS for more info. at abort (http://localhost:4179/sherpa/sherpa-onnx-wasm-main-vad-asr.js:1); upstream wasm/vad-asr model-support limitation (640 MB int8 TDT)",
+    "loadMs": 16112
   },
   "recommendation": {
     "T1": {
@@ -66,12 +67,12 @@
       "model": "onnx-community/whisper-base_timestamped"
     },
     "T2": {
-      "engine": "transformers.js",
-      "model": "onnx-community/whisper-tiny_timestamped"
+      "engine": "sherpa-onnx",
+      "model": "csukuangfj/sherpa-onnx-zipformer-en-2023-06-26 (int8)"
     },
     "T3": {
-      "engine": "transformers.js",
-      "model": "onnx-community/whisper-tiny_timestamped"
+      "engine": "cactus-needle",
+      "model": "Cactus-Compute/whistle (whistle.cact)"
     }
   },
   "failedRuns": [],
@@ -102,23 +103,23 @@
       "ok": true,
       "wer": 1,
       "wordTimingMAEms": 20189.7,
-      "rtf": 0.0208,
-      "wallMs": 707.6250000074506,
+      "rtf": 0.0206,
+      "wallMs": 700.9699999988079,
       "wallMsRuns": [
-        962,
-        707.6,
-        702.8
+        1110.7,
+        696.1,
+        701
       ],
       "decodeMsRuns": [
-        189.8,
-        28.6,
-        27.8
+        313.9,
+        28,
+        27.5
       ],
       "durationSeconds": 33.984,
-      "peakJsHeapBytes": 1091492907,
+      "peakJsHeapBytes": 1091493336,
       "peakJsHeapReason": null,
       "punctuated": false,
-      "gpuMemGrowthPerWindowBytes": -6291456,
+      "gpuMemGrowthPerWindowBytes": 0,
       "gpuMemReason": null,
       "languageDetect": true,
       "confidence": false,
@@ -153,23 +154,23 @@
       "ok": true,
       "wer": 1,
       "wordTimingMAEms": 14123.5,
-      "rtf": 0.0423,
-      "wallMs": 1438.030000001192,
+      "rtf": 0.0424,
+      "wallMs": 1439.8800000026822,
       "wallMsRuns": [
-        1461.1,
-        1438,
-        1422.8
+        1518.2,
+        1425.9,
+        1439.9
       ],
       "decodeMsRuns": [
-        29.4,
-        47.8,
-        27.7
+        29.5,
+        29.3,
+        28.1
       ],
       "durationSeconds": 33.984,
-      "peakJsHeapBytes": 1462399993,
+      "peakJsHeapBytes": 1462388508,
       "peakJsHeapReason": null,
       "punctuated": false,
-      "gpuMemGrowthPerWindowBytes": 32505856,
+      "gpuMemGrowthPerWindowBytes": 2097152,
       "gpuMemReason": null,
       "languageDetect": true,
       "confidence": false,
@@ -204,21 +205,21 @@
       "ok": true,
       "wer": 1,
       "wordTimingMAEms": 14719.5,
-      "rtf": 0.0704,
-      "wallMs": 2391.7099999934435,
+      "rtf": 0.0674,
+      "wallMs": 2291.7699999958277,
       "wallMsRuns": [
-        2464.1,
-        2391.7,
-        2386.6
+        2373.1,
+        2291.8,
+        2284.3
       ],
       "decodeMsRuns": [
-        31.1,
-        29.4,
-        28.1
+        30.1,
+        28.7,
+        28.3
       ],
       "durationSeconds": 33.984,
-      "peakJsHeapBytes": null,
-      "peakJsHeapReason": "no-samples-in-run-window",
+      "peakJsHeapBytes": 894262250,
+      "peakJsHeapReason": null,
       "punctuated": false,
       "gpuMemGrowthPerWindowBytes": 0,
       "gpuMemReason": null,
@@ -232,56 +233,126 @@
     {
       "engineId": "B",
       "engine": "sherpa-onnx",
-      "version": "sherpa-onnx@2.0.1 (wasm)",
+      "version": "sherpa-onnx wasm/vad-asr (official k2-fsa build, space rev 9d5fc71d)",
       "model": "csukuangfj/sherpa-onnx-zipformer-en-2023-06-26 (int8)",
       "revision": "11a70a47ec5fd969c17b8d0818681d222a147781",
       "device": "wasm",
       "tier": "T2",
       "corpusClip": "taxi-en-technical",
-      "ok": false,
-      "reason": "awaiting slice 2C re-measurement",
-      "wer": null,
-      "wordTimingMAEms": null,
-      "rtf": null,
-      "wallMs": null,
-      "wallMsRuns": null,
-      "durationSeconds": null,
-      "peakJsHeapBytes": null,
-      "gpuMemGrowthPerWindowBytes": null,
-      "punctuated": null,
-      "confidence": null,
-      "languageDetect": null,
-      "timestamps": null,
+      "attemptedDevice": "wasm",
+      "adapter": null,
+      "runtimeAssets": {
+        "host": "huggingface.co",
+        "repo": "spaces/k2-fsa/web-assembly-vad-asr-sherpa-onnx-zh-zipformer-ctc",
+        "revision": "9d5fc71d88ab1222ed1af2274fb194592af48455",
+        "files": [
+          {
+            "path": "sherpa-onnx-wasm-main-vad-asr.js",
+            "sha256": "8a7f50a3e4e5930749e8aff9ad98f03753b87490e7796c576947611439dae9d0"
+          },
+          {
+            "path": "sherpa-onnx-wasm-main-vad-asr.wasm",
+            "sha256": "e4dead1d159c531282e635069fa9e028175dee71f3f90908186994655425b3ce"
+          },
+          {
+            "path": "sherpa-onnx-asr.js",
+            "sha256": "6297ed7520e0b4569486cd89be89045146728605418254fec4172194abc36c8d"
+          },
+          {
+            "path": "sherpa-onnx-vad.js",
+            "sha256": "ca2b0844d1cfd375cbb7faba206e456c5140561578b67f5fc6e7510d09e75510"
+          }
+        ]
+      },
+      "ok": true,
+      "wer": 1.25,
+      "wordTimingMAEms": 8047.5,
+      "rtf": 0.0579,
+      "wallMs": 1969.095000013709,
+      "wallMsRuns": [
+        2027.3,
+        1969.1,
+        1951.2
+      ],
+      "decodeMsRuns": [
+        29,
+        27.5,
+        26.9
+      ],
+      "durationSeconds": 33.984,
+      "peakJsHeapBytes": 88933177,
+      "peakJsHeapReason": null,
+      "punctuated": false,
+      "gpuMemGrowthPerWindowBytes": 0,
+      "gpuMemReason": null,
+      "languageDetect": false,
+      "confidence": false,
+      "timestamps": "word-native",
       "license": "Apache-2.0",
-      "verified": false,
+      "verified": true,
       "hotword": null
     },
     {
       "engineId": "C",
       "engine": "cactus-needle",
-      "version": "cactus-needle@0.3.0 (needle.wasm)",
+      "version": "cactus-needle@0.3.0 (needle.wasm, vendor manifest rev 2ae11323)",
       "model": "Cactus-Compute/whistle (whistle.cact)",
       "revision": "b358ddadd89b7a713b5aa131f23032d3cca1b251",
       "device": "wasm",
       "tier": "T2",
       "corpusClip": "taxi-en-technical",
-      "ok": false,
-      "reason": "awaiting slice 2C re-measurement",
-      "wer": null,
-      "wordTimingMAEms": null,
-      "rtf": null,
-      "wallMs": null,
-      "wallMsRuns": null,
-      "durationSeconds": null,
-      "peakJsHeapBytes": null,
-      "gpuMemGrowthPerWindowBytes": null,
-      "punctuated": null,
-      "confidence": null,
-      "languageDetect": null,
-      "timestamps": null,
+      "attemptedDevice": "wasm",
+      "adapter": null,
+      "runtimeAssets": {
+        "host": "npmjs.com+npm-vendored",
+        "repo": "Cactus-Compute/needle3",
+        "revision": "2ae11323dc000f5e70c49f7403efa6af12ba9e67",
+        "files": [
+          {
+            "path": "needle.cjs",
+            "sha256": "964681b2a5ec3c4db2f06e45a5b60c8981a7d4ab4cac16ef6bf5b1988657a5f1"
+          },
+          {
+            "path": "needle.wasm",
+            "sha256": "c43f48e11f302087250d1e406024956781cd2f02595a5e343b3d7ddd5ef707fa"
+          },
+          {
+            "path": "LICENSE",
+            "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+          }
+        ]
+      },
+      "ok": true,
+      "wer": 1,
+      "wordTimingMAEms": 8241.1,
+      "rtf": 0.0271,
+      "wallMs": 921.3549999892712,
+      "wallMsRuns": [
+        989.5,
+        918.1,
+        921.4
+      ],
+      "decodeMsRuns": [
+        27.5,
+        27,
+        26.2
+      ],
+      "durationSeconds": 33.984,
+      "peakJsHeapBytes": 2809637,
+      "peakJsHeapReason": null,
+      "punctuated": true,
+      "gpuMemGrowthPerWindowBytes": 0,
+      "gpuMemReason": null,
+      "languageDetect": true,
+      "confidence": true,
+      "timestamps": "word-native",
       "license": "Apache-2.0",
-      "verified": false,
-      "hotword": null
+      "verified": true,
+      "hotword": {
+        "keywordsRequested": 2,
+        "groundTruthMatches": 2,
+        "biasApplied": false
+      }
     }
   ],
   "leak": [
@@ -396,25 +467,25 @@
       "engineId": "A",
       "pass": true,
       "artifact": "docs/spikes/network/A.json",
-      "provenance": "captured in this run (slice 2B)"
+      "provenance": "captured in this run (slice 2C)"
     },
     {
       "engineId": "B",
       "pass": true,
       "artifact": "docs/spikes/network/B.json",
-      "provenance": "carried-forward artifact (not re-captured in slice 2B — engines B/C audited by slice 2C)"
+      "provenance": "captured in this run (slice 2C)"
     },
     {
       "engineId": "C",
       "pass": true,
       "artifact": "docs/spikes/network/C.json",
-      "provenance": "carried-forward artifact (not re-captured in slice 2B — engines B/C audited by slice 2C)"
+      "provenance": "captured in this run (slice 2C)"
     }
   ],
   "baselineCheck": {
-    "whisperBaseT1Rtf": 0.0208,
+    "whisperBaseT1Rtf": 0.0206,
     "baseline": "settings.yml performance_baselines: whisper-small ≥ 4× realtime (T1, reference hardware)",
     "outcome": "confirmed",
-    "statement": "Measured whisper-base T1 RTF 0.0208 (≈48.1× realtime) — the settings.yml performance_baselines entry (whisper-small ≥ 4× realtime) is achievable on reference hardware; confirmed, no settings patch needed."
+    "statement": "Measured whisper-base T1 RTF 0.0206 (≈48.5× realtime) — the settings.yml performance_baselines entry (whisper-small ≥ 4× realtime) is achievable on reference hardware; confirmed, no settings patch needed."
   }
 }
