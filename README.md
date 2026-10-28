@@ -20,7 +20,7 @@ Cloud captioning tools gate diarization and timeline editing behind paid tiers, 
 
 ## Status
 
-Spec phase. This repository is currently **specification only** — no application code yet. Build proceeds unit-by-unit through the AI-DLC workflow defined in `.ai-dlc/` (build order: `.agent/SPEC-GUIDE.md`).
+Scaffold phase. The specification is complete and `local-transcribe-engine/unit-01` has landed the toolchain skeleton: the five quality gates (lint / typecheck / vitest with enforced coverage thresholds / build + 350 KB bundle budget / Playwright + criteria traceability) are wired into `pnpm` and CI, the offline fixture pipeline and model cache are in place, and `/` serves an empty workbench shell. The application itself (ASR engine, UI, export, translation) builds out unit-by-unit through the AI-DLC workflow defined in `.ai-dlc/` (build order: `.agent/SPEC-GUIDE.md`); unit status lives in the unit files' frontmatter.
 
 **Branching & delivery:** git flow — `develop` is the working branch (auto-deploys to staging), `main` is production (auto-deploys on every release/hotfix merge, with automatic rollback). Testing levels, criterion traceability (`CC-…` IDs) and exit gates: `.ai-dlc/knowledge/conventions.md` § Testing strategy, § Version control, § CI/CD.
 

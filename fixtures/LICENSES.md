@@ -1,9 +1,14 @@
 # Fixtures — licenses
 
 All fixtures are generated in-repo by `scripts/make-fixtures.ts` (no
-third-party corpora are vendored at unit-01; see the unit report for the
-documented deviation from the LibriSpeech/Common Voice suggestion in
-US-1.0.2 — test-time network access is forbidden per `.agent/AGENTS.md`).
+third-party corpora are vendored at unit-01; see the unit report's
+"Deviations from spec" item 7 and "Review round 1 · F2"
+(`docs/overnight-reports/unit-1.md`) for the documented deviation from the
+LibriSpeech/Common Voice/MUSAN plan in US-1.0.2 — test-time network access
+is forbidden per `.agent/AGENTS.md`, and the corpora hosts are outside this
+run's external-deps allowlist. Vendoring to `fixtures/sources/` is a
+`TODO(unit-02)` under an approved network exception; until then real-ASR
+quality evidence on these fixtures is provisional).
 
 | Source | License | URL |
 |---|---|---|
