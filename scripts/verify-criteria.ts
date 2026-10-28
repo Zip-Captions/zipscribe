@@ -119,12 +119,60 @@ function mkTmp(prefix: string): string {
   return mkdtempSync(join(tmpdir(), prefix))
 }
 
+function git(args: string[]): string {
+  return spawnSync('git', args, { cwd: repoRoot, encoding: 'utf8' }).stdout?.trim() ?? ''
+}
+
+// The unit branch under CI: `actions/checkout@v4` leaves PR jobs in DETACHED
+// HEAD, where `git branch --show-current` prints nothing — resolving only
+// through it would silently no-op the criteria gate exactly where
+// settings.yml/AGENTS.md require it ("enforced in CI on every PR"). Try, in
+// order: the named branch, then GitHub's PR/ref env, then any (remote-)branch
+// whose history contains HEAD.
 function unitFileFromBranch(): string | null {
-  const branch = spawnSync('git', ['branch', '--show-current'], { cwd: repoRoot, encoding: 'utf8' }).stdout?.trim() ?? ''
-  const match = branch.match(/^ai-dlc\/([^/]+)\/(.+)$/)
-  if (!match) return null
-  const candidate = join(repoRoot, '.ai-dlc', match[1]!, `${match[2]}.md`)
-  return existsSync(candidate) ? candidate : null
+  const candidates: string[] = []
+  const current = git(['branch', '--show-current'])
+  if (current) candidates.push(current)
+  else {
+    const headRef = (process.env.GITHUB_HEAD_REF ?? '').trim()
+    const ref = (process.env.GITHUB_REF ?? '').trim().replace(/^refs\/heads\//, '')
+    if (headRef) candidates.push(headRef)
+    if (ref) candidates.push(ref)
+    if (candidates.length === 0) {
+      const containing = [
+        ...git(['branch', '--format=%(refname:short)', '--contains', 'HEAD']).split('\n'),
+        ...git(['branch', '-r', '--format=%(refname:short)', '--contains', 'HEAD'])
+          .split('\n')
+          .map((line) => line.replace(/^(origin|upstream)\//, '')),
+      ]
+      candidates.push(
+        ...containing
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .sort(),
+      )
+    }
+  }
+  for (const branch of [...new Set(candidates)]) {
+    const match = branch.match(/^ai-dlc\/([^/]+)\/(.+)$/)
+    if (!match) continue
+    const candidate = join(repoRoot, '.ai-dlc', match[1]!, `${match[2]}.md`)
+    if (existsSync(candidate)) return candidate
+  }
+  return null
+}
+
+// "Tests name the criterion" (conventions § Criterion traceability,
+// REVIEW.md #13): a citation counts only when the ID leads the title —
+// optionally after a run of ALL-CAPS tag words (e.g. `ADVERSARIAL CC-01.3:
+// …`). An ID merely embedded in prose (`… NOTA-CITATION CC-999.2 …`) or glued
+// to other tokens (`FR-1.0.12 / CC-I1.11`) discusses the ID, it does not
+// declare the test as covering it, and must not produce coverage or UNKNOWN-ID
+// verdicts.
+function citationsOf(title: string): string[] {
+  const stripped = title.replace(/^(?:[A-Z]+[ \t]+)+/, '')
+  if (!/^(?:CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+)(?![A-Za-z0-9.-])/.test(stripped)) return []
+  return [...stripped.matchAll(/CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+/g)].map((match) => match[0])
 }
 
 function main(): void {
@@ -172,8 +220,7 @@ function main(): void {
   const citedIds = new Set<string>()
   const citations = new Map<string, number>()
   for (const testCase of cases) {
-    for (const match of testCase.title.matchAll(/CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+/g)) {
-      const id = match[0]
+    for (const id of citationsOf(testCase.title)) {
       citedIds.add(id)
       citations.set(id, (citations.get(id) ?? 0) + (testCase.status === 'passed' ? 1 : 0))
       if (testCase.status === 'passed') passingIds.add(id)

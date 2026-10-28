@@ -29,8 +29,16 @@ function entryScripts(): string[] {
 }
 
 function incompressible(): Buffer {
+  // Deterministic but high-entropy: the earlier `(i * 2654435761) % 251`
+  // pattern has period 251 and gzips 1 MB down to ~4 KB, which let even a
+  // correct walker stay under the 350 KB budget and hid the breach this probe
+  // exists to demonstrate. A 64-bit LCG produces near-incompressible bytes.
   const buf = Buffer.alloc(1024 * 1024)
-  for (let i = 0; i < buf.length; i++) buf[i] = (i * 2654435761) % 251
+  let state = 0x9e3779b97f4a7c15n
+  for (let i = 0; i < buf.length; i++) {
+    state = (state * 6364136223846793005n + 1442695040888963407n) & 0xffffffffffffffffn
+    buf[i] = Number((state >> 33n) & 0xffn)
+  }
   return buf
 }
 

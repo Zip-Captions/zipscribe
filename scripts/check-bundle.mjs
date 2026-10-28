@@ -49,7 +49,11 @@ function distRelative(absolute) {
     .join('/')
 }
 
-const staticImport = /(?:^|[\s;])(?:import|export)\s*(?:[^'"]*?\sfrom\s*)?['"]([^'"]+\.js)['"]/g
+// vite/rollup minified output emits `import{a}from'./x.js'` / `export*from'…'`
+// with no whitespace around braces or `from`; the pattern must accept that
+// exact emitted form (ground-truthed against vite 7.3.7 builds) while still
+// ignoring dynamic `import('./x.js')` (lazy — correctly not in the graph).
+const staticImport = /(?:^|[\s;()])(?:import|export)\s*(?:[^'"]*?from\s*)?['"]([^'"]+\.js)['"]/g
 
 while (queue.length > 0) {
   const entry = queue.shift()
@@ -72,7 +76,14 @@ while (queue.length > 0) {
 const counted = []
 let total = 0
 for (const chunk of [...initial].sort()) {
-  if (excludePatterns.some((pattern) => chunk.includes(pattern))) continue
+  // settings.yml binds exclusion to LAZINESS ("lazy-loaded and excluded").
+  // A chunk in the initial graph is by definition not lazy, so name-matching
+  // excludePatterns must never exempt it: a lazy-only dependency reached
+  // statically is a contract violation, and its bytes count against the
+  // budget like any other initial JS.
+  if (excludePatterns.some((pattern) => chunk.includes(pattern))) {
+    fail(`chunk ${chunk} matches an excludePattern (${JSON.stringify(excludePatterns)}) but is statically reachable from the entry — it is loaded eagerly, violating the lazy-loaded exclusion rule`)
+  }
   const bytes = gzipSync(readFileSync(join(dist, chunk)), { level: 9 }).length
   total += bytes
   counted.push({ chunk, gzip: bytes })

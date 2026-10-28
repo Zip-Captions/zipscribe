@@ -60,6 +60,12 @@ export const restrictedImports = {
       ImportDeclaration: (node) => check(node, importedNames(node)),
       ExportAllDeclaration: (node) => check(node, importedNames(node)),
       ExportNamedDeclaration: (node) => check(node, importedNames(node)),
+      // Core `no-restricted-imports` is documented "static imports only"
+      // (eslint.org/docs/latest/rules/no-restricted-imports) — dynamic
+      // `import('react')` must be caught here or FR-1.0.5 is one `await` away
+      // from bypassed. Non-static specifiers (templates, expressions) have no
+      // literal to match and are skipped.
+      ImportExpression: (node) => check(node, node.source && typeof node.source.value === 'string' ? node.source.value : null),
     }
   },
 }
@@ -82,19 +88,45 @@ export const restrictedGlobals = {
   },
   create(context) {
     const banned = new Set(context.options[0]?.globals ?? GLOBALS_BANNED)
+    const GLOBAL_OBJECTS = new Set(['globalThis', 'self'])
     const sourceCode = context.sourceCode
     return {
       Program() {
         const scopes = [sourceCode.getScope(sourceCode.ast)]
         for (let i = 0; i < scopes.length; i++) scopes.push(...scopes[i].childScopes)
+        let globalObjectShadowed = false
         for (const scope of scopes) {
           for (const reference of scope.references) {
             const name = reference.identifier.name
+            if (GLOBAL_OBJECTS.has(name) && reference.resolved && reference.resolved.defs.length > 0) globalObjectShadowed = true
             if (!banned.has(name)) continue
             if (reference.resolved) continue // local shadow: allowed, same semantics as core no-restricted-globals
             const parent = reference.identifier.parent
             if (parent && parent.type === 'MemberExpression' && parent.property === reference.identifier) continue
             context.report({ node: reference.identifier, messageId: 'global', data: { name } })
+          }
+        }
+        // `no-restricted-globals` only inspects identifier *references*, so
+        // `globalThis.window` / `self.document` / `globalThis['window']`
+        // property access reaches the DOM globals the engine policy bans.
+        // Value-position member access on the (unshadowed) global object is
+        // therefore reported too; `obj.window` on a real object stays allowed.
+        if (globalObjectShadowed) return
+        for (const scope of scopes) {
+          for (const reference of scope.references) {
+            if (!GLOBAL_OBJECTS.has(reference.identifier.name)) continue
+            // Predefined environment globals (globalThis, self) resolve to a
+            // variable with zero `defs`; only user code that declares its own
+            // `self`/`globalThis` (defs > 0) shadows the real global object.
+            if (reference.resolved && reference.resolved.defs.length > 0) continue
+            const parent = reference.identifier.parent
+            if (!parent || parent.type !== 'MemberExpression' || parent.object !== reference.identifier) continue
+            let property = null
+            if (!parent.computed && parent.property.type === 'Identifier') property = parent.property.name
+            else if (parent.computed && parent.property.type === 'Literal' && typeof parent.property.value === 'string') property = parent.property.value
+            if (property && banned.has(property)) {
+              context.report({ node: parent.property, messageId: 'global', data: { name: property } })
+            }
           }
         }
       },

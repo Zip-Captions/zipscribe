@@ -6,7 +6,10 @@
 // non-reversible hash + length only — the harness must never echo the marker
 // itself into output (the very thing it is detecting).
 
-const CHANNELS = ['log', 'info', 'warn', 'error', 'debug', 'trace'] as const
+// Conventions § Principles 4: the spy covers `console.*` — every channel that
+// can emit content, not just the log-ish six. `console.table`/`console.dir`
+// write to stdout too, so they are instrumented like the rest.
+const CHANNELS = ['log', 'info', 'warn', 'error', 'debug', 'trace', 'table', 'dir', 'dirxml', 'assert', 'count', 'countReset', 'group', 'groupCollapsed', 'timeLog'] as const
 
 // A unique, meaningless marker — not user content; a stand-in whose appearance
 // anywhere proves content reached an output channel.
@@ -39,11 +42,34 @@ function fnv1a(text: string): string {
   return hash.toString(16).padStart(8, '0')
 }
 
-function flatten(value: unknown): string {
+function flatten(value: unknown, seen: WeakSet<object> = new WeakSet()): string {
   if (typeof value === 'string') return value
   if (typeof value === 'number' || typeof value === 'boolean' || value === null || value === undefined) return String(value)
+  if (typeof value === 'bigint') return value.toString()
+  if (value instanceof Error) {
+    // Error.message/stack are non-enumerable: JSON.stringify reduces an Error
+    // to "{}" and the SECURITY-03 canonical leak (transcript text inside a
+    // logged/propagated error) would pass every object scan clean. Flatten the
+    // whole error surface — name, message, stack, own props (EngineError
+    // `detail` etc.) and the `cause` chain.
+    if (seen.has(value)) return ''
+    seen.add(value)
+    const parts: string[] = [`${value.name}: ${value.message}`, value.stack ?? '']
+    for (const key of Object.getOwnPropertyNames(value)) {
+      if (key === 'message' || key === 'stack') continue
+      try {
+        parts.push(`${key}: ${flatten((value as Record<string, unknown>)[key], seen)}`)
+      } catch {
+        /* unreadable property: nothing to scan */
+      }
+    }
+    if ('cause' in value) parts.push(`cause: ${flatten((value as { cause?: unknown }).cause, seen)}`)
+    return parts.join('\n')
+  }
+  if (seen.has(value as object)) return ''
+  seen.add(value as object)
   try {
-    return JSON.stringify(value, (_key, item: unknown) => (typeof item === 'bigint' ? item.toString() : item)) ?? Object.prototype.toString.call(value)
+    return JSON.stringify(value, (_key, item: unknown) => (typeof item === 'bigint' ? item.toString() : item instanceof Error ? flatten(item, seen) : item)) ?? Object.prototype.toString.call(value)
   } catch {
     return Object.prototype.toString.call(value)
   }
