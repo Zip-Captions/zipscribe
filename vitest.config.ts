@@ -59,6 +59,11 @@ export default defineConfig({
             '**/engine-purity-adversarial.test.ts',
             '**/verify-criteria.test.ts',
             '**/verify-criteria-adversarial.test.ts',
+            // unit-02 per-PR contract tests spawn gate commands
+            // (`pnpm qualify`, `node tools/eval/wer.mjs`,
+            // `node scripts/qualification-check.ts`) — same child-safety rule.
+            '**/qualify-runner.test.ts',
+            '**/wer-golden.test.ts',
             ...defaultExclude,
           ]
         : defaultExclude,
