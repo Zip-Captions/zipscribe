@@ -430,3 +430,69 @@ CI re-runs on the fix commits: run 40653032195 (at ed8530b) exposed and run
 40655259023 (at 933b3a7) settled the last red — **all checks now PASS**:
 `quality` 3m38s, `fixtures-verify` 28s, `preview-deploy` pass (its new
 dist-artifact download path exercised; wrangler steps token-gated-skipped).
+
+## Review round 2
+
+Findings R2-1..R2-5 on 13404b8. Test-file changes: exactly one — the
+explicitly permitted ADDITION to `bundle-budget-adversarial.test.ts` (33 lines
+inserted, 0 deleted, existing cases untouched). No other file under `tests/` or
+`e2e/` was modified.
+
+- **R2-1 (major) — FIXED.** `deploy-staging.yml` and `deploy-production.yml`
+  now mirror the ci.yml F1/F4 ordering: `install playwright browsers` +
+  `actions/cache` on `.cache/models` keyed by
+  `hashFiles('models/ci-registry.json')` + `models:fetch` (cache-hit-skipped)
+  all run **before** `pnpm test --coverage`. The merge-triggered staging run can
+  no longer reproduce run 40646526713's red (`CC-01.6` ×2 chromium-launch +
+  `network-audit.test.ts:80` bare `chromium.launch`), and
+  `models-fetch.test.ts:89`'s `if (!bytes) return` guards are not taken.
+  Reusable-workflow extraction NOT done: `workflow_call` runs as a separate
+  job, and the deploy jobs need build output in the same job — the shared
+  prerequisite stays inline-mirrored (3rd copy noted under Follow-ups for a
+  composite-action extraction).
+- **R2-2 (major) — FIXED.** Rollback selects
+  `git tag --sort=-v:refname | { grep -v "^v${VERSION}$" || true; } | sed -n '1p'`
+  with `VERSION` from `package.json` (`grep -v … || true` keeps `pipefail`
+  alive on zero-match). Locally verified in a scratch git repo: release #2
+  (one prior tag, untagged failing v0.2.0) → `v0.1.0` (old code: aborted);
+  release #3 (≥2 prior tags, v0.3.0 untagged) → `v0.2.0` (old code: `v0.1.0`,
+  silent second-previous downgrade); re-run after the failing release was
+  tagged → `v0.2.0` (own tag excluded); first release (no tags) → empty →
+  explicit escalate-manually exit 1. Incident body now says "attempted to
+  redeploy … see the run log for its outcome" (no false success claim when
+  rollback exits 1 on no-tags). Retained-artifact rollback stays with
+  unit-203.
+- **R2-3 (minor) — FIXED (permitted test ADDITION).** New case
+  `ADVERSARIAL CC-01.4: a static import preceded only by "}" (rollup statement
+  adjacency) is counted in the initial graph` appends
+  `export{a};if(0){'s'}import{b}from'./…-brace.js'` to the entry: the `'s'`
+  literal blocks the lazy `[^"']*?from` group from every earlier keyword, so
+  the only regex separator in position before the payload import is `}`.
+  Mutation-proved: with the class narrowed back to `[\s;()]` the two existing
+  cases stay green (the reviewer's observation) and only this case goes red
+  (`1 failed | 2 passed`); with the shipped `[\s;(),{}]` class all 3 pass. The
+  case also asserts the payload chunk name appears in the counted list, so a
+  generic fail can't stand in for counting.
+- **R2-4 (minor) — FIXED.** Incident step `if:` is now exactly
+  `failure() && steps.smoke.outcome == 'failure'`; the evaluator-dependent
+  `env.GH_TOKEN != ''` is gone and token presence is checked inside the run
+  body (`[ -z "${GH_TOKEN:-}" ] || ! gh auth status` → fail-open to a log line
+  with the triage URL, exit 0).
+- **R2-5 (minor) — FIXED script-side (frozen test untouched, passes
+  unmodified).** `verify-criteria.ts` prints the table but writes nothing to
+  `reports/criteria/` on `--no-run` invocations ("canonical report NOT
+  written"). Verified: `--no-run` still exits 1 (gate semantics preserved —
+  the two adversarial control invocations only assert non-zero), and the
+  canonical `unit-01-*.md` is byte-identical across the control run
+  (`cmp` REPORT-UNCHANGED) while the real `verify:unit --from-branch` writes
+  it (exit 0, 16 criteria covered). `--report-dir` fallback not needed.
+
+### Gates re-run (this round, local)
+
+lint ✓ (0) · typecheck ✓ (0) · format:check ✓ · `pnpm test` ✓ (20 files, 79
+passed | 1 skipped | 1 todo — +1 = the R2-3 case, 40.4 s) · `pnpm test
+--coverage` ✓ EXIT=0 (same counts, thresholds enforced) · build ✓ +
+check-bundle ✓ (68.3 KB gzip / 350 KB, 1 chunk) · `pnpm test:e2e` ✓ (1 passed
+chromium, 3 DEPLOY skipped, 3.3 s) · `pnpm verify:unit --from-branch` ✓ (all
+untagged criteria covered, 16 total) · both deploy workflows re-validated as
+parseable YAML · rollback tag-selection proven on 4 scratch-repo scenarios.
