@@ -64,6 +64,13 @@ export default defineConfig({
             // `node scripts/qualification-check.ts`) — same child-safety rule.
             '**/qualify-runner.test.ts',
             '**/wer-golden.test.ts',
+            // unit-02 adversarial additions (same child-safety rule): the
+            // qualification-check probes spawn the CI job repeatedly and the
+            // fabrication probes run scratch qualify suites (chromium +
+            // vitest) — far beyond the 30 s child budget.
+            '**/wer-cli-adversarial.test.ts',
+            '**/qualification-check-adversarial.test.ts',
+            '**/qualify-pipeline-fabrication-adversarial.test.ts',
             ...defaultExclude,
           ]
         : defaultExclude,
