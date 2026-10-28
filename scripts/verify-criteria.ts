@@ -11,6 +11,8 @@
 //   verify:unit <path-to-unit.md> [--root <dir>] [--from-branch] [--no-run]
 //   verify:unit --from-branch        → unit derived from the git branch
 //   verify:intent <intent-slug>
+// `--no-run` is the control/probe mode (parse criteria, no test run, exit
+// non-zero on uncovered IDs) and never writes the canonical report.
 // `--root` scopes test *discovery* to another tree (used by the scaffold
 // negative tests); the unit file always resolves against the repository root.
 
@@ -242,13 +244,21 @@ function main(): void {
     return `| ${criterion.id} | ${criterion.tag ?? 'untagged'} | ${count} | ${result} |`
   })
   const report = `# Criteria — ${reportName}\n\n| ID | level | passing tests | result |\n|---|---|---|---|\n${rows.join('\n')}\n`
-  const reportDir = join(repoRoot, 'reports', 'criteria')
-  mkdirSync(reportDir, { recursive: true })
-  const reportPath = join(reportDir, `${reportName}.md`)
-  writeFileSync(reportPath, report)
-
   console.log(report)
-  console.log(`criteria report written: ${reportPath}`)
+  if (noRun) {
+    // REVIEW round-2 R2-5: a `--no-run` invocation has no test results, so its
+    // table is all-FAIL by construction. Writing it would clobber the
+    // canonical reports/criteria/<name>.md of the real run with a false
+    // verdict (correctness would hang on step ordering alone). Control
+    // invocations print only.
+    console.log('verify — --no-run control invocation: canonical report NOT written (reports/criteria left untouched)')
+  } else {
+    const reportDir = join(repoRoot, 'reports', 'criteria')
+    mkdirSync(reportDir, { recursive: true })
+    const reportPath = join(reportDir, `${reportName}.md`)
+    writeFileSync(reportPath, report)
+    console.log(`criteria report written: ${reportPath}`)
+  }
   if (problems.length > 0) {
     for (const problem of problems) console.error(`verify:unit: ${problem}`)
     process.exit(1)
