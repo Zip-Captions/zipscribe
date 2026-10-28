@@ -1,6 +1,6 @@
 # Zipscribe — Agent Instructions (orchestrator + sub-agents)
 
-Permanent instructions for any agent working in this repo (opencode via `opencode.json` → `instructions`, Claude Code via `.claude/CLAUDE.md`, or others). All agent-facing docs live in `.agent/`; AI-DLC workflow state lives in `.ai-dlc/`. Your job is usually one **unit**: make its Completion Criteria true with all quality gates green, then report.
+Permanent instructions for any agent working in this repo (Claude Code, opencode, the AI-DLC hats and `/ai-dlc:review`). All agent-facing docs live in `.agent/`; AI-DLC workflow state lives in `.ai-dlc/`. Your job is usually one **unit**: make its Completion Criteria true with all quality gates green, then report.
 
 ## Read first, in order
 
@@ -88,5 +88,7 @@ Git flow — full model in `knowledge/conventions.md` § Version control and § 
 
 ## Where agent docs live
 
-- `.agent/AGENTS.md` (this file), `.agent/REVIEW.md` (review rules — reviewers read it with this file).
-- `.ai-dlc/` is the AI-DLC workflow's own directory (intents, units, knowledge, `ELABORATION.md`) — its location is fixed by the tool.
+- Canonical files: `.agent/AGENTS.md` (this file) and `.agent/REVIEW.md` (review rules — every reviewer reads both). Edit these, never the pointers.
+- Root **symlinks** exist only because tools hard-code root paths: `CLAUDE.md → .agent/AGENTS.md` (Claude Code; opencode's documented fallback when no `AGENTS.md` exists; `/ai-dlc:review`'s `cat CLAUDE.md`) and `REVIEW.md → .agent/REVIEW.md` (`/ai-dlc:review`'s `cat REVIEW.md`). Don't add a root `AGENTS.md` or an `opencode.json` `instructions` entry — either would make opencode load these rules twice.
+- `.ai-dlc/hats/reviewer.md` augments the AI-DLC reviewer hat so per-unit reviews read both files.
+- `.ai-dlc/` is the AI-DLC workflow's own directory (intents, units, knowledge, `ELABORATION.md`, hat augmentations) — its location is fixed by the tool.
