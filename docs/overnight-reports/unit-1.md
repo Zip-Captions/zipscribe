@@ -426,6 +426,7 @@ chromium, 3 DEPLOY skipped, 3.3 s) · `pnpm verify:unit --from-branch` ✓ (all 
 criteria of unit-01 covered, 16 total) · format:check ✓ · spec-lint ✓ (21 files) ·
 license-check ✓ (54 packages).
 
-CI re-run on the fix commits (run 40653032195): `fixtures-verify` **pass**; `quality`
-failed on exactly one surfaced red — the frozen-budget child suite of (c) above,
-fixed in the follow-up commit; re-review/watch `gh pr checks 3` for the next run.
+CI re-runs on the fix commits: run 40653032195 (at ed8530b) exposed and run
+40655259023 (at 933b3a7) settled the last red — **all checks now PASS**:
+`quality` 3m38s, `fixtures-verify` 28s, `preview-deploy` pass (its new
+dist-artifact download path exercised; wrangler steps token-gated-skipped).
