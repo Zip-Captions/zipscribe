@@ -17,7 +17,7 @@
 // negative tests); the unit file always resolves against the repository root.
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -27,6 +27,17 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 interface Criterion {
   id: string
   tag?: string
+}
+
+function listSpecMarkdown(dir: string): string[] {
+  if (!existsSync(dir)) return []
+  const out: string[] = []
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name)
+    if (entry.isDirectory()) out.push(...listSpecMarkdown(full))
+    else if (entry.name.endsWith('.md')) out.push(full)
+  }
+  return out
 }
 
 function parseCriteria(file: string): Criterion[] {
@@ -217,7 +228,16 @@ function main(): void {
   }
 
   const cases = noRun ? [] : collectTests(testRoot)
+  // Multi-unit repos: a whole-repo test scan cites the criteria of sibling
+  // units of the same intent (not "unknown" — declared by other units' files).
+  // Coverage still checks ONLY this unit's criteria; the unknown-ID check
+  // additionally accepts IDs declared anywhere under .ai-dlc/** (the
+  // orchestrator-owned spec tree), so cross-unit citations pass.
   const declared = new Set(criteria.map((criterion) => criterion.id))
+  for (const file of listSpecMarkdown(join(repoRoot, '.ai-dlc'))) {
+    if (file === unitFile) continue
+    for (const criterion of parseCriteria(file)) declared.add(criterion.id)
+  }
   const passingIds = new Set<string>()
   const citedIds = new Set<string>()
   const citations = new Map<string, number>()

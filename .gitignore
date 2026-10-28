@@ -33,3 +33,17 @@ public/wasm/*
 
 # build-time symlink (vite closeBundle) for the check-bundle inject contract
 /assets
+
+# unit-02 eval harness scratch (npm-installed 4.x copy for the #1739 leak study)
+tools/eval/node-4x/
+# unit-02 vendor runtime assets (copied from node_modules by scripts/copy-vendor-assets.ts)
+public/sherpa/*
+!public/sherpa/.gitkeep
+public/eval4x/*
+!public/eval4x/.gitkeep
+public/fixtures/*
+!public/fixtures/.gitkeep
+# harness run logs (node-side), not committed
+tools/eval/logs/
+public/hf-cache/
+tools/eval/tmp/

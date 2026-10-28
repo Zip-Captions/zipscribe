@@ -1,0 +1,21 @@
+[
+  {
+    "candidate": "Omnilingual ASR 300M (facebookresearch/omnilingual-asr)",
+    "status": "verified-ok",
+    "url": "https://github.com/facebookresearch/omnilingual-asr/blob/main/LICENSE",
+    "note": "Code and models Apache-2.0 per the official repository LICENSE (verified 2026-10-28); companion corpus dataset is CC-BY-4.0 (dataset not shipped). Apache-2.0 permits the commercial SaaS use (FR-1.0.2). Not benchmarked this unit (candidate D is license-gated research scope, benchmark only after owner picks it)."
+  },
+  {
+    "candidate": "Moonshine v2 (moonshine-ai/moonshine-tiny)",
+    "status": "verified-ok",
+    "url": "https://huggingface.co/moonshine-ai/moonshine-tiny",
+    "note": "Model card license tag: MIT (verified 2026-10-28 via HF API cardData). MIT permits commercial use. Not benchmarked this unit."
+  },
+  {
+    "candidate": "MedASR (google/medasr)",
+    "status": "blocked-pending",
+    "model": "medasr",
+    "url": "https://developers.google.com/health-ai-developer-foundations/terms",
+    "note": "Gated HF repo; use governed by the Health AI Developer Foundations terms of use (custom terms requiring acceptance, usage restrictions, and no unmodified clinical use — verified 2026-10-28 from the model card). Requires legal review + owner sign-off before any benchmark (unit spec: do not benchmark until license verified); gated download also conflicts with the no-auth runtime model fetch (settings.yml model_hosts). No benchmark row present."
+  }
+]

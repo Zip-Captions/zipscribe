@@ -1,0 +1,33 @@
+name: qualification-check
+
+# Release gate (knowledge/conventions.md § CI/CD, FR-02.10 / CC-02.5):
+# release/* branches must carry a qualification/<version>.json produced by
+# `pnpm qualify` on reference hardware whose contentHash still matches the
+# tree. The runner itself (pnpm qualify) only executes on the owner's
+# reference machine (settings.yml reference_hardware) — CI verifies the
+# artifact is valid and untampered.
+
+on:
+  push:
+    branches:
+      - release/*
+      - release/**
+  workflow_dispatch:
+
+concurrency:
+  group: qualification-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualification-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: corepack pnpm install --frozen-lockfile
+      - name: Verify the release qualification artifact
+        run: node scripts/qualification-check.ts

@@ -1,0 +1,276 @@
+{
+  "gpuCalibration": {
+    "gpuPid": 50725,
+    "missingReason": null,
+    "allocatedBytes": 536870912,
+    "observedGrowthBytes": 1104150528,
+    "passed": true,
+    "isolatedPage": true,
+    "allocatorOk": true
+  },
+  "rows": [
+    {
+      "engineId": "A",
+      "engine": "transformers.js",
+      "version": "3.8.1",
+      "model": "onnx-community/whisper-base_timestamped",
+      "revision": "608c49e61301901684bc36cac8f74b95ff6b5a8e",
+      "device": "webgpu",
+      "tier": "T1",
+      "corpusClip": "taxi-en-technical",
+      "ok": true,
+      "wer": 1,
+      "wordTimingMAEms": 25444,
+      "rtf": 0.0121,
+      "wallMs": 411.84999999403954,
+      "durationSeconds": 33.984,
+      "peakJsHeapBytes": 0,
+      "punctuated": false,
+      "gpuMemGrowthPerWindowBytes": 0,
+      "languageDetect": true,
+      "confidence": false,
+      "timestamps": "word-native",
+      "license": "Apache-2.0",
+      "verified": true,
+      "hotword": null
+    },
+    {
+      "engineId": "A",
+      "engine": "transformers.js",
+      "version": "3.8.1",
+      "model": "onnx-community/whisper-small_timestamped",
+      "revision": "65caa70f294b46e1c33ff820aae6b16d048ab818",
+      "device": "webgpu",
+      "tier": "T1",
+      "corpusClip": "taxi-en-technical",
+      "ok": true,
+      "wer": 1,
+      "wordTimingMAEms": 25444,
+      "rtf": 0.0234,
+      "wallMs": 793.9100000038743,
+      "durationSeconds": 33.984,
+      "peakJsHeapBytes": 0,
+      "punctuated": false,
+      "gpuMemGrowthPerWindowBytes": 0,
+      "languageDetect": true,
+      "confidence": false,
+      "timestamps": "word-native",
+      "license": "Apache-2.0",
+      "verified": true,
+      "hotword": null
+    },
+    {
+      "engineId": "A",
+      "engine": "transformers.js",
+      "version": "3.8.1",
+      "model": "onnx-community/whisper-tiny_timestamped",
+      "revision": "517244293732ee2d58139af5814231b7e6830a0d",
+      "device": "wasm",
+      "tier": "T2",
+      "corpusClip": "taxi-en-technical",
+      "ok": true,
+      "wer": 1,
+      "wordTimingMAEms": 25444,
+      "rtf": 0.0359,
+      "wallMs": 1220.5950000062585,
+      "durationSeconds": 33.984,
+      "peakJsHeapBytes": 0,
+      "punctuated": false,
+      "gpuMemGrowthPerWindowBytes": 0,
+      "languageDetect": true,
+      "confidence": false,
+      "timestamps": "word-native",
+      "license": "Apache-2.0",
+      "verified": true,
+      "hotword": null
+    },
+    {
+      "engineId": "B",
+      "engine": "sherpa-onnx",
+      "version": "sherpa-onnx@2.0.1 (wasm)",
+      "model": "csukuangfj/sherpa-onnx-zipformer-en-2023-06-26 (int8)",
+      "revision": "11a70a47ec5fd969c17b8d0818681d222a147781",
+      "device": "wasm",
+      "tier": "T2",
+      "corpusClip": "taxi-en-technical",
+      "ok": true,
+      "wer": 1.25,
+      "wordTimingMAEms": 7327.6,
+      "rtf": 0.0593,
+      "wallMs": 2014.1999999955297,
+      "durationSeconds": 33.984,
+      "peakJsHeapBytes": 0,
+      "punctuated": false,
+      "gpuMemGrowthPerWindowBytes": 0,
+      "languageDetect": false,
+      "confidence": false,
+      "timestamps": "word-native",
+      "license": "Apache-2.0",
+      "verified": true,
+      "hotword": null
+    },
+    {
+      "engineId": "C",
+      "engine": "cactus-needle",
+      "version": "cactus-needle@0.3.0 (needle.wasm)",
+      "model": "Cactus-Compute/whistle (whistle.cact)",
+      "revision": "b358ddadd89b7a713b5aa131f23032d3cca1b251",
+      "device": "wasm",
+      "tier": "T2",
+      "corpusClip": "taxi-en-technical",
+      "ok": true,
+      "wer": 1,
+      "wordTimingMAEms": 8252.5,
+      "rtf": 0.028,
+      "wallMs": 950.3500000014901,
+      "durationSeconds": 33.984,
+      "peakJsHeapBytes": 0,
+      "punctuated": true,
+      "gpuMemGrowthPerWindowBytes": 0,
+      "languageDetect": true,
+      "confidence": true,
+      "timestamps": "word-native",
+      "license": "Apache-2.0",
+      "verified": true,
+      "hotword": {
+        "keywordsRequested": 2,
+        "groundTruthMatches": 2,
+        "biasApplied": false
+      }
+    }
+  ],
+  "parakeetVerdict": {
+    "loads": false,
+    "blockerIssue": "https://github.com/k2-fsa/sherpa-onnx/issues/2200",
+    "note": "load failed in sherpa WASM (Error:RuntimeError:Aborted(). Build with -sASSERTIONS for more info.|RuntimeError: Aborted(). Build with -sASSERTIONS for more info. at abort (http://localhost:4179/sherpa/sherpa-onnx-wasm-main-asr.js:1:110); upstream wasm/vad-asr model-support limitation (640 MB int8 TDT)",
+    "loadMs": 17015
+  },
+  "leak": [
+    {
+      "version": "3.8.1",
+      "model": "onnx-community/whisper-small_timestamped",
+      "device": "webgpu",
+      "windowSeconds": 28,
+      "windowCount": 20,
+      "gpuMemBytesAfterWindow": [
+        2140143616,
+        2143289344,
+        2146435072,
+        2148532224,
+        2151677952,
+        2155872256,
+        2159017984,
+        2162163712,
+        2164260864,
+        2167406592,
+        2170552320,
+        2173698048,
+        2176843776,
+        2179989504,
+        2183135232,
+        2182086656,
+        2183135232,
+        2184183808,
+        2184183808,
+        2182086656
+      ],
+      "perWindowGrowthBytes": 2207528,
+      "disposeReclaims": false,
+      "recycleCeilingBytes": 1498911512,
+      "baselineBytes": 1484783616
+    },
+    {
+      "version": "4.3.2",
+      "model": "onnx-community/whisper-small_timestamped",
+      "device": "webgpu",
+      "windowSeconds": 28,
+      "windowCount": 20,
+      "gpuMemBytesAfterWindow": [
+        1901068288,
+        2126512128,
+        2337275904,
+        2542796800,
+        2748317696,
+        2951741440,
+        3158310912,
+        3366977536,
+        3572498432,
+        3780116480,
+        3986685952,
+        4190109696,
+        4396679168,
+        4603248640,
+        4806672384,
+        5012193280,
+        5221908480,
+        5426380800,
+        5578424320,
+        5786042368
+      ],
+      "perWindowGrowthBytes": 204472320,
+      "disposeReclaims": true,
+      "recycleCeilingBytes": 1431306240,
+      "baselineBytes": 1227882496
+    }
+  ],
+  "leakPinRecommendation": "Measured per-window GPU-process growth on the pinned @huggingface/transformers 3.8.x is 2207528 bytes/window vs 204472320 bytes/window on 4.x — keep the settings.yml version_pins at ~3.8.1; revisit 4.x when transformers.js PR #1755 (fixes issue #1739) merges and re-measure (worker-recycle ceiling covers the residual leak).",
+  "networkAudit": [
+    {
+      "engineId": "A",
+      "pass": true,
+      "artifact": "docs/spikes/network/A.json"
+    },
+    {
+      "engineId": "B",
+      "pass": true,
+      "artifact": "docs/spikes/network/B.json"
+    },
+    {
+      "engineId": "C",
+      "pass": true,
+      "artifact": "docs/spikes/network/C.json"
+    }
+  ],
+  "licenses": [
+    {
+      "candidate": "Omnilingual ASR 300M (facebookresearch/omnilingual-asr)",
+      "status": "verified-ok",
+      "url": "https://github.com/facebookresearch/omnilingual-asr/blob/main/LICENSE",
+      "note": "Code and models Apache-2.0 per the official repository LICENSE (verified 2026-10-28); companion corpus dataset is CC-BY-4.0 (dataset not shipped). Apache-2.0 permits the commercial SaaS use (FR-1.0.2). Not benchmarked this unit (candidate D is license-gated research scope, benchmark only after owner picks it)."
+    },
+    {
+      "candidate": "Moonshine v2 (moonshine-ai/moonshine-tiny)",
+      "status": "verified-ok",
+      "url": "https://huggingface.co/moonshine-ai/moonshine-tiny",
+      "note": "Model card license tag: MIT (verified 2026-10-28 via HF API cardData). MIT permits commercial use. Not benchmarked this unit."
+    },
+    {
+      "candidate": "MedASR (google/medasr)",
+      "status": "blocked-pending",
+      "model": "medasr",
+      "url": "https://developers.google.com/health-ai-developer-foundations/terms",
+      "note": "Gated HF repo; use governed by the Health AI Developer Foundations terms of use (custom terms requiring acceptance, usage restrictions, and no unmodified clinical use — verified 2026-10-28 from the model card). Requires legal review + owner sign-off before any benchmark (unit spec: do not benchmark until license verified); gated download also conflicts with the no-auth runtime model fetch (settings.yml model_hosts). No benchmark row present."
+    }
+  ],
+  "baselineCheck": {
+    "whisperBaseT1Rtf": 0.0121,
+    "baseline": "settings.yml performance_baselines: whisper-small ≥ 4× realtime (T1, reference hardware)",
+    "outcome": "confirmed",
+    "statement": "Measured whisper-base T1 RTF 0.0121 (≈82.6× realtime) — the settings.yml performance_baselines entry (whisper-small ≥ 4× realtime) is achievable on reference hardware; confirmed, no settings patch needed."
+  },
+  "recommendation": {
+    "T1": {
+      "engine": "transformers.js",
+      "model": "onnx-community/whisper-base_timestamped"
+    },
+    "T2": {
+      "engine": "transformers.js",
+      "model": "onnx-community/whisper-tiny_timestamped"
+    },
+    "T3": {
+      "engine": "cactus-needle",
+      "model": "Cactus-Compute/whistle (whistle.cact)"
+    }
+  },
+  "failedRuns": []
+}

@@ -17,6 +17,23 @@ const repoRoot = fileURLToPath(new URL('.', import.meta.url))
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }
 
+// unit-02 (FR-02.1/FR-02.3): the model-eval spike builds its engine pages
+// alongside the app (`ZIPSCRIBE_EVAL=1 corepack pnpm build`). The per-PR
+// `pnpm build` is untouched — no eval inputs, no eval aliases — so the bundle
+// budget and the shipped app are unaffected by the harness. The 4.x runtime
+// for the #1739 leak study comes from the isolated npm install under
+// tools/eval/node-4x (its own onnxruntime-web resolves from that tree; its
+// wasm binaries are self-hosted under /eval4x/wasm by
+// scripts/copy-vendor-assets.ts).
+const EVAL = process.env.ZIPSCRIBE_EVAL === '1'
+const evalInputs = {
+  engineA: 'tools/eval/pages/engine-a.html',
+  engineB: 'tools/eval/pages/engine-b.html',
+  engineC: 'tools/eval/pages/engine-c.html',
+  calibrate: 'tools/eval/pages/gpu-calibration.html',
+}
+const hf4xPath = join(repoRoot, 'tools', 'eval', 'node-4x', 'node_modules', '@huggingface', 'transformers', 'dist', 'transformers.web.js')
+
 function gitHash(): string {
   try {
     return execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim()
@@ -59,6 +76,7 @@ export default defineConfig({
       '@engine': new URL('./src/engine', import.meta.url).pathname,
       '@state': new URL('./src/state', import.meta.url).pathname,
       '@ui': new URL('./src/ui', import.meta.url).pathname,
+      ...(EVAL ? { '@hf4x': hf4xPath } : {}),
     },
   },
   worker: {
@@ -68,6 +86,16 @@ export default defineConfig({
     target: 'es2022',
     sourcemap: false,
     modulePreload: { polyfill: false },
+    ...(EVAL
+      ? {
+          rollupOptions: {
+            input: {
+              main: join(repoRoot, 'index.html'),
+              ...Object.fromEntries(Object.entries(evalInputs).map(([name, path]) => [name, join(repoRoot, path)])),
+            },
+          },
+        }
+      : {}),
   },
   preview: {
     // Bind IPv4 explicitly: the frozen request-audit + Playwright webServer

@@ -17,3 +17,6 @@ docs/overnight-ledger.md
 # contract) — formatting them is not allowed, so they are not checked.
 tests
 e2e
+# qualify suite is the frozen executable-criteria contract (byte-identical)
+qualify
+docs/spikes

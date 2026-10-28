@@ -36,6 +36,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: 4.1.12
         version: 4.1.12(vitest@4.1.12)
+      cactus-needle:
+        specifier: 0.3.0
+        version: 0.3.0
       eslint:
         specifier: 9.39.5
         version: 9.39.5
@@ -48,6 +51,12 @@ importers:
       prettier:
         specifier: ^3.6.0
         version: 3.9.10
+      sherpa-onnx:
+        specifier: 2.0.1
+        version: 2.0.1
+      speech-asr:
+        specifier: 1.1.6
+        version: 1.1.6
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -62,6 +71,10 @@ importers:
         version: 4.1.12(@types/node@24.10.1)(@vitest/coverage-v8@4.1.12)(jsdom@30.1.3)(vite@7.3.7(@types/node@24.10.1))
 
 packages:
+
+  '@ai-sdk/provider@3.0.19':
+    resolution: {integrity: sha512-5lWq7zSfRaU5ylDESn3sDQjgGl2AI1vjZKO/6JY3aFW70ct4zcP1kN+ZUYOuTXr28fVsYbyu2YFhddLdIgQFZQ==}
+    engines: {node: '>=18'}
 
   '@asamuzakjp/css-color@7.1.9':
     resolution: {integrity: sha512-vZ6JQVq8Ivgz6b/IBlAf90wZviXdluY13cQOPO+nJHbmXwGrPl2GcpqUY7a55/8ZVdfONXpCFMpRijOBCHNlcQ==}
@@ -967,6 +980,15 @@ packages:
   buffer-from@1.1.2:
     resolution: {integrity: sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==}
 
+  cactus-needle@0.3.0:
+    resolution: {integrity: sha512-4yqY+PMzvAcT05FAW8h0XYRfU1Jv8qcUMGegAYenWLKIGSORlLjfxy8MXpg4dQ/CzW/HPCmQ0FGS4pPwrQNyAw==}
+    engines: {node: '>=22.18.0'}
+    peerDependencies:
+      ai: ^6.0.0 || ^7.0.0
+    peerDependenciesMeta:
+      ai:
+        optional: true
+
   callsites@3.1.0:
     resolution: {integrity: sha512-P8BjAsXvZS+VIDUI11hHCQEv74YT67YUi5JJFNWIqL235sBmjX4+qx9Muvls5ivyNENctx46xQLQ3aTuE7ssaQ==}
     engines: {node: '>=6'}
@@ -1311,6 +1333,9 @@ packages:
   json-schema-traverse@0.4.1:
     resolution: {integrity: sha512-xbbCH5dCYU5T8LcEhhuh7HJ88HXuW3qsI3Y0zOZFKfZEHcpWiHU/Jxzk629Brsab/mMiHQti9wMP+845RPe3Vg==}
 
+  json-schema@0.4.0:
+    resolution: {integrity: sha512-es94M3nTIfsEPisRafak+HDLfHXnKBhV3vU5eqPcS3flIWqcxJWgXHXiey3YrpaNsanY5ei1VoYEbOzijuq9BA==}
+
   json-stable-stringify-without-jsonify@1.0.1:
     resolution: {integrity: sha512-Bdboy+l7tA3OGW6FjyFHWkP5LuByj1Tk33Ljyq0axyzdk9//JSi2u3fP1QSmd1KNwq6VOKYGlAu87CisVir6Pw==}
 
@@ -1564,12 +1589,19 @@ packages:
     resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
     engines: {node: '>=8'}
 
+  sherpa-onnx@2.0.1:
+    resolution: {integrity: sha512-MlcZOKglIO+U+PL635cWjLYVgW9PwGTAZ5vgGIWHchw7MC1bHyEy5428chj15K00EF5SF0jp3KgGOHUbiGj2/g==}
+
   siginfo@2.0.0:
     resolution: {integrity: sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==}
 
   source-map-js@1.2.2:
     resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
     engines: {node: '>=0.10.0'}
+
+  speech-asr@1.1.6:
+    resolution: {integrity: sha512-sYNoKGTmdnU80vmNNmWvMIAwjWZv4it61J6PG274VrCjpkwD9ON8GiePxL2BEmYFd4Meez463+lZUlDzXT1AtA==}
+    engines: {node: '>=14.0.0'}
 
   sprintf-js@1.1.3:
     resolution: {integrity: sha512-Oo+0REFV59/rz3gfJNKQiBlwfHaSESl1pcGyABQsnnIfWOFt6JNj5gCog2U6MLZ//IGYD+nA8nI+mTShREReaA==}
@@ -1806,6 +1838,10 @@ packages:
     engines: {node: '>=10'}
 
 snapshots:
+
+  '@ai-sdk/provider@3.0.19':
+    dependencies:
+      json-schema: 0.4.0
 
   '@asamuzakjp/css-color@7.1.9':
     dependencies:
@@ -2620,6 +2656,11 @@ snapshots:
 
   buffer-from@1.1.2: {}
 
+  cactus-needle@0.3.0:
+    dependencies:
+      '@ai-sdk/provider': 3.0.19
+      '@types/json-schema': 7.0.15
+
   callsites@3.1.0: {}
 
   caniuse-lite@1.0.30001819: {}
@@ -2983,6 +3024,8 @@ snapshots:
 
   json-schema-traverse@0.4.1: {}
 
+  json-schema@0.4.0: {}
+
   json-stable-stringify-without-jsonify@1.0.1: {}
 
   json-stringify-safe@5.0.1: {}
@@ -3265,9 +3308,13 @@ snapshots:
 
   shebang-regex@3.0.0: {}
 
+  sherpa-onnx@2.0.1: {}
+
   siginfo@2.0.0: {}
 
   source-map-js@1.2.2: {}
+
+  speech-asr@1.1.6: {}
 
   sprintf-js@1.1.3: {}
 

@@ -52,9 +52,14 @@ function sha256(bytes: Uint8Array): string {
 }
 
 async function main(): Promise<void> {
-  const registryPath = join(repoRoot, 'models', 'ci-registry.json')
+  // `--registry <path>` (default models/ci-registry.json) — the unit-02 eval
+  // spike uses models/eval-registry.json (FR-02.9 pins); CI keeps the frozen
+  // default. Same cache layout and allowlist either way.
+  const argIndex = process.argv.indexOf('--registry')
+  const registryArg = argIndex >= 0 ? process.argv[argIndex + 1] : undefined
+  const registryPath = registryArg ? join(repoRoot, registryArg) : join(repoRoot, 'models', 'ci-registry.json')
   if (!existsSync(registryPath)) {
-    console.error('models:fetch: models/ci-registry.json missing')
+    console.error(`models:fetch: ${registryArg ?? 'models/ci-registry.json'} missing`)
     process.exit(1)
   }
   const registry = JSON.parse(readFileSync(registryPath, 'utf8')) as Registry

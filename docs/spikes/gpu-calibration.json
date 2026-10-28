@@ -1,0 +1,9 @@
+{
+  "gpuPid": 50725,
+  "missingReason": null,
+  "allocatedBytes": 536870912,
+  "observedGrowthBytes": 1104150528,
+  "passed": true,
+  "isolatedPage": true,
+  "allocatorOk": true
+}
