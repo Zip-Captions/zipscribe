@@ -106,4 +106,37 @@ describe('adversarial: initial-graph chunks must count regardless of name or syn
       rmSync(join(REPO_ROOT, 'dist', 'assets', `${PROBE}-payload.js`), { force: true })
     }
   })
+
+  test('ADVERSARIAL CC-01.4: a static import preceded only by "}" (rollup statement adjacency) is counted in the initial graph', () => {
+    // REVIEW round-2 R2-3: the cases above reach the walker through `\n`
+    // (a `\s` separator), so the `}`/`,` members of check-bundle's separator
+    // class are unexercised — narrowing it back to [\s;()] kept the whole
+    // suite green while a `}`-preceded static import escaped counting. This
+    // case injects rollup's emitted adjacency (`export{…}` / block-close
+    // directly followed by `import{…}from'…'`): the ONLY regex separator in
+    // position before the payload import is `}`. The `'s'` literal before it
+    // blocks the lazy `[^'"]*?from` group from any earlier import/export
+    // keyword, so a walker without `}` in its class sees no reference at all
+    // and the ~1 MB-gzip payload passes the budget.
+    buildOnce()
+    const entry = entryScripts()[0]!
+    const backup = readFileSync(join(REPO_ROOT, entry))
+    const payloadName = `${PROBE}-brace.js`
+    try {
+      writeFileSync(created_(join(REPO_ROOT, 'dist', 'assets', payloadName)), incompressible())
+      writeFileSync(join(REPO_ROOT, entry), `${backup.toString('utf8')}\nexport{a};if(0){'s'}import{b}from'./${payloadName}'\n`)
+      const result = runPnpm('check-bundle')
+      expect(
+        result.status,
+        `check-bundle exited ${result.status}: a static import whose only preceding separator is "}" (vite/rollup emits \`export{…}import{…}from'…'\` adjacency) escaped the initial graph — the separator class lost "}" and initial JS can grow unbounded\n${result.output.slice(-3000)}`,
+      ).not.toBe(0)
+      expect(
+        result.output,
+        `the brace-preceded payload chunk must appear in the counted initial set, not merely trip some other failure\n${result.output.slice(-3000)}`,
+      ).toContain(payloadName)
+    } finally {
+      writeFileSync(join(REPO_ROOT, entry), backup)
+      rmSync(join(REPO_ROOT, 'dist', 'assets', payloadName), { force: true })
+    }
+  })
 })
