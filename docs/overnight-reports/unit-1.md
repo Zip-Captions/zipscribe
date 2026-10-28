@@ -6,24 +6,24 @@ Status: complete
 
 From `reports/criteria/unit-01-scaffold-quality-gates.md` (`pnpm verify:unit --from-branch`, 2026-10-28):
 
-| ID | level | passing tests | result |
-|---|---|---|---|
-| CC-01.1 | untagged | 13 | pass |
-| CC-01.2 | untagged | 8 | pass |
-| CC-01.3 | untagged | 8 | pass |
-| CC-01.4 | untagged | 10 | pass |
-| CC-01.5 | untagged | 1 | pass |
-| CC-01.6 | untagged | 8 | pass |
-| CC-01.7 | untagged | 8 | pass |
-| CC-01.8 | untagged | 16 | pass |
-| CC-01.9 | untagged | 8 | pass |
-| CC-01.10 | untagged | 6 | pass |
-| CC-01.11 | untagged | 4 | pass |
-| CC-01.12 | untagged | 4 | pass |
-| CC-01.13 | untagged | 6 | pass |
-| CC-01.14 | DEPLOY | 0 | DEPLOY (outside PR pipeline) |
-| CC-01.15 | DEPLOY | 0 | DEPLOY (outside PR pipeline) |
-| CC-01.16 | DEPLOY | 0 | DEPLOY (outside PR pipeline) |
+| ID       | level    | passing tests | result                       |
+| -------- | -------- | ------------- | ---------------------------- |
+| CC-01.1  | untagged | 13            | pass                         |
+| CC-01.2  | untagged | 8             | pass                         |
+| CC-01.3  | untagged | 8             | pass                         |
+| CC-01.4  | untagged | 10            | pass                         |
+| CC-01.5  | untagged | 1             | pass                         |
+| CC-01.6  | untagged | 8             | pass                         |
+| CC-01.7  | untagged | 8             | pass                         |
+| CC-01.8  | untagged | 16            | pass                         |
+| CC-01.9  | untagged | 8             | pass                         |
+| CC-01.10 | untagged | 6             | pass                         |
+| CC-01.11 | untagged | 4             | pass                         |
+| CC-01.12 | untagged | 4             | pass                         |
+| CC-01.13 | untagged | 6             | pass                         |
+| CC-01.14 | DEPLOY   | 0             | DEPLOY (outside PR pipeline) |
+| CC-01.15 | DEPLOY   | 0             | DEPLOY (outside PR pipeline) |
+| CC-01.16 | DEPLOY   | 0             | DEPLOY (outside PR pipeline) |
 
 - `[DEPLOY]` CC-01.14/15/16: deferred per run-config `unit exceptions` — no Cloudflare
   credentials/environments exist on this Free-plan repo; recorded as awaiting-credentials,
@@ -62,7 +62,7 @@ Builder extensions to orchestrator/test-author-owned config (no frozen test touc
      the pinned ffmpeg-static binary.
 2. **`package.json` preview scripts + `scripts/preview.mjs`** (new): the frozen
    network-audit/retry-detection tests spawn `pnpm run preview -- --port PORT
-   --strictPort`; `vite`'s CLI stops option parsing at `--`, so the args were
+--strictPort`; `vite`'s CLI stops option parsing at `--`, so the args were
    dropped. The wrapper strips `--`, spawns the vite bin directly, forwards
    signals, preempts a stale vite-preview left on the port by an earlier
    imperfectly-killed test (only processes whose argv is our own vite preview —
@@ -164,14 +164,12 @@ commit); `git diff 7f9d48f..HEAD --diff-filter=M -- tests e2e` remains empty
    `**/adapters/**` are errors; and `restrictedGlobals` now reports value-position
    member access on the (unshadowed) global object — `globalThis.window`,
    `self.document`, `globalThis['window']` — while `obj.window` on real objects and
-   DOM *types* stay allowed.
+   DOM _types_ stay allowed.
 
 Verification of the round: the 6 adversarial/survived files pass 19/19; full suite
 `corepack pnpm test` = 78 passed / 1 skipped / 1 todo; lint, typecheck,
 build+check-bundle (68.3 KB gzip / 350 KB), `pnpm test:e2e` (1 passed, 3 DEPLOY
 skipped) and `pnpm verify:unit --from-branch` (all untagged covered) all exit 0.
-
-
 
 ## Follow-ups
 
