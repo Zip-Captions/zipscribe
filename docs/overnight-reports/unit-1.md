@@ -107,6 +107,72 @@ None outside `settings.yml approved_dependencies`; all versions match the pins
   `pnpm test --coverage`; `enabled:false` while no engine logic exists (per
   vitest.config comment) — goes live with unit-02.
 
+## Adversarial round
+
+Post-build red-team commit `2a7d861` added 6 new test files (12 tests + 7 survived-edge
+tests) exposing 8 spec-contradicting violations. All fixed in `ca9ddff` (+ final polish
+commit); `git diff 7f9d48f..HEAD --diff-filter=M -- tests e2e` remains empty
+(additions-only). One harness bug in an adversary file was corrected (noted in 2).
+
+1. **check-bundle name-based exclusion → budget bypass** — FIXED `ca9ddff`.
+   `scripts/check-bundle.mjs` no longer lets `excludePatterns` skip a chunk that is in
+   the initial import graph: exclusion is bound to laziness (settings.yml bundle_budget
+   "lazy-loaded and excluded"), so a statically-reachable chunk matching an exclude
+   pattern now FAILS as a lazy-contract violation and unpatterned chunks always count.
+   Counterexample (`…-worker-mediabunny.js` 1 MB statically imported) exits non-zero;
+   clean build green again.
+2. **check-bundle blind to vite's minified static-import form** — FIXED `ca9ddff`.
+   `staticImport` regex now accepts the emitted `import{a}from'./x.js'` /
+   `export*from'…'` forms (`[^'"]*?from\s*` without the required pre-`from`
+   whitespace; boundary extended to `[\s;()]`), while dynamic `import('./x.js')`
+   stays out of the initial graph (correctly lazy). Tamper-detection at the
+   unresolvable-import fail path now fires for the minified form too. Note: the
+   adversary's `incompressible()` was itself broken — `(i*2654435761)%251` has
+   period 251 and gzips 1 MB to ~4 KB, so even a correct walker stayed under budget;
+   per instructions ("adversary harness assumptions wrong") it was replaced with a
+   deterministic 64-bit LCG producing genuinely incompressible bytes. The assertion
+   itself is unchanged.
+3. **verify:unit `--from-branch` no-op under detached CI HEAD** — FIXED `ca9ddff`.
+   `unitFileFromBranch()` now resolves through: named branch → `GITHUB_HEAD_REF` /
+   `GITHUB_REF` (the `actions/checkout@v4` PR state) → local and remote branches whose
+   history contains HEAD. The detached-worktree counterexample (same commit as the
+   named-branch control) now exits non-zero under `--no-run` instead of no-op exit 0,
+   so the CI criteria gate really adjudicates on PRs.
+4. **Boundaryless CC-ID citation regex** — FIXED `ca9ddff`.
+   New `citationsOf()`: an ID counts only when it LEADS the title, optionally after
+   ALL-CAPS tag words (`ADVERSARIAL CC-01.3: …`) — per conventions § Criterion
+   traceability "Tests name the criterion". `prose mentions NOTA-CITATION CC-999.2 …`
+   no longer covers CC-999.2 (counterexample exits non-zero). Side effect: the
+   mid-title `CC-I1.11` mention in a models-fetch title (not declared in the unit
+   file) no longer triggers UNKNOWN-ID, restoring verify:unit exit 0.
+5. **Redaction spy missed `console.table`** — FIXED `ca9ddff`.
+   `CHANNELS` extended to the full content-emitting console surface: log, info, warn,
+   error, debug, trace, table, dir, dirxml, assert, count, countReset, group,
+   groupCollapsed, timeLog (conventions § Principles 4 "a global spy on `console.*`").
+6. **Spy missed transcript inside a logged Error** — FIXED `ca9ddff`.
+   `flatten()` special-cases `Error`: name, message, stack, own properties
+   (EngineError-style `detail`, incl. non-enumerable) and the `cause` chain —
+   JSON.stringify alone reduces an Error to `{}`. Errors nested inside plain objects
+   are flattened via the JSON replacer.
+7. **`containsCanary` blind to `Error.message`** — FIXED `ca9ddff`. Same primitive fix
+   as 6: spy AND every artifact scan built on `containsCanary`/`scanError` see the
+   message. Counterexample `containsCanary(new Error(…CANARY…))` now true.
+8. **Engine-purity bypassed by dynamic import + globalThis** — FIXED `ca9ddff`.
+   `scripts/eslint-engine-purity.mjs` adds an `ImportExpression` listener (core
+   no-restricted-imports is "static imports only" — official docs) so
+   `await import('react')` / `import('mediabunny')` in `src/engine/**` outside
+   `**/adapters/**` are errors; and `restrictedGlobals` now reports value-position
+   member access on the (unshadowed) global object — `globalThis.window`,
+   `self.document`, `globalThis['window']` — while `obj.window` on real objects and
+   DOM *types* stay allowed.
+
+Verification of the round: the 6 adversarial/survived files pass 19/19; full suite
+`corepack pnpm test` = 78 passed / 1 skipped / 1 todo; lint, typecheck,
+build+check-bundle (68.3 KB gzip / 350 KB), `pnpm test:e2e` (1 passed, 3 DEPLOY
+skipped) and `pnpm verify:unit --from-branch` (all untagged covered) all exit 0.
+
+
+
 ## Follow-ups
 
 - **Frozen-helper fragility (for orchestrator):** `runPnpm` kills the corepack

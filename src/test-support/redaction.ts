@@ -58,7 +58,7 @@ function flatten(value: unknown, seen: WeakSet<object> = new WeakSet()): string 
     for (const key of Object.getOwnPropertyNames(value)) {
       if (key === 'message' || key === 'stack') continue
       try {
-        parts.push(`${key}: ${flatten((value as Record<string, unknown>)[key], seen)}`)
+        parts.push(`${key}: ${flatten((value as unknown as Record<string, unknown>)[key], seen)}`)
       } catch {
         /* unreadable property: nothing to scan */
       }
@@ -66,8 +66,8 @@ function flatten(value: unknown, seen: WeakSet<object> = new WeakSet()): string 
     if ('cause' in value) parts.push(`cause: ${flatten((value as { cause?: unknown }).cause, seen)}`)
     return parts.join('\n')
   }
-  if (seen.has(value as object)) return ''
-  seen.add(value as object)
+  if (seen.has(value)) return ''
+  seen.add(value)
   try {
     return JSON.stringify(value, (_key, item: unknown) => (typeof item === 'bigint' ? item.toString() : item instanceof Error ? flatten(item, seen) : item)) ?? Object.prototype.toString.call(value)
   } catch {
