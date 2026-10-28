@@ -464,7 +464,7 @@ inserted, 0 deleted, existing cases untouched). No other file under `tests/` or
   unit-203.
 - **R2-3 (minor) — FIXED (permitted test ADDITION).** New case
   `ADVERSARIAL CC-01.4: a static import preceded only by "}" (rollup statement
-  adjacency) is counted in the initial graph` appends
+adjacency) is counted in the initial graph` appends
   `export{a};if(0){'s'}import{b}from'./…-brace.js'` to the entry: the `'s'`
   literal blocks the lazy `[^"']*?from` group from every earlier keyword, so
   the only regex separator in position before the payload import is `}`.
