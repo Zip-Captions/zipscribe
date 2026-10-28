@@ -64,7 +64,7 @@ let lastAdapter: WebGpuProbe | null = null
 const api: EnginePageApi = {
   async ready() {
     const probe = await probeWebgpu()
-    return { ok: true, webgpu: probe.adapter && probe.fallbackAdapter !== true, isolated: window.crossOriginIsolated === true, detail: probe.error ?? (probe.adapterInfo?.description ?? 'adapter-ok') }
+    return { ok: true, webgpu: probe.adapter && probe.fallbackAdapter !== true, isolated: window.crossOriginIsolated === true, detail: probe.error ?? probe.adapterInfo?.description ?? 'adapter-ok' }
   },
   async load(options) {
     const began = performance.now()

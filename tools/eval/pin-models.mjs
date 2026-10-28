@@ -64,13 +64,15 @@ const MODELS = {
   },
   'silero-vad': {
     repo: 'deepghs/silero-vad-onnx',
-    description: 'VAD for engine B (vad-asr segmentation). v4 onnx (MIT) — the v5 onnx onnx-community host failed to load under build-1\'s vendored browser wasm build (ORT too old); v4 verified working under the official k2-fsa vad-asr build (slice 2C).',
+    description:
+      "VAD for engine B (vad-asr segmentation). v4 onnx (MIT) — the v5 onnx onnx-community host failed to load under build-1's vendored browser wasm build (ORT too old); v4 verified working under the official k2-fsa vad-asr build (slice 2C).",
     files: ['silero_vad.onnx'],
     revision: '193243f7d961b15e6de789d3f90cb0ee867e7b62',
   },
   'sherpa-wasm-vad-asr': {
     repo: 'spaces/k2-fsa/web-assembly-vad-asr-sherpa-onnx-zh-zipformer-ctc',
-    description: 'Engine B runtime assets — official k2-fsa browser wasm build of the non-streaming wasm/vad-asr path (Emscripten main + asr/vad glue), served from the k2-fsa HF Space; zips the preloaded zh-model .data via Module.getPreloadedPackage, models come from the SHA-256-pinned HF cache',
+    description:
+      'Engine B runtime assets — official k2-fsa browser wasm build of the non-streaming wasm/vad-asr path (Emscripten main + asr/vad glue), served from the k2-fsa HF Space; zips the preloaded zh-model .data via Module.getPreloadedPackage, models come from the SHA-256-pinned HF cache',
     files: SHERPA_WASM_FILES,
     revision: '9d5fc71d88ab1222ed1af2274fb194592af48455',
   },

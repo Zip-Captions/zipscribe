@@ -855,9 +855,7 @@ async function runRow(plan) {
     runs.filter((r) => r.ok),
     gt,
   )
-  const deltas = gpuWindows
-    .map((w) => (typeof w.before === 'number' && typeof w.after === 'number' ? Math.max(0, w.after - w.before) : null))
-    .filter((v) => v !== null)
+  const deltas = gpuWindows.map((w) => (typeof w.before === 'number' && typeof w.after === 'number' ? Math.max(0, w.after - w.before) : null)).filter((v) => v !== null)
   // GPU-process GROWTH is bounded below by 0: a negative window delta is a
   // measured no-growth (freed during the run), recorded as 0, not as a
   // negative "growth" (the frozen CC-02.1 record requires a finite ≥ 0).
@@ -1225,7 +1223,7 @@ function renderMarkdown(report, sampler) {
   lines.push('# Model evaluation spike — unit-02 (FR-02)')
   lines.push('')
   lines.push(
-    `Machine: ${sampler.gpuPid ? 'GPU helper pid present' : 'GPU helper MISSING'}; calibration: ${report.gpuCalibration ? (report.gpuCalibration.passed ? 'PASSED' : 'FAILED') : 'not run'} (observed ${report.gpuCalibration?.observedGrowthBytes ?? 0} bytes of ${report.gpuCalibration?.allocatedBytes ?? (512 * 1024 * 1024)} allocated).`,
+    `Machine: ${sampler.gpuPid ? 'GPU helper pid present' : 'GPU helper MISSING'}; calibration: ${report.gpuCalibration ? (report.gpuCalibration.passed ? 'PASSED' : 'FAILED') : 'not run'} (observed ${report.gpuCalibration?.observedGrowthBytes ?? 0} bytes of ${report.gpuCalibration?.allocatedBytes ?? 512 * 1024 * 1024} allocated).`,
   )
   if (report.environment) {
     const env = report.environment
@@ -1242,7 +1240,9 @@ function renderMarkdown(report, sampler) {
     'CORPUS PROVISIONAL: ground truth is synthesized TTS (unit-01 fixtures) — WER/MAE numbers are valid for CROSS-ENGINE comparison on this machine, NOT as absolute accuracy claims (see domain notes). vendor figures (degraded-vs-vendor) cannot be adjudicated on synthetic audio and are omitted (no vendor comparison rows).',
   )
   lines.push('')
-  lines.push('| engine | engineId | version | model | revision | device | adapter | tier | clip | WER | wordTimingMAEms | RTF | per-run wall ms | peak JS heap (MB) | GPU Δ/window | lang | conf | punct | timestamps | license |')
+  lines.push(
+    '| engine | engineId | version | model | revision | device | adapter | tier | clip | WER | wordTimingMAEms | RTF | per-run wall ms | peak JS heap (MB) | GPU Δ/window | lang | conf | punct | timestamps | license |',
+  )
   lines.push('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |')
   for (const row of rows) {
     const info = row.adapter?.adapterInfo
@@ -1272,9 +1272,7 @@ function renderMarkdown(report, sampler) {
   )
   lines.push('')
   for (const row of pending) {
-    lines.push(
-      `- **${row.engine}** (${row.engineId}, ${row.model}, ${row.device}, ${row.tier}): ok=false — ${row.reason}`,
-    )
+    lines.push(`- **${row.engine}** (${row.engineId}, ${row.model}, ${row.device}, ${row.tier}): ok=false — ${row.reason}`)
   }
   lines.push('')
   lines.push('## #1739 leak study (US-02.3)')
