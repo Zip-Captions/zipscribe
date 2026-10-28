@@ -343,6 +343,28 @@ same time.` / `Caused by: ENOENT … coverage/.tmp/coverage-0.json` (CI run 4064
   re-run adjudicates (checked with `gh pr checks 3`, non-blocking).
   OBSERVED (unit Verify block, behaviour change): same command, post-fix:
   `Test Files 20 passed (20) · Tests 78 passed | 1 skipped | 1 todo (80) · EXIT=0`.
+  (c) CI iteration 2 (run 40653032195): the crash being gone exposed the next layer —
+  `gates.test.ts` CC-01.1's `runPnpm('test', ['--coverage'])` child hit the **frozen
+  30 s `runPnpm` budget** (`exited null` at 30056 ms; its dumped stdout showed only 5
+  files done: network-audit 11.7 s, models-fetch 0.5 s — now genuinely executing,
+  F4 confirmed fixed, 534 ms not 6 ms —, fixtures 0.03 s, bundle-budget-adversarial
+  1.4 s, engine-purity-adversarial 6.5 s). The full child suite measures ≈60–65 s on
+  the 2-core runner. Fix (config-only, tests untouched): extended the existing,
+  already-documented child-run exclusion (`gates.test.ts`) to the six remaining files
+  that re-spawn full gate commands or pay multi-second cold analyzer inits
+  (network-audit, retry-detection, fixtures-pipeline, engine-purity ×2,
+  verify-criteria ×2; per-file CI/local wall times recorded in the vitest.config.ts
+  comment). Every excluded file still runs in both authoritative runs of the same CI
+  step — the parent `pnpm test --coverage` and `verify:unit` (whose runner clears
+  `ZIPSCRIBE_CHILD`). This is the same rationale as the original gates.test.ts
+  exclusion ("pointlessly re-runs children in the 30 s-bounded child") and stops well
+  short of vacuity: the child still runs 12 files / 49 tests (all fast scaffold
+  suites incl. the probe half of coverage-gate, both bundle-budget suites, redaction,
+  models-fetch cache integrity). The proper fix — widening the frozen child timeout —
+  is already on the Follow-ups as frozen-helper fragility (test-author backlog).
+  OBSERVED: child sim (`ZIPSCRIBE_CHILD=1 vitest run --coverage`) 26–36 s → **3.7 s
+  (12 files, 47 pass | 1 skip | 1 todo, EXIT=0)**; parent unchanged at 20/78 (42.7 s —
+  the 20 s drop is exactly the slimmed child inside gates.test).
 - **F2 (major, evidence integrity) — FIXED via the orchestrator-ruled interim path.**
   Honest deviation entry added as Deviations item 7 (provenance / forced-alignment /
   taxonomy / WER-void consequences stated; CC-01.8 flagged provisional under the
@@ -398,7 +420,12 @@ failed smoke` (`if: failure() && … && steps.smoke.outcome == 'failure'`, redep
 
 lint ✓ (0) · typecheck ✓ (0) · `pnpm test` ✓ (20 files, 78 passed | 1 skipped | 1
 todo, 60.7 s) · **`pnpm test --coverage` ✓ EXIT=0 (20 files, 78 passed | 1 skipped |
-1 todo, 64.4 s — the F1 CI command)** · build ✓ + check-bundle ✓ (68.3 KB gzip / 350
-KB, 1 chunk) · `pnpm test:e2e` ✓ (1 passed chromium, 3 DEPLOY skipped, 3.3 s) ·
-`pnpm verify:unit --from-branch` ✓ (all untagged criteria of unit-01 covered, 16
-total) · format:check ✓ · spec-lint ✓ (21 files) · license-check ✓ (54 packages).
+1 todo — the F1 CI command; 42.7 s after the child slim, 64.4 s before)** · build ✓ +
+check-bundle ✓ (68.3 KB gzip / 350 KB, 1 chunk) · `pnpm test:e2e` ✓ (1 passed
+chromium, 3 DEPLOY skipped, 3.3 s) · `pnpm verify:unit --from-branch` ✓ (all untagged
+criteria of unit-01 covered, 16 total) · format:check ✓ · spec-lint ✓ (21 files) ·
+license-check ✓ (54 packages).
+
+CI re-run on the fix commits (run 40653032195): `fixtures-verify` **pass**; `quality`
+failed on exactly one surfaced red — the frozen-budget child suite of (c) above,
+fixed in the follow-up commit; re-review/watch `gh pr checks 3` for the next run.
