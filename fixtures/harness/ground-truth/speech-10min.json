@@ -1,0 +1,1806 @@
+{
+  "transcript": "the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter the team walked across the old bridge before sunrise every member brought a lantern and a short letter",
+  "language": "en",
+  "words": [
+    {
+      "text": "the",
+      "start": 0.12,
+      "end": 1.364
+    },
+    {
+      "text": "team",
+      "start": 1.549,
+      "end": 2.825
+    },
+    {
+      "text": "walked",
+      "start": 2.978,
+      "end": 4.254
+    },
+    {
+      "text": "across",
+      "start": 4.407,
+      "end": 5.683
+    },
+    {
+      "text": "the",
+      "start": 5.836,
+      "end": 7.08
+    },
+    {
+      "text": "old",
+      "start": 7.265,
+      "end": 8.509
+    },
+    {
+      "text": "bridge",
+      "start": 8.694,
+      "end": 9.97
+    },
+    {
+      "text": "before",
+      "start": 10.123,
+      "end": 11.399
+    },
+    {
+      "text": "sunrise",
+      "start": 11.552,
+      "end": 12.839
+    },
+    {
+      "text": "every",
+      "start": 12.981,
+      "end": 14.257
+    },
+    {
+      "text": "member",
+      "start": 14.41,
+      "end": 15.686
+    },
+    {
+      "text": "brought",
+      "start": 15.839,
+      "end": 17.126
+    },
+    {
+      "text": "a",
+      "start": 17.268,
+      "end": 18.512
+    },
+    {
+      "text": "lantern",
+      "start": 18.697,
+      "end": 19.984
+    },
+    {
+      "text": "and",
+      "start": 20.126,
+      "end": 21.37
+    },
+    {
+      "text": "a",
+      "start": 21.555,
+      "end": 22.799
+    },
+    {
+      "text": "short",
+      "start": 22.984,
+      "end": 24.26
+    },
+    {
+      "text": "letter",
+      "start": 24.413,
+      "end": 25.689
+    },
+    {
+      "text": "the",
+      "start": 30.12,
+      "end": 31.364
+    },
+    {
+      "text": "team",
+      "start": 31.549,
+      "end": 32.825
+    },
+    {
+      "text": "walked",
+      "start": 32.978,
+      "end": 34.254
+    },
+    {
+      "text": "across",
+      "start": 34.407,
+      "end": 35.683
+    },
+    {
+      "text": "the",
+      "start": 35.836,
+      "end": 37.08
+    },
+    {
+      "text": "old",
+      "start": 37.265,
+      "end": 38.509
+    },
+    {
+      "text": "bridge",
+      "start": 38.694,
+      "end": 39.97
+    },
+    {
+      "text": "before",
+      "start": 40.123,
+      "end": 41.399
+    },
+    {
+      "text": "sunrise",
+      "start": 41.552,
+      "end": 42.839
+    },
+    {
+      "text": "every",
+      "start": 42.981,
+      "end": 44.257
+    },
+    {
+      "text": "member",
+      "start": 44.41,
+      "end": 45.686
+    },
+    {
+      "text": "brought",
+      "start": 45.839,
+      "end": 47.126
+    },
+    {
+      "text": "a",
+      "start": 47.268,
+      "end": 48.512
+    },
+    {
+      "text": "lantern",
+      "start": 48.697,
+      "end": 49.984
+    },
+    {
+      "text": "and",
+      "start": 50.126,
+      "end": 51.37
+    },
+    {
+      "text": "a",
+      "start": 51.555,
+      "end": 52.799
+    },
+    {
+      "text": "short",
+      "start": 52.984,
+      "end": 54.26
+    },
+    {
+      "text": "letter",
+      "start": 54.413,
+      "end": 55.689
+    },
+    {
+      "text": "the",
+      "start": 60.12,
+      "end": 61.364
+    },
+    {
+      "text": "team",
+      "start": 61.549,
+      "end": 62.825
+    },
+    {
+      "text": "walked",
+      "start": 62.978,
+      "end": 64.254
+    },
+    {
+      "text": "across",
+      "start": 64.407,
+      "end": 65.683
+    },
+    {
+      "text": "the",
+      "start": 65.836,
+      "end": 67.08
+    },
+    {
+      "text": "old",
+      "start": 67.265,
+      "end": 68.509
+    },
+    {
+      "text": "bridge",
+      "start": 68.694,
+      "end": 69.97
+    },
+    {
+      "text": "before",
+      "start": 70.123,
+      "end": 71.399
+    },
+    {
+      "text": "sunrise",
+      "start": 71.552,
+      "end": 72.839
+    },
+    {
+      "text": "every",
+      "start": 72.981,
+      "end": 74.257
+    },
+    {
+      "text": "member",
+      "start": 74.41,
+      "end": 75.686
+    },
+    {
+      "text": "brought",
+      "start": 75.839,
+      "end": 77.126
+    },
+    {
+      "text": "a",
+      "start": 77.268,
+      "end": 78.512
+    },
+    {
+      "text": "lantern",
+      "start": 78.697,
+      "end": 79.984
+    },
+    {
+      "text": "and",
+      "start": 80.126,
+      "end": 81.37
+    },
+    {
+      "text": "a",
+      "start": 81.555,
+      "end": 82.799
+    },
+    {
+      "text": "short",
+      "start": 82.984,
+      "end": 84.26
+    },
+    {
+      "text": "letter",
+      "start": 84.413,
+      "end": 85.689
+    },
+    {
+      "text": "the",
+      "start": 90.12,
+      "end": 91.364
+    },
+    {
+      "text": "team",
+      "start": 91.549,
+      "end": 92.825
+    },
+    {
+      "text": "walked",
+      "start": 92.978,
+      "end": 94.254
+    },
+    {
+      "text": "across",
+      "start": 94.407,
+      "end": 95.683
+    },
+    {
+      "text": "the",
+      "start": 95.836,
+      "end": 97.08
+    },
+    {
+      "text": "old",
+      "start": 97.265,
+      "end": 98.509
+    },
+    {
+      "text": "bridge",
+      "start": 98.694,
+      "end": 99.97
+    },
+    {
+      "text": "before",
+      "start": 100.123,
+      "end": 101.399
+    },
+    {
+      "text": "sunrise",
+      "start": 101.552,
+      "end": 102.839
+    },
+    {
+      "text": "every",
+      "start": 102.981,
+      "end": 104.257
+    },
+    {
+      "text": "member",
+      "start": 104.41,
+      "end": 105.686
+    },
+    {
+      "text": "brought",
+      "start": 105.839,
+      "end": 107.126
+    },
+    {
+      "text": "a",
+      "start": 107.268,
+      "end": 108.512
+    },
+    {
+      "text": "lantern",
+      "start": 108.697,
+      "end": 109.984
+    },
+    {
+      "text": "and",
+      "start": 110.126,
+      "end": 111.37
+    },
+    {
+      "text": "a",
+      "start": 111.555,
+      "end": 112.799
+    },
+    {
+      "text": "short",
+      "start": 112.984,
+      "end": 114.26
+    },
+    {
+      "text": "letter",
+      "start": 114.413,
+      "end": 115.689
+    },
+    {
+      "text": "the",
+      "start": 120.12,
+      "end": 121.364
+    },
+    {
+      "text": "team",
+      "start": 121.549,
+      "end": 122.825
+    },
+    {
+      "text": "walked",
+      "start": 122.978,
+      "end": 124.254
+    },
+    {
+      "text": "across",
+      "start": 124.407,
+      "end": 125.683
+    },
+    {
+      "text": "the",
+      "start": 125.836,
+      "end": 127.08
+    },
+    {
+      "text": "old",
+      "start": 127.265,
+      "end": 128.509
+    },
+    {
+      "text": "bridge",
+      "start": 128.694,
+      "end": 129.97
+    },
+    {
+      "text": "before",
+      "start": 130.123,
+      "end": 131.399
+    },
+    {
+      "text": "sunrise",
+      "start": 131.552,
+      "end": 132.839
+    },
+    {
+      "text": "every",
+      "start": 132.981,
+      "end": 134.257
+    },
+    {
+      "text": "member",
+      "start": 134.41,
+      "end": 135.686
+    },
+    {
+      "text": "brought",
+      "start": 135.839,
+      "end": 137.126
+    },
+    {
+      "text": "a",
+      "start": 137.268,
+      "end": 138.512
+    },
+    {
+      "text": "lantern",
+      "start": 138.697,
+      "end": 139.984
+    },
+    {
+      "text": "and",
+      "start": 140.126,
+      "end": 141.37
+    },
+    {
+      "text": "a",
+      "start": 141.555,
+      "end": 142.799
+    },
+    {
+      "text": "short",
+      "start": 142.984,
+      "end": 144.26
+    },
+    {
+      "text": "letter",
+      "start": 144.413,
+      "end": 145.689
+    },
+    {
+      "text": "the",
+      "start": 150.12,
+      "end": 151.364
+    },
+    {
+      "text": "team",
+      "start": 151.549,
+      "end": 152.825
+    },
+    {
+      "text": "walked",
+      "start": 152.978,
+      "end": 154.254
+    },
+    {
+      "text": "across",
+      "start": 154.407,
+      "end": 155.683
+    },
+    {
+      "text": "the",
+      "start": 155.836,
+      "end": 157.08
+    },
+    {
+      "text": "old",
+      "start": 157.265,
+      "end": 158.509
+    },
+    {
+      "text": "bridge",
+      "start": 158.694,
+      "end": 159.97
+    },
+    {
+      "text": "before",
+      "start": 160.123,
+      "end": 161.399
+    },
+    {
+      "text": "sunrise",
+      "start": 161.552,
+      "end": 162.839
+    },
+    {
+      "text": "every",
+      "start": 162.981,
+      "end": 164.257
+    },
+    {
+      "text": "member",
+      "start": 164.41,
+      "end": 165.686
+    },
+    {
+      "text": "brought",
+      "start": 165.839,
+      "end": 167.126
+    },
+    {
+      "text": "a",
+      "start": 167.268,
+      "end": 168.512
+    },
+    {
+      "text": "lantern",
+      "start": 168.697,
+      "end": 169.984
+    },
+    {
+      "text": "and",
+      "start": 170.126,
+      "end": 171.37
+    },
+    {
+      "text": "a",
+      "start": 171.555,
+      "end": 172.799
+    },
+    {
+      "text": "short",
+      "start": 172.984,
+      "end": 174.26
+    },
+    {
+      "text": "letter",
+      "start": 174.413,
+      "end": 175.689
+    },
+    {
+      "text": "the",
+      "start": 180.12,
+      "end": 181.364
+    },
+    {
+      "text": "team",
+      "start": 181.549,
+      "end": 182.825
+    },
+    {
+      "text": "walked",
+      "start": 182.978,
+      "end": 184.254
+    },
+    {
+      "text": "across",
+      "start": 184.407,
+      "end": 185.683
+    },
+    {
+      "text": "the",
+      "start": 185.836,
+      "end": 187.08
+    },
+    {
+      "text": "old",
+      "start": 187.265,
+      "end": 188.509
+    },
+    {
+      "text": "bridge",
+      "start": 188.694,
+      "end": 189.97
+    },
+    {
+      "text": "before",
+      "start": 190.123,
+      "end": 191.399
+    },
+    {
+      "text": "sunrise",
+      "start": 191.552,
+      "end": 192.839
+    },
+    {
+      "text": "every",
+      "start": 192.981,
+      "end": 194.257
+    },
+    {
+      "text": "member",
+      "start": 194.41,
+      "end": 195.686
+    },
+    {
+      "text": "brought",
+      "start": 195.839,
+      "end": 197.126
+    },
+    {
+      "text": "a",
+      "start": 197.268,
+      "end": 198.512
+    },
+    {
+      "text": "lantern",
+      "start": 198.697,
+      "end": 199.984
+    },
+    {
+      "text": "and",
+      "start": 200.126,
+      "end": 201.37
+    },
+    {
+      "text": "a",
+      "start": 201.555,
+      "end": 202.799
+    },
+    {
+      "text": "short",
+      "start": 202.984,
+      "end": 204.26
+    },
+    {
+      "text": "letter",
+      "start": 204.413,
+      "end": 205.689
+    },
+    {
+      "text": "the",
+      "start": 210.12,
+      "end": 211.364
+    },
+    {
+      "text": "team",
+      "start": 211.549,
+      "end": 212.825
+    },
+    {
+      "text": "walked",
+      "start": 212.978,
+      "end": 214.254
+    },
+    {
+      "text": "across",
+      "start": 214.407,
+      "end": 215.683
+    },
+    {
+      "text": "the",
+      "start": 215.836,
+      "end": 217.08
+    },
+    {
+      "text": "old",
+      "start": 217.265,
+      "end": 218.509
+    },
+    {
+      "text": "bridge",
+      "start": 218.694,
+      "end": 219.97
+    },
+    {
+      "text": "before",
+      "start": 220.123,
+      "end": 221.399
+    },
+    {
+      "text": "sunrise",
+      "start": 221.552,
+      "end": 222.839
+    },
+    {
+      "text": "every",
+      "start": 222.981,
+      "end": 224.257
+    },
+    {
+      "text": "member",
+      "start": 224.41,
+      "end": 225.686
+    },
+    {
+      "text": "brought",
+      "start": 225.839,
+      "end": 227.126
+    },
+    {
+      "text": "a",
+      "start": 227.268,
+      "end": 228.512
+    },
+    {
+      "text": "lantern",
+      "start": 228.697,
+      "end": 229.984
+    },
+    {
+      "text": "and",
+      "start": 230.126,
+      "end": 231.37
+    },
+    {
+      "text": "a",
+      "start": 231.555,
+      "end": 232.799
+    },
+    {
+      "text": "short",
+      "start": 232.984,
+      "end": 234.26
+    },
+    {
+      "text": "letter",
+      "start": 234.413,
+      "end": 235.689
+    },
+    {
+      "text": "the",
+      "start": 240.12,
+      "end": 241.364
+    },
+    {
+      "text": "team",
+      "start": 241.549,
+      "end": 242.825
+    },
+    {
+      "text": "walked",
+      "start": 242.978,
+      "end": 244.254
+    },
+    {
+      "text": "across",
+      "start": 244.407,
+      "end": 245.683
+    },
+    {
+      "text": "the",
+      "start": 245.836,
+      "end": 247.08
+    },
+    {
+      "text": "old",
+      "start": 247.265,
+      "end": 248.509
+    },
+    {
+      "text": "bridge",
+      "start": 248.694,
+      "end": 249.97
+    },
+    {
+      "text": "before",
+      "start": 250.123,
+      "end": 251.399
+    },
+    {
+      "text": "sunrise",
+      "start": 251.552,
+      "end": 252.839
+    },
+    {
+      "text": "every",
+      "start": 252.981,
+      "end": 254.257
+    },
+    {
+      "text": "member",
+      "start": 254.41,
+      "end": 255.686
+    },
+    {
+      "text": "brought",
+      "start": 255.839,
+      "end": 257.126
+    },
+    {
+      "text": "a",
+      "start": 257.268,
+      "end": 258.512
+    },
+    {
+      "text": "lantern",
+      "start": 258.697,
+      "end": 259.984
+    },
+    {
+      "text": "and",
+      "start": 260.126,
+      "end": 261.37
+    },
+    {
+      "text": "a",
+      "start": 261.555,
+      "end": 262.799
+    },
+    {
+      "text": "short",
+      "start": 262.984,
+      "end": 264.26
+    },
+    {
+      "text": "letter",
+      "start": 264.413,
+      "end": 265.689
+    },
+    {
+      "text": "the",
+      "start": 270.12,
+      "end": 271.364
+    },
+    {
+      "text": "team",
+      "start": 271.549,
+      "end": 272.825
+    },
+    {
+      "text": "walked",
+      "start": 272.978,
+      "end": 274.254
+    },
+    {
+      "text": "across",
+      "start": 274.407,
+      "end": 275.683
+    },
+    {
+      "text": "the",
+      "start": 275.836,
+      "end": 277.08
+    },
+    {
+      "text": "old",
+      "start": 277.265,
+      "end": 278.509
+    },
+    {
+      "text": "bridge",
+      "start": 278.694,
+      "end": 279.97
+    },
+    {
+      "text": "before",
+      "start": 280.123,
+      "end": 281.399
+    },
+    {
+      "text": "sunrise",
+      "start": 281.552,
+      "end": 282.839
+    },
+    {
+      "text": "every",
+      "start": 282.981,
+      "end": 284.257
+    },
+    {
+      "text": "member",
+      "start": 284.41,
+      "end": 285.686
+    },
+    {
+      "text": "brought",
+      "start": 285.839,
+      "end": 287.126
+    },
+    {
+      "text": "a",
+      "start": 287.268,
+      "end": 288.512
+    },
+    {
+      "text": "lantern",
+      "start": 288.697,
+      "end": 289.984
+    },
+    {
+      "text": "and",
+      "start": 290.126,
+      "end": 291.37
+    },
+    {
+      "text": "a",
+      "start": 291.555,
+      "end": 292.799
+    },
+    {
+      "text": "short",
+      "start": 292.984,
+      "end": 294.26
+    },
+    {
+      "text": "letter",
+      "start": 294.413,
+      "end": 295.689
+    },
+    {
+      "text": "the",
+      "start": 300.12,
+      "end": 301.364
+    },
+    {
+      "text": "team",
+      "start": 301.549,
+      "end": 302.825
+    },
+    {
+      "text": "walked",
+      "start": 302.978,
+      "end": 304.254
+    },
+    {
+      "text": "across",
+      "start": 304.407,
+      "end": 305.683
+    },
+    {
+      "text": "the",
+      "start": 305.836,
+      "end": 307.08
+    },
+    {
+      "text": "old",
+      "start": 307.265,
+      "end": 308.509
+    },
+    {
+      "text": "bridge",
+      "start": 308.694,
+      "end": 309.97
+    },
+    {
+      "text": "before",
+      "start": 310.123,
+      "end": 311.399
+    },
+    {
+      "text": "sunrise",
+      "start": 311.552,
+      "end": 312.839
+    },
+    {
+      "text": "every",
+      "start": 312.981,
+      "end": 314.257
+    },
+    {
+      "text": "member",
+      "start": 314.41,
+      "end": 315.686
+    },
+    {
+      "text": "brought",
+      "start": 315.839,
+      "end": 317.126
+    },
+    {
+      "text": "a",
+      "start": 317.268,
+      "end": 318.512
+    },
+    {
+      "text": "lantern",
+      "start": 318.697,
+      "end": 319.984
+    },
+    {
+      "text": "and",
+      "start": 320.126,
+      "end": 321.37
+    },
+    {
+      "text": "a",
+      "start": 321.555,
+      "end": 322.799
+    },
+    {
+      "text": "short",
+      "start": 322.984,
+      "end": 324.26
+    },
+    {
+      "text": "letter",
+      "start": 324.413,
+      "end": 325.689
+    },
+    {
+      "text": "the",
+      "start": 330.12,
+      "end": 331.364
+    },
+    {
+      "text": "team",
+      "start": 331.549,
+      "end": 332.825
+    },
+    {
+      "text": "walked",
+      "start": 332.978,
+      "end": 334.254
+    },
+    {
+      "text": "across",
+      "start": 334.407,
+      "end": 335.683
+    },
+    {
+      "text": "the",
+      "start": 335.836,
+      "end": 337.08
+    },
+    {
+      "text": "old",
+      "start": 337.265,
+      "end": 338.509
+    },
+    {
+      "text": "bridge",
+      "start": 338.694,
+      "end": 339.97
+    },
+    {
+      "text": "before",
+      "start": 340.123,
+      "end": 341.399
+    },
+    {
+      "text": "sunrise",
+      "start": 341.552,
+      "end": 342.839
+    },
+    {
+      "text": "every",
+      "start": 342.981,
+      "end": 344.257
+    },
+    {
+      "text": "member",
+      "start": 344.41,
+      "end": 345.686
+    },
+    {
+      "text": "brought",
+      "start": 345.839,
+      "end": 347.126
+    },
+    {
+      "text": "a",
+      "start": 347.268,
+      "end": 348.512
+    },
+    {
+      "text": "lantern",
+      "start": 348.697,
+      "end": 349.984
+    },
+    {
+      "text": "and",
+      "start": 350.126,
+      "end": 351.37
+    },
+    {
+      "text": "a",
+      "start": 351.555,
+      "end": 352.799
+    },
+    {
+      "text": "short",
+      "start": 352.984,
+      "end": 354.26
+    },
+    {
+      "text": "letter",
+      "start": 354.413,
+      "end": 355.689
+    },
+    {
+      "text": "the",
+      "start": 360.12,
+      "end": 361.364
+    },
+    {
+      "text": "team",
+      "start": 361.549,
+      "end": 362.825
+    },
+    {
+      "text": "walked",
+      "start": 362.978,
+      "end": 364.254
+    },
+    {
+      "text": "across",
+      "start": 364.407,
+      "end": 365.683
+    },
+    {
+      "text": "the",
+      "start": 365.836,
+      "end": 367.08
+    },
+    {
+      "text": "old",
+      "start": 367.265,
+      "end": 368.509
+    },
+    {
+      "text": "bridge",
+      "start": 368.694,
+      "end": 369.97
+    },
+    {
+      "text": "before",
+      "start": 370.123,
+      "end": 371.399
+    },
+    {
+      "text": "sunrise",
+      "start": 371.552,
+      "end": 372.839
+    },
+    {
+      "text": "every",
+      "start": 372.981,
+      "end": 374.257
+    },
+    {
+      "text": "member",
+      "start": 374.41,
+      "end": 375.686
+    },
+    {
+      "text": "brought",
+      "start": 375.839,
+      "end": 377.126
+    },
+    {
+      "text": "a",
+      "start": 377.268,
+      "end": 378.512
+    },
+    {
+      "text": "lantern",
+      "start": 378.697,
+      "end": 379.984
+    },
+    {
+      "text": "and",
+      "start": 380.126,
+      "end": 381.37
+    },
+    {
+      "text": "a",
+      "start": 381.555,
+      "end": 382.799
+    },
+    {
+      "text": "short",
+      "start": 382.984,
+      "end": 384.26
+    },
+    {
+      "text": "letter",
+      "start": 384.413,
+      "end": 385.689
+    },
+    {
+      "text": "the",
+      "start": 390.12,
+      "end": 391.364
+    },
+    {
+      "text": "team",
+      "start": 391.549,
+      "end": 392.825
+    },
+    {
+      "text": "walked",
+      "start": 392.978,
+      "end": 394.254
+    },
+    {
+      "text": "across",
+      "start": 394.407,
+      "end": 395.683
+    },
+    {
+      "text": "the",
+      "start": 395.836,
+      "end": 397.08
+    },
+    {
+      "text": "old",
+      "start": 397.265,
+      "end": 398.509
+    },
+    {
+      "text": "bridge",
+      "start": 398.694,
+      "end": 399.97
+    },
+    {
+      "text": "before",
+      "start": 400.123,
+      "end": 401.399
+    },
+    {
+      "text": "sunrise",
+      "start": 401.552,
+      "end": 402.839
+    },
+    {
+      "text": "every",
+      "start": 402.981,
+      "end": 404.257
+    },
+    {
+      "text": "member",
+      "start": 404.41,
+      "end": 405.686
+    },
+    {
+      "text": "brought",
+      "start": 405.839,
+      "end": 407.126
+    },
+    {
+      "text": "a",
+      "start": 407.268,
+      "end": 408.512
+    },
+    {
+      "text": "lantern",
+      "start": 408.697,
+      "end": 409.984
+    },
+    {
+      "text": "and",
+      "start": 410.126,
+      "end": 411.37
+    },
+    {
+      "text": "a",
+      "start": 411.555,
+      "end": 412.799
+    },
+    {
+      "text": "short",
+      "start": 412.984,
+      "end": 414.26
+    },
+    {
+      "text": "letter",
+      "start": 414.413,
+      "end": 415.689
+    },
+    {
+      "text": "the",
+      "start": 420.12,
+      "end": 421.364
+    },
+    {
+      "text": "team",
+      "start": 421.549,
+      "end": 422.825
+    },
+    {
+      "text": "walked",
+      "start": 422.978,
+      "end": 424.254
+    },
+    {
+      "text": "across",
+      "start": 424.407,
+      "end": 425.683
+    },
+    {
+      "text": "the",
+      "start": 425.836,
+      "end": 427.08
+    },
+    {
+      "text": "old",
+      "start": 427.265,
+      "end": 428.509
+    },
+    {
+      "text": "bridge",
+      "start": 428.694,
+      "end": 429.97
+    },
+    {
+      "text": "before",
+      "start": 430.123,
+      "end": 431.399
+    },
+    {
+      "text": "sunrise",
+      "start": 431.552,
+      "end": 432.839
+    },
+    {
+      "text": "every",
+      "start": 432.981,
+      "end": 434.257
+    },
+    {
+      "text": "member",
+      "start": 434.41,
+      "end": 435.686
+    },
+    {
+      "text": "brought",
+      "start": 435.839,
+      "end": 437.126
+    },
+    {
+      "text": "a",
+      "start": 437.268,
+      "end": 438.512
+    },
+    {
+      "text": "lantern",
+      "start": 438.697,
+      "end": 439.984
+    },
+    {
+      "text": "and",
+      "start": 440.126,
+      "end": 441.37
+    },
+    {
+      "text": "a",
+      "start": 441.555,
+      "end": 442.799
+    },
+    {
+      "text": "short",
+      "start": 442.984,
+      "end": 444.26
+    },
+    {
+      "text": "letter",
+      "start": 444.413,
+      "end": 445.689
+    },
+    {
+      "text": "the",
+      "start": 450.12,
+      "end": 451.364
+    },
+    {
+      "text": "team",
+      "start": 451.549,
+      "end": 452.825
+    },
+    {
+      "text": "walked",
+      "start": 452.978,
+      "end": 454.254
+    },
+    {
+      "text": "across",
+      "start": 454.407,
+      "end": 455.683
+    },
+    {
+      "text": "the",
+      "start": 455.836,
+      "end": 457.08
+    },
+    {
+      "text": "old",
+      "start": 457.265,
+      "end": 458.509
+    },
+    {
+      "text": "bridge",
+      "start": 458.694,
+      "end": 459.97
+    },
+    {
+      "text": "before",
+      "start": 460.123,
+      "end": 461.399
+    },
+    {
+      "text": "sunrise",
+      "start": 461.552,
+      "end": 462.839
+    },
+    {
+      "text": "every",
+      "start": 462.981,
+      "end": 464.257
+    },
+    {
+      "text": "member",
+      "start": 464.41,
+      "end": 465.686
+    },
+    {
+      "text": "brought",
+      "start": 465.839,
+      "end": 467.126
+    },
+    {
+      "text": "a",
+      "start": 467.268,
+      "end": 468.512
+    },
+    {
+      "text": "lantern",
+      "start": 468.697,
+      "end": 469.984
+    },
+    {
+      "text": "and",
+      "start": 470.126,
+      "end": 471.37
+    },
+    {
+      "text": "a",
+      "start": 471.555,
+      "end": 472.799
+    },
+    {
+      "text": "short",
+      "start": 472.984,
+      "end": 474.26
+    },
+    {
+      "text": "letter",
+      "start": 474.413,
+      "end": 475.689
+    },
+    {
+      "text": "the",
+      "start": 480.12,
+      "end": 481.364
+    },
+    {
+      "text": "team",
+      "start": 481.549,
+      "end": 482.825
+    },
+    {
+      "text": "walked",
+      "start": 482.978,
+      "end": 484.254
+    },
+    {
+      "text": "across",
+      "start": 484.407,
+      "end": 485.683
+    },
+    {
+      "text": "the",
+      "start": 485.836,
+      "end": 487.08
+    },
+    {
+      "text": "old",
+      "start": 487.265,
+      "end": 488.509
+    },
+    {
+      "text": "bridge",
+      "start": 488.694,
+      "end": 489.97
+    },
+    {
+      "text": "before",
+      "start": 490.123,
+      "end": 491.399
+    },
+    {
+      "text": "sunrise",
+      "start": 491.552,
+      "end": 492.839
+    },
+    {
+      "text": "every",
+      "start": 492.981,
+      "end": 494.257
+    },
+    {
+      "text": "member",
+      "start": 494.41,
+      "end": 495.686
+    },
+    {
+      "text": "brought",
+      "start": 495.839,
+      "end": 497.126
+    },
+    {
+      "text": "a",
+      "start": 497.268,
+      "end": 498.512
+    },
+    {
+      "text": "lantern",
+      "start": 498.697,
+      "end": 499.984
+    },
+    {
+      "text": "and",
+      "start": 500.126,
+      "end": 501.37
+    },
+    {
+      "text": "a",
+      "start": 501.555,
+      "end": 502.799
+    },
+    {
+      "text": "short",
+      "start": 502.984,
+      "end": 504.26
+    },
+    {
+      "text": "letter",
+      "start": 504.413,
+      "end": 505.689
+    },
+    {
+      "text": "the",
+      "start": 510.12,
+      "end": 511.364
+    },
+    {
+      "text": "team",
+      "start": 511.549,
+      "end": 512.825
+    },
+    {
+      "text": "walked",
+      "start": 512.978,
+      "end": 514.254
+    },
+    {
+      "text": "across",
+      "start": 514.407,
+      "end": 515.683
+    },
+    {
+      "text": "the",
+      "start": 515.836,
+      "end": 517.08
+    },
+    {
+      "text": "old",
+      "start": 517.265,
+      "end": 518.509
+    },
+    {
+      "text": "bridge",
+      "start": 518.694,
+      "end": 519.97
+    },
+    {
+      "text": "before",
+      "start": 520.123,
+      "end": 521.399
+    },
+    {
+      "text": "sunrise",
+      "start": 521.552,
+      "end": 522.839
+    },
+    {
+      "text": "every",
+      "start": 522.981,
+      "end": 524.257
+    },
+    {
+      "text": "member",
+      "start": 524.41,
+      "end": 525.686
+    },
+    {
+      "text": "brought",
+      "start": 525.839,
+      "end": 527.126
+    },
+    {
+      "text": "a",
+      "start": 527.268,
+      "end": 528.512
+    },
+    {
+      "text": "lantern",
+      "start": 528.697,
+      "end": 529.984
+    },
+    {
+      "text": "and",
+      "start": 530.126,
+      "end": 531.37
+    },
+    {
+      "text": "a",
+      "start": 531.555,
+      "end": 532.799
+    },
+    {
+      "text": "short",
+      "start": 532.984,
+      "end": 534.26
+    },
+    {
+      "text": "letter",
+      "start": 534.413,
+      "end": 535.689
+    },
+    {
+      "text": "the",
+      "start": 540.12,
+      "end": 541.364
+    },
+    {
+      "text": "team",
+      "start": 541.549,
+      "end": 542.825
+    },
+    {
+      "text": "walked",
+      "start": 542.978,
+      "end": 544.254
+    },
+    {
+      "text": "across",
+      "start": 544.407,
+      "end": 545.683
+    },
+    {
+      "text": "the",
+      "start": 545.836,
+      "end": 547.08
+    },
+    {
+      "text": "old",
+      "start": 547.265,
+      "end": 548.509
+    },
+    {
+      "text": "bridge",
+      "start": 548.694,
+      "end": 549.97
+    },
+    {
+      "text": "before",
+      "start": 550.123,
+      "end": 551.399
+    },
+    {
+      "text": "sunrise",
+      "start": 551.552,
+      "end": 552.839
+    },
+    {
+      "text": "every",
+      "start": 552.981,
+      "end": 554.257
+    },
+    {
+      "text": "member",
+      "start": 554.41,
+      "end": 555.686
+    },
+    {
+      "text": "brought",
+      "start": 555.839,
+      "end": 557.126
+    },
+    {
+      "text": "a",
+      "start": 557.268,
+      "end": 558.512
+    },
+    {
+      "text": "lantern",
+      "start": 558.697,
+      "end": 559.984
+    },
+    {
+      "text": "and",
+      "start": 560.126,
+      "end": 561.37
+    },
+    {
+      "text": "a",
+      "start": 561.555,
+      "end": 562.799
+    },
+    {
+      "text": "short",
+      "start": 562.984,
+      "end": 564.26
+    },
+    {
+      "text": "letter",
+      "start": 564.413,
+      "end": 565.689
+    },
+    {
+      "text": "the",
+      "start": 570.12,
+      "end": 571.364
+    },
+    {
+      "text": "team",
+      "start": 571.549,
+      "end": 572.825
+    },
+    {
+      "text": "walked",
+      "start": 572.978,
+      "end": 574.254
+    },
+    {
+      "text": "across",
+      "start": 574.407,
+      "end": 575.683
+    },
+    {
+      "text": "the",
+      "start": 575.836,
+      "end": 577.08
+    },
+    {
+      "text": "old",
+      "start": 577.265,
+      "end": 578.509
+    },
+    {
+      "text": "bridge",
+      "start": 578.694,
+      "end": 579.97
+    },
+    {
+      "text": "before",
+      "start": 580.123,
+      "end": 581.399
+    },
+    {
+      "text": "sunrise",
+      "start": 581.552,
+      "end": 582.839
+    },
+    {
+      "text": "every",
+      "start": 582.981,
+      "end": 584.257
+    },
+    {
+      "text": "member",
+      "start": 584.41,
+      "end": 585.686
+    },
+    {
+      "text": "brought",
+      "start": 585.839,
+      "end": 587.126
+    },
+    {
+      "text": "a",
+      "start": 587.268,
+      "end": 588.512
+    },
+    {
+      "text": "lantern",
+      "start": 588.697,
+      "end": 589.984
+    },
+    {
+      "text": "and",
+      "start": 590.126,
+      "end": 591.37
+    },
+    {
+      "text": "a",
+      "start": 591.555,
+      "end": 592.799
+    },
+    {
+      "text": "short",
+      "start": 592.984,
+      "end": 594.26
+    },
+    {
+      "text": "letter",
+      "start": 594.413,
+      "end": 595.689
+    }
+  ]
+}

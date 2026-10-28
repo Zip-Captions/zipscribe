@@ -1,0 +1,157 @@
+name: ci
+
+# PR pipeline (knowledge/conventions.md § CI/CD): install → L0 (lint,
+# typecheck, spec-lint, license-check) → test prerequisites (playwright
+# browsers, models:fetch cached by registry hash — both BEFORE vitest so the
+# suite runs against the real environment, not a vacuously-degraded one) →
+# L1–L3 (vitest + enforced coverage thresholds) → build + budgets → L4–L5
+# Playwright → verify:unit for the changed unit → artifacts (incl. dist/,
+# which preview-deploy ships unchanged — "the deploy job ships the exact
+# dist/ artifact the same run tested"). The preview deploy + L7 smoke run
+# only when the Cloudflare secrets exist (unit-01 ships the workflows; owner
+# adds repo-level secrets — see unit report).
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+      - release/*
+      - release/**
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: corepack pnpm install --frozen-lockfile
+      - name: L0 — lint
+        run: corepack pnpm lint
+      - name: L0 — typecheck
+        run: corepack pnpm typecheck
+      - name: L0 — spec lint (criteria IDs, depends_on, frontmatter)
+        run: corepack pnpm spec-lint
+      - name: L0 — dependency license check
+        run: corepack pnpm license-check
+      - name: L0 — formatting
+        run: corepack pnpm format:check
+      - name: install playwright browsers
+        run: corepack pnpm exec playwright install --with-deps chromium
+      - name: 'models (CI tier: tiny + VAD, checksum-verified)'
+        uses: actions/cache@v4
+        id: models-cache
+        with:
+          path: .cache/models
+          key: "models-${{ hashFiles('models/ci-registry.json') }}"
+      - run: corepack pnpm models:fetch
+        if: steps.models-cache.outputs.cache-hit != 'true'
+      - name: L1–L3 — unit tests with coverage thresholds
+        run: corepack pnpm test --coverage
+      - name: build
+        run: corepack pnpm build
+      - name: bundle budget
+        run: corepack pnpm check-bundle
+      - name: upload gated dist (preview-deploy ships this exact artifact)
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+      - name: L4–L5 — Playwright (chromium)
+        run: corepack pnpm test:e2e
+      - name: criteria traceability (unit branch)
+        run: corepack pnpm verify:unit --from-branch
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reports
+          path: |
+            coverage/
+            coverage-main/
+            reports/
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+
+  fixtures-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: corepack pnpm install --frozen-lockfile
+      - name: regenerate committed fixtures + checksum/license verification
+        run: |
+          corepack pnpm fixtures
+          corepack pnpm fixtures:verify
+
+  preview-deploy:
+    # FR-1.0.13 (Adaptation 3: deferred until the owner adds repo-level
+    # CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID; then every PR deploys a
+    # preview and the smoke runs against it).
+    needs: quality
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    environment: preview
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: corepack pnpm install --frozen-lockfile
+      # Ship the exact artifact the quality job gated — no rebuild here
+      # (conventions § CI/CD: "the deploy job ships the exact dist/ artifact
+      # that the same run tested").
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: fetch criteria reports (for the PR comment)
+        uses: actions/download-artifact@v4
+        with:
+          name: reports
+          path: reports/
+          if-no-files-found: ignore
+      - name: deploy PR preview (skips without Cloudflare secrets)
+        id: deploy
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: |
+          corepack pnpm exec wrangler pages deploy dist --project-name zipscribe --branch "${{ github.head_ref }}" | tee deploy.log
+          URL=$(grep -oE 'https://[a-z0-9.-]+pages\.dev' deploy.log | tail -1)
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
+      - name: minimal deploy smoke
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: corepack pnpm exec node scripts/deploy-smoke.mjs "${{ steps.deploy.outputs.url }}"
+      - name: PR comment — preview URL + criteria table (FR-1.0.7 / FR-1.0.13)
+        if: env.CLOUDFLARE_API_TOKEN != '' && steps.deploy.outputs.url != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          URL='${{ steps.deploy.outputs.url }}'
+          TABLE=$(ls reports/criteria/*.md 2>/dev/null | head -1 || true)
+          if [ -n "${TABLE:-}" ]; then
+            BODY="**Preview:** ${URL}"$'\n\n'"$(cat "${TABLE}")"
+          else
+            BODY="**Preview:** ${URL} (criteria table in the run's \`reports\` artifact)"
+          fi
+          gh pr comment "${{ github.event.pull_request.number }}" --repo "$GITHUB_REPOSITORY" --body "$BODY"

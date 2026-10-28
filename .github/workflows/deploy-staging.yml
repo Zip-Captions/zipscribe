@@ -1,0 +1,62 @@
+name: deploy-staging
+
+# Push to develop → full CI on the merge commit → deploy staging
+# (`develop.<project>.pages.dev`) → L7 smoke (conventions § CI/CD).
+# [DEPLOY] criteria CC-01.14 stay deferred until the owner adds the repo-level
+# CLOUDFLARE_* secrets (`.agent/overnight-pipeline.md` Adaptation 3).
+
+on:
+  push:
+    branches:
+      - develop
+
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: true
+
+jobs:
+  staging:
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: corepack pnpm install --frozen-lockfile
+      - run: corepack pnpm lint
+      - run: corepack pnpm typecheck
+      # Test prerequisites BEFORE vitest (mirrors ci.yml F1/F4 ordering —
+      # REVIEW round-2 R2-1): browsers up front so CC-01.6/network-audit's
+      # chromium.launch never hard-fails, models cache/fetch up front so the
+      # models-fetch cache-integrity tests run against a populated cache
+      # instead of vacuously skipping.
+      - name: install playwright browsers
+        run: corepack pnpm exec playwright install --with-deps chromium
+      - name: 'models (CI tier: tiny + VAD, checksum-verified)'
+        uses: actions/cache@v4
+        id: models-cache
+        with:
+          path: .cache/models
+          key: "models-${{ hashFiles('models/ci-registry.json') }}"
+      - run: corepack pnpm models:fetch
+        if: steps.models-cache.outputs.cache-hit != 'true'
+      - run: corepack pnpm test --coverage
+      - run: corepack pnpm build
+      - run: corepack pnpm check-bundle
+      - run: corepack pnpm test:e2e
+      - name: deploy staging
+        id: deploy
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: |
+          corepack pnpm exec wrangler pages deploy dist --project-name zipscribe --branch develop | tee deploy.log
+          URL=$(grep -oE 'https://[a-z0-9.-]+pages\.dev' deploy.log | tail -1)
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
+      - name: staging smoke (app boots, version visible, zero console errors)
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: corepack pnpm exec node scripts/deploy-smoke.mjs "${{ steps.deploy.outputs.url }}"

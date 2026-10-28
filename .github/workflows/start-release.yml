@@ -1,0 +1,69 @@
+name: start-release
+
+# Release steward (conventions § Release train): manually cut a release branch
+# from develop — bumps package.json version, generates the CHANGELOG section
+# from conventional commits since the last tag, commits, pushes and opens the
+# release/X.Y.Z → main PR for the release steward to merge.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'SemVer version to release (e.g. 0.1.0)'
+        required: true
+        type: string
+
+jobs:
+  cut-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: cut release branch from develop
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if ! printf '%s' "${VERSION}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "version must be SemVer X.Y.Z, got '${VERSION}'" >&2
+            exit 1
+          fi
+          git config user.name "zipscribe-ci"
+          git config user.email "ci@zipscribe.local"
+          git checkout -b "release/${VERSION}" origin/develop
+          node -e "
+            const fs = require('node:fs')
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
+            pkg.version = '${VERSION}'
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n')
+          "
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 origin/main 2>/dev/null || echo "")
+          if [ -n "${PREVIOUS_TAG}" ]; then
+            RANGE="${PREVIOUS_TAG}..HEAD"
+          else
+            RANGE="HEAD"
+          fi
+          {
+            echo "## ${VERSION} — $(date -u +%Y-%m-%d)"
+            git log --no-merges --pretty='- %s (%h)' "${RANGE}"
+          } > "changelog/${VERSION}.md" 2>/dev/null || {
+            mkdir -p changelog
+            {
+              echo "## ${VERSION} — $(date -u +%Y-%m-%d)"
+              git log --no-merges --pretty='- %s (%h)' "${RANGE}"
+            } > "changelog/${VERSION}.md"
+          }
+          git add package.json "changelog/${VERSION}.md"
+          git commit -m "chore(release): cut ${VERSION}"
+          git push origin "release/${VERSION}"
+      - name: open release PR into main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          gh pr create --base main --head "release/${VERSION}" \
+            --title "release: ${VERSION}" \
+            --body "Cut by start-release workflow. Merging to main deploys production (deploy-production.yml)."

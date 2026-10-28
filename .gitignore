@@ -2,6 +2,7 @@ node_modules/
 dist/
 build/
 coverage/
+coverage-main/
 *.local
 .env
 .env.*
@@ -21,3 +22,14 @@ reports/
 # overnight pipeline run scratch (see .agent/overnight-pipeline.md)
 .agent/overnight-run-config.md
 docs/overnight-ledger.md
+
+# self-hosted runtime wasm (copied at build time by scripts/copy-wasm.ts; pinned in node_modules, not committed)
+public/wasm/*
+!public/wasm/.gitkeep
+# self-hosted runtime wasm copied at build time (scripts/copy-wasm.ts);
+# the directory itself is committed via .gitkeep, the pinned binaries are not.
+public/wasm/*
+!public/wasm/.gitkeep
+
+# build-time symlink (vite closeBundle) for the check-bundle inject contract
+/assets

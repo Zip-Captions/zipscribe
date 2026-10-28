@@ -1,0 +1,20 @@
+# Cloudflare Pages headers (settings.yml operations.config). unit-203 hardens
+# this file; kept minimal here. NOTE: no COOP/COEP in production (FR-1.0.10) —
+# the isolated headers exist only on the test-only `pnpm preview:isolated`.
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/wasm/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/manifest.webmanifest
+  Cache-Control: public, max-age=0, must-revalidate
+
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self' https://huggingface.co https://*.hf.co https://*.huggingface.co; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer

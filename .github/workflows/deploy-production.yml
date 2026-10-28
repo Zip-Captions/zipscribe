@@ -1,0 +1,152 @@
+name: deploy-production
+
+# A push to main only ever comes from merging a release/* (or hotfix/*) PR —
+# branch-policy.yml is the guard. On that push: full CI → deploy production
+# (`<project>.pages.dev`) → L7 smoke → on success cut the release tag, publish
+# the GitHub Release (changelog from conventional commits) and open the
+# back-merge PR to develop; on smoke failure redeploy the previous tag and
+# block the release. [DEPLOY] CC-01.15/16 stay deferred until Cloudflare
+# secrets exist (Adaptation 3); unit-203 hardens the rollback path.
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: corepack pnpm install --frozen-lockfile
+      - run: corepack pnpm lint
+      - run: corepack pnpm typecheck
+      # Test prerequisites BEFORE vitest (mirrors ci.yml F1/F4 ordering —
+      # REVIEW round-2 R2-1): browsers up front so CC-01.6/network-audit's
+      # chromium.launch never hard-fails, models cache/fetch up front so the
+      # models-fetch cache-integrity tests run against a populated cache
+      # instead of vacuously skipping.
+      - name: install playwright browsers
+        run: corepack pnpm exec playwright install --with-deps chromium
+      - name: 'models (CI tier: tiny + VAD, checksum-verified)'
+        uses: actions/cache@v4
+        id: models-cache
+        with:
+          path: .cache/models
+          key: "models-${{ hashFiles('models/ci-registry.json') }}"
+      - run: corepack pnpm models:fetch
+        if: steps.models-cache.outputs.cache-hit != 'true'
+      - run: corepack pnpm test --coverage
+      - run: corepack pnpm build
+      - run: corepack pnpm check-bundle
+      - run: corepack pnpm test:e2e
+      - name: deploy production
+        id: deploy
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: |
+          corepack pnpm exec wrangler pages deploy dist --project-name zipscribe --branch main | tee deploy.log
+          URL=$(grep -oE 'https://[a-z0-9.-]+pages\.dev' deploy.log | tail -1)
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
+      - name: production smoke (app boots, version visible, zero console errors)
+        id: smoke
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: corepack pnpm exec node scripts/deploy-smoke.mjs "${{ steps.deploy.outputs.url }}"
+      # conventions § CI/CD, Push-to-main row: on smoke failure — "automatic
+      # rollback (redeploy the previous release tag's artifact) and open an
+      # incident issue". The unit-203 hardening pass replaces the tag rebuild
+      # with a retained release artifact.
+      - name: rollback production on failed smoke (redeploy previous release tag)
+        if: failure() && env.CLOUDFLARE_API_TOKEN != '' && steps.smoke.outcome == 'failure'
+        run: |
+          set -euo pipefail
+          # REVIEW round-2 R2-2: the failing release is NOT tagged yet (the tag
+          # step is success-gated after smoke), so "second tag" (sed -n 2p) is
+          # wrong: with one prior tag it aborts though a target exists, with
+          # ≥2 it silently redeploys the second-previous release. Select the
+          # newest tag EXCLUDING the version being deployed — correct on first
+          # run and on a re-run after the tag was cut.
+          VERSION=$(node -p "require('./package.json').version")
+          PREV_TAG=$(git tag --sort=-v:refname | { grep -v "^v${VERSION}$" || true; } | sed -n '1p')
+          if [ -z "${PREV_TAG}" ]; then
+            echo "rollback: no previous release tag exists — production stays on the failed build; escalate manually"
+            exit 1
+          fi
+          echo "rolling production back to ${PREV_TAG}"
+          git worktree add ../rollback "${PREV_TAG}"
+          ( cd ../rollback && corepack pnpm install --frozen-lockfile && corepack pnpm build )
+          corepack pnpm exec wrangler pages deploy ../rollback/dist --project-name zipscribe --branch main | tee rollback.log
+      - name: open incident issue on failed smoke
+        # REVIEW round-2 R2-4: `env.GH_TOKEN != ''` here was evaluator-dependent
+        # (step env may or may not be in scope) — tautological or silently-never.
+        # Gate on the smoke outcome only; check token presence inside the body
+        # and fail open to a log line.
+        if: failure() && steps.smoke.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ] || ! gh auth status >/dev/null 2>&1; then
+            echo "GH_TOKEN unavailable — incident issue NOT opened; triage manually: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            exit 0
+          fi
+          gh issue create --repo "$GITHUB_REPOSITORY" \
+            --title "Production deploy ${GITHUB_SHA::7} failed L7 smoke — automatic rollback attempted" \
+            --body "deploy-production run ${{ github.run_id }} failed the L7 smoke against ${{ steps.deploy.outputs.url }}. The rollback step attempted to redeploy the previous release tag — see the run log for its outcome. Triage: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+      - name: compute release tag from package.json version
+        id: version
+        run: echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: cut release tag + GitHub Release with generated changelog
+        if: success() && startsWith(github.head_ref, '') && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.version.outputs.tag }}"
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            echo "tag ${TAG} exists; skipping release creation"
+            exit 0
+          fi
+          git config user.name "zipscribe-ci"
+          git config user.email "ci@zipscribe.local"
+          git tag "${TAG}"
+          git push origin "${TAG}"
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo "")
+          if [ -n "${PREVIOUS_TAG}" ]; then
+            RANGE="${PREVIOUS_TAG}..${TAG}"
+          else
+            RANGE="${TAG}"
+          fi
+          {
+            echo "## Changes since ${PREVIOUS_TAG:-initial}"
+            git log --no-merges --pretty='- %s (%h)' "${RANGE}"
+          } > release-notes.md
+          gh release create "${TAG}" --notes-file release-notes.md
+      - name: back-merge release to develop
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          BRANCH="back-merge-main-to-develop-$(date +%s)"
+          git config user.name "zipscribe-ci"
+          git config user.email "ci@zipscribe.local"
+          git checkout -b "${BRANCH}" origin/main
+          git push origin "${BRANCH}"
+          gh pr create --base develop --head "${BRANCH}" \
+            --title "chore: back-merge main into develop after release" \
+            --body "Automated back-merge opened by deploy-production after a successful production release." || true

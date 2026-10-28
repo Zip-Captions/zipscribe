@@ -1,0 +1,5 @@
+{
+  "initialJsGzipBytes": 358400,
+  "comment": "FR-1.0.6: initial JS <= 350 KB gzip. Lazy chunks (workers, transformers/ORT, mediabunny, ffmpeg) are excluded from the initial set via these patterns (and by not being referenced from index.html).",
+  "excludePatterns": ["wasm/", "ort-", "transformers", "mediabunny", "ffmpeg", "sherpa", "worker"]
+}

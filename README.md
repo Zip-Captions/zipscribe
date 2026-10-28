@@ -20,26 +20,26 @@ Cloud captioning tools gate diarization and timeline editing behind paid tiers, 
 
 ## Status
 
-Spec phase. This repository is currently **specification only** — no application code yet. Build proceeds unit-by-unit through the AI-DLC workflow defined in `.ai-dlc/` (build order: `.agent/SPEC-GUIDE.md`).
+Scaffold phase. The specification is complete and `local-transcribe-engine/unit-01` has landed the toolchain skeleton: the five quality gates (lint / typecheck / vitest with enforced coverage thresholds / build + 350 KB bundle budget / Playwright + criteria traceability) are wired into `pnpm` and CI, the offline fixture pipeline and model cache are in place, and `/` serves an empty workbench shell. The application itself (ASR engine, UI, export, translation) builds out unit-by-unit through the AI-DLC workflow defined in `.ai-dlc/` (build order: `.agent/SPEC-GUIDE.md`); unit status lives in the unit files' frontmatter.
 
 **Branching & delivery:** git flow — `develop` is the working branch (auto-deploys to staging), `main` is production (auto-deploys on every release/hotfix merge, with automatic rollback). Testing levels, criterion traceability (`CC-…` IDs) and exit gates: `.ai-dlc/knowledge/conventions.md` § Testing strategy, § Version control, § CI/CD.
 
 ## Where everything lives (AI-DLC spec map)
 
-| Path | Artifact |
-|---|---|
-| `.agent/AGENTS.md` | Instructions for every coding agent (precedence rules, gates, unit report format) |
-| `.agent/REVIEW.md` | Review checklist for the pipeline reviewer and any other reviewer |
-| `.agent/SPEC-GUIDE.md` | How to add/extend intents and units: required discovery areas, spec conventions, build order |
-| `.ai-dlc/settings.yml` | Project config: tech stack, version pins, approved deps, quality gates, reference hardware, network allowlist, git strategy |
-| `.ai-dlc/knowledge/` | Persistent project intelligence (architecture contract, design, product, domain, conventions) |
-| `.ai-dlc/local-transcribe-engine/` | **Intent 1** — video/audio → PCM → VAD → windowed ASR → caption blocks + beta speakers; caption-file import, QC, align-to-audio |
-| `.ai-dlc/caption-studio-ui/` | **Intent 2** — workbench, transcript editor, timeline, playback sync, audio playback + visualizer, shortcuts, persistence |
-| `.ai-dlc/styling-and-export/` | **Intent 3** — design pass, caption styling, sidecar + burn-in export, Cloudflare Pages deploy, installable offline PWA |
-| `.ai-dlc/caption-translation/` | **Intent 4** — on-device translation engine + translation workspace |
-| `.claude/CLAUDE.md`, `opencode.json` | Tool bridges that load `.agent/AGENTS.md` for Claude Code and opencode |
-| `docs/spikes/` | Spike reports written by units (e.g. unit-02 model evaluation) |
-| `qualification/` | Release-qualification results per version (`pnpm qualify` on reference hardware) |
+| Path                                 | Artifact                                                                                                                        |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `.agent/AGENTS.md`                   | Instructions for every coding agent (precedence rules, gates, unit report format)                                               |
+| `.agent/REVIEW.md`                   | Review checklist for the pipeline reviewer and any other reviewer                                                               |
+| `.agent/SPEC-GUIDE.md`               | How to add/extend intents and units: required discovery areas, spec conventions, build order                                    |
+| `.ai-dlc/settings.yml`               | Project config: tech stack, version pins, approved deps, quality gates, reference hardware, network allowlist, git strategy     |
+| `.ai-dlc/knowledge/`                 | Persistent project intelligence (architecture contract, design, product, domain, conventions)                                   |
+| `.ai-dlc/local-transcribe-engine/`   | **Intent 1** — video/audio → PCM → VAD → windowed ASR → caption blocks + beta speakers; caption-file import, QC, align-to-audio |
+| `.ai-dlc/caption-studio-ui/`         | **Intent 2** — workbench, transcript editor, timeline, playback sync, audio playback + visualizer, shortcuts, persistence       |
+| `.ai-dlc/styling-and-export/`        | **Intent 3** — design pass, caption styling, sidecar + burn-in export, Cloudflare Pages deploy, installable offline PWA         |
+| `.ai-dlc/caption-translation/`       | **Intent 4** — on-device translation engine + translation workspace                                                             |
+| `.claude/CLAUDE.md`, `opencode.json` | Tool bridges that load `.agent/AGENTS.md` for Claude Code and opencode                                                          |
+| `docs/spikes/`                       | Spike reports written by units (e.g. unit-02 model evaluation)                                                                  |
+| `qualification/`                     | Release-qualification results per version (`pnpm qualify` on reference hardware)                                                |
 
 Each intent directory contains `intent.md` (description + completion criteria + frontmatter quality gates), `discovery.md` (research findings with citations), and `unit-NNN-*.md` files (user stories, functional requirements, technical specification, completion criteria).
 
@@ -63,14 +63,14 @@ pnpm preview:isolated  # COOP/COEP preview for memory-gate tests only
 
 ## Browser support (v1)
 
-| Capability | Chrome/Edge desktop | Safari 26+ | Firefox | Older Safari |
-|---|---|---|---|---|
-| Transcribe (WebGPU / WASM) | ✓ / ✓ | tier-dependent | WASM | WASM + ffmpeg.wasm |
-| Edit, import captions, sidecar export, offline | ✓ | ✓ | ✓ | ✓ |
-| Audio projects (all listed formats, visualizer) | ✓ | ✓ (decoded playback where needed) | ✓ | ✓ (ffmpeg.wasm decode) |
-| MP4 burn-in | ✓ | ✓ | ✓ (verify WebCodecs) | ✗ (sidecars only) |
-| On-device translation | ✓ (138+/148+) | ✗ (import/manual tracks only) | ✗ | ✗ |
-| Install / open files from OS | ✓ / ✓ | Add to Dock / ✗ | ✗ | ✗ |
+| Capability                                      | Chrome/Edge desktop | Safari 26+                        | Firefox              | Older Safari           |
+| ----------------------------------------------- | ------------------- | --------------------------------- | -------------------- | ---------------------- |
+| Transcribe (WebGPU / WASM)                      | ✓ / ✓               | tier-dependent                    | WASM                 | WASM + ffmpeg.wasm     |
+| Edit, import captions, sidecar export, offline  | ✓                   | ✓                                 | ✓                    | ✓                      |
+| Audio projects (all listed formats, visualizer) | ✓                   | ✓ (decoded playback where needed) | ✓                    | ✓ (ffmpeg.wasm decode) |
+| MP4 burn-in                                     | ✓                   | ✓                                 | ✓ (verify WebCodecs) | ✗ (sidecars only)      |
+| On-device translation                           | ✓ (138+/148+)       | ✗ (import/manual tracks only)     | ✗                    | ✗                      |
+| Install / open files from OS                    | ✓ / ✓               | Add to Dock / ✗                   | ✗                    | ✗                      |
 
 ## Reference hardware (performance baselines)
 

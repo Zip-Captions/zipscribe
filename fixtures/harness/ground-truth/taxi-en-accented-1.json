@@ -1,0 +1,46 @@
+{
+  "transcript": "the market opens early in the harbour district",
+  "language": "en",
+  "words": [
+    {
+      "text": "the",
+      "start": 0.12,
+      "end": 3.039
+    },
+    {
+      "text": "market",
+      "start": 3.313,
+      "end": 6.309
+    },
+    {
+      "text": "opens",
+      "start": 6.506,
+      "end": 9.501
+    },
+    {
+      "text": "early",
+      "start": 9.698,
+      "end": 12.694
+    },
+    {
+      "text": "in",
+      "start": 12.891,
+      "end": 15.81
+    },
+    {
+      "text": "the",
+      "start": 16.084,
+      "end": 19.003
+    },
+    {
+      "text": "harbour",
+      "start": 19.276,
+      "end": 22.298
+    },
+    {
+      "text": "district",
+      "start": 22.469,
+      "end": 25.491
+    }
+  ]
+}
