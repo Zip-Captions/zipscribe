@@ -43,9 +43,7 @@ function locate(name: string): string | null {
 }
 
 function main(): void {
-  const manifestPath = existsSync(join(FIXTURES, 'harness', 'manifest.json'))
-    ? join(FIXTURES, 'harness', 'manifest.json')
-    : join(FIXTURES, 'manifest.json')
+  const manifestPath = existsSync(join(FIXTURES, 'harness', 'manifest.json')) ? join(FIXTURES, 'harness', 'manifest.json') : join(FIXTURES, 'manifest.json')
   if (!existsSync(manifestPath)) {
     console.error(`fixtures:verify: no manifest at ${relative(repoRoot, manifestPath)} — run \`pnpm fixtures\``)
     process.exit(1)

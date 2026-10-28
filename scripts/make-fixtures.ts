@@ -153,18 +153,17 @@ function synthesizeSentence(words: string[], seed: number, f0Base: number, secon
       const [f1, f2] = vowel
       const onset = Math.round((t + (s === 0 ? sylDur * 0.18 : sylDur * 0.1)) * sampleRate)
       const offset = Math.round((t + sylDur * 0.95) * sampleRate)
-      const f0 = f0Base * (1 + 0.04 * Math.sin(2 * Math.PI * (t + s * sylDur) / seconds))
+      const f0 = f0Base * (1 + 0.04 * Math.sin((2 * Math.PI * (t + s * sylDur)) / seconds))
       for (let i = onset; i < Math.min(offset, total); i++) {
         const phase = (i / sampleRate) * 2 * Math.PI * f0
-        const voiced =
-          0.55 * Math.sin(phase) + 0.3 * Math.sin(2 * phase) * (f1 / 1200) + 0.18 * Math.sin(3 * phase) * (f2 / 2400)
+        const voiced = 0.55 * Math.sin(phase) + 0.3 * Math.sin(2 * phase) * (f1 / 1200) + 0.18 * Math.sin(3 * phase) * (f2 / 2400)
         const env = Math.min(1, (i - onset) / (0.012 * sampleRate)) * Math.min(1, (offset - i) / (0.03 * sampleRate))
-        out[i] += voiced * env * 0.55
+        out[i] = (out[i] ?? 0) + voiced * env * 0.55
       }
       // consonant-like energy burst at syllable onset
       const burst = Math.round(0.02 * sampleRate)
       for (let i = onset - Math.round(0.005 * sampleRate); i < onset && i >= 0 && i - (onset - burst) < burst; i++) {
-        out[i] += (rand() * 2 - 1) * 0.12
+        out[i] = (out[i] ?? 0) + (rand() * 2 - 1) * 0.12
       }
       t += sylDur
     }
@@ -306,7 +305,7 @@ function fixOgg(file: string): void {
     return c >>> 0
   }
   // pin serialno to 0 and recompute each page's CRC (serialno affects CRC)
-  for (let i = 0; i + 27 <= buf.length; ) {
+  for (let i = 0; i + 27 <= buf.length;) {
     if (buf.readUInt32BE(i) !== 0x4f676753) {
       i++
       continue
@@ -641,7 +640,18 @@ function synthVideos(): void {
   mkdirSync(WORK, { recursive: true })
   const specs: VideoSpec[] = [
     { name: 'speech-2min', words: [...EN_CLEAN, ...EN_CLEAN_B], seed: 0x2001, f0: SPEAKER_A, seconds: 30, loops: 3, language: 'en', category: 'en-clean', kind: 'speech', twin: 'speech-2min.m4a' },
-    { name: 'speech-2spk-2min', words: [...EN_CLEAN, ...EN_CLEAN_B, ...EN_ACCENTED, ...FR_CLEAN], seed: 0x2002, f0: SPEAKER_B, seconds: 30, loops: 3, language: 'en', category: 'en-clean', kind: 'speech-2spk', twin: 'speech-2spk-2min.m4a' },
+    {
+      name: 'speech-2spk-2min',
+      words: [...EN_CLEAN, ...EN_CLEAN_B, ...EN_ACCENTED, ...FR_CLEAN],
+      seed: 0x2002,
+      f0: SPEAKER_B,
+      seconds: 30,
+      loops: 3,
+      language: 'en',
+      category: 'en-clean',
+      kind: 'speech-2spk',
+      twin: 'speech-2spk-2min.m4a',
+    },
     { name: 'speech-10min', words: [...EN_CLEAN, ...EN_CLEAN_B], seed: 0x2001, f0: SPEAKER_A, seconds: 30, loops: 19, language: 'en', category: 'en-clean', kind: 'speech' },
     { name: 'taxi-en-accented-1', words: EN_ACCENTED, seed: 0x3001, f0: SPEAKER_A, seconds: 30, loops: 0, language: 'en', category: 'en-accented', kind: 'speech' },
     { name: 'taxi-en-accented-2', words: EN_NOISY, seed: 0x3002, f0: SPEAKER_B, seconds: 32, loops: 0, language: 'en', category: 'en-accented', kind: 'speech' },
@@ -669,7 +679,9 @@ function synthVideos(): void {
       const offset = Math.floor(idx / synthesized.words.length) * spec.seconds
       return { text: w.text, start: Number((w.start + offset).toFixed(3)), end: Number((w.end + offset).toFixed(3)) }
     })
-    const transcript = Array(spec.loops + 1).fill(synthesized.transcript).join(' ')
+    const transcript = Array(spec.loops + 1)
+      .fill(synthesized.transcript)
+      .join(' ')
     const gtPath = addGroundTruth(spec.name, { transcript, language: spec.language, words })
     register(`${spec.name}.mp4`, out, {
       duration: looped,
@@ -789,9 +801,7 @@ function main(): void {
   writeHarness()
   if (!existsSync(join(FIXTURES, 'LICENSES.md'))) writeFileSync(join(FIXTURES, 'LICENSES.md'), LICENSES_MD)
   rmSync(WORK, { recursive: true, force: true })
-  console.log(
-    `make-fixtures: generated ${Object.keys(manifestFiles).length} fixtures (+${Object.keys(groundTruths).length} ground truths) in ${((Date.now() - start) / 1000).toFixed(1)}s via ${FFMPEG}`,
-  )
+  console.log(`make-fixtures: generated ${Object.keys(manifestFiles).length} fixtures (+${Object.keys(groundTruths).length} ground truths) in ${((Date.now() - start) / 1000).toFixed(1)}s via ${FFMPEG}`)
 }
 
 main()

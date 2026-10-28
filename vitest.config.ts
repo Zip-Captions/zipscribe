@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config'
+import { defineConfig, defaultExclude } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
 // Test-only configuration. The product config (shared with `pnpm build`) is
@@ -8,9 +8,9 @@ import react from '@vitejs/plugin-react'
 // Notes:
 // - Node is the default environment; DOM tests opt in per file with
 //   `// @vitest-environment jsdom`.
-// - `sequence.concurrent` lets the tests that shell out to gate commands
-//   (`pnpm lint`, `pnpm test:e2e`, …) run side by side: `spawnSync` blocks only
-//   its worker thread, and the scaffold files' test bodies are independent.
+// - Tests run one at a time (`fileParallelism: false`, `sequence.concurrent:
+//   false`): the scaffold tests spawn gate commands and vite previews on
+//   fixed ports, so they must not overlap.
 // - Coverage thresholds mirror `.ai-dlc/settings.yml` § coverage. They are off
 //   for a bare `vitest run`: unit-01 has no engine logic yet, so there is
 //   nothing to measure. `pnpm test --coverage` — CC-01.11 — turns the gate on;
@@ -27,12 +27,21 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'tests/unit/**/*.test.ts'],
+    // The gate-spawning scaffold re-enters the suite when it is itself the
+    // spawned child (`ZIPSCRIBE_CHILD=1` — same guard as gates.test's own
+    // `isChildRun()` check on its recursive test). Running the whole gates
+    // file inside a 30 s-bounded child would re-run lint/typecheck/build/e2e
+    // children pointlessly and push the child over its time budget.
+    exclude: process.env.ZIPSCRIBE_CHILD === '1' ? ['**/gates.test.ts', ...defaultExclude] : defaultExclude,
     // The gate-spawning scaffold tests mutate shared state (`dist/`, `src/`
     // probes, scratch previews) and shell out to build/e2e commands — files
     // must not overlap (gates.test.ts documents the same expectation).
     fileParallelism: false,
+    // In-file concurrency is off: several scaffold tests spawn a vite preview
+    // on the fixed port 4178 (network-audit, retry-detection) and would
+    // preempt each other's live server if they overlapped.
     sequence: {
-      concurrent: true,
+      concurrent: false,
     },
     hookTimeout: 30_000,
     coverage: {

@@ -85,7 +85,9 @@ function run(command: string, args: string[], timeoutMs: number): { status: numb
     cwd: repoRoot,
     encoding: 'utf8',
     timeout: timeoutMs,
-    env: { ...process.env, CI: process.env.CI ?? '1', NO_COLOR: '1', ZIPSCRIBE_CHILD: '1' },
+    // No ZIPSCRIBE_CHILD here: a criteria verification is the authoritative
+    // full run and must see every test file, including the gates scaffold.
+    env: { ...process.env, CI: process.env.CI ?? '1', NO_COLOR: '1', ZIPSCRIBE_CHILD: undefined },
     maxBuffer: 64 * 1024 * 1024,
   })
   return { status: result.status ?? 1, output: `${result.stdout ?? ''}\n${result.stderr ?? ''}` }

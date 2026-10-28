@@ -11,8 +11,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "preview:isolated": "ZIPSCRIBE_ISOLATED=1 vite preview",
+    "preview": "node scripts/preview.mjs",
+    "preview:isolated": "ZIPSCRIBE_ISOLATED=1 node scripts/preview.mjs",
     "test": "vitest run",
     "pretest": "node scripts/verify-fixtures.ts --quiet",
     "test:e2e": "playwright test",

@@ -32,15 +32,13 @@ const initial = new Set()
 const queue = []
 for (const match of html.matchAll(/<script[^>]*src="([^"]+\.js)"/g)) queue.push(match[1].replace(/^\//, ''))
 
-// Resolve a chunk reference relative to the referencing chunk's directory,
-// then relative to the dist root (vite emits siblings; a hand-injected probe
-// chunk may sit at the root).
+// Resolve a chunk reference relative to the referencing chunk's directory
+// (vite emits sibling chunks). Nothing else resolves: the initial graph of a
+// real vite build has no dangling imports, so an unresolvable one means the
+// graph was tampered with or broken — a red flag the CC-01.4 probe relies on.
 function resolveChunk(spec, fromDir) {
-  const candidates = [resolve(dist, fromDir, spec), resolve(dist, spec)]
-  for (const candidate of candidates) {
-    const normalized = candidate.startsWith(dist) ? candidate : null
-    if (normalized && existsSync(normalized) && statSync(normalized).isFile()) return normalized
-  }
+  const candidate = resolve(dist, fromDir, spec)
+  if (candidate.startsWith(dist) && existsSync(candidate) && statSync(candidate).isFile()) return candidate
   return null
 }
 
@@ -67,6 +65,7 @@ while (queue.length > 0) {
     if (!spec.startsWith('./') && !spec.startsWith('../') && !spec.startsWith('/')) continue
     const resolved = resolveChunk(spec, dirname(entry))
     if (resolved) queue.push(distRelative(resolved))
+    else fail(`initial chunk ${entry} imports "${spec}" which is not present in dist/ — broken or tampered bundle`)
   }
 }
 

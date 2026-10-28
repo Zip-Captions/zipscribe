@@ -29,3 +29,6 @@ public/wasm/*
 # the directory itself is committed via .gitkeep, the pinned binaries are not.
 public/wasm/*
 !public/wasm/.gitkeep
+
+# build-time symlink (vite closeBundle) for the check-bundle inject contract
+/assets

@@ -7,8 +7,9 @@ export default class RetryPassReporter {
   retryPasses = []
 
   onTestEnd(test, result) {
-    if (result.status === 'passed' && test.retry > 0) {
-      this.retryPasses.push(`${test.titlePath().join(' › ')} (passed on retry #${test.retry})`)
+    // `retry` lives on the TestResult (attempt index), not the TestCase.
+    if (result.status === 'passed' && result.retry > 0) {
+      this.retryPasses.push(`${test.titlePath().join(' › ')} (passed on retry #${result.retry})`)
     }
   }
 

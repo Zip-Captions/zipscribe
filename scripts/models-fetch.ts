@@ -51,7 +51,7 @@ function sha256(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex')
 }
 
-async function main(): void {
+async function main(): Promise<void> {
   const registryPath = join(repoRoot, 'models', 'ci-registry.json')
   if (!existsSync(registryPath)) {
     console.error('models:fetch: models/ci-registry.json missing')
