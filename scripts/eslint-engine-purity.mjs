@@ -23,12 +23,49 @@ function matches(name, patterns) {
   })
 }
 
+/**
+ * Reconstitute a dynamic-import specifier from statically known parts:
+ * string literals, concatenations of literals (`'@huggingface/' +
+ * 'transformers'`), and template literals whose placeholders are themselves
+ * static strings (`` `sherpa-${'onnx'}` ``). Returns null when the value is
+ * not statically known (variables, calls, …) — the caller then treats the
+ * specifier as unverifiable. Residual limit (documented, unit-03 adversary
+ * finding 2): values computed through variables, member access, or functions
+ * cannot be reconstituted here — they are caught as non-static specifiers,
+ * not matched against package names.
+ */
+function staticSpecifier(node) {
+  if (!node) return null
+  if (node.type === 'Literal' && typeof node.value === 'string') return node.value
+  if (node.type === 'TemplateLiteral') {
+    let out = ''
+    for (let i = 0; i < node.quasis.length; i++) {
+      out += node.quasis[i]?.value.cooked ?? ''
+      const expr = node.expressions[i]
+      if (expr) {
+        const part = staticSpecifier(expr)
+        if (part === null) return null
+        out += part
+      }
+    }
+    return out
+  }
+  if (node.type === 'BinaryExpression' && node.operator === '+') {
+    const left = staticSpecifier(node.left)
+    const right = staticSpecifier(node.right)
+    return left === null || right === null ? null : left + right
+  }
+  return null
+}
+
 export const restrictedImports = {
   meta: {
     type: 'problem',
     messages: {
       framework: "'{{name}}' import is restricted in src/engine — the engine is framework-agnostic (FR-1.0.5).",
       sdk: "'{{name}}' import is restricted in src/engine outside **/adapters/** — SDK glue lives in src/workers or engine adapters (FR-1.0.5).",
+      nonStatic:
+        'Dynamic import() with a non-static specifier is restricted in src/engine outside **/adapters/** — its target cannot be inspected against the purity policy, so it is rejected (FR-1.0.5, unit-03 adversary finding 2).',
     },
     schema: [
       {
@@ -63,9 +100,33 @@ export const restrictedImports = {
       // Core `no-restricted-imports` is documented "static imports only"
       // (eslint.org/docs/latest/rules/no-restricted-imports) — dynamic
       // `import('react')` must be caught here or FR-1.0.5 is one `await` away
-      // from bypassed. Non-static specifiers (templates, expressions) have no
-      // literal to match and are skipped.
-      ImportExpression: (node) => check(node, node.source && typeof node.source.value === 'string' ? node.source.value : null),
+      // from bypassed. Unit-03 adversary finding 2 closed the remaining
+      // evasion: a specifier that is not a single string literal is either
+      // reconstituted from static parts (literal concatenation / static
+      // template → matched against the framework and SDK lists) or, when
+      // unverifiable, is itself a violation outside **/adapters/** — an
+      // engine file cannot say "import whatever this computes" and pass the
+      // purity gate. (Residual limit: values computed at runtime through
+      // variables or calls are rejected as non-static, not name-matched;
+      // inside adapters/ dirs, which may import SDKs statically, non-static
+      // dynamic specifiers stay allowed except reconstituted framework ones.)
+      ImportExpression: (node) => {
+        const source = node.source
+        if (source && source.type === 'Literal' && typeof source.value === 'string') {
+          check(node, source.value)
+          return
+        }
+        const joined = staticSpecifier(source)
+        if (joined !== null && matches(joined, framework)) {
+          context.report({ node, messageId: 'framework', data: { name: joined } })
+          return
+        }
+        if (joined !== null && !sdkAllowed && matches(joined, sdk)) {
+          context.report({ node, messageId: 'sdk', data: { name: joined } })
+          return
+        }
+        if (!sdkAllowed) context.report({ node, messageId: 'nonStatic' })
+      },
     }
   },
 }
