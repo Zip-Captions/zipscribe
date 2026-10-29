@@ -1,181 +1,176 @@
 // tools/eval/wer-core.mjs — JS port of the Whisper text normalizer
-// (openai/whisper `whisper_normalizer/english.py`, English) + word error
+// (openai/whisper `whisper/normalizers/english.py`, English) + word error
 // rate. Used by `tools/eval/wer.mjs` (the CC-02.6 CLI) and the eval harness.
 //
-// Ported behaviour (in the order the upstream English normalizer applies it):
-//   1. lowercase (BasicTextNormalizer.lowercase);
-//   2. expand common contractions (CONTRACTIONS map, "don't" → "do not");
-//   3. strip characters in the Unicode punctuation/symbol categories
-//      (BasicTextNormalizer's punctuation table removal; apostrophes go with
-//      it, so "it's" → "it s" only if unlisted above);
-//   4. collapse whitespace and trim.
-// Number-to-word conversion (upstream NUMBERS/measurements) is deliberately
-// NOT ported: it needs the inflect package's English morphology and is only
-// exercised by spoken digits, which this eval corpus does not contain. WER is
-// computed with the classic Levenshtein edit distance over normalized words:
-//   WER = (substitutions + deletions + insertions) / reference word count.
-// Reference: https://github.com/openai/whisper/blob/main/whisper_normalizer/english.py
+// Ported sequence — mirrors upstream `EnglishTextNormalizer.__call__`
+// (https://raw.githubusercontent.com/openai/whisper/main/whisper/normalizers/english.py)
+// in upstream's exact ORDER:
+//   1. lowercase;
+//   2. drop bracketed segments, filler interjections, normalise " '" spacing;
+//   3. `replacers` dict applied in insertion order — contractions expand
+//      FIRST, as word-boundary regexes over the whole text (so "Don't," →
+//      "do not," before any punctuation is touched; bare "dont" is NOT
+//      touched — upstream's patterns all require the apostrophe);
+//   4. commas between digits removed, periods not followed by digits spaced;
+//   5. remove_symbols_and_diacritics(s, keep=".%$¢€£")
+//      (whisper/normalizers/basic.py: NFKD, keep-set, ADDITIONAL_DIACRITICS,
+//      category Mn → '', categories M*/S*/P* → ' ');
+//   6. prefix/suffix symbols not adjacent to digits spaced out;
+//   7. whitespace collapsed (and trimmed — tokenisation convenience).
+// Deliberate, documented deviations from a byte-for-byte port:
+//   • EnglishNumberNormalizer (spelled-out numbers) and
+//     EnglishSpellingNormalizer (english.json British→American map) are NOT
+//     ported: the former needs inflect-scale morphology, the latter a data
+//     file; neither is exercised by this eval corpus (spoken digits /
+//     British spellings absent).
+//   • the keep-set step is followed by a second lowercase, mirroring upstream
+//     BasicTextNormalizer (`self.clean(s).lower()`, basic.py) so NFKD
+//     compatibility decompositions of fullwidth forms (ＷＯＲＬＤ → WORLD) fold.
+//   • the whitespace collapse uses JavaScript \s (ECMA WhiteSpace includes
+//     U+00A0 and U+FEFF), keeping BOM/NBSP framing inert in the CLI.
+// WER is computed with the classic Levenshtein edit distance over normalized
+// words: WER = (substitutions + deletions + insertions) / reference words.
 
-// Token -> apostrophe form (upstream English.py CONTRACTIONS list), applied
-// before EXPANSIONS so un-punctuated ASR output ("dont") expands too.
-// 'well' is deliberately absent: it is overwhelmingly the interjection/adverb,
-// not the contraction "we'll" (upstream disambiguates with frequency lists
-// that are out of scope for this port).
-const APOSTROPHE_FORMS = {
-  aint: "ain't",
-  arent: "aren't",
-  cant: "can't",
-  couldve: "could've",
-  couldnt: "couldn't",
-  "couldnt've": "couldn't've",
-  didnt: "didn't",
-  doesnot: 'does not',
-  doesnt: "doesn't",
-  dont: "don't",
-  hadnt: "hadn't",
-  hasnt: "hasn't",
-  havent: "haven't",
-  hes: "he's",
-  id: "i'd",
-  ill: "i'll",
-  im: "i'm",
-  ive: "i've",
-  isnt: "isn't",
-  lets: "let's",
-  mightnt: "mightn't",
-  mustnt: "mustn't",
-  neednt: "needn't",
-  shes: "she's",
-  shouldve: "should've",
-  shouldnt: "shouldn't",
-  thats: "that's",
-  theres: "there's",
-  theyd: "they'd",
-  theyll: "they'll",
-  theyre: "they're",
-  theyve: "they've",
-  wasnt: "wasn't",
-  werent: "weren't",
-  whatll: "what'll",
-  whats: "what's",
-  weds: "we'd",
-  were: "we're",
-  weve: "we've",
-  whatd: "what'd",
-  wholl: "who'll",
-  whos: "who's",
-  whove: "who've",
-  wont: "won't",
-  wouldve: "would've",
-  wouldnt: "wouldn't",
-  youd: "you'd",
-  youll: "you'll",
-  youre: "you're",
-  youve: "you've",
+// upstream English.py: ignore_patterns
+const IGNORE_PATTERN = /\b(hmm|mm|mhm|mmm|uh|um)\b/g
+
+// upstream EnglishTextNormalizer.replacers — Python 3.7+ dicts iterate in
+// insertion order; kept as ordered pairs so the substitution order is the
+// contract (common contractions → titles/prefixes → perfect tenses →
+// general contractions; the general n't/'re/'s/'d/'ll/'t/'ve/'m forms run
+// LAST, after the specific ones).
+const REPLACERS = [
+  [/\bwon't\b/g, 'will not'],
+  [/\bcan't\b/g, 'can not'],
+  [/\blet's\b/g, 'let us'],
+  [/\bain't\b/g, 'aint'],
+  [/\by'all\b/g, 'you all'],
+  [/\bwanna\b/g, 'want to'],
+  [/\bgotta\b/g, 'got to'],
+  [/\bgonna\b/g, 'going to'],
+  [/\bi'ma\b/g, 'i am going to'],
+  [/\bimma\b/g, 'i am going to'],
+  [/\bwoulda\b/g, 'would have'],
+  [/\bcoulda\b/g, 'could have'],
+  [/\bshoulda\b/g, 'should have'],
+  [/\bma'am\b/g, 'madam'],
+  // contractions in titles/prefixes
+  [/\bmr\b/g, 'mister '],
+  [/\bmrs\b/g, 'missus '],
+  [/\bst\b/g, 'saint '],
+  [/\bdr\b/g, 'doctor '],
+  [/\bprof\b/g, 'professor '],
+  [/\bcapt\b/g, 'captain '],
+  [/\bgov\b/g, 'governor '],
+  [/\bald\b/g, 'alderman '],
+  [/\bgen\b/g, 'general '],
+  [/\bsen\b/g, 'senator '],
+  [/\brep\b/g, 'representative '],
+  [/\bpres\b/g, 'president '],
+  [/\brev\b/g, 'reverend '],
+  [/\bhon\b/g, 'honorable '],
+  [/\basst\b/g, 'assistant '],
+  [/\bassoc\b/g, 'associate '],
+  [/\blt\b/g, 'lieutenant '],
+  [/\bcol\b/g, 'colonel '],
+  [/\bjr\b/g, 'junior '],
+  [/\bsr\b/g, 'senior '],
+  [/\besq\b/g, 'esquire '],
+  // perfect tenses
+  [/'d been\b/g, ' had been'],
+  [/'s been\b/g, ' has been'],
+  [/'d gone\b/g, ' had gone'],
+  [/'s gone\b/g, ' has gone'],
+  [/'d done\b/g, ' had done'],
+  [/'s got\b/g, ' has got'],
+  // general contractions
+  [/n't\b/g, ' not'],
+  [/'re\b/g, ' are'],
+  [/'s\b/g, ' is'],
+  [/'d\b/g, ' would'],
+  [/'ll\b/g, ' will'],
+  [/'t\b/g, ' not'],
+  [/'ve\b/g, ' have'],
+  [/'m\b/g, ' am'],
+]
+
+// upstream whisper/normalizers/basic.py ADDITIONAL_DIACRITICS
+const ADDITIONAL_DIACRITICS = {
+  œ: 'oe',
+  Œ: 'OE',
+  ø: 'o',
+  Ø: 'O',
+  æ: 'ae',
+  Æ: 'AE',
+  ß: 'ss',
+  ẞ: 'SS',
+  đ: 'd',
+  Đ: 'D',
+  ð: 'd',
+  Ð: 'D',
+  þ: 'th',
+  Þ: 'th',
+  ł: 'l',
+  Ł: 'L',
 }
 
-const EXPANSIONS = {
-  "ain't": 'is not',
-  "aren't": 'are not',
-  "can't": 'cannot',
-  "can't've": 'cannot have',
-  "'cause": 'because',
-  "could've": 'could have',
-  "couldn't": 'could not',
-  "couldn't've": 'could not have',
-  "didn't": 'did not',
-  "doesn't": 'does not',
-  "don't": 'do not',
-  "hadn't": 'had not',
-  "hasn't": 'has not',
-  "haven't": 'have not',
-  "he'd": 'he would',
-  "he'll": 'he will',
-  "he's": 'he is',
-  "how'd": 'how did',
-  "how'll": 'how will',
-  "how's": 'how is',
-  "i'd": 'i would',
-  "i'll": 'i will',
-  "i'm": 'i am',
-  "i've": 'i have',
-  "isn't": 'is not',
-  "it'd": 'it would',
-  "it'll": 'it will',
-  "it's": 'it is',
-  "let's": 'let us',
-  "ma'am": 'madam',
-  "mayn't": 'may not',
-  "mightn't": 'might not',
-  "mustn't": 'must not',
-  "needn't": 'need not',
-  "o'clock": 'of the clock',
-  "shan't": 'shall not',
-  "she'd": 'she would',
-  "she'll": 'she will',
-  "she's": 'she is',
-  "should've": 'should have',
-  "shouldn't": 'should not',
-  "that'd": 'that would',
-  "that'll": 'that will',
-  "that's": 'that is',
-  "there'd": 'there would',
-  "there's": 'there is',
-  "they'd": 'they would',
-  "they'll": 'they will',
-  "they're": 'they are',
-  "they've": 'they have',
-  "wasn't": 'was not',
-  "we'd": 'we would',
-  "we'll": 'we will',
-  "we're": 'we are',
-  "we've": 'we have',
-  "weren't": 'were not',
-  "what'll": 'what will',
-  "what're": 'what are',
-  "what's": 'what is',
-  "what've": 'what have',
-  "where's": 'where is',
-  "who'd": 'who did',
-  "who'll": 'who will',
-  "who's": 'who is',
-  "who've": 'who have',
-  "won't": 'will not',
-  "would've": 'would have',
-  "wouldn't": 'would not',
-  "you'd": 'you would',
-  "you'll": 'you will',
-  "you're": 'you are',
-  "you've": 'you have',
+// upstream basic.py: keep-set of remove_symbols_and_diacritics as used by
+// EnglishTextNormalizer.
+const KEEP = '.%$¢€£'
+
+/**
+ * JS mirror of whisper/normalizers/basic.py remove_symbols_and_diacritics:
+ * NFKD-normalise, keep keep-set chars, apply ADDITIONAL_DIACRITICS, drop
+ * combining marks (category Mn), replace any other mark, symbol or
+ * punctuation (unicodedata category initial in "MSP") with a space, keep
+ * everything else.
+ * @param {string} text
+ * @param {string} keep
+ * @returns {string}
+ */
+function removeSymbolsAndDiacritics(text, keep) {
+  let out = ''
+  for (const char of text.normalize('NFKD')) {
+    if (keep.includes(char)) {
+      out += char
+      continue
+    }
+    const mapped = ADDITIONAL_DIACRITICS[char]
+    if (mapped !== undefined) {
+      out += mapped
+      continue
+    }
+    if (/\p{Mn}/u.test(char)) continue
+    if (/\p{M}|\p{S}|\p{P}/u.test(char)) {
+      out += ' '
+      continue
+    }
+    out += char
+  }
+  return out
 }
 
 /**
- * The Whisper (English) text normalizer.
+ * The Whisper (English) text normalizer — see module header for the ported
+ * sequence, ordering rationale and documented deviations.
  * @param {string} text
  * @returns {string} normalized text (lowercase, no punctuation, single spaces)
  */
 export function normalize(text) {
   if (typeof text !== 'string') return ''
-  let out = text
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-  // Expand contractions: tokens written without apostrophes first (the
-  // APOSTROPHE_FORMS table: "dont" → "don't"), then the apostrophe forms
-  // themselves via EXPANSIONS ("don't" → "do not").
-  out = out
-    .split(/\s+/)
-    .map((token) => {
-      const expanded = EXPANSIONS[token] ?? EXPANSIONS[APOSTROPHE_FORMS[token] ?? token]
-      return expanded ?? token
-    })
-    .join(' ')
-  // Strip all Unicode punctuation and symbols (keeps letters, numbers, marks,
-  // whitespace). This subsumes the apostrophes left by unmatched forms.
-  out = out.replace(/[\p{P}\p{S}]/gu, ' ')
-  // Collapse whitespace.
-  out = out.replace(/\s+/g, ' ').trim()
-  return out
+  let s = text.toLowerCase()
+  s = s.replace(/[<\[][^>\]]*[>\]]/g, '')
+  s = s.replace(/\(([^\)]+?)\)/g, '')
+  s = s.replace(IGNORE_PATTERN, '')
+  s = s.replace(/\s+'/g, "'")
+  for (const [pattern, replacement] of REPLACERS) s = s.replace(pattern, replacement)
+  s = s.replace(/(\d),(\d)/g, '$1$2')
+  s = s.replace(/\.([^0-9]|$)/g, ' $1')
+  s = removeSymbolsAndDiacritics(s, KEEP).toLowerCase()
+  s = s.replace(/[.$¢€£]([^0-9])/g, ' $1')
+  s = s.replace(/([^0-9])%/g, '$1 ')
+  s = s.replace(/\s+/g, ' ').trim()
+  return s
 }
 
 /** Normalize + tokenize into the word sequence WER operates on. */
