@@ -1,0 +1,70 @@
+{
+  "version": "0.0.0-spike",
+  "contentHash": "fba967fe7b741795fc1cb8ef698e89d9a51c3e9af3674b9206b0551dd09fbe9d",
+  "startedAt": "2026-10-29T00:03:37.609Z",
+  "machine": {
+    "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+    "os": "Darwin 24.6.0 (arm64)",
+    "cpu": "Apple M2 Pro",
+    "gpu": "apple metal-3",
+    "ramGB": 34.4
+  },
+  "results": [
+    {
+      "id": "CC-02.1",
+      "pass": true,
+      "measured": "7/7 qualify assertions passed",
+      "threshold": "all qualify assertions for the criterion pass (explicit per-file CC attribution)"
+    },
+    {
+      "id": "CC-02.2",
+      "pass": true,
+      "measured": "5/5 qualify assertions passed",
+      "threshold": "all qualify assertions for the criterion pass (explicit per-file CC attribution)"
+    },
+    {
+      "id": "CC-02.3",
+      "pass": true,
+      "measured": "2/2 qualify assertions passed",
+      "threshold": "all qualify assertions for the criterion pass (explicit per-file CC attribution)"
+    },
+    {
+      "id": "CC-02.4",
+      "pass": true,
+      "measured": "2/2 qualify assertions passed",
+      "threshold": "all qualify assertions for the criterion pass (explicit per-file CC attribution)"
+    },
+    {
+      "id": "CC-02.7",
+      "pass": true,
+      "measured": "2/2 qualify assertions passed",
+      "threshold": "all qualify assertions for the criterion pass (explicit per-file CC attribution)"
+    },
+    {
+      "id": "CC-02.8",
+      "pass": true,
+      "measured": "1/1 qualify assertions passed",
+      "threshold": "all qualify assertions for the criterion pass (explicit per-file CC attribution)"
+    },
+    {
+      "id": "CC-02.9",
+      "pass": true,
+      "measured": "1/1 qualify assertions passed",
+      "threshold": "all qualify assertions for the criterion pass (explicit per-file CC attribution)"
+    },
+    {
+      "id": "CC-02.11",
+      "pass": true,
+      "measured": "4/4 qualify assertions passed",
+      "threshold": "all qualify assertions for the criterion pass (explicit per-file CC attribution)"
+    }
+  ],
+  "manual": [
+    {
+      "id": "CC-02.10",
+      "by": "opencode overnight agent (license research, official sources)",
+      "date": "2026-10-28",
+      "result": "Omnilingual ASR 300M: Apache-2.0 (github.com/facebookresearch/omnilingual-asr LICENSE) — verified-ok. Moonshine v2 (moonshine-ai/moonshine-tiny): MIT (HF cardData) — verified-ok. MedASR (google/medasr): HAI-DEF terms of use, gated — blocked-pending, no benchmark row. Owner sign-off PENDING: review the three statuses above in docs/spikes/model-eval-report.json licenses[] before release."
+    }
+  ]
+}

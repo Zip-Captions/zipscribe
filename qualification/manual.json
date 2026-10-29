@@ -1,0 +1,11 @@
+{
+  "$comment": "Owner-recorded manual sign-offs merged into qualification/<version>.json by scripts/qualify.ts (conventions § Release qualification, manual[]). [MANUAL] criteria are never marked done by an agent — entries here are agent-recorded RESEARCH results pending owner sign-off (see unit report checklist).",
+  "entries": [
+    {
+      "id": "CC-02.10",
+      "by": "opencode overnight agent (license research, official sources)",
+      "date": "2026-10-28",
+      "result": "Omnilingual ASR 300M: Apache-2.0 (github.com/facebookresearch/omnilingual-asr LICENSE) — verified-ok. Moonshine v2 (moonshine-ai/moonshine-tiny): MIT (HF cardData) — verified-ok. MedASR (google/medasr): HAI-DEF terms of use, gated — blocked-pending, no benchmark row. Owner sign-off PENDING: review the three statuses above in docs/spikes/model-eval-report.json licenses[] before release."
+    }
+  ]
+}
