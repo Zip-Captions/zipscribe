@@ -53,6 +53,15 @@ function main(): void {
   if (!Array.isArray(file['results'])) fail('results must be an array')
   const results = file['results'] as Array<Record<string, unknown>>
   if (results.length === 0) fail('results must not be empty')
+  // conventions.md § Release qualification line 87: the job "fails on
+  // mismatch, missing IDs or any pass:false" — a result row DELETED from
+  // results[] cannot be shown to pass (Release exit line 79: every [RQ]
+  // criterion of every completed unit passes), so the expected ID set from
+  // the unit spec's [RQ] criteria is enforced, not just the rows present.
+  const expectedRqIds = ['CC-02.1', 'CC-02.2', 'CC-02.3', 'CC-02.4', 'CC-02.7', 'CC-02.8', 'CC-02.9', 'CC-02.11'] as const
+  const recordedIds = new Set(results.map((entry) => String(entry['id'])))
+  const missingIds = expectedRqIds.filter((id) => !recordedIds.has(id))
+  if (missingIds.length > 0) fail(`missing criterion id(s): ${missingIds.join(', ')} (results[] must record every [RQ] criterion)`)
   for (const entry of results) {
     if (!/^CC-/.test(String(entry['id']))) fail(`results entry id must be a CC-ID, got ${String(entry['id'])}`)
     if (typeof entry['pass'] !== 'boolean') fail(`results[${String(entry['id'])}].pass must be boolean`)

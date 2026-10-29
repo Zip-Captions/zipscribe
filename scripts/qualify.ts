@@ -22,7 +22,27 @@ import { computeContentHash, qualificationFileName } from './lib/qualification-h
 
 const repoRoot = join(fileURLToPath(import.meta.url), '../..')
 
+// [RQ] criteria of unit-02 (unit-02-model-eval-spike.md), in record order.
 const RQ_IDS = ['CC-02.1', 'CC-02.2', 'CC-02.3', 'CC-02.4', 'CC-02.7', 'CC-02.8', 'CC-02.9', 'CC-02.11'] as const
+
+// Criterion → evidence files, declared explicitly (conventions.md § Criterion
+// traceability). Attribution is by test FILE, never by substring-matching
+// assertion labels: `label.includes('CC-02.1')` also matched CC-02.10/11, so
+// deleting a criterion's own suite left its pass flag standing on borrowed
+// labels (adversarial finding 4). A criterion passes only when EVERY declared
+// evidence file ran and contributed at least one passing assertion with none
+// failing — a deleted or empty file fails coverage.
+const RQ_COVERAGE: Record<string, readonly string[]> = {
+  'qualify/model-eval/report-rows.test.ts': ['CC-02.1'],
+  'qualify/model-eval/measurement-integrity.test.ts': ['CC-02.1', 'CC-02.2'],
+  'qualify/model-eval/leak-measurement.test.ts': ['CC-02.2'],
+  'qualify/model-eval/capabilities.test.ts': ['CC-02.3', 'CC-02.11'],
+  'qualify/model-eval/network-audit.test.ts': ['CC-02.4', 'CC-02.11'],
+  'qualify/model-eval/whistle-audit.test.ts': ['CC-02.4', 'CC-02.9'],
+  'qualify/model-eval/rtf-baseline.test.ts': ['CC-02.7'],
+  'qualify/model-eval/parakeet-verdict.test.ts': ['CC-02.8'],
+  'qualify/model-eval/tier-recommendation.test.ts': ['CC-02.11'],
+}
 
 interface AssertionResult {
   fullName?: string
@@ -114,23 +134,64 @@ async function collectMachine(): Promise<Record<string, unknown>> {
   }
 }
 
-function readQualifyResults(): Map<string, { passed: number; failed: number }> {
+interface FileVerdict {
+  present: boolean
+  passed: number
+  failed: number
+}
+
+/**
+ * Aggregate the vitest JSON report into per-criterion verdicts using the
+ * explicit RQ_COVERAGE attribution. Returns null when the vitest run did not
+ * complete (spawnSync status null — killed, timed out, or failed to spawn):
+ * the report file on disk would then be a leftover from an earlier run, and
+ * trusting it would record fabricated passes (adversarial finding 5). The
+ * caller must treat null as "no evidence" — never as cached results.
+ */
+function readQualifyResults(runStatus: number | null): Map<string, { passed: number; failed: number; missing: string[] }> | null {
+  if (runStatus === null) return null
   const outPath = join(repoRoot, '.cache', 'qualify-results.json')
-  const verdicts = new Map<string, { passed: number; failed: number }>()
-  for (const id of RQ_IDS) verdicts.set(id, { passed: 0, failed: 0 })
-  if (!existsSync(outPath)) return verdicts
-  const parsed = JSON.parse(readFileSync(outPath, 'utf8')) as { testResults?: TestResult[] }
-  for (const suite of parsed.testResults ?? []) {
-    for (const assertion of suite.assertionResults ?? []) {
-      const label = `${assertion.fullName ?? ''} ${assertion.title ?? ''}`
-      for (const id of RQ_IDS) {
-        if (!label.includes(id)) continue
-        const verdict = verdicts.get(id)
-        if (!verdict) continue
+  const byFile = new Map<string, FileVerdict>()
+  if (existsSync(outPath)) {
+    const parsed = JSON.parse(readFileSync(outPath, 'utf8')) as { testResults?: TestResult[] }
+    for (const suite of parsed.testResults ?? []) {
+      const name = (suite.name ?? '').replace(/\\/g, '/')
+      let verdict = byFile.get(name)
+      if (!verdict) {
+        verdict = { present: true, passed: 0, failed: 0 }
+        byFile.set(name, verdict)
+      }
+      for (const assertion of suite.assertionResults ?? []) {
         if (assertion.status === 'passed') verdict.passed += 1
         else if (assertion.status === 'failed') verdict.failed += 1
       }
     }
+  }
+  const findFile = (repoRelative: string): FileVerdict | undefined => {
+    const suffix = `/${repoRelative}`
+    for (const [name, verdict] of byFile) {
+      if (name.endsWith(suffix)) return verdict
+    }
+    return undefined
+  }
+  const verdicts = new Map<string, { passed: number; failed: number; missing: string[] }>()
+  for (const id of RQ_IDS) {
+    const entry = { passed: 0, failed: 0, missing: [] as string[] }
+    for (const [file, ids] of Object.entries(RQ_COVERAGE)) {
+      if (!ids.includes(id)) continue
+      const fileVerdict = findFile(file)
+      if (!fileVerdict) {
+        entry.missing.push(file)
+        continue
+      }
+      entry.passed += fileVerdict.passed
+      entry.failed += fileVerdict.failed
+      // A declared evidence file must actually cover its criterion: zero
+      // passing assertions in it (deleted tests, all-skipped file) is a
+      // coverage gap even if the file itself ran.
+      if (fileVerdict.passed === 0) entry.missing.push(file)
+    }
+    verdicts.set(id, entry)
   }
   return verdicts
 }
@@ -162,15 +223,30 @@ async function main(): Promise<void> {
   if (run.status !== 0 && run.status !== null) {
     console.error('qualify: qualify suites failed (see suites output above)')
   }
+  if (run.status === null) {
+    // Killed / timed out / failed to spawn: the JSON report on disk would be a
+    // leftover from an earlier run — never trust cached results (adversarial
+    // finding 5). Re-running is the recompute path; this run has no evidence.
+    console.error('qualify: vitest run did not complete (spawn failed or timed out) — cached results not trusted')
+  }
 
-  const verdicts = readQualifyResults()
+  const verdicts = readQualifyResults(run.status)
   const results = RQ_IDS.map((id) => {
-    const verdict = verdicts.get(id) ?? { passed: 0, failed: 1 }
+    if (!verdicts) {
+      return {
+        id,
+        pass: false,
+        measured: 'qualify suite did not complete — no trustworthy evidence (results must be recomputed by a full re-run)',
+        threshold: 'all qualify assertions for the criterion pass',
+      }
+    }
+    const verdict = verdicts.get(id) ?? { passed: 0, failed: 1, missing: [] as string[] }
+    const missingNote = verdict.missing.length > 0 ? `; missing/degenerate evidence: ${verdict.missing.join(', ')}` : ''
     return {
       id,
-      pass: verdict.failed === 0 && verdict.passed > 0,
-      measured: `${verdict.passed}/${verdict.passed + verdict.failed} qualify assertions passed`,
-      threshold: 'all qualify assertions for the criterion pass',
+      pass: verdict.failed === 0 && verdict.passed > 0 && verdict.missing.length === 0,
+      measured: `${verdict.passed}/${verdict.passed + verdict.failed} qualify assertions passed${missingNote}`,
+      threshold: 'all qualify assertions for the criterion pass (explicit per-file CC attribution)',
     }
   })
 
