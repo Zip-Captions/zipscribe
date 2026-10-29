@@ -86,7 +86,7 @@ function main(): void {
       }
       const rel = relative(FIXTURES, full)
       const base = rel.startsWith('audio/') ? rel.slice('audio/'.length) : rel
-      if (rel === 'LICENSES.md' || rel.startsWith('harness/')) continue
+      if (rel === 'LICENSES.md' || rel === 'golden/README.md' || rel.startsWith('harness/')) continue
       if (!known.has(base)) failures.push(`unlicensed fixture ${rel} — not in manifest/LICENSES.md`)
     }
   }

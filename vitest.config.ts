@@ -74,6 +74,21 @@ export default defineConfig({
             // unit-03 (CC-03.8): the scoped engine/model coverage gate spawns
             // a nested `vitest run` — same child-safety rule as coverage-gate.
             '**/model-coverage.test.ts',
+            // unit-04 (CC-04.14): the scoped engine/audio coverage gate spawns
+            // a nested `vitest run` — same child-safety rule as coverage-gate.
+            '**/media-coverage.test.ts',
+            // unit-04 (CC-04.12, RED phase): the worker wiring proof fails
+            // until the builder replaces the unit-01 stub, so it cannot sit in
+            // the gate-spawning child (its failure would mask the wiring
+            // proof). It runs in the parent and in `verify:unit`, which clears
+            // ZIPSCRIBE_CHILD. Retire this entry when unit-04 goes green.
+            '**/media-worker-wiring.test.ts',
+            // The unit-04 audio suites import `@engine/audio/*` modules that do
+            // not exist yet (RED phase); inside the child's 30 s
+            // representative-subset run their import errors would mask the
+            // command-wiring proof. They execute in the parent suite and in
+            // `verify:unit`/CI. Retire this block when unit-04 goes green.
+            'tests/unit/audio/**/*.test.ts',
             // (unit-03's five contract suites were excluded here while the
             // unit was RED. Retired at review round 1, F7: they spawn nothing
             // and the set runs in 0.5 s, so the child now executes them and a

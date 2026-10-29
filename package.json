@@ -10,7 +10,8 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/build-harness.ts && vite build",
+    "build:harness": "node scripts/build-harness.ts",
     "preview": "node scripts/preview.mjs",
     "preview:isolated": "ZIPSCRIBE_ISOLATED=1 node scripts/preview.mjs",
     "test": "vitest run",
