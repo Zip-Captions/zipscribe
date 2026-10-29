@@ -14,8 +14,8 @@
 // real-flow attribution (CC-03.3's 3 cases from a genuine spawn) is proven by
 // `corepack pnpm verify:unit --from-branch` in the gate sweep and by the
 // scratch-worktree re-proof in the fixer report.
-import { describe, expect, test } from 'vitest'
-import { existsSync, mkdirSync, mkdtempSync, utimesSync, writeFileSync } from 'node:fs'
+import { describe, expect, test, afterAll } from 'vitest'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { collectPlaywrightEvidence, parseJunit } from '../../../scripts/lib/junit-trust.ts'
@@ -25,8 +25,14 @@ function forgedJunit(id: string, count: number): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<testsuites>\n  <testsuite name="chromium" tests="${count}" failures="0" skipped="0">\n    ${cases}\n  </testsuite>\n</testsuites>\n`
 }
 
+const created: string[] = []
+afterAll(() => {
+  for (const dir of created.splice(0)) rmSync(dir, { recursive: true, force: true })
+})
+
 function scratch(label: string): { dir: string; tmpJunit: string; persistentJunit: string } {
   const dir = mkdtempSync(join(tmpdir(), `zipscribe-junit-trust-${label}-`))
+  created.push(dir)
   mkdirSync(join(dir, 'tmp', 'pw'), { recursive: true })
   mkdirSync(join(dir, 'test-results'), { recursive: true })
   return { dir, tmpJunit: join(dir, 'tmp', 'pw', 'junit.xml'), persistentJunit: join(dir, 'test-results', 'junit.xml') }
