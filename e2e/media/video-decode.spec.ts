@@ -2,7 +2,14 @@
 // `media:probed.asset.duration` matches the manifest (±10 ms), `kind:'video'`,
 // audio codec reported, and the 16 kHz mono PCM stream covers the duration.
 import { expect, test } from '@playwright/test'
-import { fixturePath, loadManifest, videoSet, HARNESS_ORIGIN, HARNESS_PAGE } from './helpers/media'
+import {
+  HARNESS_ORIGIN,
+  HARNESS_PAGE,
+  fixturePath,
+  loadManifest,
+  routeFixtures,
+  videoSet,
+} from './helpers/media'
 
 test.describe('CC-04.1: video corpus decodes to spec', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:unit')
@@ -16,10 +23,7 @@ test.describe('CC-04.1: video corpus decodes to spec', () => {
   for (const key of videoSet()) {
     const entry = loadManifest().files[key]!
     test(`CC-04.1: ${key.replace('../', '')} decodes to spec (duration ±10 ms)`, async ({ page, baseURL }) => {
-      await page.route('**/*', async (route) => {
-        if (route.request().url().startsWith(baseURL + '/')) await route.continue()
-        else await route.abort()
-      })
+      await routeFixtures(page, baseURL ?? HARNESS_ORIGIN)
       await page.goto(HARNESS_PAGE)
       await page.waitForFunction(
         () => (globalThis as Record<string, unknown>).__zipscribeMediaHarnessReady === true,

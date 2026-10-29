@@ -8,9 +8,35 @@
 //   (browsers lacking a codec skip-annotate via `pathFor`).
 // - The correlation helper is a REAL normalized cross-correlation with an
 //   offset search (± `maxOffsetSamples`), used against `fmt-30s.ref.wav`.
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import type { Page } from '@playwright/test'
 import { REPO_ROOT } from '../../../tests/helpers/repo'
+
+/**
+ * Install the one network policy every unit-04 spec uses: the app/harness
+ * page loads from the Playwright webServer (or the spec-owned isolated
+ * preview), `/fixtures/**` is fulfilled from `fixtures/` on disk (the vite
+ * preview's publicDir is `public/`, which only carries the unit-02 corpus
+ * copies — the unit-01 fixture tree is served by the spec, never fetched),
+ * and every other origin is aborted (network policy: tests never reach the
+ * network).
+ */
+export async function routeFixtures(page: Page, baseURL?: string): Promise<void> {
+  const base = baseURL ?? HARNESS_ORIGIN
+  const origin = base.endsWith('/') ? base.slice(0, -1) : base
+  await page.route('**/*', async (route) => {
+    const url = route.request().url()
+    if (!url.startsWith(`${origin}/`)) return route.abort()
+    if (url.startsWith(`${origin}/fixtures/`)) {
+      const rel = decodeURIComponent(url.slice(origin.length + '/fixtures/'.length).split('?')[0] ?? '')
+      const path = join(REPO_ROOT, 'fixtures', rel)
+      if (!path.startsWith(join(REPO_ROOT, 'fixtures')) || !existsSync(path)) return route.fulfill({ status: 404, body: `fixture not found: ${rel}` })
+      return route.fulfill({ status: 200, body: readFileSync(path) })
+    }
+    await route.continue()
+  })
+}
 
 export interface ManifestEntry {
   duration: number

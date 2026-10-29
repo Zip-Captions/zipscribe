@@ -8,7 +8,13 @@
 // (`fixtures/golden/playback-*` cover the 44.1 kHz resample path in the unit
 // suite); here the assertion is "playback output == full-rate decode".
 import { expect, test } from '@playwright/test'
-import { bestAlignment, nccOverlap, HARNESS_ORIGIN, HARNESS_PAGE } from './helpers/media'
+import {
+  HARNESS_ORIGIN,
+  HARNESS_PAGE,
+  bestAlignment,
+  nccOverlap,
+  routeFixtures,
+} from './helpers/media'
 
 interface PlaybackRecordForTest {
   sampleRate: number
@@ -26,10 +32,7 @@ test.describe('CC-04.6: native-rate playback decode and seek', () => {
   test.use({ baseURL: HARNESS_ORIGIN, viewport: { width: 800, height: 600 } })
 
   test.beforeEach(async ({ page, baseURL }) => {
-    await page.route('**/*', async (route) => {
-      if (route.request().url().startsWith(baseURL + '/')) await route.continue()
-      else await route.abort()
-    })
+    await routeFixtures(page, baseURL)
     await page.goto(HARNESS_PAGE)
     await page.waitForFunction(
         () => (globalThis as Record<string, unknown>).__zipscribeMediaHarnessReady === true,

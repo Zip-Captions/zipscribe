@@ -1,4 +1,8 @@
-import { HARNESS_ORIGIN, HARNESS_PAGE } from './helpers/media'
+import {
+  HARNESS_ORIGIN,
+  HARNESS_PAGE,
+  routeFixtures,
+} from './helpers/media'
 // CC-04.8 / CC-04.13 / CC-04.4 (L4, Chromium): the shipped resampler, peaks
 // and fingerprint run on REAL decoded audio in the browser — the same
 // thresholds as the L1 suite, now against WebCodecs-decoded samples.
@@ -20,10 +24,7 @@ test.describe('unit-04 engine math on real decoded audio (Chromium)', () => {
   test.use({ baseURL: HARNESS_ORIGIN })
 
   test.beforeEach(async ({ page, baseURL }) => {
-    await page.route('**/*', async (route) => {
-      if (route.request().url().startsWith(baseURL + '/')) await route.continue()
-      else await route.abort()
-    })
+    await routeFixtures(page, baseURL)
     await page.goto(HARNESS_PAGE)
     await page.waitForFunction(
         () => (globalThis as Record<string, unknown>).__zipscribeMediaHarnessReady === true,

@@ -4,8 +4,21 @@
 // `fixtures-verify` runs, then it fails"), § Technical Specification
 // ("committed fixtures ≤ 50 MB total … licenses in `fixtures/LICENSES.md`"),
 // and `knowledge/conventions.md` § Test data (≤ 50 MB total).
+import { execFileSync } from 'node:child_process'
 import { describe, expect, test } from 'vitest'
 import { exists, readJson, readText, totalBytes, walkFiles } from '../../helpers/repo'
+
+/**
+ * Committed files under `dir` (git truth), intersected with the on-disk walk
+ * for byte accounting. walkFiles() sees the DISK: generated, gitignored setup
+ * artifacts (e.g. `pnpm fixtures --perf`'s audio-120min.mp4) legitimately sit
+ * there and must not count against the CC-01.7 COMMITTED budget or trip the
+ * "never committed" assertion — the criterion says "committed fixtures ≤ 50 MB".
+ */
+function committedFiles(dir: string): string[] {
+  const tracked = new Set(execFileSync('git', ['ls-files', dir], { encoding: 'utf8' }).split('\n').filter(Boolean))
+  return walkFiles(dir).filter((file) => tracked.has(file))
+}
 
 const FIXTURE_BUDGET_BYTES = 50 * 1024 * 1024
 const URL_PATTERN = /https?:\/\/\S+/
@@ -17,7 +30,7 @@ interface ManifestEntry {
 
 describe('CC-01.7: fixture budget and licensing', () => {
   test('CC-01.7: committed files under fixtures/ total at most 50 MB', () => {
-    const files = walkFiles('fixtures')
+    const files = committedFiles('fixtures')
     const bytes = totalBytes(files)
     const mb = bytes / (1024 * 1024)
     expect(files.length, 'fixtures/ is empty — nothing is committed yet').toBeGreaterThan(0)
@@ -25,7 +38,7 @@ describe('CC-01.7: fixture budget and licensing', () => {
   })
 
   test('CC-01.7: the perf-only 120-minute fixture is generated, never committed', () => {
-    const committed = walkFiles('fixtures')
+    const committed = committedFiles('fixtures')
     expect(committed).not.toContain('fixtures/audio-120min.mp4')
     const manifestPath = exists('fixtures/harness/manifest.json') ? 'fixtures/harness/manifest.json' : 'fixtures/manifest.json'
     expect(exists(manifestPath), `manifest at ${manifestPath}`).toBe(true)

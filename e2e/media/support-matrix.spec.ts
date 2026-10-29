@@ -7,7 +7,16 @@
 // that lacks a codec SKIP-ANNOTATES that row instead of failing: the
 // `supported: 'none'` outcome is itself the recorded matrix fact.
 import { expect, test } from '@playwright/test'
-import { fallbackSet, fixturePath, nativeSet, pathFor, WEBKIT_EXPECTED, HARNESS_ORIGIN, HARNESS_PAGE } from './helpers/media'
+import {
+  HARNESS_ORIGIN,
+  HARNESS_PAGE,
+  WEBKIT_EXPECTED,
+  fallbackSet,
+  fixturePath,
+  nativeSet,
+  pathFor,
+  routeFixtures,
+} from './helpers/media'
 
 const MATRIX_KEYS = [...nativeSet(), ...fallbackSet()]
 
@@ -21,10 +30,7 @@ for (const browser of ['chromium', 'webkit'] as const) {
       const expected = browser === 'webkit' ? (WEBKIT_EXPECTED[key] ?? pathFor('webkit', key)) : pathFor('chromium', key)
       test(`CC-04.7: ${browser} decodes ${key} via ${expected}`, async ({ page, browserName, baseURL }) => {
         test.skip(browserName !== browser, `row belongs to the ${browser} project`)
-        await page.route('**/*', async (route) => {
-          if (route.request().url().startsWith((baseURL ?? HARNESS_ORIGIN) + '/')) await route.continue()
-          else await route.abort()
-        })
+        await routeFixtures(page, baseURL ?? HARNESS_ORIGIN)
         await page.goto(HARNESS_PAGE)
         await page.waitForFunction(
         () => (globalThis as Record<string, unknown>).__zipscribeMediaHarnessReady === true,

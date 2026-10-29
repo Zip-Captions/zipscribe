@@ -1,4 +1,8 @@
-import { HARNESS_ORIGIN, HARNESS_PAGE } from './helpers/media'
+import {
+  HARNESS_ORIGIN,
+  HARNESS_PAGE,
+  routeFixtures,
+} from './helpers/media'
 // CC-04.10 (L4, Chromium): the ffmpeg fallback path is taken for a fixture the
 // browser CAN decode natively, when the capability probe is stubbed to report
 // the native decoder as unsupported — `decode:support { path: 'ffmpeg' }` +
@@ -15,10 +19,7 @@ test.describe('CC-04.10: forced ffmpeg fallback (stubbed capability probe)', () 
   test.use({ baseURL: HARNESS_ORIGIN })
 
   test.beforeEach(async ({ page, baseURL }) => {
-    await page.route('**/*', async (route) => {
-      if (route.request().url().startsWith(baseURL + '/')) await route.continue()
-      else await route.abort()
-    })
+    await routeFixtures(page, baseURL)
     await page.goto(HARNESS_PAGE)
     await page.waitForFunction(
         () => (globalThis as Record<string, unknown>).__zipscribeMediaHarnessReady === true,

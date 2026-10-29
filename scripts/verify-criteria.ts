@@ -139,7 +139,14 @@ function collectTests(testRoot: string): TestCase[] {
       tmpJunitFile: playwrightJunitFile,
       persistentJunitFile: join(repoRoot, 'test-results', 'junit.xml'),
       spawn: (junitFile) =>
-        run('corepack', ['pnpm', 'exec', 'playwright', 'test', '--project=chromium', '--reporter=junit', `--output=${playwrightOutDir}`], 20 * 60_000, {
+        // unit-04 CC-04.9: the `memory` project (e2e/media/memory/**) is
+        // testIgnore-excluded from chromium to keep its spec-spawned isolated
+        // preview (4312) single-owner; it must still be exercised for the
+        // e2e-sourced criteria to be collectible. GREEN-phase note: the real
+        // 120-min decode is a reference-hardware gate — if it outgrows this
+        // window at release time the memory project belongs in `qualify`,
+        // not a longer spawn here (unit report follow-up).
+        run('corepack', ['pnpm', 'exec', 'playwright', 'test', '--project=chromium', '--project=memory', '--reporter=junit', `--output=${playwrightOutDir}`], 20 * 60_000, {
           PLAYWRIGHT_JUNIT_OUTPUT_FILE: junitFile,
         }),
       parse: (file) => parseJunit(file, 'playwright'),

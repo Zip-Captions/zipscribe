@@ -12,18 +12,19 @@
 // the Playwright webServer (build + preview); the page never touches another origin.
 import { expect, test } from '@playwright/test'
 import {
+  HARNESS_ORIGIN,
+  HARNESS_PAGE,
+  MAX_OFFSET_SEC,
   bestAlignment,
   concatChunks,
   durationTolerance,
   fallbackSet,
   fixturePath,
-  MAX_OFFSET_SEC,
   minCorrelation,
   nativeSet,
   pathFor,
   referencePcm2000Hz,
-  HARNESS_ORIGIN,
-  HARNESS_PAGE,
+  routeFixtures,
 } from './helpers/media'
 
 test.describe('unit-04 audio format matrix (real decode in Chromium)', () => {
@@ -35,15 +36,7 @@ test.describe('unit-04 audio format matrix (real decode in Chromium)', () => {
   test.use({ baseURL: HARNESS_ORIGIN })
 
   test.beforeEach(async ({ page, baseURL }) => {
-    // Everything comes from the one webServer origin; anything else is a bug.
-    await page.route('**/*', async (route) => {
-      const url = route.request().url()
-      if (url.startsWith(baseURL + '/')) {
-        await route.continue()
-        return
-      }
-      await route.abort()
-    })
+    await routeFixtures(page, baseURL)
     await page.goto(HARNESS_PAGE)
     await page.waitForFunction(
         () => (globalThis as Record<string, unknown>).__zipscribeMediaHarnessReady === true,

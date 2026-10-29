@@ -20,6 +20,7 @@ import { fingerprintFile } from '@engine/audio/fingerprint'
 import { createPeaksAccumulator } from '@engine/audio/peaks'
 import { resample } from '@engine/audio/resample'
 import { createSupportMatrix } from '@engine/audio/adapters/probe'
+import { ALL_FORMATS, AudioSampleSink, BlobSource, Input } from 'mediabunny'
 
 export interface ChunkRecord {
   startSec: number
@@ -78,8 +79,7 @@ function recordEvent(event: MediaWorkerEvent): EventRecord {
 // `src/engine/audio/adapters/mediabunny.ts`) --------------------------------
 
 async function openWithMediabunny(file: Blob, onFallback?: (reason: { container: string; codec: string }) => void): Promise<{ source: MediaSourceLike; path: 'webcodecs' | 'ffmpeg'; probe: import('@engine/audio/decode').DecodeProbe }> {
-  const { Input, ALL_FORMATS, BlobSource, AudioSampleSink } = await mediabunny()
-  const input = new Input({ formats: { ALL_FORMATS }, source: new BlobSource(file) })
+  const input = new Input({ formats: ALL_FORMATS, source: new BlobSource(file) })
   const audioTrack = await input.getPrimaryAudioTrack()
   const videoTrack = await input.getPrimaryVideoTrack()
   const duration = await input.computeDuration()
@@ -114,7 +114,7 @@ async function openWithMediabunny(file: Blob, onFallback?: (reason: { container:
     samples: async function* (): AsyncGenerator<AudioSampleLike> {
       registry.live++
       try {
-        const sink = new (await mediabunny()).AudioSampleSink(audioTrack)
+        const sink = new AudioSampleSink(audioTrack)
         for await (const sample of sink.samples()) {
           const channels = Array.from({ length: sample.numberOfChannels }, (_, channel) => {
             const plane = new Float32Array(sample.numberOfFrames)
@@ -170,9 +170,23 @@ async function ffmpegOpen(file: Blob, mode: 'real' | 'film'): Promise<{ source: 
       probe: { container: 'ffmpeg', duration, audioCodec: track.codec, videoCodec: null, width: 0, height: 0, fps: 0, trackCount: 1, audioTrackCount: 1, canDecodeAudio: false },
     }
   }
-  // The real path is `@ffmpeg/ffmpeg` (not installed until the builder wires
-  // it); throwing here keeps the mode honest instead of silently greening.
-  throw Object.assign(new Error('FFMPEG_CORE_UNAVAILABLE'), { code: 'FFMPEG_CORE_UNAVAILABLE' })
+  // CC-04.10 real-ffmpeg contract (frozen for the builder, verbatim):
+  //   core script: /wasm/ffmpeg/ffmpeg-core.js
+  //   core wasm:   /wasm/ffmpeg/ffmpeg-core.wasm
+  // (pinned @ffmpeg/core@0.12.10 `dist/umd/ffmpeg-core.js|.wasm`, copied by a
+  // builder copy script following the FR-1.0.9 self-hosted `/wasm/` pattern;
+  // loaded through `@ffmpeg/ffmpeg` `load({ coreURL, wasmURL })` with exactly
+  // these same-origin URLs — never a CDN, network policy). The production
+  // adapter (src/engine/audio/adapters/ffmpeg.ts, builder) owns the transcode;
+  // this seam proves the URL contract and stays honest while the copy script
+  // is absent: a missing self-hosted path is FFMPEG_CORE_UNAVAILABLE, not a
+  // silent film-mode fallback.
+  const paths = ['/wasm/ffmpeg/ffmpeg-core.js', '/wasm/ffmpeg/ffmpeg-core.wasm'] as const
+  for (const path of paths) {
+    const response = await fetch(path, { method: 'HEAD' })
+    if (!response.ok) throw Object.assign(new Error(`FFMPEG_CORE_UNAVAILABLE: ${path} (${response.status})`), { code: 'FFMPEG_CORE_UNAVAILABLE' })
+  }
+  throw Object.assign(new Error('FFMPEG_CORE_UNAVAILABLE: core present but the production ffmpeg adapter is not wired yet (builder)'), { code: 'FFMPEG_CORE_UNAVAILABLE' })
 }
 
 // --- harness surface ---------------------------------------------------------
@@ -206,51 +220,11 @@ export interface MediaHarness {
   decodeStreaming(url: string, onProgress?: (coveredSec: number) => void): Promise<{ chunks: number; duration: number }>
 }
 
-// mediabunny is the SDK under test; load it through the module graph at
-// runtime (the builder owns the dependency + adapter — see the unit report).
-// Typed from the frozen adapter seam, not from the package's own types, so
-// this harness typechecks before mediabunny is installed.
-const MEDIABUNNY_SPECIFIER = 'mediabunny'
-const mediabunny = (): Promise<MediabunnyModule> => import(/* @vite-ignore */ MEDIABUNNY_SPECIFIER).then((module: unknown) => module as MediabunnyModule)
-
-interface MediabunnyInputLike {
-  getPrimaryAudioTrack(): Promise<MediabunnyAudioTrackLike | null>
-  getPrimaryVideoTrack(): Promise<MediabunnyVideoTrackLike | null>
-  computeDuration(): Promise<number>
-  getMimeType(): Promise<string>
-  getTracks(): Promise<unknown[]>
-  getAudioTracks(): Promise<unknown[]>
-  dispose(): void
-}
-
-interface MediabunnyAudioTrackLike {
-  getCodec(): Promise<string | null>
-  canDecode(): Promise<boolean>
-  getSampleRate(): Promise<number>
-  getNumberOfChannels(): Promise<number>
-}
-
-interface MediabunnyVideoTrackLike {
-  getCodec(): Promise<string | null>
-  getDisplayWidth(): Promise<number>
-  getDisplayHeight(): Promise<number>
-}
-
-interface MediabunnySampleLike {
-  timestamp: number
-  sampleRate: number
-  numberOfFrames: number
-  numberOfChannels: number
-  copyTo(destination: Float32Array, options: { planeIndex: number; format: string }): void
-  close(): void
-}
-
-interface MediabunnyModule {
-  Input: new (options: { formats: unknown; source: unknown }) => MediabunnyInputLike
-  ALL_FORMATS: unknown
-  BlobSource: new (blob: Blob) => unknown
-  AudioSampleSink: new (track: MediabunnyAudioTrackLike) => { samples(): AsyncGenerator<MediabunnySampleLike> }
-}
+// mediabunny is the SDK under test, pinned in settings.yml version_pins and
+// installed (the builder moves this adapter shape into
+// `src/engine/audio/adapters/mediabunny.ts`). It is imported statically so
+// the harness bundle and the page use the SAME module instance as the
+// production adapter will — no runtime specifier resolution.
 
 function channelPair(): InstanceType<typeof MessageChannel> {
   return new MessageChannel()
@@ -403,9 +377,24 @@ function buildHarness(): MediaHarness {
 
     async supportMatrix(url) {
       const file = await fetchFile(url)
-      const opened = await openWithMediabunny(file)
+      // mediabunny is CAPABILITY EVIDENCE, never the decision: fallback-set
+      // containers (aiff/caf/wma/amr) do not parse through it at all, and the
+      // production probe sniffs those itself (sniffContainer /
+      // ALL_FORMAT_HINTS in the frozen adapters/probe surface). A mediabunny
+      // miss therefore still asks OUR matrix, with the raw evidence it has.
+      let container = 'unknown'
+      let codec: string = 'none'
+      let webcodecs = false
+      try {
+        const opened = await openWithMediabunny(file)
+        container = opened.probe.container
+        codec = opened.probe.audioCodec ?? 'none'
+        webcodecs = opened.probe.canDecodeAudio
+      } catch {
+        /* unsupported by mediabunny: matrix.probe decides from url + hints */
+      }
       const matrix = createSupportMatrix()
-      return matrix.probe(url, opened.probe.container, opened.probe.audioCodec ?? 'none', { webcodecs: opened.probe.canDecodeAudio, ffmpeg: true })
+      return matrix.probe(url, container, codec, { webcodecs, ffmpeg: true })
     },
 
     async decodeStreaming(url, onProgress) {
@@ -452,7 +441,9 @@ function bytesEqual(a: Float32Array, b: Float32Array): boolean {
 }
 
 async function fetchFile(url: string): Promise<File> {
-  const response = await fetch(url)
+  // Root-absolute so the spec's `/fixtures/**` route policy (and the static
+  // server) see the same path regardless of the harness page's own directory.
+  const response = await fetch(new URL(url, globalThis.location.origin + '/').href)
   if (!response.ok) throw new Error(`fixture fetch failed: ${response.status}`)
   const bytes = new Uint8Array(await response.arrayBuffer())
   return new File([new Blob([bytes])], url.split('/').pop() ?? 'fixture', { type: response.headers.get('content-type') ?? 'application/octet-stream' })
@@ -460,7 +451,6 @@ async function fetchFile(url: string): Promise<File> {
 
 async function readNative(url: string): Promise<{ sampleRate: number; channels: number; data: Float32Array }> {
   const file = await fetchFile(url)
-  const { Input, ALL_FORMATS, BlobSource, AudioSampleSink } = await mediabunny()
   const input = new Input({ formats: ALL_FORMATS, source: new BlobSource(file) })
   const track = await input.getPrimaryAudioTrack()
   if (!track) throw new Error('no audio track')

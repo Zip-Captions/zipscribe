@@ -3,7 +3,15 @@
 // fixture (cover-art containers included), correct codec/sample-rate/channels,
 // and `not-audio.mp3` → `UNSUPPORTED_MEDIA` with no asset/project.
 import { expect, test } from '@playwright/test'
-import { fallbackSet, fixturePath, loadManifest, nativeSet, HARNESS_ORIGIN, HARNESS_PAGE } from './helpers/media'
+import {
+  HARNESS_ORIGIN,
+  HARNESS_PAGE,
+  fallbackSet,
+  fixturePath,
+  loadManifest,
+  nativeSet,
+  routeFixtures,
+} from './helpers/media'
 
 const AUDIO_FIXTURES = [...nativeSet(), ...fallbackSet()]
 
@@ -16,10 +24,7 @@ test.describe('CC-04.4: audio-only probe and CC-04.5: unsupported media', () => 
   test.use({ baseURL: HARNESS_ORIGIN })
 
   test.beforeEach(async ({ page, baseURL }) => {
-    await page.route('**/*', async (route) => {
-      if (route.request().url().startsWith(baseURL + '/')) await route.continue()
-      else await route.abort()
-    })
+    await routeFixtures(page, baseURL)
     await page.goto(HARNESS_PAGE)
     await page.waitForFunction(
         () => (globalThis as Record<string, unknown>).__zipscribeMediaHarnessReady === true,

@@ -1,4 +1,8 @@
-import { HARNESS_ORIGIN, HARNESS_PAGE } from './helpers/media'
+import {
+  HARNESS_ORIGIN,
+  HARNESS_PAGE,
+  routeFixtures,
+} from './helpers/media'
 // CC-04.12 (L4, Chromium): two-port tee — ASR and diarize ports receive
 // byte-identical chunk sequences through the production `teePcm`; a stalled
 // consumer pauses decode at the bounded queue of 30 chunks instead of
@@ -15,10 +19,7 @@ test.describe('CC-04.12: tee and backpressure', () => {
   test.setTimeout(180_000)
 
   test.beforeEach(async ({ page, baseURL }) => {
-    await page.route('**/*', async (route) => {
-      if (route.request().url().startsWith(baseURL + '/')) await route.continue()
-      else await route.abort()
-    })
+    await routeFixtures(page, baseURL)
     await page.goto(HARNESS_PAGE)
     await page.waitForFunction(
         () => (globalThis as Record<string, unknown>).__zipscribeMediaHarnessReady === true,
