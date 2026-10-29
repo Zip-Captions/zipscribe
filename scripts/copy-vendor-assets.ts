@@ -8,6 +8,7 @@
 // gitignored public/ directories before the eval build. Same pattern as
 // scripts/copy-wasm.ts for onnxruntime-web (FR-1.0.9).
 
+import { createHash } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, resolve, sep } from 'node:path'
@@ -52,7 +53,39 @@ function copyMatching(source: string, target: string, pattern: RegExp, label: st
   return copied
 }
 
-export function copyVendorAssets(): { sherpa: string[]; eval4x: string[] } {
+/**
+ * Copy the cactus-needle browser runtime (`needle.cjs` + `needle.wasm`) that
+ * the T3 whistle row declares in `ModelSpec.runtimeWasm` (`/wasm/needle.*`).
+ * The npm package ships those files under `vendor/` and pins their SHA-256 in
+ * `vendor/manifest.json` (Cactus-Compute/needle3 @ 2ae11323) — we verify each
+ * file against that manifest before serving it, so a swapped package can never
+ * put different bytes behind a registry entry (FR-03.8/FR-03.6 doctrine).
+ */
+export function copyNeedleRuntime(): string[] {
+  const vendorDir = join(repoRoot, 'node_modules', 'cactus-needle', 'vendor')
+  const manifestPath = join(vendorDir, 'manifest.json')
+  if (!existsSync(manifestPath)) return [] // package not installed — T3 row unusable, reported by the registry check
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+    files: Record<string, { path: string; sha256: string }>
+  }
+  const target = join(repoRoot, 'public', 'wasm')
+  mkdirSync(target, { recursive: true })
+  const copied: string[] = []
+  for (const file of ['needle.cjs', 'needle.wasm']) {
+    const entry = manifest.files[file]
+    if (!entry) throw new Error(`copy-vendor-assets: ${file} missing from cactus-needle vendor manifest`)
+    const source = join(vendorDir, file)
+    const actual = createHash('sha256').update(readFileSync(source)).digest('hex')
+    if (actual !== entry.sha256) {
+      throw new Error(`copy-vendor-assets: ${file} SHA-256 mismatch (manifest ${entry.sha256}, got ${actual})`)
+    }
+    copyBoth(source, join(target, file))
+    copied.push(file)
+  }
+  return copied
+}
+
+export function copyVendorAssets(): { sherpa: string[]; eval4x: string[]; needle: string[] } {
   // Engine B: OFFICIAL k2-fsa browser wasm build of the non-streaming
   // wasm/vad-asr path (Emscripten main + asr/vad glue), pinned in
   // models/eval-registry.json (id sherpa-wasm-vad-asr) and fetched
@@ -117,11 +150,22 @@ export function copyVendorAssets(): { sherpa: string[]; eval4x: string[] } {
     // the rest of the eval; the harness reports the leak rows as blockers.
     console.warn('copy-vendor-assets: tools/eval/node-4x onnxruntime-web not installed — eval4x wasm skipped')
   }
-  return { sherpa, eval4x }
+  // Engine C: cactus-needle browser runtime behind the /wasm/needle.* paths
+  // the T3 whistle row declares (SHA-verified against the package manifest).
+  let needle: string[] = []
+  try {
+    needle = copyNeedleRuntime()
+  } catch (error) {
+    console.warn(`copy-vendor-assets: cactus-needle runtime not copied — ${(error as Error).message}`)
+    throw error
+  }
+
+  return { sherpa, eval4x, needle }
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
-  const { sherpa, eval4x } = copyVendorAssets()
+  const { sherpa, eval4x, needle } = copyVendorAssets()
   console.log(`public/sherpa: ${sherpa.length} file(s)`)
+  console.log(`public/wasm needle runtime: ${needle.length} file(s)`)
   console.log(`public/eval4x/wasm: ${eval4x.length} file(s)`)
 }

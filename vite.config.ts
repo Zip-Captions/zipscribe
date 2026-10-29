@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { execSync } from 'node:child_process'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
-import { copyRuntimeWasm } from './scripts/copy-wasm.ts'
+import { copyAllRuntimeWasm } from './scripts/copy-wasm.ts'
 
 // Product configuration (the test-only config is vitest.config.ts).
 // vite 7 specifics verified against official docs — docs-mcp indexes vite only
@@ -49,10 +49,10 @@ function selfHostedWasm(): Plugin {
   return {
     name: 'zipscribe:self-hosted-wasm',
     buildStart() {
-      copyRuntimeWasm()
+      copyAllRuntimeWasm()
     },
     configureServer() {
-      copyRuntimeWasm()
+      copyAllRuntimeWasm()
     },
     closeBundle() {
       // The CC-01.4 negative test injects a probe chunk via a REPO_ROOT-

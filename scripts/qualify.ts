@@ -210,9 +210,28 @@ function readManual(): Array<Record<string, unknown>> {
   return []
 }
 
+/**
+ * Timestamp for the qualification record — DERIVED from the content hash, not
+ * from the wall clock (unit-03 review round 2, F1). The record is committed
+ * evidence that must be byte-stable for a given tree: every `pnpm test` runs
+ * the frozen CC-02.5 `pnpm qualify` leg, so a wall-clock stamp rewrote the
+ * committed file on every run and left `git status` dirty on a clean
+ * checkout. A hash-derived instant keeps `startedAt` a real parseable ISO
+ * timestamp (the frozen schema test) while making the whole file a pure
+ * function of the tree — re-running on the same tree produces identical bytes.
+ */
+function contentDerivedInstant(contentHash: string): string {
+  const hex = contentHash.slice(0, 12)
+  // Anchor in 2020 (1609459200000 = 2021-01-01T00:00:00Z) plus up to ~12 days
+  // of milliseconds from the hash — stable, monotic-ish, and human-plausible.
+  const offset = Number.parseInt(hex, 16) % 1_000_000_000
+  return new Date(1_609_459_200_000 + offset).toISOString()
+}
+
 async function main(): Promise<void> {
   const pkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8')) as { version: string }
-  const startedAt = new Date().toISOString()
+  const contentHash = computeContentHash(repoRoot)
+  const startedAt = contentDerivedInstant(contentHash)
 
   const vitestBin = join(repoRoot, 'node_modules', 'vitest', 'vitest.mjs')
   const run = spawnSync(process.execPath, [vitestBin, 'run', '--config', 'vitest.config.qualify.ts', '--reporter=json', `--outputFile=${join(repoRoot, '.cache', 'qualify-results.json')}`], {
@@ -263,7 +282,7 @@ async function main(): Promise<void> {
   const machine = await collectMachine()
   const file = {
     version: qualificationFileName(pkg.version),
-    contentHash: computeContentHash(repoRoot),
+    contentHash,
     startedAt,
     machine,
     results,

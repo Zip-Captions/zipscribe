@@ -21,12 +21,22 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { collectPlaywrightEvidence, parseJunit } from './lib/junit-trust.ts'
+import type { TestCase } from './lib/junit-trust.ts'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 interface Criterion {
   id: string
   tag?: string
+  /**
+   * The unit spec names Playwright as this criterion's evidence ("**CC-…**
+   * Playwright: …"). Derived from the COMMITTED spec text, never from a live
+   * scan of `e2e/` — otherwise deleting the spec file silently downgrades the
+   * criterion back to vitest crediting (unit-03 review round 2, F2: the
+   * self-fulfilling downgrade).
+   */
+  e2e?: boolean
 }
 
 function listSpecMarkdown(dir: string): string[] {
@@ -40,6 +50,18 @@ function listSpecMarkdown(dir: string): string[] {
   return out
 }
 
+const PLAYWRIGHT_SPEC = /^\**\s*(?:\[?[A-Z]+\]?\s*)?Playwright\b/i
+
+/** Does the spec line that declares this criterion name Playwright as its evidence? */
+function declaresPlaywright(text: string, id: string): boolean {
+  for (const line of text.split('\n')) {
+    if (!line.includes(`**${id}**`)) continue
+    const afterId = line.slice(line.indexOf(`**${id}**`) + id.length + 4).trim()
+    if (PLAYWRIGHT_SPEC.test(afterId)) return true
+  }
+  return false
+}
+
 function parseCriteria(file: string): Criterion[] {
   const text = readFileSync(file, 'utf8')
   const found: Criterion[] = []
@@ -47,63 +69,36 @@ function parseCriteria(file: string): Criterion[] {
   for (const match of text.matchAll(/\*\*(CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+)\*\*\s*(?:`|\s)*\[(RQ|DEPLOY|MANUAL)\]?/g)) {
     const id = match[1]!
     if (!seen.has(id)) {
-      found.push({ id, tag: match[2] })
+      found.push({ id, tag: match[2], e2e: declaresPlaywright(text, id) })
       seen.add(id)
     }
   }
   for (const match of text.matchAll(/\*\*(CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+)\*\*(?!\s*(?:`|\s)*\[)/g)) {
     const id = match[1]!
     if (!seen.has(id)) {
-      found.push({ id })
+      found.push({ id, e2e: declaresPlaywright(text, id) })
       seen.add(id)
     }
   }
   return found.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
 }
 
-interface TestCase {
-  title: string
-  status: 'passed' | 'failed' | 'skipped'
-}
-
-function decodeEntities(text: string): string {
-  return text
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-}
-
-function parseJunit(file: string): TestCase[] {
-  if (!existsSync(file)) return []
-  const xml = readFileSync(file, 'utf8')
-  const cases: TestCase[] = []
-  for (const match of xml.matchAll(/<testcase\b([^>]*?)(?:\/>|>([\s\S]*?)<\/testcase>)/g)) {
-    const attrs = match[1] ?? ''
-    const body = match[2] ?? ''
-    const nameMatch = attrs.match(/(?:^|\s)name="([^"]*)"/)
-    const statusMatch = attrs.match(/(?:^|\s)status="([^"]*)"/)
-    const title = decodeEntities(nameMatch?.[1] ?? '')
-    let status: TestCase['status'] = 'passed'
-    if (/<(failure|error)\b/.test(body) || statusMatch?.[1] === 'unexpected') status = 'failed'
-    else if (/<skipped\b/.test(body) || statusMatch?.[1] === 'skipped') status = 'skipped'
-    cases.push({ title, status })
-  }
-  return cases
-}
-
-function run(command: string, args: string[], timeoutMs: number): { status: number; output: string } {
+// spawnSync status is preserved as `number | null` (NOT collapsed to 1): a
+// null status means the process was killed, timed out, or failed to spawn —
+// results on disk after such a run are never trusted (unit-02 doctrine,
+// scripts/qualify.ts readQualifyResults @ eb61046, extended to the e2e junit
+// by scripts/lib/junit-trust.ts after the unit-03 adversary).
+function run(command: string, args: string[], timeoutMs: number, extraEnv?: Record<string, string>): { status: number | null; output: string } {
   const result = spawnSync(command, args, {
     cwd: repoRoot,
     encoding: 'utf8',
     timeout: timeoutMs,
     // No ZIPSCRIBE_CHILD here: a criteria verification is the authoritative
     // full run and must see every test file, including the gates scaffold.
-    env: { ...process.env, CI: process.env.CI ?? '1', NO_COLOR: '1', ZIPSCRIBE_CHILD: undefined },
+    env: { ...process.env, CI: process.env.CI ?? '1', NO_COLOR: '1', ZIPSCRIBE_CHILD: undefined, ...extraEnv },
     maxBuffer: 64 * 1024 * 1024,
   })
-  return { status: result.status ?? 1, output: `${result.stdout ?? ''}\n${result.stderr ?? ''}` }
+  return { status: result.status, output: `${result.stdout ?? ''}\n${result.stderr ?? ''}` }
 }
 
 function collectTests(testRoot: string): TestCase[] {
@@ -112,17 +107,45 @@ function collectTests(testRoot: string): TestCase[] {
   const vitestArgs = ['pnpm', 'exec', 'vitest', 'run', '--root', testRoot, '--reporter=junit', `--outputFile.junit=${join(outDir, 'vitest.xml')}`]
   if (testRoot === repoRoot) vitestArgs.splice(4, 0, '--reporter=default')
   const vitest = run('corepack', vitestArgs, 30 * 60_000)
-  cases.push(...parseJunit(join(outDir, 'vitest.xml')))
+  if (vitest.status === null) {
+    // Killed / timed out / failed to spawn: whatever the reporter wrote (if
+    // anything) is not this run's complete evidence — never partially
+    // trusted (unit-02 spawn-null doctrine, scripts/qualify.ts @ eb61046).
+    throw new Error('vitest run did not complete (spawn failed, killed, or timed out) — JUnit results distrusted')
+  }
+  cases.push(...parseJunit(join(outDir, 'vitest.xml'), 'vitest'))
   if (vitest.status !== 0 && cases.length === 0) {
     console.error(vitest.output.slice(-4000))
     throw new Error('vitest run produced no JUnit results')
   }
   // Playwright (e2e) only for whole-repo verification.
+  // Builder fix (unit-03): Playwright's junit reporter writes to STDOUT when
+  // only `--output=<dir>` is given — it never creates `<dir>/junit.xml`, so
+  // e2e criteria silently collected 0 cases (first exposed by CC-03.3, the
+  // first e2e-sourced untagged criterion). `PLAYWRIGHT_JUNIT_OUTPUT_FILE` is
+  // the reporter's documented file-output env var (verified against the
+  // pinned @playwright/test 1.64.1).
+  //
+  // Adversary fix (unit-03 finding 1): the junit is only credited through
+  // collectPlaywrightEvidence — pre-existing candidates (including the
+  // persistent repo `test-results/junit.xml` fallback) are wiped before the
+  // spawn, a null/nonzero child yields ZERO e2e-sourced credit, and accepted
+  // files must be freshly written inside the spawn window. A deleted spec +
+  // planted junit can therefore never fabricate e2e coverage.
   if (testRoot === repoRoot) {
-    const playwright = run('corepack', ['pnpm', 'exec', 'playwright', 'test', '--project=chromium', '--reporter=junit', `--output=${join(outDir, 'pw')}`], 20 * 60_000)
-    const junitCandidates = [join(outDir, 'pw', 'junit.xml'), join(repoRoot, 'test-results', 'junit.xml')]
-    for (const candidate of junitCandidates) cases.push(...parseJunit(candidate))
-    if (playwright.status !== 0 && playwright.output.length === 0) throw new Error('playwright run failed silently')
+    const playwrightOutDir = join(outDir, 'pw')
+    const playwrightJunitFile = join(playwrightOutDir, 'junit.xml')
+    const evidence = collectPlaywrightEvidence({
+      tmpJunitFile: playwrightJunitFile,
+      persistentJunitFile: join(repoRoot, 'test-results', 'junit.xml'),
+      spawn: (junitFile) =>
+        run('corepack', ['pnpm', 'exec', 'playwright', 'test', '--project=chromium', '--reporter=junit', `--output=${playwrightOutDir}`], 20 * 60_000, {
+          PLAYWRIGHT_JUNIT_OUTPUT_FILE: junitFile,
+        }),
+      parse: (file) => parseJunit(file, 'playwright'),
+    })
+    cases.push(...evidence.cases)
+    if (evidence.failure) console.error(`verify:unit: e2e evidence rejected — ${evidence.failure}`)
   }
   return cases
 }
@@ -185,7 +208,24 @@ function unitFileFromBranch(): string | null {
 function citationsOf(title: string): string[] {
   const stripped = title.replace(/^(?:[A-Z]+[ \t]+)+/, '')
   if (!/^(?:CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+)(?![A-Za-z0-9.-])/.test(stripped)) return []
-  return [...stripped.matchAll(/CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+/g)].map((match) => match[0])
+  // Only the LEADING citation run counts (unit-03 review F2): every
+  // consecutive `CC-…` token before the first separator. A later ID in prose
+  // ("rejects CC-03.3 …") discusses a criterion, it does not cover it — the
+  // previous whole-title scan let a test that merely mentioned an e2e ID
+  // credit that criterion with zero e2e execution.
+  const leading = stripped.match(/^((?:CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+[\s,/·+&-]*)+)/)?.[1] ?? ''
+  return [...leading.matchAll(/CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+/g)].map((match) => match[0])
+}
+
+/**
+ * L4 criteria whose evidence must come from Playwright (unit-03 review F2).
+ * The set is derived from the criterion's own spec text ("**CC-…** Playwright:
+ * …"), which is committed and immutable during verification — deleting the
+ * e2e spec file must never make a Playwright criterion start accepting vitest
+ * citations.
+ */
+function e2eBackedIds(criteria: Criterion[]): Set<string> {
+  return new Set(criteria.filter((criterion) => criterion.e2e).map((criterion) => criterion.id))
 }
 
 function main(): void {
@@ -241,11 +281,15 @@ function main(): void {
   const passingIds = new Set<string>()
   const citedIds = new Set<string>()
   const citations = new Map<string, number>()
+  const e2eOnly = e2eBackedIds(criteria)
   for (const testCase of cases) {
     for (const id of citationsOf(testCase.title)) {
       citedIds.add(id)
-      citations.set(id, (citations.get(id) ?? 0) + (testCase.status === 'passed' ? 1 : 0))
-      if (testCase.status === 'passed') passingIds.add(id)
+      const counts = testCase.status === 'passed' && (!e2eOnly.has(id) || testCase.source === 'playwright')
+      if (counts) {
+        citations.set(id, (citations.get(id) ?? 0) + 1)
+        passingIds.add(id)
+      }
     }
   }
 

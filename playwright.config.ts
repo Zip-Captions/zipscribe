@@ -14,7 +14,12 @@ const probeRequested = process.argv.some((arg) => arg.includes('retry-detection'
 
 export default defineConfig({
   testDir: './e2e',
-  fullyParallel: true,
+  // Builder extension (unit-03): tests inside ONE file share one worker, so a
+  // spec that owns a fixed-port local server (e2e/model/model-cache.spec.ts
+  // spawns vite on 4311 in beforeAll and closes it in afterAll — unit-02
+  // orphan-server doctrine) cannot have a sibling test kill its only live
+  // server from another worker's afterAll. Cross-file parallelism stays.
+  fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
   reporter: [['list'], ['./scripts/retry-pass-reporter.mjs']],
   use: {
