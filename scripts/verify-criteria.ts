@@ -228,15 +228,6 @@ function e2eBackedIds(criteria: Criterion[]): Set<string> {
   return new Set(criteria.filter((criterion) => criterion.e2e).map((criterion) => criterion.id))
 }
 
-function listTestFiles(dir: string): string[] {
-  const out: string[] = []
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const full = join(dir, entry.name)
-    if (entry.isDirectory()) out.push(...listTestFiles(full))
-    else if (/\.(spec|test)\.[cm]?[jt]sx?$/.test(entry.name)) out.push(full)
-  }
-  return out
-}
 
 function main(): void {
   const argv = process.argv.slice(2)
