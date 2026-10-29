@@ -48,6 +48,32 @@ deterministic work; record CC-01.14/15/16 as **awaiting-credentials** in the
 ledger and the report, flag them for morning review. Environment secrets are
 repo-level on this plan, so the owner can add them later without a re-run.
 
+## Adaptation 4 — working-directory boundary enforced in three places
+
+Trigger: during the unit-02/unit-03/unit-04 runs two sub-agents asked for
+permission to operate outside the repo. Root causes, all fixed:
+
+1. **The rule was only in the orchestrator's prompt template.** Sub-agents
+   read `.agent/AGENTS.md` on their own; it never mentioned the boundary. Now
+   it is the first section there ("Working-directory boundary", hard rule,
+   with `<repo>/.night/` as the scratch location and BLOCKED as the fallback).
+2. **The permission layer allowed it.** `opencode.json` had
+   `permission.external_directory: {"/tmp/zipscribe-review-*": "allow"}`, an
+   escape hatch that existed for the old reviewer-worktree convention. Removed.
+   The pipeline sub-agents (builder, test-author, adversary, fixer, reviewer)
+   additionally deny `git worktree add /tmp/**`, `mkdir|cp|mv|touch /tmp/**`.
+3. **The skill's review template still said `/tmp`-adjacent things** and the
+   orchestrator kept paraphrasing the standing block instead of pasting it
+   verbatim. `~/.config/opencode/skills/overnight-pipeline/process.md` now
+   states that the boundary OUTRANKS the task brief (a brief that asks for an
+   outside path is wrong and must be refused, not obeyed), and the review
+   template spells out `git worktree add <repo>/.night/review-pr<n>` with an
+   explicit "no /tmp, no ~/".
+
+`.night/` is now in `.gitignore`, so the sanctioned scratch location actually
+exists. Reviewers/adversaries use it; the orchestrator does not hand out
+out-of-repo paths.
+
 ## Fixed run-config values (agreed, don't re-ask at kickoff)
 
 | Key | Value |

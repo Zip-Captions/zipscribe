@@ -20,6 +20,7 @@ fixtures/audio-120min.mp4
 reports/
 
 # overnight pipeline run scratch (see .agent/overnight-pipeline.md)
+.night/
 .agent/overnight-run-config.md
 docs/overnight-ledger.md
 
