@@ -93,14 +93,14 @@ function parseJunit(file: string): TestCase[] {
   return cases
 }
 
-function run(command: string, args: string[], timeoutMs: number): { status: number; output: string } {
+function run(command: string, args: string[], timeoutMs: number, extraEnv?: Record<string, string>): { status: number; output: string } {
   const result = spawnSync(command, args, {
     cwd: repoRoot,
     encoding: 'utf8',
     timeout: timeoutMs,
     // No ZIPSCRIBE_CHILD here: a criteria verification is the authoritative
     // full run and must see every test file, including the gates scaffold.
-    env: { ...process.env, CI: process.env.CI ?? '1', NO_COLOR: '1', ZIPSCRIBE_CHILD: undefined },
+    env: { ...process.env, CI: process.env.CI ?? '1', NO_COLOR: '1', ZIPSCRIBE_CHILD: undefined, ...extraEnv },
     maxBuffer: 64 * 1024 * 1024,
   })
   return { status: result.status ?? 1, output: `${result.stdout ?? ''}\n${result.stderr ?? ''}` }
@@ -118,8 +118,17 @@ function collectTests(testRoot: string): TestCase[] {
     throw new Error('vitest run produced no JUnit results')
   }
   // Playwright (e2e) only for whole-repo verification.
+  // Builder fix (unit-03): Playwright's junit reporter writes to STDOUT when
+  // only `--output=<dir>` is given — it never creates `<dir>/junit.xml`, so
+  // e2e criteria silently collected 0 cases (first exposed by CC-03.3, the
+  // first e2e-sourced untagged criterion). `PLAYWRIGHT_JUNIT_OUTPUT_FILE` is
+  // the reporter's documented file-output env var (verified against the
+  // pinned @playwright/test 1.64.1).
   if (testRoot === repoRoot) {
-    const playwright = run('corepack', ['pnpm', 'exec', 'playwright', 'test', '--project=chromium', '--reporter=junit', `--output=${join(outDir, 'pw')}`], 20 * 60_000)
+    const playwrightJunitFile = join(outDir, 'pw', 'junit.xml')
+    const playwright = run('corepack', ['pnpm', 'exec', 'playwright', 'test', '--project=chromium', '--reporter=junit', `--output=${join(outDir, 'pw')}`], 20 * 60_000, {
+      PLAYWRIGHT_JUNIT_OUTPUT_FILE: playwrightJunitFile,
+    })
     const junitCandidates = [join(outDir, 'pw', 'junit.xml'), join(repoRoot, 'test-results', 'junit.xml')]
     for (const candidate of junitCandidates) cases.push(...parseJunit(candidate))
     if (playwright.status !== 0 && playwright.output.length === 0) throw new Error('playwright run failed silently')
