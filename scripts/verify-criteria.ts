@@ -228,7 +228,6 @@ function e2eBackedIds(criteria: Criterion[]): Set<string> {
   return new Set(criteria.filter((criterion) => criterion.e2e).map((criterion) => criterion.id))
 }
 
-
 function main(): void {
   const argv = process.argv.slice(2)
   const mode = argv[0] === 'unit' || argv[0] === 'intent' ? (argv.shift() as string) : 'unit'
