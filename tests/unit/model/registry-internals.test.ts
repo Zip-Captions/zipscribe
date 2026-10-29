@@ -5,8 +5,8 @@
 // they also keep the module covered in child runs where the frozen suites are
 // excluded (vitest.config child-safety list).
 import { describe, expect, test } from 'vitest'
-import { ENGINE_KINDS, MODEL_REGISTRY, TIER_DEFAULT_MODEL, getModel, modelFileUrl } from './registry'
-import type { ModelSpec } from './registry'
+import { ENGINE_KINDS, MODEL_REGISTRY, TIER_DEFAULT_MODEL, getModel, modelFileUrl } from '@engine/model/registry'
+import type { ModelSpec } from '@engine/model/registry'
 
 describe('model registry (FR-03.1)', () => {
   test('engine kinds cover the three spike engines', () => {

@@ -10,12 +10,13 @@
 // Everything is injected (registry/cache/adapters/capabilities/online/emit) —
 // no network, no DOM globals, binary-noise bytes only (SECURITY-03).
 import { describe, expect, test } from 'vitest'
-import { createModelManager, LARGE_DOWNLOAD_CONFIRM_BYTES } from './manager'
-import type { AdapterFactory, EngineAdapter, ModelManagerDeps, ModelManagerEvent } from './manager'
-import { createModelCache, sha256Hex } from './cache'
-import type { CacheLike } from './cache'
-import type { Capabilities } from './capability'
-import type { ModelSpec } from './registry'
+import { createModelManager, LARGE_DOWNLOAD_CONFIRM_BYTES } from '@engine/model/manager'
+import type { AdapterFactory, EngineAdapter, ModelManagerDeps } from '@engine/model/manager'
+import type { ModelManagerEvent } from '@engine/protocol'
+import { createModelCache, sha256Hex } from '@engine/model/cache'
+import type { CacheLike } from '@engine/model/cache'
+import type { Capabilities } from '@engine/model/capability'
+import type { ModelSpec } from '@engine/model/registry'
 
 const SELF = 'https://app.test'
 const WASM_PATH = '/wasm/mgr-test.wasm'

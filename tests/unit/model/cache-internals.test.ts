@@ -9,10 +9,10 @@
 // for "abc" and the empty string (not produced by the module under test).
 // SECURITY-03: only binary noise / ASCII fixtures are served.
 import { describe, expect, test } from 'vitest'
-import { createModelCache, MODEL_CACHE_NAME, sha256Hex } from './cache'
-import type { CacheLike, FetchImpl, ModelCacheDeps } from './cache'
-import { MODEL_REGISTRY, modelFileUrl } from './registry'
-import type { ModelSpec } from './registry'
+import { createModelCache, MODEL_CACHE_NAME, sha256Hex } from '@engine/model/cache'
+import type { CacheLike, FetchImpl, ModelCacheDeps } from '@engine/model/cache'
+import { MODEL_REGISTRY, modelFileUrl } from '@engine/model/registry'
+import type { ModelSpec } from '@engine/model/registry'
 
 const ABC = new TextEncoder().encode('abc')
 const ABC_SHA = 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'
@@ -434,7 +434,7 @@ describe('production defaults (deps absent → lazy globalThis reads)', () => {
     const id = Object.keys(MODEL_REGISTRY)[0] as string
     const urls: string[] = []
     const previous = globalThis.fetch
-    globalThis.fetch = (input: RequestInfo | URL) => {
+    globalThis.fetch = (input: Parameters<typeof globalThis.fetch>[0]) => {
       urls.push(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url)
       return Promise.resolve(new Response(new Uint8Array([0, 1, 2, 3])))
     }

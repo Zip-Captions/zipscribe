@@ -5,11 +5,11 @@
 // also keep the module covered in child runs where the frozen suites are
 // excluded (vitest.config child-safety list).
 import { describe, expect, test } from 'vitest'
-import { probeCapabilities, tierSelector } from './capability'
-import type { CapabilityEnv, Capabilities } from './capability'
-import { MODEL_REGISTRY } from './registry'
-import type { ModelSpec } from './registry'
-import type { Tier } from '../protocol'
+import { probeCapabilities, tierSelector } from '@engine/model/capability'
+import type { CapabilityEnv, Capabilities } from '@engine/model/capability'
+import { MODEL_REGISTRY } from '@engine/model/registry'
+import type { ModelSpec } from '@engine/model/registry'
+import type { Tier } from '@engine/protocol'
 
 const ZIPFORMER_ROW = 'sherpa-zipformer-en-int8@11a70a47'
 
