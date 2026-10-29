@@ -181,5 +181,14 @@ Follow-ups).
   contract require `!webgpuAdapter && !wasmSimd` (conjunctive) so a WebGPU machine without SIMD
   still gets T1. Implementation follows the frozen contract; the orchestrator owns the
   architecture.md rewording (no code change).
-- `vitest.config.ts` child-safety block for the five frozen unit-03 suites could be retired
-  once the child budget can afford them (RED-phase relic; they spawn nothing).
+- ~~`vitest.config.ts` child-safety block for the five frozen unit-03 suites~~ — **retired**
+  (review round 1 F7): they spawn nothing and run in 0.5 s, so the CC-01.1 command-wiring
+  child now executes them (297 tests green in the child).
+- **Review round 1 fix cycle (all closed):** F1 qualification record regenerated and committed
+  (8/8 RQ). F2 e2e criteria now need Playwright provenance and citations come only from a
+  title's leading run (`e2e-provenance-adversarial.test.ts` proves the deleted-spec bypass is
+  dead; two self-citing adversary titles renamed). F3 `copyNeedleRuntime` vendors the
+  cactus-needle runtime into `public/wasm` SHA-verified against its vendor manifest, with an
+  additive test asserting every `runtimeWasm` path has a producer. F4 comment no longer claims
+  a provenance the spike report never states. F5 real-plugin ESLint adversary added (the
+  `staticSpecifier` mutation is now killed).
