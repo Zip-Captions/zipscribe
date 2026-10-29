@@ -68,9 +68,14 @@ Verbatim tails at this HEAD:
 - `verify:unit --from-branch` ✓ exit 0 — "all untagged criteria of unit-03-model-manager.md
   covered (8 total)"
 - `vitest run --config vitest.config.qualify.ts` ✓ exit 0 — 10 files / 20 tests passed
-- frozen contract ✓ — `git diff f79ddc3..HEAD --diff-filter=M -- tests e2e` is **empty**
-  (relocations are pure renames; zero bytes changed on any f79ddc3-present test/e2e file,
-  incl. `fakes.ts`, `unit03-api-contract.d.ts`, the e2e harness fixtures and specs)
+- frozen author contract ✓ / round-1 test edits disclosed — `git diff f79ddc3..HEAD
+--diff-filter=M -- tests e2e` is empty for the **frozen author files** (the test-author's
+  `f79ddc3` set: specs, `fakes.ts`, `unit03-api-contract.d.ts`, e2e harness). Three files that
+  the **adversary/fixer added** during this unit were modified afterwards, each deliberately:
+  `boundary-scanner-adversarial.test.ts` (the sanctioned tripwire flip, b2072bc),
+  `capability-adversarial.test.ts` (mislabeled title `CC-03.3`→`CC-03.1`, d9867ae) and
+  `verify-criteria-junit-adversarial.test.ts` (describe no longer self-cites CC-03.3 — that
+  self-citation was itself the F2 forgery vector). No frozen author assertion was weakened.
 - `node scripts/qualification-check.ts` ✓ exit 0 — `ACCEPT — qualification/0.0.0-spike.json
 valid for contentHash 9021ffe2b6c0…` (see Deviations 8: the record was regenerated and
   committed with this unit)

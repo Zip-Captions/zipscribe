@@ -13,15 +13,46 @@
 // real e2e specs removed, the verifier must report CC-03.3 UNCOVERED.
 import { describe, expect, test } from 'vitest'
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync } from 'node:fs'
+import { cpSync, existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
-import { isChildRun, linkScratchToolchain, removeScratch, REPO_ROOT, scratchDir, writeFixtureFile } from '../../../helpers/repo'
+import { copyTree, isChildRun, linkScratchToolchain, removeScratch, REPO_ROOT, scratchDir, writeFixtureFile } from '../../../helpers/repo'
 
 // The CC-03.3 contract lives in this unit file + its e2e spec.
 const UNIT_FILE = '.ai-dlc/local-transcribe-engine/unit-03-model-manager.md'
 
 function copyInto(root: string, repoRelativePath: string): void {
   cpSync(join(REPO_ROOT, repoRelativePath), join(root, repoRelativePath), { recursive: true })
+}
+
+/**
+ * A FULL-TREE copy of the repo with the real e2e spec deleted and a vitest
+ * title planted that cites CC-03.3 — the exact round-1 attack. Round 2's
+ * lesson: an e2e-less scratch tree is NOT the same condition as "the spec was
+ * deleted", because a disk scan of `e2e/` would then treat the criterion as
+ * never-e2e. The unit spec's own "Playwright:" wording must keep it e2e-bound.
+ */
+function fullTreeWithDeletedSpec(): string {
+  const root = scratchDir('adv-e2e-provenance')
+  // The parts verify-criteria actually reads: the unit spec (with its
+  // "Playwright:" wording) and the sibling spec tree for the known-ID rule.
+  copyInto(root, UNIT_FILE)
+  copyInto(root, '.ai-dlc/knowledge')
+  // CRITICAL (round 2): the e2e directory EXISTS and holds the real spec's
+  // sibling files, then the spec itself is deleted — the exact production
+  // condition. An absent e2e/ dir is a different (and weaker) scenario.
+  copyInto(root, 'e2e/model/fixtures')
+  writeFixtureFile(
+    join(root, 'tests/unit/model/adversarial/__planted__.test.ts'),
+    [
+      "import { test, expect } from 'vitest'",
+      "test('CC-03.3: forged — no e2e execution behind this', () => {",
+      "  expect(1).toBe(1)",
+      "})",
+      '',
+    ].join('\n'),
+  )
+  linkScratchToolchain(root)
+  return root
 }
 
 /**
@@ -62,9 +93,9 @@ function runVerify(root: string): { status: number | null; output: string } {
 }
 
 describe('ADVERSARIAL CC-03.3: vites provenance — e2e criteria need playwright evidence', () => {
-  test('ADVERSARIAL CC-03.3: with the e2e specs removed, a vitest test mentioning CC-03.3 cannot cover it (must be UNCOVERED)', () => {
+  test('ADVERSARIAL CC-03.3: deleting the REAL e2e spec + citing the ID from vitest still leaves it UNCOVERED', () => {
     if (isChildRun()) return // spawns vitest itself; the gates-scaffold child cannot nest that
-    const root = scratchWithoutE2e()
+    const root = fullTreeWithDeletedSpec()
     try {
       const run = runVerify(root)
       const cc33 = run.output.split('\n').find((line) => line.startsWith('| CC-03.3'))

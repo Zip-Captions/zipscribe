@@ -29,6 +29,14 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 interface Criterion {
   id: string
   tag?: string
+  /**
+   * The unit spec names Playwright as this criterion's evidence ("**CC-…**
+   * Playwright: …"). Derived from the COMMITTED spec text, never from a live
+   * scan of `e2e/` — otherwise deleting the spec file silently downgrades the
+   * criterion back to vitest crediting (unit-03 review round 2, F2: the
+   * self-fulfilling downgrade).
+   */
+  e2e?: boolean
 }
 
 function listSpecMarkdown(dir: string): string[] {
@@ -42,6 +50,18 @@ function listSpecMarkdown(dir: string): string[] {
   return out
 }
 
+const PLAYWRIGHT_SPEC = /^\**\s*(?:\[?[A-Z]+\]?\s*)?Playwright\b/i
+
+/** Does the spec line that declares this criterion name Playwright as its evidence? */
+function declaresPlaywright(text: string, id: string): boolean {
+  for (const line of text.split('\n')) {
+    if (!line.includes(`**${id}**`)) continue
+    const afterId = line.slice(line.indexOf(`**${id}**`) + id.length + 4).trim()
+    if (PLAYWRIGHT_SPEC.test(afterId)) return true
+  }
+  return false
+}
+
 function parseCriteria(file: string): Criterion[] {
   const text = readFileSync(file, 'utf8')
   const found: Criterion[] = []
@@ -49,14 +69,14 @@ function parseCriteria(file: string): Criterion[] {
   for (const match of text.matchAll(/\*\*(CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+)\*\*\s*(?:`|\s)*\[(RQ|DEPLOY|MANUAL)\]?/g)) {
     const id = match[1]!
     if (!seen.has(id)) {
-      found.push({ id, tag: match[2] })
+      found.push({ id, tag: match[2], e2e: declaresPlaywright(text, id) })
       seen.add(id)
     }
   }
   for (const match of text.matchAll(/\*\*(CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+)\*\*(?!\s*(?:`|\s)*\[)/g)) {
     const id = match[1]!
     if (!seen.has(id)) {
-      found.push({ id })
+      found.push({ id, e2e: declaresPlaywright(text, id) })
       seen.add(id)
     }
   }
@@ -198,23 +218,14 @@ function citationsOf(title: string): string[] {
 }
 
 /**
- * L4 criteria whose evidence must come from Playwright (unit-03 review F2):
- * a criterion is e2e-backed when its test files live under `e2e/`. The unit
- * file does not declare a level, so we infer it from the e2e spec files that
- * cite the ID: if any e2e spec cites it, only playwright evidence counts.
+ * L4 criteria whose evidence must come from Playwright (unit-03 review F2).
+ * The set is derived from the criterion's own spec text ("**CC-…** Playwright:
+ * …"), which is committed and immutable during verification — deleting the
+ * e2e spec file must never make a Playwright criterion start accepting vitest
+ * citations.
  */
-function e2eBackedIds(testRoot: string, criteria: Criterion[]): Set<string> {
-  const ids = new Set<string>()
-  const e2eDir = join(testRoot, 'e2e')
-  if (!existsSync(e2eDir)) return ids
-  const known = new Set(criteria.map((criterion) => criterion.id))
-  for (const file of listTestFiles(e2eDir)) {
-    const text = readFileSync(file, 'utf8')
-    for (const match of text.matchAll(/\b(CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+)\b/g)) {
-      if (known.has(match[1]!)) ids.add(match[1]!)
-    }
-  }
-  return ids
+function e2eBackedIds(criteria: Criterion[]): Set<string> {
+  return new Set(criteria.filter((criterion) => criterion.e2e).map((criterion) => criterion.id))
 }
 
 function listTestFiles(dir: string): string[] {
@@ -280,7 +291,7 @@ function main(): void {
   const passingIds = new Set<string>()
   const citedIds = new Set<string>()
   const citations = new Map<string, number>()
-  const e2eOnly = e2eBackedIds(testRoot, criteria)
+  const e2eOnly = e2eBackedIds(criteria)
   for (const testCase of cases) {
     for (const id of citationsOf(testCase.title)) {
       citedIds.add(id)

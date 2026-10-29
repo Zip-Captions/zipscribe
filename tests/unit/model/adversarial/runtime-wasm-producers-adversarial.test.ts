@@ -7,7 +7,9 @@
 // static (no network, no build): it only asserts that the path's producer is
 // present in the tree, so it can never pass on a phantom path.
 import { describe, expect, test } from 'vitest'
-import { existsSync, readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import { existsSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { MODEL_REGISTRY } from '@engine/model/registry'
 import { REPO_ROOT } from '../../../helpers/repo'
@@ -67,5 +69,31 @@ describe('F3: every runtimeWasm path has a real producer in the repo', () => {
     expect(source).toContain('copyNeedleRuntime')
     expect(source).toContain("createHash('sha256')")
     expect(source).toContain('manifest.json')
+  })
+
+  test('F3: the SHIPPING build produces the needle runtime, not just the eval harness', () => {
+    // Round 2 caught the grep-only assertion above: it passed even when the copy
+    // target was unreachable from `pnpm build`. The shipping path is
+    // vite.config.ts → scripts/copy-wasm.ts, so assert that wiring end-to-end.
+    const vite = readFileSync(join(REPO_ROOT, 'vite.config.ts'), 'utf8')
+    expect(vite, 'the build plugin must copy the full runtime set (ORT + needle)').toContain('copyAllRuntimeWasm')
+    const copyWasm = readFileSync(join(REPO_ROOT, 'scripts', 'copy-wasm.ts'), 'utf8')
+    expect(copyWasm, 'copyAllRuntimeWasm must call copyNeedleRuntime').toMatch(/copyAllRuntimeWasm[\s\S]*copyNeedleRuntime/)
+    expect(copyWasm, 'the needle copier must be imported from the vendoring script').toContain("from './copy-vendor-assets.ts'")
+  })
+
+  test('F3: needle lands in public/wasm with the manifest SHA (real copy, then cleaned up)', () => {
+    const target = join(REPO_ROOT, 'public', 'wasm')
+    const before = existsSync(join(target, 'needle.wasm'))
+    // Run the real copier (idempotent: it verifies and overwrites the same bytes).
+    execFileSync(process.execPath, [join(REPO_ROOT, 'scripts', 'copy-wasm.ts')], { cwd: REPO_ROOT, stdio: 'pipe' })
+    const copied = join(target, 'needle.wasm')
+    expect(existsSync(copied), 'needle.wasm must exist after the shipping copier runs').toBe(true)
+    const manifest = JSON.parse(
+      readFileSync(join(REPO_ROOT, 'node_modules', 'cactus-needle', 'vendor', 'manifest.json'), 'utf8'),
+    ) as { files: Record<string, { sha256: string }> }
+    const actual = createHash('sha256').update(readFileSync(copied)).digest('hex')
+    expect(actual, 'copied bytes must match the vendor manifest SHA').toBe(manifest.files['needle.wasm']!.sha256)
+    if (!before) rmSync(copied, { force: true })
   })
 })
