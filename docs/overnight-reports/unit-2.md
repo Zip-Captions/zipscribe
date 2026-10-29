@@ -41,7 +41,10 @@ criterion is "verdict recorded (loads-or-not + RTF or documented blocker)" — t
 blocker**: `parakeetVerdict.loads=false` (`docs/spikes/parakeet-verdict.json`, `model-eval-report.json`),
 `Aborted()` at `_SherpaOnnxCreateOfflineRecognizer` after `loadMs: 16112` for the 640 MB int8 TDT, upstream
 https://github.com/k2-fsa/sherpa-onnx/issues/2200 (32-bit wasm heap cannot grow; verified live against the
-same model class and vad-asr path). This unit cannot make Parakeet pass; retest when upstream ships a fix.
+same model class and vad-asr path) — **closed as completed upstream** (2025-05-11: the reporter confirmed the
+heap cannot grow and closed with the smaller-model workaround; the maintainer suggested `sherpa-onnx-node` for
+Node; the issue concerns parakeet-tdt-0.6b-**v2**). There is no upstream fix pending to retest against; this
+unit cannot make Parakeet pass — adoption requires wasm memory-growth support or a smaller Parakeet.
 
 `[MANUAL]` CC-02.10 — **owner checklist, never agent-marked done.** Agent-recorded research only
 (`qualification/manual.json`, by "opencode overnight agent (license research, official sources)", 2026-10-28;
@@ -281,7 +284,9 @@ T3 cactus-needle / `Cactus-Compute/whistle (whistle.cact)`.
 - Registry handoff (unit-03): adopt T2=sherpa-zipformer + T3=whistle per the recommendation above; copy HF
   commit SHAs + per-file SHA-256 verbatim (FR-02.9). Whisper rows are unpunctuated + no confidence → the
   unit-03 punctuation pass stays on the table; whistle is punctuated + confidence + language-detect.
-- **Parakeet retest** when k2-fsa/sherpa-onnx#2200 is fixed (same harness: `pnpm eval:run` verdict path).
+- **Parakeet adoption** requires wasm memory-growth support or a smaller Parakeet — k2-fsa/sherpa-onnx#2200 is
+  **closed as completed upstream** (workaround: smaller model / `sherpa-onnx-node`; concerns the v2 model), so
+  there is no pending upstream fix to wait for; re-run the verdict path (`pnpm eval:run`) only if that changes.
 - **Corpus vendoring awaits owner** (unit-01 F2 interim): sine-formant fixtures must be replaced with
   openly-licensed real speech + forced-aligned ground truth under an approved network exception; until then
   all WER/MAE rows are comparison-only (Deviation 1).

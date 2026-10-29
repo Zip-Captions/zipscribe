@@ -1,6 +1,8 @@
 // scripts/copy-vendor-assets.ts — unit-02 (FR-02.2/US-02.2): the eval
 // harness's third-party runtimes must load from `self` (never a CDN), so the
-// sherpa-onnx official WASM build (npm `sherpa-onnx`, Apache-2.0) and the
+// sherpa-onnx official WASM build (the pinned k2-fsa Hugging Face Space
+// wasm/vad-asr set — SHA-256-verified by scripts/models-fetch.ts, see
+// copyVendorAssets() below; Apache-2.0) and the
 // transformers.js 4.x leak-study runtime (isolated install under
 // tools/eval/node-4x, per unit-02 brief) are copied out of node_modules into
 // gitignored public/ directories before the eval build. Same pattern as
