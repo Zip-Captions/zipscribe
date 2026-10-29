@@ -71,6 +71,23 @@ export default defineConfig({
             '**/wer-cli-adversarial.test.ts',
             '**/qualification-check-adversarial.test.ts',
             '**/qualify-pipeline-fabrication-adversarial.test.ts',
+            // unit-03 (CC-03.8): the scoped engine/model coverage gate spawns
+            // a nested `vitest run` — same child-safety rule as coverage-gate.
+            '**/model-coverage.test.ts',
+            // unit-03 RED-phase child-safety: the gates scaffold (CC-01.1)
+            // spawns `pnpm test` as a command-wiring PROOF and asserts the
+            // child is green; the child stays the fast green subset while the
+            // unit-03 contract suite is intentionally RED. These files run in
+            // every authoritative run: the top-level `pnpm test`, the CI
+            // unit_tests gate, and `verify:unit` (whose runner clears
+            // ZIPSCRIBE_CHILD). They spawn nothing. Remove this block when the
+            // unit goes GREEN only if the builder keeps the child green
+            // without them (they must run SOMEWHERE authoritative regardless).
+            'tests/unit/model/registry.test.ts',
+            'tests/unit/model/capability.test.ts',
+            'tests/unit/model/cache.test.ts',
+            'tests/unit/model/manager-download.test.ts',
+            'tests/unit/model/manager-lifecycle.test.ts',
             ...defaultExclude,
           ]
         : defaultExclude,
