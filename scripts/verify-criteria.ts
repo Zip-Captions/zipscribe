@@ -93,7 +93,7 @@ function collectTests(testRoot: string): TestCase[] {
     // trusted (unit-02 spawn-null doctrine, scripts/qualify.ts @ eb61046).
     throw new Error('vitest run did not complete (spawn failed, killed, or timed out) — JUnit results distrusted')
   }
-  cases.push(...parseJunit(join(outDir, 'vitest.xml')))
+  cases.push(...parseJunit(join(outDir, 'vitest.xml'), 'vitest'))
   if (vitest.status !== 0 && cases.length === 0) {
     console.error(vitest.output.slice(-4000))
     throw new Error('vitest run produced no JUnit results')
@@ -122,7 +122,7 @@ function collectTests(testRoot: string): TestCase[] {
         run('corepack', ['pnpm', 'exec', 'playwright', 'test', '--project=chromium', '--reporter=junit', `--output=${playwrightOutDir}`], 20 * 60_000, {
           PLAYWRIGHT_JUNIT_OUTPUT_FILE: junitFile,
         }),
-      parse: parseJunit,
+      parse: (file) => parseJunit(file, 'playwright'),
     })
     cases.push(...evidence.cases)
     if (evidence.failure) console.error(`verify:unit: e2e evidence rejected — ${evidence.failure}`)
@@ -188,7 +188,43 @@ function unitFileFromBranch(): string | null {
 function citationsOf(title: string): string[] {
   const stripped = title.replace(/^(?:[A-Z]+[ \t]+)+/, '')
   if (!/^(?:CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+)(?![A-Za-z0-9.-])/.test(stripped)) return []
-  return [...stripped.matchAll(/CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+/g)].map((match) => match[0])
+  // Only the LEADING citation run counts (unit-03 review F2): every
+  // consecutive `CC-…` token before the first separator. A later ID in prose
+  // ("rejects CC-03.3 …") discusses a criterion, it does not cover it — the
+  // previous whole-title scan let a test that merely mentioned an e2e ID
+  // credit that criterion with zero e2e execution.
+  const leading = stripped.match(/^((?:CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+[\s,/·+&-]*)+)/)?.[1] ?? ''
+  return [...leading.matchAll(/CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+/g)].map((match) => match[0])
+}
+
+/**
+ * L4 criteria whose evidence must come from Playwright (unit-03 review F2):
+ * a criterion is e2e-backed when its test files live under `e2e/`. The unit
+ * file does not declare a level, so we infer it from the e2e spec files that
+ * cite the ID: if any e2e spec cites it, only playwright evidence counts.
+ */
+function e2eBackedIds(testRoot: string, criteria: Criterion[]): Set<string> {
+  const ids = new Set<string>()
+  const e2eDir = join(testRoot, 'e2e')
+  if (!existsSync(e2eDir)) return ids
+  const known = new Set(criteria.map((criterion) => criterion.id))
+  for (const file of listTestFiles(e2eDir)) {
+    const text = readFileSync(file, 'utf8')
+    for (const match of text.matchAll(/\b(CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+)\b/g)) {
+      if (known.has(match[1]!)) ids.add(match[1]!)
+    }
+  }
+  return ids
+}
+
+function listTestFiles(dir: string): string[] {
+  const out: string[] = []
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name)
+    if (entry.isDirectory()) out.push(...listTestFiles(full))
+    else if (/\.(spec|test)\.[cm]?[jt]sx?$/.test(entry.name)) out.push(full)
+  }
+  return out
 }
 
 function main(): void {
@@ -244,11 +280,15 @@ function main(): void {
   const passingIds = new Set<string>()
   const citedIds = new Set<string>()
   const citations = new Map<string, number>()
+  const e2eOnly = e2eBackedIds(testRoot, criteria)
   for (const testCase of cases) {
     for (const id of citationsOf(testCase.title)) {
       citedIds.add(id)
-      citations.set(id, (citations.get(id) ?? 0) + (testCase.status === 'passed' ? 1 : 0))
-      if (testCase.status === 'passed') passingIds.add(id)
+      const counts = testCase.status === 'passed' && (!e2eOnly.has(id) || testCase.source === 'playwright')
+      if (counts) {
+        citations.set(id, (citations.get(id) ?? 0) + 1)
+        passingIds.add(id)
+      }
     }
   }
 

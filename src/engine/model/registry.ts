@@ -210,7 +210,7 @@ export const MODEL_REGISTRY: Record<string, ModelSpec> = {
     revision: 'b358ddadd89b7a713b5aa131f23032d3cca1b251',
     files: [{ path: 'whistle.cact', sha256: 'b6e02f048568ac5d01a2042556c658061e699acbc0aa2a1439f52f3d461dffeb', bytes: 16919407 }],
     approxBytes: 17_000_000,
-    languages: ['*'], // "7 langs" per the spike row; the list is not enumerated in the report → multilingual + languageDetect
+    languages: ['*'], // multilingual per the spike row's languageDetect probe; the report does not enumerate a language list → wildcard + languageDetect
     punctuation: true, // spike row `punct: true`
     confidence: true, // spike row `conf: true`
     languageDetect: true,

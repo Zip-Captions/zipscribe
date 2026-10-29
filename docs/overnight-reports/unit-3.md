@@ -51,10 +51,12 @@ Verbatim tails at this HEAD:
 
 - lint ✓ exit 0 (`eslint .`, 0 problems)
 - typecheck ✓ exit 0 (`tsc --noEmit` × tsconfig.json / tsconfig.node.json / tsconfig.eval.json)
-- test ✓ exit 0 — **Test Files 37 passed (37) · Tests 234 passed | 1 skipped | 1 todo (236)**,
-  82–113 s wall (file-sequential; includes the frozen CC-03.8 gate, the gates scaffold's
+- test ✓ exit 0 — **Test Files 44 passed (44) · Tests 271 passed | 1 skipped | 1 todo (273)**,
+  ~90 s wall (file-sequential; includes the frozen CC-03.8 gate, the gates scaffold's
   `pnpm test --coverage` child running the relocated provider suites, and the frozen
-  CC-02.5 in-test `pnpm qualify` re-run)
+  CC-02.5 in-test `pnpm qualify` re-run). Post-review count (271) supersedes the 234 measured
+  when this report was first written: the adversary round (26 probes) and the audit fix cycle
+  (junit-trust distrust suite, hardened boundary scanner) added tests afterwards.
 - build ✓ + check-bundle ✓ — initial JS **68.3 KB gzip / 350 KB budget** (1 chunk;
   engine/model is lazy, excluded)
 - test:e2e ✓ exit 0 — **4 passed, 3 skipped** (skipped = the 3 `[DEPLOY]` specs, Adaptation 3);
@@ -69,8 +71,9 @@ Verbatim tails at this HEAD:
 - frozen contract ✓ — `git diff f79ddc3..HEAD --diff-filter=M -- tests e2e` is **empty**
   (relocations are pure renames; zero bytes changed on any f79ddc3-present test/e2e file,
   incl. `fakes.ts`, `unit03-api-contract.d.ts`, the e2e harness fixtures and specs)
-- `node scripts/qualification-check.ts` — see Deviations 8 (REJECT on the restored committed
-  spike file, expected; ACCEPT demonstrated on the genuine in-run regenerate)
+- `node scripts/qualification-check.ts` ✓ exit 0 — `ACCEPT — qualification/0.0.0-spike.json
+valid for contentHash 9021ffe2b6c0…` (see Deviations 8: the record was regenerated and
+  committed with this unit)
 
 ## Deviations from spec
 
@@ -116,21 +119,15 @@ Verbatim tails at this HEAD:
 7. **SECURITY-03 note:** no transcript/model text in logs or failures anywhere in the slice;
    e2e model bytes are seeded PRNG noise from the frozen spec; manager/cache rejections carry
    codes only.
-8. **`qualification-check` REJECT on the committed spike file (expected, reported not
-   papered-over):** every `pnpm test` re-runs the real `pnpm qualify` (frozen CC-02.5
-   qualify-runner suite) against the current tree; it regenerates
-   `qualification/0.0.0-spike.json` with contentHash `9021ffe2b6c0…` (src/** now includes
-   `engine/model`) and `node scripts/qualification-check.ts` **ACCEPT**s that genuine
-   regenerate ("qualification-check: ACCEPT — … valid for contentHash 9021ffe2b6c0…"). The
-   committed file is unit-02's spike record (`fba967fe7b74…`) and is restored after runs,
-   never regenerated/committed by this unit; on the restored file the check reports
-   "REJECT — contentHash mismatch — tree changed since qualification (file fba967fe7b74…,
-   recomputed 9021ffe2b6c0…)" exit 1. This is the conventions § Release qualification design
-   working as intended (any code change invalidates the record; unit-02's post-merge develop
-   never changed src/**, unit-03's whole job is adding src/**). It is NOT a unit-03 gate
-   (qualification-check gates `release/*` only) — the orchestrator should re-run
-   `pnpm qualify` on `release/*` (or commit the accepted regenerate); nothing here is
-   fabricated: the ACCEPT above came from the real qualify run inside `pnpm test`.
+8. **Qualification record regenerated (was: REJECT on stale committed spike file — review round
+   1 finding F1).** The committed `qualification/0.0.0-spike.json` was unit-02's record
+   (`fba967fe7b74…`); unit-03 necessarily changes the hash inputs by adding
+   `src/engine/model/**`, so the committed record no longer described the tree it shipped in
+   and the frozen CC-02.5 accept-legs (`qualification-check-adversarial.test.ts`, CI `quality`)
+   failed on a clean checkout. Fixed by running the real `corepack pnpm qualify` against this
+   tree (exit 0, 8/8 RQ criteria pass) and committing the regenerated file — contentHash
+   `9021ffe2b6c0…`, `node scripts/qualification-check.ts` now ACCEPTs it (exit 0). Nothing is
+   fabricated: every number came from that run. `pnpm test` no longer dirties the tree.
 
 ## Contract changes
 
@@ -160,7 +157,8 @@ Follow-ups).
   (build+preview webServer excluded: reused).
 - Bundle: 68.3 KB gzip initial / 350 KB budget. `pnpm test` wall 82–113 s sequential.
 - Qualification regenerate contentHash `9021ffe2b6c0df0e746c62062e74ab599c780a5b55c3616559cb2ffc3891639e`
-  (committed spike file: `fba967fe7b741795fc1cb8ef698e89d9a51c3e9af3674b9206b0551dd09fbe9d`).
+  (committed record, regenerated and re-verified by this unit; supersedes unit-02's
+  `fba967fe7b741795fc1cb8ef698e89d9a51c3e9af3674b9206b0551dd09fbe9d`).
 
 ## Follow-ups
 
@@ -175,7 +173,13 @@ Follow-ups).
   webgpu→wasm retry notice flow belongs to the unit-05 worker pipeline.
 - **`sherpa-onnx@2.0.1` devDependency removal** still open from unit-02 review L1 (nothing
   references it).
-- **qualification-check on `release/*`:** re-run `pnpm qualify` (or commit the accepted
-  regenerate) so the release job's hash matches the post-unit-03 tree (Deviations 8).
+- **qualification-check on `release/*`:** the record is now current for this tree; any later
+  `src/**` change (unit-04 onward) invalidates it again — re-run `pnpm qualify` on the release
+  branch as the release gate requires.
+- **architecture.md T4 wording vs `capability.ts` (review round 1 F6):** the tier table's T4 row
+  reads "no WASM SIMD, or deviceMemory < 4 GB" (disjunctive), while US-1.1.1 and the frozen
+  contract require `!webgpuAdapter && !wasmSimd` (conjunctive) so a WebGPU machine without SIMD
+  still gets T1. Implementation follows the frozen contract; the orchestrator owns the
+  architecture.md rewording (no code change).
 - `vitest.config.ts` child-safety block for the five frozen unit-03 suites could be retired
   once the child budget can afford them (RED-phase relic; they spawn nothing).

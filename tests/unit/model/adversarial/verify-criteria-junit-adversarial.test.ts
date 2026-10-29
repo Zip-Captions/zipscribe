@@ -49,7 +49,7 @@ function runVerify(root: string): { status: number | null; output: string } {
   return { status: run.status ?? 1, output: `${run.stdout ?? ''}\n${run.stderr ?? ''}` }
 }
 
-describe('ADVERSARIAL CC-01.9/CC-03.3: verify:unit junit forgery', () => {
+describe('ADVERSARIAL CC-01.9: verify:unit junit forgery', () => {
   test('ADVERSARIAL CC-01.9: a planted <repo>/test-results/junit.xml cannot credit criteria in --root (scratch) mode', () => {
     // Child-safety (model-coverage.test.ts doctrine): this spawns a nested
     // `pnpm run verify:unit` → must run in the authoritative parent (and the

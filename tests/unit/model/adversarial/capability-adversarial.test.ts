@@ -92,7 +92,7 @@ describe('ADVERSARIAL CC-03.2: adapter belief + device-memory boundaries', () =>
     expect(unknownMemory.model, 'deviceMemGB null never gates, even with opts 0').toBe('adv-large@ad200000')
   })
 
-  test('ADVERSARIAL CC-03.3: no SHIPPED registry row carries minDeviceMemGB — the memory gate is exercised only by synthetic rows (pinned fact)', () => {
+  test('ADVERSARIAL CC-03.1: no SHIPPED registry row carries minDeviceMemGB — the memory gate is exercised only by synthetic rows (pinned fact)', () => {
     for (const spec of Object.values(MODEL_REGISTRY)) {
       expect(spec.minDeviceMemGB, `${spec.id}: shipped rows have no memory gate today`).toBeUndefined()
     }

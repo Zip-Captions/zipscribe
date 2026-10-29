@@ -18,9 +18,13 @@
 
 import { existsSync, readFileSync, rmSync, statSync } from 'node:fs'
 
+export type TestSource = 'vitest' | 'playwright'
+
 export interface TestCase {
   title: string
   status: 'passed' | 'failed' | 'skipped'
+  /** Which runner produced the case. Provenance gates L4/e2e criteria (unit-03 review F2). */
+  source?: TestSource
 }
 
 function decodeEntities(text: string): string {
@@ -33,7 +37,7 @@ function decodeEntities(text: string): string {
 }
 
 /** Lenient JUnit <testcase> reader (vitest + Playwright reporters). */
-export function parseJunit(file: string): TestCase[] {
+export function parseJunit(file: string, source?: TestSource): TestCase[] {
   if (!existsSync(file)) return []
   const xml = readFileSync(file, 'utf8')
   const cases: TestCase[] = []
@@ -46,7 +50,7 @@ export function parseJunit(file: string): TestCase[] {
     let status: TestCase['status'] = 'passed'
     if (/<(failure|error)\b/.test(body) || statusMatch?.[1] === 'unexpected') status = 'failed'
     else if (/<skipped\b/.test(body) || statusMatch?.[1] === 'skipped') status = 'skipped'
-    cases.push({ title, status })
+    cases.push({ title, status, source })
   }
   return cases
 }
