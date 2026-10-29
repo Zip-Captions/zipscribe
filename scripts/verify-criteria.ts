@@ -21,6 +21,8 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { collectPlaywrightEvidence, parseJunit } from './lib/junit-trust.ts'
+import type { TestCase } from './lib/junit-trust.ts'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -61,39 +63,12 @@ function parseCriteria(file: string): Criterion[] {
   return found.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
 }
 
-interface TestCase {
-  title: string
-  status: 'passed' | 'failed' | 'skipped'
-}
-
-function decodeEntities(text: string): string {
-  return text
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-}
-
-function parseJunit(file: string): TestCase[] {
-  if (!existsSync(file)) return []
-  const xml = readFileSync(file, 'utf8')
-  const cases: TestCase[] = []
-  for (const match of xml.matchAll(/<testcase\b([^>]*?)(?:\/>|>([\s\S]*?)<\/testcase>)/g)) {
-    const attrs = match[1] ?? ''
-    const body = match[2] ?? ''
-    const nameMatch = attrs.match(/(?:^|\s)name="([^"]*)"/)
-    const statusMatch = attrs.match(/(?:^|\s)status="([^"]*)"/)
-    const title = decodeEntities(nameMatch?.[1] ?? '')
-    let status: TestCase['status'] = 'passed'
-    if (/<(failure|error)\b/.test(body) || statusMatch?.[1] === 'unexpected') status = 'failed'
-    else if (/<skipped\b/.test(body) || statusMatch?.[1] === 'skipped') status = 'skipped'
-    cases.push({ title, status })
-  }
-  return cases
-}
-
-function run(command: string, args: string[], timeoutMs: number, extraEnv?: Record<string, string>): { status: number; output: string } {
+// spawnSync status is preserved as `number | null` (NOT collapsed to 1): a
+// null status means the process was killed, timed out, or failed to spawn —
+// results on disk after such a run are never trusted (unit-02 doctrine,
+// scripts/qualify.ts readQualifyResults @ eb61046, extended to the e2e junit
+// by scripts/lib/junit-trust.ts after the unit-03 adversary).
+function run(command: string, args: string[], timeoutMs: number, extraEnv?: Record<string, string>): { status: number | null; output: string } {
   const result = spawnSync(command, args, {
     cwd: repoRoot,
     encoding: 'utf8',
@@ -103,7 +78,7 @@ function run(command: string, args: string[], timeoutMs: number, extraEnv?: Reco
     env: { ...process.env, CI: process.env.CI ?? '1', NO_COLOR: '1', ZIPSCRIBE_CHILD: undefined, ...extraEnv },
     maxBuffer: 64 * 1024 * 1024,
   })
-  return { status: result.status ?? 1, output: `${result.stdout ?? ''}\n${result.stderr ?? ''}` }
+  return { status: result.status, output: `${result.stdout ?? ''}\n${result.stderr ?? ''}` }
 }
 
 function collectTests(testRoot: string): TestCase[] {
@@ -112,6 +87,12 @@ function collectTests(testRoot: string): TestCase[] {
   const vitestArgs = ['pnpm', 'exec', 'vitest', 'run', '--root', testRoot, '--reporter=junit', `--outputFile.junit=${join(outDir, 'vitest.xml')}`]
   if (testRoot === repoRoot) vitestArgs.splice(4, 0, '--reporter=default')
   const vitest = run('corepack', vitestArgs, 30 * 60_000)
+  if (vitest.status === null) {
+    // Killed / timed out / failed to spawn: whatever the reporter wrote (if
+    // anything) is not this run's complete evidence — never partially
+    // trusted (unit-02 spawn-null doctrine, scripts/qualify.ts @ eb61046).
+    throw new Error('vitest run did not complete (spawn failed, killed, or timed out) — JUnit results distrusted')
+  }
   cases.push(...parseJunit(join(outDir, 'vitest.xml')))
   if (vitest.status !== 0 && cases.length === 0) {
     console.error(vitest.output.slice(-4000))
@@ -124,14 +105,27 @@ function collectTests(testRoot: string): TestCase[] {
   // first e2e-sourced untagged criterion). `PLAYWRIGHT_JUNIT_OUTPUT_FILE` is
   // the reporter's documented file-output env var (verified against the
   // pinned @playwright/test 1.64.1).
+  //
+  // Adversary fix (unit-03 finding 1): the junit is only credited through
+  // collectPlaywrightEvidence — pre-existing candidates (including the
+  // persistent repo `test-results/junit.xml` fallback) are wiped before the
+  // spawn, a null/nonzero child yields ZERO e2e-sourced credit, and accepted
+  // files must be freshly written inside the spawn window. A deleted spec +
+  // planted junit can therefore never fabricate e2e coverage.
   if (testRoot === repoRoot) {
-    const playwrightJunitFile = join(outDir, 'pw', 'junit.xml')
-    const playwright = run('corepack', ['pnpm', 'exec', 'playwright', 'test', '--project=chromium', '--reporter=junit', `--output=${join(outDir, 'pw')}`], 20 * 60_000, {
-      PLAYWRIGHT_JUNIT_OUTPUT_FILE: playwrightJunitFile,
+    const playwrightOutDir = join(outDir, 'pw')
+    const playwrightJunitFile = join(playwrightOutDir, 'junit.xml')
+    const evidence = collectPlaywrightEvidence({
+      tmpJunitFile: playwrightJunitFile,
+      persistentJunitFile: join(repoRoot, 'test-results', 'junit.xml'),
+      spawn: (junitFile) =>
+        run('corepack', ['pnpm', 'exec', 'playwright', 'test', '--project=chromium', '--reporter=junit', `--output=${playwrightOutDir}`], 20 * 60_000, {
+          PLAYWRIGHT_JUNIT_OUTPUT_FILE: junitFile,
+        }),
+      parse: parseJunit,
     })
-    const junitCandidates = [join(outDir, 'pw', 'junit.xml'), join(repoRoot, 'test-results', 'junit.xml')]
-    for (const candidate of junitCandidates) cases.push(...parseJunit(candidate))
-    if (playwright.status !== 0 && playwright.output.length === 0) throw new Error('playwright run failed silently')
+    cases.push(...evidence.cases)
+    if (evidence.failure) console.error(`verify:unit: e2e evidence rejected — ${evidence.failure}`)
   }
   return cases
 }
