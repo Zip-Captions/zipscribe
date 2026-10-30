@@ -228,6 +228,45 @@ function contentDerivedInstant(contentHash: string): string {
   return new Date(1_609_459_200_000 + offset).toISOString()
 }
 
+/**
+ * Record write policy (unit-04 adversary F-2 — A-16 record laundering).
+ *
+ * `pnpm test` runs the frozen CC-02.5 `pnpm qualify` leg in-suite, so an
+ * unconditional write let a mutated/scratch tree re-sign the COMMITTED
+ * `qualification/0.0.0-spike.json` as a side effect of a test run: the
+ * "untouched copy is accepted" leg was then credited by a record the suite
+ * had just minted against the tampered tree, and `git status` could not stay
+ * clean on a green run. The record is evidence of a specific tree, so a write
+ * is only legitimate when the tree is a canonical one:
+ *
+ *  - a tree without `.git` is a scratch context (the fabrication suite runs
+ *    `node scripts/qualify.ts` inside scratch copies) — its record is
+ *    scratch-local output and always writable;
+ *  - otherwise the working tree must match HEAD apart from the record file
+ *    itself (gitignored outputs never appear in `git status`): any dirty
+ *    tracked path or untracked probe under `src/**` etc. means this run is
+ *    measuring a non-canonical tree — REFUSE the rewrite, keep the committed
+ *    bytes, and let `qualification-check` REJECT the tree honestly.
+ *  - the release path may regenerate deliberately with
+ *    `ZIPSCRIBE_QUALIFY_WRITE=1` (also what `git stash`-free release flows use).
+ *
+ * The exit code is governed by the RQ verdicts alone (frozen CC-02.5 legs
+ * assert on it); the write decision only guards file mutation.
+ */
+function recordWriteDecision(root: string, recordRel: string): { write: boolean; reason: string } {
+  if (process.env.ZIPSCRIBE_QUALIFY_WRITE === '1') return { write: true, reason: 'explicit release flag (ZIPSCRIBE_QUALIFY_WRITE=1)' }
+  if (!existsSync(join(root, '.git'))) return { write: true, reason: 'scratch tree without git — scratch-local record' }
+  const status = spawnSync('git', ['status', '--porcelain', '--untracked-files=all'], { cwd: root, encoding: 'utf8', timeout: 30_000 })
+  if (status.status !== 0) return { write: false, reason: `git status failed (exit ${String(status.status)}) — tree cleanliness cannot be verified` }
+  for (const line of (status.stdout ?? '').split('\n')) {
+    if (line.trim() === '') continue
+    const path = line.slice(3).split(' -> ').pop()!.replace(/^"|"$/g, '')
+    if (path === recordRel) continue
+    return { write: false, reason: `working tree is not canonical (dirty path: ${path}) — refusing to re-sign the committed record from a test/mutant/scratch tree` }
+  }
+  return { write: true, reason: 'working tree matches HEAD (record file excepted)' }
+}
+
 async function main(): Promise<void> {
   const pkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8')) as { version: string }
   const contentHash = computeContentHash(repoRoot)
@@ -291,9 +330,26 @@ async function main(): Promise<void> {
 
   const outDir = join(repoRoot, 'qualification')
   mkdirSync(outDir, { recursive: true })
+  const recordRel = `qualification/${file.version}.json`
   const outPath = join(outDir, `${file.version}.json`)
-  writeFileSync(outPath, `${JSON.stringify(file, null, 2)}\n`)
-  console.log(`qualify: wrote qualification/${file.version}.json (${results.filter((r) => r.pass).length}/${results.length} RQ criteria pass)`)
+  const intended = `${JSON.stringify(file, null, 2)}\n`
+  const current = existsSync(outPath) ? readFileSync(outPath, 'utf8') : null
+  if (current === intended) {
+    // Byte-identical rewrite skipped: keeps a clean `pnpm test` from touching
+    // the committed record's mtime/bytes at all (F-2 acceptance: status stays
+    // empty without any post-run `git checkout`).
+    console.log(`qualify: qualification/${file.version}.json already current for contentHash ${contentHash.slice(0, 12)}… (no write)`)
+  } else {
+    const decision = recordWriteDecision(repoRoot, recordRel)
+    if (decision.write) {
+      writeFileSync(outPath, intended)
+      console.log(`qualify: wrote ${recordRel} (${results.filter((r) => r.pass).length}/${results.length} RQ criteria pass) — ${decision.reason}`)
+    } else {
+      console.error(
+        `qualify: REFUSED to rewrite ${recordRel} — ${decision.reason}. The committed record was not produced from this tree; \`qualification-check\` will REJECT it honestly. Release regeneration: run on a tree matching HEAD, or set ZIPSCRIBE_QUALIFY_WRITE=1 on the release path.`,
+      )
+    }
+  }
 
   if (results.some((r) => !r.pass)) process.exit(1)
 }
