@@ -30,7 +30,11 @@ export interface PortMessage {
 export class PortRecorder {
   readonly chunks: PcmChunk[] = []
   readonly events: MediaEvent[] = []
-  private readonly resolveWaiters: (() => void)[] = []
+  // Waiters stay registered until their predicate is met (or `stop()` forces
+  // them) — a message that satisfies no predicate must not discard pending
+  // waiters, or an earlier waiter that a LATER message would satisfy hangs
+  // until the timeout.
+  private readonly waiters: { check: () => void; finish: () => void }[] = []
   private stopped = false
   private readonly port: PortLike
 
@@ -43,14 +47,14 @@ export class PortRecorder {
       } else if (typeof data.t === 'string') {
         this.events.push(data as MediaEvent)
       }
-      for (const resolve of this.resolveWaiters.splice(0)) resolve()
+      for (const waiter of [...this.waiters]) waiter.check()
     }
     port.start?.()
   }
 
   stop(): void {
     this.stopped = true
-    for (const resolve of this.resolveWaiters.splice(0)) resolve()
+    for (const waiter of this.waiters.splice(0)) waiter.finish()
     this.port.onmessage = null
   }
 
@@ -62,13 +66,20 @@ export class PortRecorder {
     if (predicate(this)) return Promise.resolve()
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error(`timed out waiting for ${label}`)), timeoutMs)
-      const check = (): void => {
-        if (predicate(this)) {
+      const waiter: { check: () => void; finish: () => void } = {
+        check: (): void => {
+          if (predicate(this)) {
+            const index = this.waiters.indexOf(waiter)
+            if (index >= 0) this.waiters.splice(index, 1)
+            waiter.finish()
+          }
+        },
+        finish: (): void => {
           clearTimeout(timer)
           resolve()
-        }
+        },
       }
-      this.resolveWaiters.push(check)
+      this.waiters.push(waiter)
     })
   }
 

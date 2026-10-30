@@ -28,13 +28,16 @@ test.describe('CC-04.10: forced ffmpeg fallback (stubbed capability probe)', () 
   })
 
   test('CC-04.10: a dual-supported file decoded with a stubbed probe emits the ffmpeg path', async ({ page }) => {
-    // `fmt-30s.alac.m4a` is a fallback-set file; `fmt-30s.m4a` is the
+    // `fmt-30s.alac.m4a` is a fallback-set file; `fmt-30s.wav` is the
     // dual-supported control: Chromium CAN decode it natively (CC-04.2), so
-    // only a stubbed probe can send it down the fallback.
+    // only a stubbed probe can send it down the fallback — and it is PCM, the
+    // one dual-supported container the declared FILM stand-in decodes
+    // (ALAC-in-M4A is FILM_ALAC_UNSUPPORTED until the real ffmpeg core is
+    // self-hosted, unit-04D).
     const result = (await page.evaluate(async () => {
       const harness = (globalThis as unknown as { __zipscribeMediaHarness: { decodeFile(url: string, options: unknown): Promise<{ events: { t: string; path?: string; notice?: string; code?: string }[]; chunks: { startSec: number; samples: number[] }[] }> } }).__zipscribeMediaHarness
-      const native = await harness.decodeFile('fixtures/audio/fmt-30s.m4a', { forcedPath: 'webcodecs' })
-      const fallback = await harness.decodeFile('fixtures/audio/fmt-30s.m4a', { forcedPath: 'ffmpeg', ffmpegMode: 'film' })
+      const native = await harness.decodeFile('fixtures/audio/fmt-30s.wav', { forcedPath: 'webcodecs' })
+      const fallback = await harness.decodeFile('fixtures/audio/fmt-30s.wav', { forcedPath: 'ffmpeg', ffmpegMode: 'film' })
       return { native, fallback }
     })) as {
       native: { events: { t: string; path?: string }[]; chunks: { samples: number[] }[] }

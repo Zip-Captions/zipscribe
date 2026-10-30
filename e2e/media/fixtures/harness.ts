@@ -82,7 +82,14 @@ async function openWithMediabunny(file: Blob, onFallback?: (reason: { container:
   const input = new Input({ formats: ALL_FORMATS, source: new BlobSource(file) })
   const audioTrack = await input.getPrimaryAudioTrack()
   const videoTrack = await input.getPrimaryVideoTrack()
-  const duration = await input.computeDuration()
+  // Verbatim mirror of the production adapter's duration rule
+  // (src/engine/audio/adapters/mediabunny.ts:63-67, FR-04.2/US-1.2.4):
+  // container metadata (edit lists, STREAMINFO sample counts) is
+  // authoritative; packet-summed computeDuration() is the fallback for
+  // header-less streams. Diverging here (compute-only) hid metadata-vs-content
+  // disagreements from the matrix's duration rows.
+  const meta = await (audioTrack as { getDurationFromMetadata?: () => Promise<number | null> }).getDurationFromMetadata?.()
+  const duration = typeof meta === 'number' && Number.isFinite(meta) && meta > 0 ? meta : await input.computeDuration()
   const container = await input.getMimeType()
   if (!audioTrack) {
     throw Object.assign(new Error('UNSUPPORTED_MEDIA'), { code: 'UNSUPPORTED_MEDIA' })
@@ -235,11 +242,15 @@ function collectPort(port: InstanceType<typeof MessagePort>, chunks: ChunkRecord
     const data = message.data as { t?: string; startSec?: number; samples?: Float32Array }
     if (data.t === undefined && typeof data.startSec === 'number' && data.samples instanceof Float32Array) {
       chunks.push({ startSec: data.startSec, samples: data.samples.slice() })
+      // Reader protocol (src/engine/audio/decode.ts:244-256): one `{t:'ack'}`
+      // per delivered CHUNK — the gate's per-port pending count is chunk
+      // accounting, so event messages get no ack (an over-eager ack would
+      // under-count pending and the bounded queue could never fill).
+      // `readDelayMs` models a slow consumer by delaying the ack.
+      if (readDelayMs > 0) setTimeout(() => port.postMessage({ t: 'ack' }), readDelayMs)
+      else port.postMessage({ t: 'ack' })
     } else if (typeof data.t === 'string') {
       events.push(recordEvent(data as MediaWorkerEvent))
-    }
-    if (readDelayMs > 0) {
-      port.postMessage({ t: 'ack' })
     }
   }
   port.start()
@@ -269,20 +280,48 @@ function buildHarness(): MediaHarness {
       const second: ChunkRecord[] = []
       const events: EventRecord[] = []
       const channel = channelPair()
-      // Production tee path: `decodeAudio` takes ONE port, `teePcm` clones to
-      // the second consumer — exactly the worker's two-port arrangement.
-      const fanout = channelPair()
-      fanout.port1.onmessage = (message: MessageEvent) => {
-        const data = message.data as { startSec: number; samples: Float32Array }
-        teePcm({ startSec: data.startSec, samples: data.samples }, [firstPort, secondPort])
-      }
+      // Production tee path (FR-04.1, mirrors media.worker.ts): `decodeAudio`
+      // takes ONE port; this fan-out clones every chunk with the production
+      // `teePcm` onto two independently-reading consumer ports — exactly the
+      // worker's two-port arrangement. The fan-out listens on the read end of
+      // the engine port (decodeAudio posts chunks to `channel.port2`).
+      // Upstream is acked once per chunk only when BOTH consumers have acked
+      // it, so the slowest consumer bounds the queue.
       const firstChannel = channelPair()
       const secondChannel = channelPair()
-      const firstPort = firstChannel.port2
-      const secondPort = secondChannel.port2
+      let handed = 0
+      let acked = 0
+      let fromFirst = 0
+      let fromSecond = 0
+      const pump = (): void => {
+        while (acked < handed && fromFirst > acked && fromSecond > acked) {
+          acked += 1
+          channel.port2.postMessage({ t: 'ack' })
+        }
+      }
+      channel.port1.onmessage = (message: MessageEvent) => {
+        const data = message.data as { t?: string; startSec?: number; samples?: Float32Array }
+        // Events are recorded once through `deps.emit` — the engine
+        // double-delivers (deps.emit AND a postMessage per port), and the
+        // chunk messages are the only thing forwarded to consumers here.
+        if (data.t === undefined && typeof data.startSec === 'number' && data.samples instanceof Float32Array) {
+          teePcm({ startSec: data.startSec, samples: data.samples }, [firstChannel.port2, secondChannel.port2])
+          handed += 1
+        }
+      }
+      channel.port1.start()
       collectPort(firstChannel.port1, first, events, readDelaysMs[0])
       collectPort(secondChannel.port1, second, events, readDelaysMs[1])
-      fanout.port1.start()
+      firstChannel.port2.onmessage = () => {
+        fromFirst += 1
+        pump()
+      }
+      firstChannel.port2.start()
+      secondChannel.port2.onmessage = () => {
+        fromSecond += 1
+        pump()
+      }
+      secondChannel.port2.start()
       const deps: DecodeDeps = { open: (blob, openOptions) => openWithMediabunny(blob, openOptions?.onFallback), emit: (event) => events.push(recordEvent(event)) }
       const job = decodeAudio({ jobId: 'harness-tee', file, ports: [channel.port2] }, deps)
       await job.done

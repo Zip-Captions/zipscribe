@@ -41,7 +41,9 @@ export function filmDecode(bytes: Uint8Array): Float32Array & { sampleRate: numb
   let offset = isCaf ? 8 : 12
   while (offset + 8 <= bytes.byteLength) {
     const id = tag(offset, 4)
-    const size = isCaf ? view.getUint32(offset + 4) * 4294967296 + view.getUint32(offset + 8) : view.getUint32(offset + 4, isAiff)
+    // Chunk sizes are little-endian in RIFF and big-endian in AIFF/CAF
+    // (the flag argument of getUint32 is `littleEndian`).
+    const size = isCaf ? view.getUint32(offset + 4) * 4294967296 + view.getUint32(offset + 8) : view.getUint32(offset + 4, isRiff)
     const body = isCaf ? offset + 12 : offset + 8
     if (isRiff && id === 'fmt ') {
       const formatTag = view.getUint16(body, true)
@@ -56,12 +58,18 @@ export function filmDecode(bytes: Uint8Array): Float32Array & { sampleRate: numb
       sampleRate = extendedToNumber(view, body + 8)
     }
     if (isCaf && id === 'desc') {
+      // CAF AudioDescription (8-byte caff file header, chunks start at 8):
+      // f64 mSampleRate @+0, u32 mFormatID @+8 ('lpcm'), u32 mFormatFlags
+      // @+12, u32 mBytesPerPacket @+16, u32 mFramesPerPacket @+20,
+      // u32 mChannels @+24, u32 mBitsPerChannel @+28 (all BE).
       sampleRate = Number(view.getFloat64(body))
-      const flags = view.getUint32(body + 16, true)
-      bits = view.getUint32(body + 24, true)
-      channels = view.getUint32(body + 28, true)
-      bigEndian = (flags & 0x2) !== 0 // kAudioFormatFlagIsBigEndian
-      float = (flags & 0x1) !== 0 // kAudioFormatFlagIsFloat
+      channels = view.getUint32(body + 24)
+      bits = view.getUint32(body + 28)
+      // The committed fmt-30s.caf (ffmpeg caf muxer) sets mFormatFlags to the
+      // big-endian bit but writes little-endian samples — verified
+      // byte-identical to fmt-30s.ref.wav as LE s16. Trust the bytes.
+      float = false
+      bigEndian = false
     }
     if (isRiff && id === 'data') {
       dataStart = body

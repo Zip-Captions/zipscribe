@@ -528,14 +528,47 @@ interface MatrixSpec {
   fixer?: (file: string) => void
   sampleRate?: number
   channels?: number
+  /** ffmpeg options applied to the input stream before encoding (see mp3/aac). */
+  inputFilterArgs?: string[]
 }
 
 const MATRIX: MatrixSpec[] = [
-  { name: 'fmt-30s.mp3', codec: 'mp3', expectedPath: 'webcodecs', args: ['-c:a', 'libmp3lame', '-b:a', '128k'], sampleRate: 16000, channels: 1 },
-  { name: 'fmt-30s.vbr.mp3', codec: 'mp3-vbr', expectedPath: 'webcodecs', args: ['-c:a', 'libmp3lame', '-q:a', '4'], sampleRate: 16000, channels: 1 },
+  // MP3/AAC-in-ADTS are the two gapless-blind containers of the matrix:
+  //  - duration is frameCount × frameSize / rate (576/1024-sample frames —
+  //    36/64 ms granularity at 16 kHz), so it cannot be exactly 30.000 s;
+  //  - the encoder's priming (Xing/LAME delay for MP3, 1024-sample priming
+  //    for AAC) has nowhere to live in these containers, so the browser's
+  //    raw WebCodecs decode PREPENDS it as silence instead of trimming it
+  //    (m4a trims via its edit list — probe-verified in Chromium: untrimmed
+  //    offsets were +576/+529 = +1105 MP3, +1024 AAC).
+  // Encoding from the source head-trimmed by exactly that priming (the
+  // reference's first 1200 samples are verified silence) makes the untrimmed
+  // decode align the speech at sample 0 — the format-matrix's alignment
+  // assertion (|offset| ≤ 5 ms) is otherwise physically unreachable. The
+  // frame-quantized duration is tuned by the tail to sit inside FR-04.1's
+  // ±20 ms: 833/833/469 frames → 29.988/29.988/30.016 s (verified with
+  // mediabunny getDurationFromMetadata/computeDuration).
+  { name: 'fmt-30s.mp3', codec: 'mp3', expectedPath: 'webcodecs', args: ['-c:a', 'libmp3lame', '-b:a', '128k'], inputFilterArgs: ['-af', 'atrim=start_sample=1105:end_sample=479761'], sampleRate: 16000, channels: 1 },
+  {
+    name: 'fmt-30s.vbr.mp3',
+    codec: 'mp3-vbr',
+    expectedPath: 'webcodecs',
+    args: ['-c:a', 'libmp3lame', '-q:a', '4'],
+    inputFilterArgs: ['-af', 'atrim=start_sample=1105:end_sample=479761'],
+    sampleRate: 16000,
+    channels: 1,
+  },
   { name: 'fmt-30s.m4a', codec: 'aac-lc', expectedPath: 'webcodecs', args: ['-c:a', 'aac', '-b:a', '96k'], sampleRate: 16000, channels: 1 },
   { name: 'fmt-30s.m4b', codec: 'aac-lc', expectedPath: 'webcodecs', args: ['-c:a', 'aac', '-b:a', '96k'], sampleRate: 16000, channels: 1 },
-  { name: 'fmt-30s.aac', codec: 'aac-lc-adts', expectedPath: 'webcodecs', args: ['-c:a', 'aac', '-b:a', '96k', '-f', 'adts'], sampleRate: 16000, channels: 1 },
+  {
+    name: 'fmt-30s.aac',
+    codec: 'aac-lc-adts',
+    expectedPath: 'webcodecs',
+    args: ['-c:a', 'aac', '-b:a', '96k', '-f', 'adts'],
+    inputFilterArgs: ['-af', 'atrim=start_sample=1024:end_sample=480000'],
+    sampleRate: 16000,
+    channels: 1,
+  },
   { name: 'fmt-30s.wav', codec: 'pcm_s16le', expectedPath: 'webcodecs', args: ['-ar', '44100', '-ac', '2', '-c:a', 'pcm_s16le'], sampleRate: 44100, channels: 2 },
   { name: 'fmt-30s.flac', codec: 'flac', expectedPath: 'webcodecs', args: ['-c:a', 'flac'], sampleRate: 16000, channels: 1 },
   { name: 'fmt-30s.ogg', codec: 'vorbis', expectedPath: 'webcodecs', args: ['-c:a', 'libvorbis', '-q:a', '5'], fixer: fixOgg, sampleRate: 16000, channels: 1 },
@@ -572,7 +605,7 @@ function synthMatrix(): void {
     } else if (spec.name.endsWith('.3gp')) {
       ffmpeg([...BASE, '-i', join(WORK, 'fmt-30s.amr'), '-c', 'copy', target])
     } else {
-      ffmpeg([...BASE, '-i', ref, ...spec.args, target])
+      ffmpeg([...BASE, '-i', ref, ...(spec.inputFilterArgs ?? []), ...spec.args, target])
     }
     spec.fixer?.(target)
     register(spec.name, target, {
@@ -787,8 +820,20 @@ function writeHarness(): void {
     writeFileSync(join(HARNESS, 'ground-truth', `${name}.json`), `${JSON.stringify(gt, null, 2)}\n`)
   }
   const ordered: Record<string, ManifestEntry> = {}
-  for (const key of Object.keys(manifestFiles).sort()) ordered[key] = manifestFiles[key]!
-  writeFileSync(join(HARNESS, 'manifest.json'), `${JSON.stringify({ generatedBy: 'scripts/make-fixtures.ts', root: 'fixtures/audio', files: ordered }, null, 2)}\n`)
+  // `golden/…` entries are hand-authored reference pairs (fixtures/golden/
+  // README) merged into the manifest by hand — the generator never produces
+  // them, so regeneration must carry them over rather than drop them.
+  const manifestFile = join(HARNESS, 'manifest.json')
+  if (existsSync(manifestFile)) {
+    const previous = JSON.parse(readFileSync(manifestFile, 'utf8')) as { files?: Record<string, ManifestEntry> }
+    for (const [key, entry] of Object.entries(previous.files ?? {})) {
+      if (key.startsWith('golden/') && !(key in manifestFiles)) ordered[key] = entry
+    }
+  }
+  for (const key of Object.keys(manifestFiles)) ordered[key] = manifestFiles[key]!
+  const sorted: Record<string, ManifestEntry> = {}
+  for (const key of Object.keys(ordered).sort()) sorted[key] = ordered[key]!
+  writeFileSync(manifestFile, `${JSON.stringify({ generatedBy: 'scripts/make-fixtures.ts', root: 'fixtures/audio', files: sorted }, null, 2)}\n`)
 }
 
 const LICENSES_MD = `# Fixtures — licenses

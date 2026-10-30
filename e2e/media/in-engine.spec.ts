@@ -32,13 +32,15 @@ test.describe('unit-04 engine math on real decoded audio (Chromium)', () => {
       )
   })
 
-  test('CC-04.8: 44.1 kHz tone fixture resampled to 16 kHz keeps the 1 kHz passband and kills the 5 kHz image', async ({ page }) => {
-    const out = (await page.evaluate(async () => {
-      const harness = (globalThis as unknown as { __zipscribeMediaHarness: { resampleFile(url: string, toRate: number): Promise<{ out: number[] }> } }).__zipscribeMediaHarness
-      return harness.resampleFile('fixtures/audio/tones-220-1k-5k-10s.wav', 16000)
-    })) as { out: number[] }
-    const samples = Float32Array.from(out.out)
-    const amplitudeAt = (from: number, to: number, frequency: number): number => {
+  test('CC-04.8: 44.1 kHz fixtures resampled to 16 kHz keep the 1 kHz passband and kill the >8 kHz image', async ({ page }) => {
+    const resampleFile = async (url: string): Promise<Float32Array> => {
+      const out = (await page.evaluate(async (fileUrl) => {
+        const harness = (globalThis as unknown as { __zipscribeMediaHarness: { resampleFile(url: string, toRate: number): Promise<{ out: number[] }> } }).__zipscribeMediaHarness
+        return harness.resampleFile(fileUrl, 16000)
+      }, url)) as { out: number[] }
+      return Float32Array.from(out.out)
+    }
+    const amplitudeAt = (samples: Float32Array, from: number, to: number, frequency: number): number => {
       const segment = samples.subarray(from, to)
       let real = 0
       let imaginary = 0
@@ -49,12 +51,22 @@ test.describe('unit-04 engine math on real decoded audio (Chromium)', () => {
       }
       return (2 * Math.hypot(real, imaginary)) / segment.length
     }
-    // The fixture is 220 Hz (0–3.33 s), 1 kHz (3.34–6.66 s), 5 kHz (6.66–10 s).
-    const oneKhz = amplitudeAt(Math.round(4 * 16000), Math.round(6 * 16000), 1000)
+    // Passband: tones fixture — 220 Hz (0–3.33 s), 1 kHz (3.34–6.66 s),
+    // 5 kHz (6.66–10 s), each at amplitude 0.6.
+    const tones = await resampleFile('fixtures/audio/tones-220-1k-5k-10s.wav')
+    const oneKhz = amplitudeAt(tones, Math.round(4 * 16000), Math.round(6 * 16000), 1000)
     expect(20 * Math.log10(oneKhz / 0.6), '1 kHz passband within 0.1 dB of the 0.6 source amplitude').toBeLessThanOrEqual(0.1)
-    // 5 kHz survives (it is inside 8 kHz); it must NOT be aliased to 11 kHz.
-    const image = amplitudeAt(Math.round(7 * 16000), Math.round(9.9 * 16000), 11000)
-    expect(20 * Math.log10(image + 1e-30), 'no 11 kHz image of the 5 kHz segment').toBeLessThanOrEqual(-40)
+    // Anti-aliasing (FR-04.2(a), the L4 mirror of the frozen L1 case in
+    // tests/unit/audio/resample.test.ts): the tones fixture contains nothing
+    // above the 8 kHz Nyquist (top tone 5 kHz), so an "image" probe on it is
+    // unsatisfiable — on 16 kHz data the 11 kHz DFT bin IS the 5 kHz tone
+    // (cos(2π·11k·n/16k) ≡ cos(2π·5k·n/16k)), measured at −5.2 dBFS.
+    // The log-sweep fixture (20 Hz → 20 kHz in 10 s, f(t) = 20·1000^(t/10))
+    // does drive real >Nyquist content: at t ≈ 8.92–9.07 s the input is
+    // ≈ 9.5–10.5 kHz; a leak would alias into 16 kHz − f ≈ 6 kHz.
+    const sweep = await resampleFile('fixtures/audio/sweep-20-20k-10s.flac')
+    const image = amplitudeAt(sweep, Math.round(8.92 * 16000), Math.round(9.07 * 16000), 6000)
+    expect(20 * Math.log10(image + 1e-30), 'no 6 kHz image of the ~10 kHz sweep segment (FR-04.2(a): ≤ −60 dBFS)').toBeLessThanOrEqual(-60)
   })
 
   test('CC-04.13: fingerprint is deterministic on a real fixture and changes on a 1-byte edit', async ({ page }) => {
