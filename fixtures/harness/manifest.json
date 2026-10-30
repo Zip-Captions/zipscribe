@@ -525,7 +525,7 @@
       "sha256": "e80b0d898525a72c67467e8be5a251e91cc6402ef301caa63ec214fca7ea545a"
     },
     "golden/downmix-5.1-mono.wav": {
-      "sha256": "e73c6a38944693247286ad695c01ee644e692c05a42cced5e2c1fbe0cf2b9e6b",
+      "sha256": "be1b42d0520571abf1b6917e1f6fc1dcd508d3b34d1606370cff3adfa1b94991",
       "duration": null,
       "kind": "golden",
       "language": null,
@@ -539,7 +539,7 @@
       "expectedPath": null
     },
     "golden/downmix-5.1.wav": {
-      "sha256": "7b59f20f052925821931c523a3dca0284f832d5fdbcf519d3de01d53e39a962c",
+      "sha256": "875ac508f55b2ad3c77db4ba62aec30b542eae14a4b1ff7b962cfadb8ade5966",
       "duration": null,
       "kind": "golden",
       "language": null,
@@ -553,7 +553,7 @@
       "expectedPath": null
     },
     "golden/downmix-stereo-mono.wav": {
-      "sha256": "675d98b2fff13a4812119d25e27b6d78118656478a7ce4edd220332088c61a8e",
+      "sha256": "ca4da5ffade9236b1989ba99e935cb5dfbb4ba64fb58d3a1dbc37d1283973f22",
       "duration": null,
       "kind": "golden",
       "language": null,
@@ -567,7 +567,7 @@
       "expectedPath": null
     },
     "golden/downmix-stereo.wav": {
-      "sha256": "cb2f93a8c61a54eab31b827eba4fc2f0d9e3b27eebc0719612f46b7253c7f390",
+      "sha256": "ea1cd3b477fcad5db36e037aaf98b4c4ddee86c86ea481c5baede7c2a190a24f",
       "duration": null,
       "kind": "golden",
       "language": null,
@@ -609,7 +609,7 @@
       "expectedPath": null
     },
     "golden/playback-44100stereo-ref.f32": {
-      "sha256": "a283c211df6fadd9c595dc6aa48d04f3434612268d5f6e948aa6da235113186f",
+      "sha256": "728ca1cee9bbee90339cd46a991400b0912e64799cc1e6a65783caec101c8d00",
       "duration": null,
       "kind": "golden",
       "language": null,
