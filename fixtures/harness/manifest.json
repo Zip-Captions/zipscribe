@@ -178,7 +178,7 @@
       "channels": 1,
       "expectedPath": "webcodecs",
       "derivedFrom": "fmt-30s.ref.wav",
-      "sha256": "f4e299573281ad7e94097da07ee05679bb3e6d47b8b224d661a1d8e48227ab49"
+      "sha256": "3ada2e347a6cbf74e2e6bf1dc120875120dd80d1d1db78e09da44442acbf8e90"
     },
     "fmt-30s.mp3": {
       "duration": 30,
@@ -297,7 +297,7 @@
       "channels": 1,
       "expectedPath": "webcodecs",
       "derivedFrom": "fmt-30s.ref.wav",
-      "sha256": "b14cbadedae61622768d38a1a4a335c1ad0b98c2cadc80e099d06cb1ed3237b8"
+      "sha256": "d100cb66cf5f31a24ffef812046794d7b9207cb805288a2eab0ddfe74a461e50"
     },
     "fmt-30s.wma": {
       "duration": 30,
@@ -312,7 +312,7 @@
       "channels": 1,
       "expectedPath": "ffmpeg",
       "derivedFrom": "fmt-30s.ref.wav",
-      "sha256": "97959d20edebf4f8d7d6ccfdecfe5ce3b9788d9b768dd37f1b3e8344c1824a4e"
+      "sha256": "1666bf833371403f91e4b056135f2dd92873cc0f642837e89e822f1e1b2b17ca"
     },
     "golden/downmix-5.1-mono.wav": {
       "sha256": "be1b42d0520571abf1b6917e1f6fc1dcd508d3b34d1606370cff3adfa1b94991",

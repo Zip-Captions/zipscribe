@@ -39,6 +39,36 @@ async function videoFrameRate(track: { computeFrameRateMetrics?: () => Promise<{
   }
 }
 
+/**
+ * Sanity envelope for the CONTAINER-DECLARED duration (FR-04.2/US-1.2.4;
+ * unit-04 4D builder-defect fix — `fmt-30s.weba` carries a deliberately
+ * corrupted EBML `Duration` float that parses as 1.99e-195 s for a 30 s
+ * file; adopting it verbatim poisons `media:probed.asset.duration`, and
+ * downstream the peaks bucketing (unit-106) and progress/playback math
+ * (unit-107) inherit the garbage).
+ *
+ * Envelope derivation (unit spec + domain, not a magic feel):
+ *  - lower bound 1 ms: the decode contract is 1 s `PcmChunk`s with
+ *    `job:progress { totalSec }` (FR-04.1); no importable media is shorter
+ *    than a millisecond of audio, so a declared duration below it can only
+ *    be corrupt metadata (random 64-bit float payloads land in the
+ *    denormal sub-range like the weba case).
+ *  - upper bound 24 h: the largest media the product supports is the
+ *    120-minute decode (US-1.2.1 / CC-04.9 `audio-120min.mp4` memory gate),
+ *    so 24 h is 12× headroom over any real import; beyond it the metadata
+ *    is not trustworthy either.
+ * Out-of-envelope declarations are rejected in favour of the packet-summed
+ * `computeDuration()` the adapter already runs for header-less streams.
+ * Healthy files keep the metadata-first fast path unchanged (in-envelope
+ * metadata is still authoritative — edit lists / STREAMINFO sample counts).
+ */
+export const METADATA_DURATION_MIN_SEC = 0.001
+export const METADATA_DURATION_MAX_SEC = 86_400
+
+export function isPlausibleDeclaredDuration(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= METADATA_DURATION_MIN_SEC && value <= METADATA_DURATION_MAX_SEC
+}
+
 export async function openMediabunny(file: Blob, options: OpenOptions = {}): Promise<OpenedMedia> {
   const input = new Input({ formats: ALL_FORMATS, source: new BlobSource(file) })
   let audioTrack: Awaited<ReturnType<Input['getPrimaryAudioTrack']>>
@@ -61,10 +91,11 @@ export async function openMediabunny(file: Blob, options: OpenOptions = {}): Pro
     throw Object.assign(new Error('UNSUPPORTED_MEDIA'), { code: 'UNSUPPORTED_MEDIA' })
   }
   // Content duration: container metadata (edit lists, STREAMINFO sample
-  // counts) is authoritative; packet-summed computeDuration() is the fallback
-  // for header-less streams (FR-04.2 duration tolerances).
+  // counts) is authoritative when it survives the sanity envelope above;
+  // packet-summed computeDuration() is the fallback for header-less streams
+  // and implausible declarations (FR-04.2 duration tolerances).
   const meta = await (audioTrack as { getDurationFromMetadata?: () => Promise<number | null> }).getDurationFromMetadata?.()
-  const duration = typeof meta === 'number' && Number.isFinite(meta) && meta > 0 ? meta : await input.computeDuration()
+  const duration = isPlausibleDeclaredDuration(meta) ? meta : await input.computeDuration()
   const decodable = await audioTrack.canDecode()
   const audioCodec = (await audioTrack.getCodec()) ?? 'unknown'
   if (!decodable) {

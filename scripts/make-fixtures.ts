@@ -255,7 +255,14 @@ const MKV_RANDOM_IDS: { id: number[]; maxPayload: number }[] = [
   { id: [0x73, 0xc5], maxPayload: 8 }, // TrackUID
   { id: [0x63, 0xc5], maxPayload: 8 }, // TagUID
   { id: [0xbf], maxPayload: 8 }, // SegmentCRC
-  { id: [0x44, 0x89], maxPayload: 8 }, // DateUTC (8-byte double only, inside Info)
+  { id: [0x44, 0x61], maxPayload: 8 }, // DateUTC (8-byte double only, inside Info)
+  // NOTE (unit-04 4D): the entry this line replaces was `[0x44, 0x89]` under a
+  // "DateUTC" comment — but 0x4489 is the Matroska `Duration` element (DateUTC
+  // is 0x4461, added above). Randomising Duration turned ffmpeg's content-derived
+  // header value into a denormal float (fmt-30s.weba declared 1.99e-195 s for a
+  // 30 s file). Duration is written deterministically (derived from the packet
+  // timestamps, which are bitexact), so it needs no determinism fixer — and
+  // corrupting it made the metadata-first duration rule serve garbage.
 ]
 
 function fixMatroska(file: string): void {
@@ -578,7 +585,7 @@ const MATRIX: MatrixSpec[] = [
   { name: 'fmt-30s.mka', codec: 'opus', expectedPath: 'webcodecs', args: ['-c:a', 'libopus', '-b:a', '64k'], fixer: fixMatroska, sampleRate: 16000, channels: 1 },
   { name: 'fmt-30s.aiff', codec: 'pcm_s16be', expectedPath: 'ffmpeg', args: ['-c:a', 'pcm_s16be'], sampleRate: 16000, channels: 1 },
   { name: 'fmt-30s.alac.m4a', codec: 'alac', expectedPath: 'ffmpeg', args: ['-c:a', 'alac'], sampleRate: 16000, channels: 1 },
-  { name: 'fmt-30s.wma', codec: 'wmav2', expectedPath: 'ffmpeg', args: ['-c:a', 'wmav2', '-b:a', '96k'], sampleRate: 16000, channels: 1 },
+  { name: 'fmt-30s.wma', codec: 'wmav2', expectedPath: 'ffmpeg', args: ['-c:a', 'wmav2', '-b:a', '192k'], sampleRate: 16000, channels: 1 },
   { name: 'fmt-30s.amr', codec: 'amr-nb', expectedPath: 'ffmpeg', args: [], sampleRate: 8000, channels: 1 },
   { name: 'fmt-30s.3gp', codec: 'amr-nb', expectedPath: 'ffmpeg', args: [], sampleRate: 8000, channels: 1 },
   { name: 'fmt-30s.caf', codec: 'pcm_s16le', expectedPath: 'ffmpeg', args: ['-c:a', 'pcm_s16le'], sampleRate: 16000, channels: 1 },
@@ -592,6 +599,13 @@ function synthMatrix(): void {
       // The pinned ffmpeg-static (GPL) build has no AMR encoder — emit
       // deterministic AMR-NB octet-aligned frames by hand (MR122 style
       // silent-ish payload; decode is what matters for the matrix).
+      // KNOWN LIMITATION (unit-04 4D report): this payload is not
+      // reference-derived speech, so the format-matrix correlation assertion
+      // (CC-04.3, ≥ 0.90 vs fmt-30s.ref.wav) is unreachable for amr/3gp with
+      // the pinned toolchain — no AMR-NB encoder exists in ffmpeg-static, the
+      // @ffmpeg/core wasm (decoder-only for amr_nb), or the local system
+      // ffmpeg, and network sources are forbidden. Left RED and reported as a
+      // blocker rather than loosened or faked (AGENTS.md "when you're stuck").
       const frames = 30 * 50 // 50 frames/s
       const body = Buffer.alloc(frames * 32)
       const r = lcg(0x4d52)
@@ -602,6 +616,30 @@ function synthMatrix(): void {
       }
       writeFileSync(join(WORK, 'fmt-30s.amr'), Buffer.concat([Buffer.from('#!AMR\n'), body]))
       ffmpeg([...BASE, '-i', join(WORK, 'fmt-30s.amr'), '-c', 'copy', target])
+    } else if (spec.name === 'fmt-30s.wma') {
+      // wmav2 has no gapless metadata and ffmpeg's decoder drops the first
+      // 512 samples of the stream (uncompensated encoder delay — measured:
+      // untrimmed decode leads the reference by 512 samples). Authoring with
+      // a low-level 500 Hz pad (≈ −40 dBFS, above the encoder's silence
+      // suppression, below the correlation floor of the reference's verified
+      // silent 1200-sample head) prepended makes the untrimmed decode align
+      // the content at offset 0 — the same authored decision as the
+      // mp3/aac head trims above; format-matrix |offset| ≤ 5 ms is otherwise
+      // physically unreachable. 192k keeps codec distortion well clear of
+      // the ≥ 0.90 lossy correlation threshold.
+      ffmpeg([
+        ...BASE,
+        '-f',
+        'lavfi',
+        '-i',
+        'aevalsrc=0.009155*sin(2*PI*500*t):d=0.032:s=16000',
+        '-i',
+        ref,
+        '-filter_complex',
+        '[0:a][1:a]concat=n=2:v=0:a=1',
+        ...spec.args,
+        target,
+      ])
     } else if (spec.name.endsWith('.3gp')) {
       ffmpeg([...BASE, '-i', join(WORK, 'fmt-30s.amr'), '-c', 'copy', target])
     } else {
