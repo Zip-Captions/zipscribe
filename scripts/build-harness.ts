@@ -108,9 +108,17 @@ await build({
     emptyOutDir: false,
     outDir,
     rollupOptions: {
-      input: join(repoRoot, 'e2e', 'media', 'fixtures', 'harness.html'),
+      // Unit-04 slice 4D: the builder-owned ffmpeg overlay (see
+      // scripts/harness/ffmpeg-overlay.mjs) is the second entry of the same
+      // build, so both modules share the ONE `@engine/audio/*` chunk (one
+      // `decodeAudio` module instance) and the frozen page loads it after
+      // the harness module.
+      input: {
+        media: join(repoRoot, 'e2e', 'media', 'fixtures', 'harness.html'),
+        'ffmpeg-overlay': join(repoRoot, 'scripts', 'harness', 'ffmpeg-overlay.mjs'),
+      },
       output: {
-        entryFileNames: 'media.js',
+        entryFileNames: (chunk) => (chunk.name === 'media' ? 'media.js' : '[name].js'),
         chunkFileNames: 'media-[name].js',
         assetFileNames: 'media-[name][extname]',
       },
@@ -122,7 +130,15 @@ await build({
 // `/harness/media.html` (its script tag already points at the sibling
 // built chunk) and drop the nested copy.
 const page = join(outDir, 'e2e', 'media', 'fixtures', 'harness.html')
-writeFileSync(join(outDir, 'media.html'), readFileSync(page, 'utf8').replaceAll('src="/', 'src="/harness/').replaceAll('href="/', 'href="/harness/'))
+const html = readFileSync(page, 'utf8')
+  .replaceAll('src="/', 'src="/harness/')
+  .replaceAll('href="/', 'href="/harness/')
+  // The builder-owned ffmpeg overlay (slice 4D) loads as a module AFTER the
+  // frozen harness module (module scripts execute in document order) and
+  // repoints the forced-ffmpeg seam at the production adapter when the
+  // pinned self-hosted core is served — see scripts/harness/ffmpeg-overlay.mjs.
+  .replace('</body>', '  <script type="module" src="/harness/ffmpeg-overlay.js"></script>\n  </body>')
+writeFileSync(join(outDir, 'media.html'), html)
 rmSync(join(outDir, 'e2e'), { recursive: true, force: true })
 
-console.log('public/harness: media.html + media.js')
+console.log('public/harness: media.html + media.js + ffmpeg-overlay.js')

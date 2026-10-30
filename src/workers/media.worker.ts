@@ -25,6 +25,13 @@ scope.onmessage = (event: MessageEvent<MediaRequest>) => {
       open: (file, options) =>
         openMediabunny(file, {
           onFallback: options?.onFallback,
+          // FR-04.5: the ffmpeg.wasm fallback is lazy-imported on first need
+          // (own chunk, off the initial budget); the core itself is
+          // self-hosted under /wasm/ffmpeg (scripts/copy-ffmpeg.ts).
+          openFfmpeg: async (blob, reason) => {
+            const { openFfmpeg } = await import('@engine/audio/adapters/ffmpeg')
+            return openFfmpeg(blob, reason)
+          },
         }),
       emit: () => undefined,
     },
