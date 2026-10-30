@@ -1,9 +1,9 @@
 // FILM-model fallback stand-in for the unit-04 browser suites — test-author-owned.
 //
 // The ffmpeg.wasm fallback path (FR-04.5) must be proven end-to-end WITHOUT
-// a runtime import of @ffmpeg/ffmpeg: the dependency is not installed yet
-// (the builder adds it in unit-04) and the prime serves no ffmpeg core
-// (network is blocked at test time). This module decodes the committed
+// a runtime import of @ffmpeg/ffmpeg while the dependency is not installed
+// (pre-4D state) or the prime serves no ffmpeg core (network is blocked at
+// test time). This module decodes the committed
 // fallback fixtures with a small, deterministic FILM decoder (the same
 // "editorial resampler" the architecture documents) so the ffmpeg-path specs
 // prove the PIPELINE — mediabunny refused the container/codec → fallback path
@@ -19,8 +19,11 @@
 // Supported (all 16 kHz mono in the committed fixtures):
 //   - AIFF (pcm_s16be), CAF (lpcm s16le), WAV (pcm_s16le / f32)
 //   - ALAC-in-M4A: NOT decodable here → FILM_ALAC_UNSUPPORTED
-//   - WMA / AMR / 3GP: FILM_CODEC_UNSUPPORTED (the committed assets are
-//     unusable placeholders — see the unit report, Fixture notes)
+//   - WMA / AMR / 3GP: FILM_CODEC_UNSUPPORTED (no PCM path in the stand-in;
+//     since slice 4D these decode through the PRODUCTION ffmpeg.wasm adapter
+//     — the harness overlay repoints forced-ffmpeg calls at it whenever the
+//     pinned self-hosted core is served, and the film handoff below only
+//     runs when it is not)
 export function filmDecode(bytes: Uint8Array): Float32Array & { sampleRate: number } {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   const tag = (at: number, length: number): string => new TextDecoder('latin1').decode(bytes.subarray(at, at + length))

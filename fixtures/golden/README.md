@@ -39,3 +39,30 @@ Assumptions.
 
 Licenses: same as the rest of `fixtures/` — generated in-repo, CC0-1.0;
 the tool (ffmpeg-static) is not shipped (see `fixtures/LICENSES.md`).
+
+## Computed references (not committed) — CC-04.3 decoder-parity goldens
+
+`fmt-30s.amr`/`fmt-30s.3gp` carry hand-built MR122 AMR-NB payloads (see
+`fixtures/LICENSES.md`): no AMR-NB encoder exists in the offline toolchain
+(ffmpeg-static `-encoders | grep amr` is empty, @ffmpeg/core is decode-only
+for amr_nb, system ffmpeg none; downloads forbidden), so a real-speech AMR
+fixture cannot be authored and the matrix's source-correlation oracle is
+physically unreachable (measured corr 0.0036 — content difference, not a
+decode failure). Those CC-04.3 rows use a **decoder-parity golden** instead:
+the SAME committed bitstream decoded by the pinned ffmpeg-static on the Node
+side
+
+```
+ffmpeg -i fixtures/audio/fmt-30s.<amr|3gp> -vn -map 0:a:0 -f f32le pipe:1
+```
+
+(`ffmpegStaticNativePcm` in `e2e/media/helpers/media.ts`, the generator's own
+pinned binary — no system-ffmpeg fallback) versus the production
+ffmpeg.wasm adapter in the browser (`decodeNativeFfmpeg`,
+`scripts/harness/ffmpeg-overlay.mjs`), asserting waveform correlation ≥ 0.999
+and identical frame counts at the stream's native rate (8 kHz mono). Unlike
+the committed goldens this reference is computed at test time — it is a pure
+function of the committed bytes and the pinned decoder build, so
+determinism holds without vendoring another payload; a drift in either fails
+the row loudly. A genuine speech AMR payload stays a corpus-vendoring owner
+flag (sine-formant interim-corpus precedent).
