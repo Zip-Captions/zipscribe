@@ -10,7 +10,7 @@ const FRAMEWORK_PACKAGES = ['react', 'react-dom', 'react-dom/*', 'react/*']
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'coverage/**', 'node_modules/**', 'public/wasm/**', 'fixtures/**', 'reports/**', 'test-results/**', 'playwright-report/**', '.cache/**', 'logs/**', '.vite/**'],
+    ignores: ['dist/**', 'coverage/**', 'node_modules/**', 'public/wasm/**', 'fixtures/**', 'reports/**', 'test-results/**', 'playwright-report/**', '.cache/**', 'logs/**', '.vite/**', '.night/**'],
   },
 
   // All TypeScript: syntax-level rules (no type information required, so
