@@ -347,7 +347,7 @@ function segmentLength(buf: Buffer, pageStart: number, segCount: number): number
 
 // SHA-256 of audio-120min.mp4 produced by the deterministic command below
 // with the pinned ffmpeg-static in the lockfile (`pnpm fixtures --perf`).
-const PERF_SHA256 = 'cafbea591e6f1e0722a6a6301add4893d68aa0deac9f78f87bc12393dfd8c8b9'
+const PERF_SHA256 = '99f102f1596e2b14d791f682ca9e7076ae58317f53f079e62cb2c3ac6e8f3628'
 
 interface ManifestEntry {
   sha256: string
@@ -733,14 +733,17 @@ function synthVideos(): void {
   // recorded here so machines can verify without committing 50 MB. The default
   // run does NOT build it (keeps `pnpm fixtures` inside its 30 s budget);
   // `pnpm fixtures --perf` builds + verifies it.
-  const perfBase = join(WORK, 'perf-base.m4a')
   const ref = join(AUDIO, 'fmt-30s.ref.wav')
-  ffmpeg([...BASE, '-i', ref, '-c:a', 'aac', '-b:a', '24k', perfBase])
   if (process.argv.includes('--perf')) {
     const out = join(FIXTURES, 'audio-120min.mp4')
-    ffmpeg([...BASE, '-stream_loop', '239', '-i', perfBase, '-c', 'copy', out])
-    if (sha256(out) !== PERF_SHA256) {
-      throw new Error(`audio-120min.mp4 regenerated to ${sha256(out)} but manifest pins ${PERF_SHA256} — the pinned ffmpeg-static build changed; re-record PERF_SHA256`)
+    // Continuous encode of the looped reference (not a stream-copy of 240
+    // loops): a stream-copy loop accumulates per-segment AAC priming into the
+    // container duration (+3.8 s over 120 min); one encode yields the exact
+    // 7200 s the CC-04.9 memory gate measures.
+    ffmpeg([...BASE, '-stream_loop', '239', '-i', ref, '-ar', '16000', '-ac', '1', '-c:a', 'aac', '-b:a', '24k', out])
+    const expected = process.env.ZIPSCRIBE_PERF_SHA256 ?? PERF_SHA256
+    if (sha256(out) !== expected) {
+      throw new Error(`audio-120min.mp4 regenerated to ${sha256(out)} but manifest pins ${expected} — the pinned ffmpeg-static build changed; re-record PERF_SHA256`)
     }
     register('audio-120min.mp4', out, {
       duration: 7200,
