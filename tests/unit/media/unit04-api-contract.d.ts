@@ -127,6 +127,17 @@ declare module '@engine/audio/fingerprint' {
   export function fingerprintFile(file: Blob, durationSec: number): Promise<MediaFingerprint>
 }
 
+declare module '@engine/audio/adapters/mediabunny' {
+  /** Sanity envelope for container-declared durations (unit-04 4D;
+   * FR-04.2/US-1.2.4): out-of-envelope metadata is rejected in favour of
+   * the packet-summed `computeDuration()`. The harness mirror imports the
+   * PRODUCTION predicate so it can never serve a metadata value the
+   * production adapter would reject. */
+  export const METADATA_DURATION_MIN_SEC: number
+  export const METADATA_DURATION_MAX_SEC: number
+  export function isPlausibleDeclaredDuration(value: unknown): value is number
+}
+
 declare module '@engine/audio/adapters/probe' {
   export const ALL_FORMAT_HINTS: readonly string[]
 

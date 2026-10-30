@@ -20,6 +20,7 @@ import { fingerprintFile } from '@engine/audio/fingerprint'
 import { createPeaksAccumulator } from '@engine/audio/peaks'
 import { resample } from '@engine/audio/resample'
 import { createSupportMatrix } from '@engine/audio/adapters/probe'
+import { isPlausibleDeclaredDuration } from '@engine/audio/adapters/mediabunny'
 import { ALL_FORMATS, AudioSampleSink, BlobSource, Input } from 'mediabunny'
 
 export interface ChunkRecord {
@@ -83,13 +84,17 @@ async function openWithMediabunny(file: Blob, onFallback?: (reason: { container:
   const audioTrack = await input.getPrimaryAudioTrack()
   const videoTrack = await input.getPrimaryVideoTrack()
   // Verbatim mirror of the production adapter's duration rule
-  // (src/engine/audio/adapters/mediabunny.ts:63-67, FR-04.2/US-1.2.4):
+  // (src/engine/audio/adapters/mediabunny.ts:97-98, FR-04.2/US-1.2.4):
   // container metadata (edit lists, STREAMINFO sample counts) is
-  // authoritative; packet-summed computeDuration() is the fallback for
-  // header-less streams. Diverging here (compute-only) hid metadata-vs-content
+  // authoritative when it survives the [1 ms, 24 h] sanity envelope —
+  // applied through the PRODUCTION predicate so the harness can never serve
+  // a metadata value production would reject (the corrupted-`Duration` weba
+  // case, unit-04 4D); packet-summed computeDuration() is the fallback for
+  // header-less streams and implausible declarations. Diverging here
+  // (compute-only, or unenveloped metadata-first) hid metadata-vs-content
   // disagreements from the matrix's duration rows.
   const meta = await (audioTrack as { getDurationFromMetadata?: () => Promise<number | null> }).getDurationFromMetadata?.()
-  const duration = typeof meta === 'number' && Number.isFinite(meta) && meta > 0 ? meta : await input.computeDuration()
+  const duration = isPlausibleDeclaredDuration(meta) ? meta : await input.computeDuration()
   const container = await input.getMimeType()
   if (!audioTrack) {
     throw Object.assign(new Error('UNSUPPORTED_MEDIA'), { code: 'UNSUPPORTED_MEDIA' })
