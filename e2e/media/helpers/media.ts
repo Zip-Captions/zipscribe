@@ -59,9 +59,17 @@ export function loadManifest(): Manifest {
   return JSON.parse(readFileSync(join(REPO_ROOT, 'fixtures/harness/manifest.json'), 'utf8')) as Manifest
 }
 
-/** Manifest keys are relative to `fixtures/audio` (`../tone-30s.wav` lives in `fixtures/`). */
+/**
+ * Manifest keys are registered by `scripts/make-fixtures.ts`: everything under
+ * `fixtures/audio` is a plain key; corpus-root files registered with the
+ * explicit `../` prefix (`../tone-30s.wav`) resolve against `fixtures/`, and
+ * plain keys that do not live in `fixtures/audio` (the video `.mp4` corpus, as
+ * `licenses.test.ts`/`fixtures.test.ts` pin them) resolve against `fixtures/`.
+ */
 export function fixturePath(key: string): string {
-  return key.startsWith('../') ? `fixtures/${key.slice(3)}` : `fixtures/audio/${key}`
+  if (key.startsWith('../')) return `fixtures/${key.slice(3)}`
+  const audio = `fixtures/audio/${key}`
+  return existsSync(join(REPO_ROOT, audio)) ? audio : `fixtures/${key}`
 }
 
 const AUDIO_FORMAT_KEY = /^fmt-30s\./
@@ -82,10 +90,15 @@ export function fallbackSet(): string[] {
     .sort()
 }
 
-/** Video fixtures from the corpus root (architecture § Supported media). */
+/**
+ * Video fixtures from the corpus root (architecture § Supported media): the
+ * manifest's `h264+aac` entries — `make-fixtures.ts` registers the corpus-root
+ * videos as plain keys (frozen unit-01 consumers pin that format), and the
+ * perf file belongs to the memory project (CC-04.9), not this set.
+ */
 export function videoSet(): string[] {
   return Object.entries(loadManifest().files)
-    .filter(([key, entry]) => key.startsWith('../') && entry.kind !== 'tone' && !key.includes('audio-120min'))
+    .filter(([key, entry]) => entry.codec === 'h264+aac' && entry.kind !== 'tone' && !key.includes('audio-120min'))
     .map(([key]) => key)
     .sort()
 }

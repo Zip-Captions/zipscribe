@@ -54,7 +54,12 @@ import {
   routeFixtures,
 } from './helpers/media'
 
-test.describe('unit-04 audio format matrix (real decode in Chromium)', () => {
+// The describe titles LEAD with the criterion ID (`CC-04.2:` / `CC-04.3:`) so
+// the concatenated Playwright junit title satisfies verify-criteria.ts's
+// leading-citation provenance rule (citationsOf): an ID merely discussed after
+// prose does not credit a criterion. Assertions are unchanged by this shape.
+
+test.describe('CC-04.2: unit-04 audio format matrix, native set (real decode in Chromium)', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:unit')
   // Specs run against the Playwright webServer (build + preview on 4310,
   // vite.config.ts `publicDir: fixtures`); the harness page is prebuilt into
@@ -107,6 +112,25 @@ test.describe('unit-04 audio format matrix (real decode in Chromium)', () => {
       expect(Math.abs(alignment.offset), `${key}: alignment offset ${((alignment.offset / 16000) * 1000).toFixed(2)} ms`).toBeLessThanOrEqual(Math.round(MAX_OFFSET_SEC * 16000))
     })
   }
+
+})
+
+test.describe('CC-04.3: unit-04 audio format matrix, fallback set (real decode in Chromium)', () => {
+  test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:unit')
+  // Specs run against the Playwright webServer (build + preview on 4310,
+  // vite.config.ts `publicDir: fixtures`); the harness page is prebuilt into
+  // that public dir by `pnpm build:harness` so the same URL works under
+  // preview and in CI.
+  test.use({ baseURL: HARNESS_ORIGIN })
+
+  test.beforeEach(async ({ page, baseURL }) => {
+    await routeFixtures(page, baseURL)
+    await page.goto(HARNESS_PAGE)
+    await page.waitForFunction(
+        () => (globalThis as Record<string, unknown>).__zipscribeMediaHarnessReady === true,
+        { timeout: 30_000 },
+      )
+  })
 
   const parityKeys = new Set(handBuiltPayloadSet())
   for (const key of fallbackSet()) {

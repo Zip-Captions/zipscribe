@@ -17,7 +17,6 @@
       "sha256": "ca87ea894e05bad79220fdca0f9dbcece0347143895b6e19c1b1846bc626ac75"
     },
     "audio-120min.mp4": {
-      "sha256": "99f102f1596e2b14d791f682ca9e7076ae58317f53f079e62cb2c3ac6e8f3628",
       "duration": 7200,
       "kind": "perf",
       "language": "en",
@@ -28,7 +27,8 @@
       "codec": "aac-lc",
       "sampleRate": 16000,
       "channels": 1,
-      "expectedPath": "webcodecs"
+      "expectedPath": "webcodecs",
+      "sha256": "99f102f1596e2b14d791f682ca9e7076ae58317f53f079e62cb2c3ac6e8f3628"
     },
     "fmt-30s.3gp": {
       "duration": 30,
@@ -494,10 +494,10 @@
       "sampleRate": 16000,
       "channels": 1,
       "expectedPath": "webcodecs",
-      "sha256": "279569b5e14cb25836a9e054fcdd80350d32f50cedce441cab6783781fef1f50"
+      "sha256": "99563d15f02e9ac32ee36c69d5f46321e734ebe67d80807d3bfb68f9c61c50e9"
     },
     "speech-2min.m4a": {
-      "duration": 120,
+      "duration": 119.888,
       "kind": "speech",
       "language": "en",
       "category": "en-clean",
@@ -511,7 +511,7 @@
       "sha256": "9f09ec131db2fdf4080078069d3ccd0afa633e272e6557a71a11e0fd564195c9"
     },
     "speech-2min.mp4": {
-      "duration": 120,
+      "duration": 119.888,
       "kind": "speech",
       "language": "en",
       "category": "en-clean",
@@ -525,7 +525,7 @@
       "sha256": "5928fc06bed46cb50b28a6a776cd2f841a40dfa3dc50b6c8a75e4c95648aeebc"
     },
     "speech-2spk-2min.m4a": {
-      "duration": 120,
+      "duration": 119.888,
       "kind": "speech-2spk",
       "language": "en",
       "category": "en-clean",
@@ -539,7 +539,7 @@
       "sha256": "be752fb4a05f20865dce42154d2b3fbf0b5adbcdd94b8d5ec20273715afe8938"
     },
     "speech-2spk-2min.mp4": {
-      "duration": 120,
+      "duration": 119.888,
       "kind": "speech-2spk",
       "language": "en",
       "category": "en-clean",
@@ -567,7 +567,7 @@
       "sha256": "b806c8d9b6ead639adb262e1dcdf96b4d4468e170341c8abc1a4d2e55f11ba4a"
     },
     "taxi-en-accented-1.mp4": {
-      "duration": 30,
+      "duration": 29.888,
       "kind": "speech",
       "language": "en",
       "category": "en-accented",
@@ -581,7 +581,7 @@
       "sha256": "620be75f05c75ff6d20275a32e5cc4bd7fafc01497345414fe4ea72cba6b184d"
     },
     "taxi-en-accented-2.mp4": {
-      "duration": 32,
+      "duration": 31.936,
       "kind": "speech",
       "language": "en",
       "category": "en-accented",
@@ -595,7 +595,7 @@
       "sha256": "7296a9bfa1d57fd4cea685e54f9a82eef5957ff73d9eb9fb74469edb4c649205"
     },
     "taxi-en-noisy.mp4": {
-      "duration": 36,
+      "duration": 35.904,
       "kind": "speech",
       "language": "en",
       "category": "en-noisy",
@@ -609,7 +609,7 @@
       "sha256": "e1104049f0bd18052df7da5a79c2c4f234dd390257295a32a9fdba613a18ff5b"
     },
     "taxi-en-technical.mp4": {
-      "duration": 34,
+      "duration": 33.984,
       "kind": "speech",
       "language": "en",
       "category": "en-technical",
@@ -623,7 +623,7 @@
       "sha256": "a3c3d79ba0fe31ac6a7bc6b4009468f5a24200bff33da35da5876694434e6fa9"
     },
     "taxi-fr-clean-1.mp4": {
-      "duration": 30,
+      "duration": 29.888,
       "kind": "speech",
       "language": "fr",
       "category": "fr-clean",
@@ -637,7 +637,7 @@
       "sha256": "a9bd98d561ed160a41b83504241e5ad26c63d5a755ab5e54bb5daac7fc5acdfe"
     },
     "taxi-fr-clean-2.mp4": {
-      "duration": 30,
+      "duration": 29.888,
       "kind": "speech",
       "language": "fr",
       "category": "fr-clean",

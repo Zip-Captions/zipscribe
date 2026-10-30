@@ -86,6 +86,63 @@ function sha256(file: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// container-truth duration (pinned container parser, repo node_modules — the
+// same createRequire-pinned-toolchain pattern as resolveFfmpeg, so the CC-01.2
+// scratch-tree regen keeps working without a node_modules of its own)
+// ---------------------------------------------------------------------------
+
+interface MediabunnyAudioTrackLike {
+  getDurationFromMetadata?: () => Promise<number | null>
+}
+interface MediabunnyInputLike {
+  getPrimaryAudioTrack(): Promise<MediabunnyAudioTrackLike | null>
+  computeDuration(): Promise<number>
+  dispose(): void
+}
+interface MediabunnyModuleLike {
+  Input: new (options: { formats: unknown; source: unknown }) => MediabunnyInputLike
+  BlobSource: new (blob: Blob) => unknown
+  ALL_FORMATS: unknown
+}
+
+function loadMediabunny(): MediabunnyModuleLike {
+  const roots = [repoRoot, ...(process.env.ZIPSCRIBE_REPO_ROOT ? [process.env.ZIPSCRIBE_REPO_ROOT] : [])]
+  for (const root of roots) {
+    try {
+      const req = createRequire(join(root, 'package.json'))
+      return req('mediabunny') as MediabunnyModuleLike
+    } catch {
+      // try next root
+    }
+  }
+  throw new Error('make-fixtures: mediabunny not found (install dependencies or set ZIPSCRIBE_REPO_ROOT)')
+}
+
+/**
+ * The audio-track duration the media pipeline schedules on: the container-
+ * declared value via the pinned parser's `getDurationFromMetadata` (edit lists
+ * applied — an AAC-in-MP4 stream-copy loop trims priming and runs ~112 ms
+ * under its nominal loop budget), falling back to the packet-summed
+ * `computeDuration()`. Mirrors the engine probe's documented selection so the
+ * manifest records the container truth instead of the encode command's intent
+ * (the fmt-30s matrix entries were tuned the same way — verified with
+ * mediabunny getDurationFromMetadata/computeDuration).
+ */
+async function declaredAudioDuration(file: string): Promise<number> {
+  const mb = loadMediabunny()
+  const input = new mb.Input({ formats: mb.ALL_FORMATS, source: new mb.BlobSource(new Blob([readFileSync(file)])) })
+  try {
+    const track = await input.getPrimaryAudioTrack()
+    if (!track) throw new Error(`make-fixtures: ${file} has no audio track to measure`)
+    const meta = await track.getDurationFromMetadata?.()
+    const duration = typeof meta === 'number' && Number.isFinite(meta) && meta > 0 ? meta : await input.computeDuration()
+    return Number(duration.toFixed(3))
+  } finally {
+    input.dispose()
+  }
+}
+
+// ---------------------------------------------------------------------------
 // deterministic PRNG + WAV writer (no ffmpeg needed for PCM)
 // ---------------------------------------------------------------------------
 
@@ -670,9 +727,14 @@ interface VideoSpec {
   category: ManifestEntry['category']
   kind: 'speech' | 'speech-2spk'
   twin?: string
+  /** Single continuous encode of the tiled segment instead of a stream-copy
+   * loop (audio-120min doctrine): a copy loop trims ~112 ms of AAC priming
+   * per seam, so a 19-loop file decodes ~2.1 s short of its declared
+   * duration and cannot satisfy CC-04.1's covered ± 1.5 s gate. */
+  continuous?: boolean
 }
 
-function encodeVideoBase(spec: VideoSpec, audioFile: string, color: string): string {
+function encodeVideoBase(spec: VideoSpec, audioFile: string, color: string, totalSeconds = spec.seconds): string {
   const base = join(WORK, `${spec.name}.base.mp4`)
   ffmpeg([
     ...BASE,
@@ -702,7 +764,7 @@ function encodeVideoBase(spec: VideoSpec, audioFile: string, color: string): str
     '48k',
     '-shortest',
     '-t',
-    String(spec.seconds),
+    String(totalSeconds),
     '-movflags',
     '+faststart',
     '-flags:v',
@@ -714,7 +776,7 @@ function encodeVideoBase(spec: VideoSpec, audioFile: string, color: string): str
   return base
 }
 
-function synthVideos(): void {
+async function synthVideos(): Promise<void> {
   mkdirSync(WORK, { recursive: true })
   const specs: VideoSpec[] = [
     { name: 'speech-2min', words: [...EN_CLEAN, ...EN_CLEAN_B], seed: 0x2001, f0: SPEAKER_A, seconds: 30, loops: 3, language: 'en', category: 'en-clean', kind: 'speech', twin: 'speech-2min.m4a' },
@@ -730,7 +792,7 @@ function synthVideos(): void {
       kind: 'speech-2spk',
       twin: 'speech-2spk-2min.m4a',
     },
-    { name: 'speech-10min', words: [...EN_CLEAN, ...EN_CLEAN_B], seed: 0x2001, f0: SPEAKER_A, seconds: 30, loops: 19, language: 'en', category: 'en-clean', kind: 'speech' },
+    { name: 'speech-10min', words: [...EN_CLEAN, ...EN_CLEAN_B], seed: 0x2001, f0: SPEAKER_A, seconds: 30, loops: 19, language: 'en', category: 'en-clean', kind: 'speech', continuous: true },
     { name: 'taxi-en-accented-1', words: EN_ACCENTED, seed: 0x3001, f0: SPEAKER_A, seconds: 30, loops: 0, language: 'en', category: 'en-accented', kind: 'speech' },
     { name: 'taxi-en-accented-2', words: EN_NOISY, seed: 0x3002, f0: SPEAKER_B, seconds: 32, loops: 0, language: 'en', category: 'en-accented', kind: 'speech' },
     { name: 'taxi-en-technical', words: EN_TECHNICAL, seed: 0x3003, f0: SPEAKER_A, seconds: 34, loops: 0, language: 'en', category: 'en-technical', kind: 'speech' },
@@ -744,14 +806,25 @@ function synthVideos(): void {
     const wav = join(WORK, `${spec.name}.wav`)
     const synthesized = synthesizeSentence(spec.words, spec.seed, spec.f0, spec.seconds)
     writeWav(wav, synthesized.samples, 16000, 1)
-    const base = encodeVideoBase(spec, wav, colors[colorIndex++ % colors.length]!)
+    let sourceWav = wav
+    let baseSeconds = spec.seconds
+    if (spec.continuous) {
+      // Tile the synthesized segment and encode the whole timeline in one
+      // pass (audio-120min doctrine): no copy-loop seams → declared duration
+      // tracks decoded coverage inside CC-04.1's ± 1.5 s gate.
+      const tiled = new Float64Array(synthesized.samples.length * (spec.loops + 1))
+      for (let index = 0; index <= spec.loops; index++) tiled.set(synthesized.samples, index * synthesized.samples.length)
+      sourceWav = join(WORK, `${spec.name}.tiled.wav`)
+      writeWav(sourceWav, tiled, 16000, 1)
+      baseSeconds = spec.seconds * (spec.loops + 1)
+    }
+    const base = encodeVideoBase(spec, sourceWav, colors[colorIndex++ % colors.length]!, baseSeconds)
     const out = join(FIXTURES, `${spec.name}.mp4`)
-    if (spec.loops > 0) {
+    if (spec.loops > 0 && !spec.continuous) {
       ffmpeg([...BASE, '-stream_loop', String(spec.loops), '-i', base, '-c', 'copy', '-movflags', '+faststart', out])
     } else {
       ffmpeg([...BASE, '-i', base, '-c', 'copy', '-movflags', '+faststart', out])
     }
-    const looped = spec.seconds * (spec.loops + 1)
     const words = Array.from({ length: (spec.loops + 1) * synthesized.words.length }, (_, idx) => {
       const w = synthesized.words[idx % synthesized.words.length]!
       const offset = Math.floor(idx / synthesized.words.length) * spec.seconds
@@ -761,8 +834,13 @@ function synthVideos(): void {
       .fill(synthesized.transcript)
       .join(' ')
     const gtPath = addGroundTruth(spec.name, { transcript, language: spec.language, words })
+    // Container truth, not the encode command's intent: the stream-copy loop
+    // trims AAC priming, so the probed asset duration runs ~112 ms under the
+    // nominal loop budget. CC-04.1 compares `media:probed.asset.duration`
+    // (the pinned parser's audio-track declaration) to this entry ± 10 ms.
+    const duration = await declaredAudioDuration(out)
     register(`${spec.name}.mp4`, out, {
-      duration: looped,
+      duration,
       kind: spec.kind,
       language: spec.language,
       category: spec.category,
@@ -778,7 +856,7 @@ function synthVideos(): void {
       const twin = join(AUDIO, spec.twin)
       ffmpeg([...BASE, '-i', out, '-vn', '-c:a', 'copy', twin])
       register(spec.twin, twin, {
-        duration: looped,
+        duration: await declaredAudioDuration(twin),
         kind: spec.kind,
         language: spec.language,
         category: spec.category,
@@ -883,18 +961,21 @@ US-1.0.2 — test-time network access is forbidden per \`.agent/AGENTS.md\`).
 | Matroska/WebM + Ogg byte-fixers (SegmentUID/DateUTC/serialno pinned for determinism) | CC0-1.0 (generated by scripts/make-fixtures.ts) | https://creativecommons.org/publicdomain/zero/1.0/ |
 `
 
-function main(): void {
+async function main(): Promise<void> {
   rmSync(WORK, { recursive: true, force: true })
   mkdirSync(WORK, { recursive: true })
   mkdirSync(AUDIO, { recursive: true })
   const start = Date.now()
   synthStatic()
   synthMatrix()
-  synthVideos()
+  await synthVideos()
   writeHarness()
   if (!existsSync(join(FIXTURES, 'LICENSES.md'))) writeFileSync(join(FIXTURES, 'LICENSES.md'), LICENSES_MD)
   rmSync(WORK, { recursive: true, force: true })
   console.log(`make-fixtures: generated ${Object.keys(manifestFiles).length} fixtures (+${Object.keys(groundTruths).length} ground truths) in ${((Date.now() - start) / 1000).toFixed(1)}s via ${FFMPEG}`)
 }
 
-main()
+main().catch((error: unknown) => {
+  console.error(error instanceof Error ? (error.stack ?? error.message) : String(error))
+  process.exit(1)
+})
