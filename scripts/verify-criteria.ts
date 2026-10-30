@@ -23,6 +23,7 @@ import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { collectPlaywrightEvidence, parseJunit } from './lib/junit-trust.ts'
 import type { TestCase } from './lib/junit-trust.ts'
+import { committedE2eSpecSources, countCitations, playwrightBackedIds } from './lib/criteria-credit.ts'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -206,33 +207,27 @@ function unitFileFromBranch(): string | null {
 }
 
 // "Tests name the criterion" (conventions § Criterion traceability,
-// REVIEW.md #13): a citation counts only when the ID leads the title —
-// optionally after a run of ALL-CAPS tag words (e.g. `ADVERSARIAL CC-01.3:
-// …`). An ID merely embedded in prose (`… NOTA-CITATION CC-999.2 …`) or glued
-// to other tokens (`FR-1.0.12 / CC-I1.11`) discusses the ID, it does not
-// declare the test as covering it, and must not produce coverage or UNKNOWN-ID
-// verdicts.
-function citationsOf(title: string): string[] {
-  const stripped = title.replace(/^(?:[A-Z]+[ \t]+)+/, '')
-  if (!/^(?:CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+)(?![A-Za-z0-9.-])/.test(stripped)) return []
-  // Only the LEADING citation run counts (unit-03 review F2): every
-  // consecutive `CC-…` token before the first separator. A later ID in prose
-  // ("rejects CC-03.3 …") discusses a criterion, it does not cover it — the
-  // previous whole-title scan let a test that merely mentioned an e2e ID
-  // credit that criterion with zero e2e execution.
-  const leading = stripped.match(/^((?:CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+[\s,/·+&-]*)+)/)?.[1] ?? ''
-  return [...leading.matchAll(/CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+/g)].map((match) => match[0])
-}
+// REVIEW.md #13) — the citation grammar moved to scripts/lib/junit-trust.ts
+// (unit-04 F-6) so committed e2e spec titles are modelled with the same
+// leading-run rule; credit decisions run through scripts/lib/criteria-credit.ts
+// countCitations (single auditable policy, exercised by the scaffold
+// regression suite).
 
 /**
  * L4 criteria whose evidence must come from Playwright (unit-03 review F2).
  * The set is derived from the criterion's own spec text ("**CC-…** Playwright:
  * …"), which is committed and immutable during verification — deleting the
  * e2e spec file must never make a Playwright criterion start accepting vitest
- * citations.
+ * citations. Unit-04 adversary F-6 extends "must come from Playwright" beyond
+ * the unit-file declaration: any ID that a COMMITTED e2e spec lead-cites
+ * (e.g. CC-04.9/CC-04.10 — the spec text names them but the unit line carries
+ * no `Playwright` token) is credited only from playwright-sourced junit cases,
+ * so two planted `expect(1).toBe(1)` vitest titles can no longer forge a pass.
  */
-function e2eBackedIds(criteria: Criterion[]): Set<string> {
-  return new Set(criteria.filter((criterion) => criterion.e2e).map((criterion) => criterion.id))
+function e2eBackedIds(criteria: Criterion[], specSources: ReadonlyMap<string, string>): Set<string> {
+  const ids = playwrightBackedIds(specSources)
+  for (const criterion of criteria) if (criterion.e2e) ids.add(criterion.id)
+  return ids
 }
 
 function main(): void {
@@ -285,20 +280,13 @@ function main(): void {
     if (file === unitFile) continue
     for (const criterion of parseCriteria(file)) declared.add(criterion.id)
   }
-  const passingIds = new Set<string>()
-  const citedIds = new Set<string>()
-  const citations = new Map<string, number>()
-  const e2eOnly = e2eBackedIds(criteria)
-  for (const testCase of cases) {
-    for (const id of citationsOf(testCase.title)) {
-      citedIds.add(id)
-      const counts = testCase.status === 'passed' && (!e2eOnly.has(id) || testCase.source === 'playwright')
-      if (counts) {
-        citations.set(id, (citations.get(id) ?? 0) + 1)
-        passingIds.add(id)
-      }
-    }
-  }
+  // Unit-04 adversary F-6 (A-11): the playwright-backed set comes from the
+  // COMMITTED spec text at git HEAD — immutable during verification, so
+  // neither a planted vitest file nor a working-tree spec deletion can
+  // downgrade a Playwright-backed criterion to vitest-title crediting.
+  const specSources = committedE2eSpecSources(repoRoot)
+  const e2eOnly = e2eBackedIds(criteria, specSources)
+  const { citations, passing: passingIds, cited: citedIds } = countCitations(cases, e2eOnly)
 
   const problems: string[] = []
   for (const criterion of criteria) {

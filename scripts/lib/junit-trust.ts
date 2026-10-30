@@ -27,6 +27,26 @@ export interface TestCase {
   source?: TestSource
 }
 
+/**
+ * "Tests name the criterion" (conventions § Criterion traceability,
+ * REVIEW.md #13): a citation counts only when the ID leads the title —
+ * optionally after a run of ALL-CAPS tag words (e.g. `ADVERSARIAL CC-01.3:
+ * …`). An ID merely embedded in prose (`… NOTA-CITATION CC-999.2 …`) or glued
+ * to other tokens (`FR-1.0.12 / CC-I1.11`) discusses the ID, it does not
+ * declare the test as covering it, and must not produce coverage or
+ * UNKNOWN-ID verdicts. Only the LEADING citation run counts (unit-03 review
+ * F2): every consecutive `CC-…` token before the first separator.
+ * (Moved verbatim from scripts/verify-criteria.ts by the unit-04 fixer so the
+ * same parser models committed spec titles in scripts/lib/criteria-credit.ts
+ * — one citation grammar, one place to audit.)
+ */
+export function citationsOf(title: string): string[] {
+  const stripped = title.replace(/^(?:[A-Z]+[ \t]+)+/, '')
+  if (!/^(?:CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+)(?![A-Za-z0-9.-])/.test(stripped)) return []
+  const leading = stripped.match(/^((?:CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+[\s,/·+&-]*)+)/)?.[1] ?? ''
+  return [...leading.matchAll(/CC-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.\d+/g)].map((match) => match[0])
+}
+
 function decodeEntities(text: string): string {
   return text
     .replace(/&quot;/g, '"')
