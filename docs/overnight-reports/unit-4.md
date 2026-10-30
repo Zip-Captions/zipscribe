@@ -13,22 +13,22 @@ mediabunny adapter + worker-core 4C, fixture re-authors + adjudications 4D).
 From `reports/criteria/unit-04-media-ingest.md` (`corepack pnpm verify:unit --from-branch`,
 **exit 1** — 11/14 rows pass, three frozen-citation defects in Deviations):
 
-| ID       | level    | passing tests | result |
-| -------- | -------- | ------------- | ------ |
+| ID       | level    | passing tests | result                              |
+| -------- | -------- | ------------- | ----------------------------------- |
 | CC-04.1  | untagged | 0             | FAIL (frozen defect, Deviations §1) |
 | CC-04.2  | untagged | 0             | FAIL (frozen defect, Deviations §2) |
 | CC-04.3  | untagged | 0             | FAIL (frozen defect, Deviations §2) |
-| CC-04.4  | untagged | 27            | pass   |
-| CC-04.5  | untagged | 26            | pass   |
-| CC-04.6  | untagged | 4             | pass   |
-| CC-04.7  | untagged | 18            | pass   |
-| CC-04.8  | untagged | 12            | pass   |
-| CC-04.9  | untagged | 1             | pass   |
-| CC-04.10 | untagged | 1             | pass   |
-| CC-04.11 | untagged | 10            | pass   |
-| CC-04.12 | untagged | 14            | pass   |
-| CC-04.13 | untagged | 9             | pass   |
-| CC-04.14 | untagged | 1             | pass   |
+| CC-04.4  | untagged | 27            | pass                                |
+| CC-04.5  | untagged | 26            | pass                                |
+| CC-04.6  | untagged | 4             | pass                                |
+| CC-04.7  | untagged | 18            | pass                                |
+| CC-04.8  | untagged | 12            | pass                                |
+| CC-04.9  | untagged | 1             | pass                                |
+| CC-04.10 | untagged | 1             | pass                                |
+| CC-04.11 | untagged | 10            | pass                                |
+| CC-04.12 | untagged | 14            | pass                                |
+| CC-04.13 | untagged | 9             | pass                                |
+| CC-04.14 | untagged | 1             | pass                                |
 
 Provenance: rows CC-04.4–.8 and CC-04.11–.13 cite the frozen `tests/unit/audio/**` vitest suites
 (this slice added no citations to them — counts unchanged from 4D). CC-04.9/CC-04.10 are the
@@ -138,18 +138,18 @@ none — no package added or removed.
 
 - **Nested scoped coverage (CC-04.14 gate run, `src/engine/audio/**`, perFile 85/75), per-file
   `coverage-summary.json`:**
-  | file                          | lines  | branches |
-  | ----------------------------- | ------ | -------- |
-  | decode.ts                     | 100    | 90.90    |
-  | fingerprint.ts                | 100    | 100      |
-  | peaks.ts                      | 100    | 100      |
-  | resample.ts                   | 94.73  | 76.82    |
-  | resample/film.ts              | 100    | 77.27    |
-  | worker-core.ts                | 100    | 100      |
-  | worker-core@ref.ts            | 100    | 97.50    |
-  | **total**                     | 98.79  | 88.13    |
-  Every file clears perFile lines ≥ 85 / branches ≥ 75 (lowest: resample.ts branches 76.82).
-  Run: 126 tests, 19.47 s, exit 0.
+  | file                                                                                       | lines | branches |
+  | ------------------------------------------------------------------------------------------ | ----- | -------- |
+  | decode.ts                                                                                  | 100   | 90.90    |
+  | fingerprint.ts                                                                             | 100   | 100      |
+  | peaks.ts                                                                                   | 100   | 100      |
+  | resample.ts                                                                                | 94.73 | 76.82    |
+  | resample/film.ts                                                                           | 100   | 77.27    |
+  | worker-core.ts                                                                             | 100   | 100      |
+  | worker-core@ref.ts                                                                         | 100   | 97.50    |
+  | **total**                                                                                  | 98.79 | 88.13    |
+  | Every file clears perFile lines ≥ 85 / branches ≥ 75 (lowest: resample.ts branches 76.82). |
+  | Run: 126 tests, 19.47 s, exit 0.                                                           |
 - **Child run (CC-01.1, `ZIPSCRIBE_CHILD=1`, global engine+state 85/75 perFile), exit 0:**
   decode.ts 100/91.97 (was 75.2/58.82 — the gate's named gap), fingerprint 100/100,
   peaks 98.03/95.23, resample 100/98.78, film 100/90.90, worker-core 100/100,
@@ -181,7 +181,7 @@ assert at `pnpm qualify`/release runs.
   describe titles with the CC IDs. Until then `verify:unit` cannot exit 0 on unit-04 regardless
   of builder work.
 - **Frozen-diff gate extension (re-raised from 4D):** the acceptance diff covers `tests e2e
-  fixtures scripts/make-fixtures.ts` for modifications only — builders can still ADD files under
+fixtures scripts/make-fixtures.ts` for modifications only — builders can still ADD files under
   them (this slice did, sanctioned precedent unit-03) and 4D saw committed `fixtures/**` changes
   slip pre-gate. Consider extending the M-filter provenance check to assert new files under
   those paths are builder-sanctioned (orchestrator-owned scripts).
