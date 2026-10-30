@@ -8,7 +8,9 @@
 //   (browsers lacking a codec skip-annotate via `pathFor`).
 // - The correlation helper is a REAL normalized cross-correlation with an
 //   offset search (± `maxOffsetSamples`), used against `fmt-30s.ref.wav`.
+import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import type { Page } from '@playwright/test'
 import { REPO_ROOT } from '../../../tests/helpers/repo'
@@ -126,6 +128,69 @@ export function minCorrelation(key: string): number {
 
 /** Alignment offset ceiling (spec: ≤ 5 ms). */
 export const MAX_OFFSET_SEC = 0.005
+
+// --- decoder-parity reference (CC-04.3 hand-built-payload rows) -------------
+
+/**
+ * The `fmt-30s.amr`/`fmt-30s.3gp` matrix entries carry hand-emitted MR122
+ * AMR-NB payloads (fixtures/LICENSES.md): the pinned toolchain ships no
+ * AMR-NB encoder anywhere offline (ffmpeg-static has no `amr` encoder,
+ * @ffmpeg/core is decode-only for amr_nb, system ffmpeg none; network
+ * sources are forbidden), so their decoded waveform cannot correlate to
+ * `fmt-30s.ref.wav`. CC-04.3 proves the FALLBACK ADAPTER for these
+ * containers/codecs, so the defensible oracle is a decoder-parity golden:
+ * pinned ffmpeg-static (Node-side, the generator's own binary) vs the
+ * production ffmpeg.wasm adapter in the browser, correlation ≥
+ * `PARITY_MIN_CORRELATION` at identical frame counts. Partitioned from the
+ * manifest (codec), not hand-listed, like the rest of the matrix.
+ */
+export const PARITY_MIN_CORRELATION = 0.999
+
+export function handBuiltPayloadSet(): string[] {
+  return fallbackSet().filter((key) => loadManifest().files[key]?.codec === 'amr-nb')
+}
+
+export interface NativePcmReference {
+  samples: Float32Array
+  frames: number
+  sampleRate: number
+  channels: number
+}
+
+/** The pinned ffmpeg-static binary (the generator's own toolchain). No
+ * system-ffmpeg fallback here: the reference is a PINNED decoder-parity
+ * oracle, not a convenience transcoder. */
+function resolvePinnedFfmpeg(): string {
+  if (process.env.ZIPSCRIBE_FFMPEG && existsSync(process.env.ZIPSCRIBE_FFMPEG)) return process.env.ZIPSCRIBE_FFMPEG
+  try {
+    const bin = createRequire(join(REPO_ROOT, 'package.json'))('ffmpeg-static')
+    if (typeof bin === 'string' && existsSync(bin)) return bin
+  } catch {
+    // fall through to the direct path, then fail
+  }
+  const direct = join(REPO_ROOT, 'node_modules', 'ffmpeg-static', 'ffmpeg')
+  if (existsSync(direct)) return direct
+  throw new Error('parity reference needs the pinned ffmpeg-static binary (or set ZIPSCRIBE_FFMPEG to a pinned build)')
+}
+
+/**
+ * Decode a committed fixture to native-rate interleaved f32 PCM with the
+ * pinned ffmpeg-static (the same build `scripts/make-fixtures.ts` used).
+ * Sample rate/channels are the manifest's stream declaration — the parity
+ * row asserts the browser adapter agrees, so a drifted manifest cannot
+ * green silently. SECURITY-03: ffmpeg stderr (container-derived text) is
+ * never propagated; only exit codes and numbers.
+ */
+export function ffmpegStaticNativePcm(key: string): NativePcmReference {
+  const entry = loadManifest().files[key]
+  if (!entry?.sampleRate || !entry.channels) throw new Error(`manifest entry for ${key} lacks sampleRate/channels for the parity reference`)
+  const run = spawnSync(resolvePinnedFfmpeg(), ['-hide_banner', '-loglevel', 'error', '-nostdin', '-i', join(REPO_ROOT, fixturePath(key)), '-vn', '-map', '0:a:0', '-f', 'f32le', 'pipe:1'], { maxBuffer: 512 * 1024 * 1024 })
+  if (run.status !== 0 || !run.stdout) throw new Error(`ffmpeg-static parity reference failed for ${key} (exit ${run.status ?? 'signal'})`)
+  const bytes = run.stdout
+  const floats = Math.floor(bytes.length / 4)
+  const samples = new Float32Array(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + floats * 4))
+  return { samples, frames: Math.floor(floats / entry.channels), sampleRate: entry.sampleRate, channels: entry.channels }
+}
 
 // --- reference PCM -----------------------------------------------------------
 

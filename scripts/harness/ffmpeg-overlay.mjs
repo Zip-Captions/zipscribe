@@ -99,6 +99,43 @@ if (frozen && !frozen.__zipscribeFfmpegRealMode) {
     }
     return frozen.decodeFile(url, options)
   }
+  /**
+   * CC-04.3 decoder-parity golden (hand-built-payload rows, see
+   * e2e/media/helpers/media.ts): stream the fixture through the PRODUCTION
+   * ffmpeg.wasm adapter only — no pipeline, no stand-in — and return the
+   * native-rate PCM the transcode produced, for Node-side comparison with
+   * the pinned ffmpeg-static decode of the same committed bitstream. A
+   * missing core surfaces as FFMPEG_CORE_UNAVAILABLE (frozen honesty rule);
+   * there is no film equivalent of a parity oracle, so nothing silently
+   * greens. SECURITY-03: numbers, codes and sample buffers only.
+   */
+  overlay.decodeNativeFfmpeg = async (url) => {
+    const response = await fetch(new URL(url, globalThis.location.origin + '/').href)
+    if (!response.ok) throw new Error(`fixture fetch failed: ${response.status}`)
+    const bytes = new Uint8Array(await response.arrayBuffer())
+    const file = new File([new Blob([bytes])], url.split('/').pop() ?? 'fixture', { type: 'application/octet-stream' })
+    const opened = await openFfmpeg(file, { container: sniffContainer(bytes), codec: 'unknown' })
+    const track = opened.source.audioTracks()[0]
+    const planes = []
+    let total = 0
+    for await (const sample of opened.source.samples(track)) {
+      if (sample.numberOfChannels !== 1) {
+        sample.close?.()
+        throw Object.assign(new Error('PARITY_CHANNEL_SHAPE'), { code: 'PARITY_CHANNEL_SHAPE' })
+      }
+      const plane = sample.samples()[0]
+      planes.push(plane.slice())
+      total += plane.length
+      sample.close?.()
+    }
+    const out = new Float32Array(total)
+    let at = 0
+    for (const plane of planes) {
+      out.set(plane, at)
+      at += plane.length
+    }
+    return { sampleRate: track.sampleRate, channels: 1, frames: total, samples: Array.from(out) }
+  }
   overlay.__zipscribeFfmpegRealMode = true
   globalThis.__zipscribeMediaHarness = overlay
 }
