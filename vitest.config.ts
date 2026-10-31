@@ -94,6 +94,43 @@ export default defineConfig({
             // and the set runs in 0.5 s, so the child now executes them and a
             // total break of the unit-03 contract is visible to the
             // command-wiring proof too.)
+            // unit-04 CI (run 41151907753): the child died at the frozen 30 s
+            // runPnpm budget (`exited null`) once unit-04's provider suites
+            // filled the serial file stream. Same child-safety rule as the
+            // gate-spawning scaffold pair — these five SPECTATOR suites spawn
+            // ESLint (eslint-plugin-adversarial) or scratch git worktrees +
+            // the verify-criteria tool (the four verify/* suites); they
+            // contribute no src/engine or src/state coverage (the providers
+            // are the src-adjacent and *-internals suites, all retained).
+            // They execute in the parent `pnpm test` and in `verify:unit`,
+            // which clears ZIPSCRIBE_CHILD.
+            '**/eslint-plugin-adversarial.test.ts',
+            '**/e2e-provenance-adversarial.test.ts',
+            '**/verify-criteria-junit-adversarial.test.ts',
+            '**/verify-criteria-e2e-backing.test.ts',
+            '**/verify-criteria-junit-distrust.test.ts',
+            // Same budget incident, second lever: with the unit-04 audio
+            // provider suites in, the serial (fileParallelism:false) child
+            // measured 15.0 s local / >30 s CI (killed, exited null). The
+            // ten remaining SPECTATOR scaffold suites cost 3.9 s local
+            // (~8 s CI) and provide no src/engine or src/state coverage —
+            // providers-only (src/** + tests/unit/model/*-internals) is a
+            // 9.5 s local child with thresholds green (unit-03 precedent:
+            // relocated internals clear perFile 85/75 alone). They run in
+            // the parent `pnpm test` and in `verify:unit` (clears CHILD).
+            // The unit-03 F7 intent (frozen contract suites visible to the
+            // command-wiring proof) is preserved: all tests/unit/model
+            // suites stay in the child.
+            '**/tests/unit/scaffold/fixtures.test.ts',
+            '**/tests/unit/scaffold/licenses.test.ts',
+            '**/tests/unit/scaffold/models-fetch.test.ts',
+            '**/tests/unit/scaffold/redaction.test.ts',
+            '**/tests/unit/scaffold/redaction-adversarial.test.ts',
+            '**/tests/unit/scaffold/contract-verbatim.test.ts',
+            '**/tests/unit/scaffold/bundle-budget.test.ts',
+            '**/tests/unit/scaffold/bundle-budget-adversarial.test.ts',
+            '**/tests/unit/scaffold/branch-policy.test.ts',
+            '**/tests/unit/scaffold/coverage-gate.test.ts',
             ...defaultExclude,
           ]
         : defaultExclude,
