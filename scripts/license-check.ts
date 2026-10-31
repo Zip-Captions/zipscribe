@@ -1,8 +1,10 @@
 // scripts/license-check.ts — FR-1.0.12: every (transitive) production
 // dependency must carry an approved open-source license. GPL/AGPL/LGPL-style
-// copyleft never ships in the browser bundle; it is allowed only as a
-// documented build-time exception (see EXCEPTIONS below) — and any such
-// exception must also appear in fixtures/LICENSES.md.
+// copyleft never ships in the browser bundle except as a documented
+// exception (see EXCEPTIONS below): build-time-only tooling, or runtime
+// assets explicitly owner-approved in .ai-dlc/settings.yml
+// (approved_dependencies) — every exception must also appear in
+// fixtures/LICENSES.md.
 // Run by `pnpm license-check` and by CI L0.
 
 import { existsSync, readFileSync, realpathSync } from 'node:fs'
@@ -32,11 +34,18 @@ const APPROVED = [
 ]
 
 // name -> { license, reason }: copyleft or unusual licenses permitted only
-// when they cannot reach the shipped bundle (build/fixture-time tooling).
+// for build/fixture-time tooling, or as owner-approved runtime assets
+// (settings.yml approved_dependencies) redistributed unmodified with source
+// available.
 const EXCEPTIONS: Record<string, { license: string; reason: string }> = {
   'ffmpeg-static': {
     license: 'GPL-3.0-or-later (bundled ffmpeg build)',
     reason: 'devDependency used only by scripts/make-fixtures.ts at fixture-authoring time; never imported by app code, never shipped in dist. Documented in fixtures/LICENSES.md.',
+  },
+  '@ffmpeg/core': {
+    license: 'GPL-2.0-or-later (official ffmpeg.wasm core build)',
+    reason:
+      'Owner-approved runtime dependency: .ai-dlc/settings.yml approved_dependencies.runtime + tech-stack fallback_media ("@ffmpeg/ffmpeg + @ffmpeg/core single-threaded (lazy-loaded, self-hosted; no COOP/COEP in production)"). Redistributed unmodified from the pinned @ffmpeg/core@0.12.10 package, self-hosted under /wasm/ffmpeg via scripts/copy-ffmpeg.ts (SHA-pinned), lazy-loaded as the fallback decoder only when WebCodecs cannot open a container; source publicly available (ffmpeg.org / ffmpegwasm/ffmpeg.wasm). Owner decision 2026-10-30 overnight run. Documented in fixtures/LICENSES.md. Follow-up: LGPL-built core replacement.',
   },
 }
 
@@ -120,7 +129,7 @@ function main(): void {
     if (exception) {
       const licensesDoc = join(repoRoot, 'fixtures', 'LICENSES.md')
       if (!existsSync(licensesDoc) || !readFileSync(licensesDoc, 'utf8').includes(name)) {
-        violations.push(`${name}: build-time exception declared but not documented in fixtures/LICENSES.md`)
+        violations.push(`${name}: exception declared but not documented in fixtures/LICENSES.md`)
       }
       continue
     }
@@ -139,7 +148,7 @@ function main(): void {
   const exceptions = Object.keys(EXCEPTIONS).filter((n) => found.has(n) || Object.keys(root.dependencies ?? {}).includes(n))
   console.log(
     `license-check: OK — ${found.size} production package(s) across ${prodDeps.length} direct dependenc${prodDeps.length === 1 ? 'y' : 'ies'}` +
-      (exceptions.length > 0 ? `; ${exceptions.length} documented build-time exception(s): ${exceptions.join(', ')}` : ''),
+      (exceptions.length > 0 ? `; ${exceptions.length} documented exception(s): ${exceptions.join(', ')}` : ''),
   )
 }
 
