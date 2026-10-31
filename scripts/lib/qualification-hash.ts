@@ -5,11 +5,17 @@
 // `copy-vendor-assets`, not source), `package.json`, `pnpm-lock.yaml` and the
 // model registries under `models/`. Any one-byte change under `src/` flips
 // the hash (the frozen tamper test in tests/unit/model-eval/qualify-runner).
+//
+// `harness/` joins the generated set (unit-04 adversary F-1): it is built by
+// `scripts/build-harness.ts` at build time into the gitignored public dir,
+// so its bytes are machine-local build output — binding them here made the
+// record unverifiable on any clean checkout (recomputed hash differed from
+// the builder's committed record purely on bundle bytes).
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, posix } from 'node:path'
 
-const GENERATED_PUBLIC_DIRS = new Set(['wasm', 'sherpa', 'eval4x', 'fixtures', 'hf-cache'])
+const GENERATED_PUBLIC_DIRS = new Set(['wasm', 'sherpa', 'eval4x', 'fixtures', 'hf-cache', 'harness'])
 
 function walk(absoluteDir: string, relativeDir: string, files: string[]): void {
   if (!existsSync(absoluteDir)) return

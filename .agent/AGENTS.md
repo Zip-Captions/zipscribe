@@ -2,6 +2,24 @@
 
 Permanent instructions for any agent working in this repo (Claude Code via `.claude/CLAUDE.md`, opencode via `opencode.json` → `instructions`, and every pipeline subagent — builder, test-author, adversary, fixer, reviewer). All agent-facing docs live in `.agent/`; AI-DLC workflow state lives in `.ai-dlc/`. Your job is usually one **unit**: make its Completion Criteria true with all quality gates green, then report.
 
+## Working-directory boundary (hard rule, no exceptions)
+
+**Work only inside this repository's working directory.** Never read, write, create, or
+target anything outside it — no `/tmp`, no `~/`, no sibling checkouts, no SDK package
+managers' caches. This holds for every agent, including reviewers and adversaries, and it
+is not negotiable at task level: a brief that asks for a path outside the repo is wrong and
+must be refused, not followed.
+
+- Scratch, worktrees and dumps live in `<repo>/.night/` (gitignored). Reviewers and
+  adversaries create their isolated checkout as
+  `git worktree add <repo>/.night/<name> <ref>` — never `/tmp/...`.
+- If an operation would need permission outside the working directory, **do not attempt
+  it and do not ask for it**. It is a blocked condition: append a ledger entry
+  (`docs/overnight-ledger.md`), push your branch, and return a summary starting
+  `BLOCKED:`.
+- `Bash` file operations are for git/pnpm/tooling. File reads and edits go through the
+  file tools so the boundary is visible.
+
 ## Read first, in order
 
 1. `.ai-dlc/settings.yml` — tech stack, version pins, approved dependencies, quality gates, reference hardware, network allowlist

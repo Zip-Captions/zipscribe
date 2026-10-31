@@ -68,6 +68,18 @@ jobs:
           name: dist
           path: dist/
           retention-days: 1
+      - name: perf fixture (CC-04.9 memory-gate input, deterministic, ~30 s)
+        # fixtures/audio-120min.mp4 is generated + gitignored (never
+        # committed). The frozen memory spec skips when absent, but CC-04.9
+        # is an UNTAGGED criterion: verify:unit must see a real passing
+        # playwright case (unit-04 CI run 41154282863: absent fixture →
+        # skip → UNCOVERED → exit 1). `--perf` regenerates the corpus
+        # deterministically and self-checks the perf input structurally
+        # (7200 ±1 s + size envelope; bytes cross-platform, see
+        # make-fixtures perf block); direct node call because the
+        # `pnpm fixtures --perf` wrapper swallows the flag (unit-04 report
+        # Deviations §3).
+        run: corepack pnpm exec node scripts/make-fixtures.ts --perf
       - name: L4–L5 — Playwright (chromium)
         run: corepack pnpm test:e2e
       - name: criteria traceability (unit branch)

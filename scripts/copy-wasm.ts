@@ -3,6 +3,7 @@
 // from the vite plugin in vite.config.ts.
 import { createRequire } from 'node:module'
 import { copyNeedleRuntime } from './copy-vendor-assets.ts'
+import { copyFfmpegRuntime } from './copy-ffmpeg.ts'
 import { copyFileSync, mkdirSync, readdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -29,11 +30,16 @@ export function ortDistDir(): string {
  * copy lives in copy-vendor-assets.ts; this wrapper makes the shipping build
  * produce it alongside the ORT pair (unit-03 review round 2, F3: wiring it
  * only into the eval harness left production `ensureOffline` fetching 404s).
+ *
+ * Unit-04 (FR-04.5): the same wrapper ships the ffmpeg.wasm fallback runtime
+ * (`/wasm/ffmpeg/*`, SHA-pinned in copy-ffmpeg.ts) — the app must never ask
+ * unpkg for the core (settings.yml network allowlist).
  */
 export function copyAllRuntimeWasm(): string[] {
   const copied = copyRuntimeWasm()
   const needle = copyNeedleRuntime()
-  return [...copied, ...needle]
+  const ffmpeg = copyFfmpegRuntime()
+  return [...copied, ...needle, ...ffmpeg]
 }
 
 export function copyRuntimeWasm(): string[] {

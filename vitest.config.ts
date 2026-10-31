@@ -74,11 +74,63 @@ export default defineConfig({
             // unit-03 (CC-03.8): the scoped engine/model coverage gate spawns
             // a nested `vitest run` — same child-safety rule as coverage-gate.
             '**/model-coverage.test.ts',
+            // unit-04 (CC-04.14): the scoped engine/audio coverage gate spawns
+            // a nested `vitest run` — same child-safety rule as coverage-gate.
+            '**/media-coverage.test.ts',
+            // unit-04 (CC-04.12, RED phase): the worker wiring proof fails
+            // until the builder replaces the unit-01 stub, so it cannot sit in
+            // the gate-spawning child (its failure would mask the wiring
+            // proof). It runs in the parent and in `verify:unit`, which clears
+            // ZIPSCRIBE_CHILD. Retire this entry when unit-04 goes green.
+            '**/media-worker-wiring.test.ts',
+            // The unit-04 audio suites import `@engine/audio/*` modules that do
+            // not exist yet (RED phase); inside the child's 30 s
+            // representative-subset run their import errors would mask the
+            // command-wiring proof. They execute in the parent suite and in
+            // `verify:unit`/CI. Retire this block when unit-04 goes green.
+            'tests/unit/audio/**/*.test.ts',
             // (unit-03's five contract suites were excluded here while the
             // unit was RED. Retired at review round 1, F7: they spawn nothing
             // and the set runs in 0.5 s, so the child now executes them and a
             // total break of the unit-03 contract is visible to the
             // command-wiring proof too.)
+            // unit-04 CI (run 41151907753): the child died at the frozen 30 s
+            // runPnpm budget (`exited null`) once unit-04's provider suites
+            // filled the serial file stream. Same child-safety rule as the
+            // gate-spawning scaffold pair — these five SPECTATOR suites spawn
+            // ESLint (eslint-plugin-adversarial) or scratch git worktrees +
+            // the verify-criteria tool (the four verify/* suites); they
+            // contribute no src/engine or src/state coverage (the providers
+            // are the src-adjacent and *-internals suites, all retained).
+            // They execute in the parent `pnpm test` and in `verify:unit`,
+            // which clears ZIPSCRIBE_CHILD.
+            '**/eslint-plugin-adversarial.test.ts',
+            '**/e2e-provenance-adversarial.test.ts',
+            '**/verify-criteria-junit-adversarial.test.ts',
+            '**/verify-criteria-e2e-backing.test.ts',
+            '**/verify-criteria-junit-distrust.test.ts',
+            // Same budget incident, second lever: with the unit-04 audio
+            // provider suites in, the serial (fileParallelism:false) child
+            // measured 15.0 s local / >30 s CI (killed, exited null). The
+            // ten remaining SPECTATOR scaffold suites cost 3.9 s local
+            // (~8 s CI) and provide no src/engine or src/state coverage —
+            // providers-only (src/** + tests/unit/model/*-internals) is a
+            // 9.5 s local child with thresholds green (unit-03 precedent:
+            // relocated internals clear perFile 85/75 alone). They run in
+            // the parent `pnpm test` and in `verify:unit` (clears CHILD).
+            // The unit-03 F7 intent (frozen contract suites visible to the
+            // command-wiring proof) is preserved: all tests/unit/model
+            // suites stay in the child.
+            '**/tests/unit/scaffold/fixtures.test.ts',
+            '**/tests/unit/scaffold/licenses.test.ts',
+            '**/tests/unit/scaffold/models-fetch.test.ts',
+            '**/tests/unit/scaffold/redaction.test.ts',
+            '**/tests/unit/scaffold/redaction-adversarial.test.ts',
+            '**/tests/unit/scaffold/contract-verbatim.test.ts',
+            '**/tests/unit/scaffold/bundle-budget.test.ts',
+            '**/tests/unit/scaffold/bundle-budget-adversarial.test.ts',
+            '**/tests/unit/scaffold/branch-policy.test.ts',
+            '**/tests/unit/scaffold/coverage-gate.test.ts',
             ...defaultExclude,
           ]
         : defaultExclude,

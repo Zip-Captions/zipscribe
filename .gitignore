@@ -20,9 +20,13 @@ fixtures/audio-120min.mp4
 reports/
 
 # overnight pipeline run scratch (see .agent/overnight-pipeline.md)
+.night/
 .agent/overnight-run-config.md
 docs/overnight-ledger.md
 
+# e2e harness bundle (built at build time by scripts/build-harness.ts into the
+# public dir so the single Playwright webServer serves it; not committed)
+public/harness/
 # self-hosted runtime wasm (copied at build time by scripts/copy-wasm.ts; pinned in node_modules, not committed)
 public/wasm/*
 !public/wasm/.gitkeep

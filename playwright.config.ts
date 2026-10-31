@@ -36,14 +36,44 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: probeRequested ? undefined : /retry-detection\.spec\.ts/,
+      // The memory specs belong to the `memory` project alone: they own a
+      // spec-spawned server on 4312, so a second project matching them would
+      // race that port. (testMatch unset here would otherwise match all of
+      // ./e2e.)
+      testIgnore: [probeRequested ? undefined : /retry-detection\.spec\.ts/, /memory\/.*\.spec\.ts/].filter((re) => re !== undefined),
     },
     {
       // Present but skipped by default (FR-1.0.4) — "webkit = view/export
       // tier", enabled per-unit once those specs exist.
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
-      testIgnore: process.env.E2E_WEBKIT ? undefined : /.*/,
+      // Same 4312 race guard as chromium once webkit is enabled.
+      testIgnore: process.env.E2E_WEBKIT ? [/memory\/.*\.spec\.ts/] : [/.*/],
+    },
+    {
+      // CC-04.9 (unit-04): the 120-min decode memory gate (settings.yml
+      // testing.memory_tests). It needs COOP/COEP
+      // (`performance.measureUserAgentSpecificMemory()`), which the root
+      // preview (4310, production parity) must never send — and Playwright
+      // 1.64.1's per-project `webServer` is declared in the types but the
+      // runner only starts the ROOT webServer
+      // (webServerPluginsForConfig iterates the root config's webServers),
+      // so a per-project server would be dead config. The spec instead owns
+      // the isolated preview itself: `pnpm preview:isolated`
+      // (ZIPSCRIBE_ISOLATED=1 → vite.config.ts COOP/COEP headers) on port
+      // 4312, spawned in beforeAll and killed in afterAll — the same
+      // spec-owned-server doctrine as e2e/model/model-cache.spec.ts (4311);
+      // scripts/preview.mjs preempts stale holders of its own port and tears
+      // down its ancestor chain, so a killed runner cannot orphan 4312.
+      // `channel: 'chromium'` is required, not cosmetic: Playwright's
+      // headless-shell binary (its default headless build) does not expose
+      // `performance.measureUserAgentSpecificMemory()` (SecurityError
+      // "not available" even cross-origin isolated); the full Chromium
+      // browser in new-headless mode does. CI installs it with the pinned
+      // `playwright install --with-deps chromium`.
+      name: 'memory',
+      use: { ...devices['Desktop Chrome'], channel: 'chromium' },
+      testMatch: /memory\/.*\.spec\.ts/,
     },
   ],
 })
