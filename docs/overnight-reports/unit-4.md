@@ -16,22 +16,22 @@ From `reports/criteria/unit-04-media-ingest.md` (`corepack pnpm verify:unit --fr
 counts; at slice-4E head the run was 11/14 with CC-04.1/2/3 unattributable — Deviations §1–2,
 closed at `52cb571`):
 
-| ID       | level    | passing tests | result                                                     |
-| -------- | -------- | ------------- | ---------------------------------------------------------- |
-| CC-04.1  | untagged | 9             | pass (frozen defects §1–2 closed at `52cb571`)             |
-| CC-04.2  | untagged | 12            | pass                                                       |
-| CC-04.3  | untagged | 6             | pass                                                       |
-| CC-04.4  | untagged | 20            | pass                                                       |
-| CC-04.5  | untagged | 26            | pass                                                       |
-| CC-04.6  | untagged | 2             | pass                                                       |
-| CC-04.7  | untagged | 18            | pass (chromium; 18 webkit rows opt-in — webkit-matrix)     |
-| CC-04.8  | untagged | 12            | pass                                                       |
-| CC-04.9  | untagged | 1             | pass (playwright provenance only, post-F-6 policy)         |
-| CC-04.10 | untagged | 1             | pass (playwright provenance only, post-F-6 policy)         |
-| CC-04.11 | untagged | 10            | pass                                                       |
-| CC-04.12 | untagged | 2             | pass                                                       |
-| CC-04.13 | untagged | 9             | pass                                                       |
-| CC-04.14 | untagged | 1             | pass                                                       |
+| ID       | level    | passing tests | result                                                 |
+| -------- | -------- | ------------- | ------------------------------------------------------ |
+| CC-04.1  | untagged | 9             | pass (frozen defects §1–2 closed at `52cb571`)         |
+| CC-04.2  | untagged | 12            | pass                                                   |
+| CC-04.3  | untagged | 6             | pass                                                   |
+| CC-04.4  | untagged | 20            | pass                                                   |
+| CC-04.5  | untagged | 26            | pass                                                   |
+| CC-04.6  | untagged | 2             | pass                                                   |
+| CC-04.7  | untagged | 18            | pass (chromium; 18 webkit rows opt-in — webkit-matrix) |
+| CC-04.8  | untagged | 12            | pass                                                   |
+| CC-04.9  | untagged | 1             | pass (playwright provenance only, post-F-6 policy)     |
+| CC-04.10 | untagged | 1             | pass (playwright provenance only, post-F-6 policy)     |
+| CC-04.11 | untagged | 10            | pass                                                   |
+| CC-04.12 | untagged | 2             | pass                                                   |
+| CC-04.13 | untagged | 9             | pass                                                   |
+| CC-04.14 | untagged | 1             | pass                                                   |
 
 Provenance: rows CC-04.4–.8 and CC-04.11–.13 cite the frozen `tests/unit/audio/**` vitest suites
 (this slice added no citations to them — counts unchanged from 4D). CC-04.9/CC-04.10 are the
@@ -105,28 +105,28 @@ Verbatim tails at this HEAD:
    `e2e/media/helpers/media.ts:86-91` filters `key.startsWith('../') && kind !== 'tone'`, while
    frozen `scripts/make-fixtures.ts` registers the video corpus with plain, root-relative keys
    (`speech-2min.mp4` etc., `kind: 'speech'`; manifest `root: 'fixtures/audio'`) and the only
-    `'../'` key is `'../tone-30s.wav'` (kind `tone`, excluded). → `videoSet()` returns `[]` and the
-    spec emits **zero** cases (confirmed: absent from junit, not even skipped). One-line fixes
-    either side: key the videos `'../<name>.mp4'` in make-fixtures (matches physical
-    `fixtures/*.mp4` vs root `fixtures/audio`) **or** relax the helper filter to match
-    `kind === 'speech' | 'speech-2spk'`. Both files are in the frozen set.
-    **RESOLVED at `52cb571`** (test-author, consumer audit: frozen unit-01 tests pin plain root
-    keys ⇒ plain-key registration is canonical): helper `videoSet()` partitions on the manifest's
-    own `codec==='h264+aac' && kind!=='tone'` (`e2e/media/helpers/media.ts:99-101`), `fixturePath()`
-    resolves plain root keys; 9 generated rows pass duration ±10 ms against container-truth
-    durations (make-fixtures records mediabunny metadata-first declared durations;
-    `speech-10min.mp4` re-encoded continuous).
+   `'../'` key is `'../tone-30s.wav'` (kind `tone`, excluded). → `videoSet()` returns `[]` and the
+   spec emits **zero** cases (confirmed: absent from junit, not even skipped). One-line fixes
+   either side: key the videos `'../<name>.mp4'` in make-fixtures (matches physical
+   `fixtures/*.mp4` vs root `fixtures/audio`) **or** relax the helper filter to match
+   `kind === 'speech' | 'speech-2spk'`. Both files are in the frozen set.
+   **RESOLVED at `52cb571`** (test-author, consumer audit: frozen unit-01 tests pin plain root
+   keys ⇒ plain-key registration is canonical): helper `videoSet()` partitions on the manifest's
+   own `codec==='h264+aac' && kind!=='tone'` (`e2e/media/helpers/media.ts:99-101`), `fixturePath()`
+   resolves plain root keys; 9 generated rows pass duration ±10 ms against container-truth
+   durations (make-fixtures records mediabunny metadata-first declared durations;
+   `speech-10min.mp4` re-encoded continuous).
 2. **CC-04.2/CC-04.3 specs pass but cannot be credited — frozen describe title vs junit-trust
    (routed to test-author).** `e2e/media/format-matrix.spec.ts:57` uses describe
    `'unit-04 audio format matrix (real decode in Chromium)'`; Playwright junit names are
    `"describe › test"`, and frozen `scripts/lib/junit-trust.ts` (via `citationsOf`) accepts
    citations only from the title's **leading** run — the per-test `CC-04.2:`/`CC-04.3:` prefixes
-    sit after the describe prefix and are never read. Fix: prefix the describe with the IDs (or
-    split per-path describes) — frozen file. (CC-03-era precedent: the two self-citing adversary
-    titles renamed in unit-03 F2 established the leading-run rule; unit-04's specs predate it.)
-    **RESOLVED at `52cb571`**: format-matrix split into `CC-04.2: …` / `CC-04.3: …` describes
-    (assertions byte-identical, title shape only); 12/6 citations credited from live playwright
-    spawns.
+   sit after the describe prefix and are never read. Fix: prefix the describe with the IDs (or
+   split per-path describes) — frozen file. (CC-03-era precedent: the two self-citing adversary
+   titles renamed in unit-03 F2 established the leading-run rule; unit-04's specs predate it.)
+   **RESOLVED at `52cb571`**: format-matrix split into `CC-04.2: …` / `CC-04.3: …` describes
+   (assertions byte-identical, title shape only); 12/6 citations credited from live playwright
+   spawns.
 3. **Perf-fixture CLI trap (tooling, not spec):** `pnpm fixtures --perf` swallows the flag (single
    dash → pnpm arg) and deletes the 120-min fixture; correct invocations are
    `node scripts/make-fixtures.ts --perf` or `pnpm fixtures -- --perf`. Regeneration also churns
@@ -151,8 +151,8 @@ Fixer (`68d67f9`…`8781eea`, one cycle, all closures proven by executed mutatio
   pass with no seeded harness; harness-byte tampering leaves the hash constant.
 - **F-2 (HIGH)** — `recordWriteDecision()` in `scripts/qualify.ts`: no write when current,
   **refuse on dirty tree**, allow only from canonical/release contexts. A-16 repro (src mutation
-  + full `pnpm test`) leaves the committed record byte-identical; two clean `pnpm test` runs
-  leave `git status` EMPTY (no post-run checkout).
+  - full `pnpm test`) leaves the committed record byte-identical; two clean `pnpm test` runs
+    leave `git status` EMPTY (no post-run checkout).
 - **F-3 (HIGH)** — production `adapters/probe.ts` + `adapters/mediabunny.ts` now executed by
   committed suites (`probe.test.ts` 24 cases vs the committed support table;
   `mediabunny.test.ts` +11 at the SDK boundary): A-06 path-flip → 2 RED, A-07 support-flip → 8 RED.
