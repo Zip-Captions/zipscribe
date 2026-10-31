@@ -159,7 +159,13 @@ describe('adversary[adv-unit04]: media.worker runtime bridge (was zero-coverage)
     const a = consumePort(first.port1)
     const b = consumePort(second.port1)
     h.post({ t: 'decode', jobId: 'j-tee', file: wavFile(), ports: [first.port2, second.port2] })
-    await until(() => h.posted.some((e) => e.t === 'job:done'), 'job:done')
+    // Hermeticity (unit-01 adversary-harness-fix precedent): on the 2-core CI
+    // runner the main-channel job:done can be observed while the last tee
+    // chunk is still in flight on the ports — poll until both consumers have
+    // their full delivery, then run the ORIGINAL assertions. A product that
+    // loses chunks now fails via the until() timeout (RED), never via a
+    // flaky half-delivered pass; assertions below are unchanged.
+    await until(() => h.posted.some((e) => e.t === 'job:done') && a.chunks.length === 3 && b.chunks.length === 3, 'job:done + both tee consumers drained')
     for (const consumer of [a, b]) {
       expect(consumer.chunks.map((c) => c.startSec), 'identical chunks on every port (protocol tee)').toEqual([0, 1, 2])
       for (const chunk of consumer.chunks) {
