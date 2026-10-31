@@ -31,7 +31,7 @@
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -884,9 +884,30 @@ async function synthVideos(): Promise<void> {
     // container duration (+3.8 s over 120 min); one encode yields the exact
     // 7200 s the CC-04.9 memory gate measures.
     ffmpeg([...BASE, '-stream_loop', '239', '-i', ref, '-ar', '16000', '-ac', '1', '-c:a', 'aac', '-b:a', '24k', out])
-    const expected = process.env.ZIPSCRIBE_PERF_SHA256 ?? PERF_SHA256
-    if (sha256(out) !== expected) {
-      throw new Error(`audio-120min.mp4 regenerated to ${sha256(out)} but manifest pins ${expected} — the pinned ffmpeg-static build changed; re-record PERF_SHA256`)
+    // The perf input is generated + gitignored — NOT part of the committed
+    // corpus whose determinism CC-01.2 (fixtures-verify job) enforces. Its
+    // byte-sha is recorded (PERF_SHA256) as a same-machine regeneration
+    // tripwire, but the pinned ffmpeg-static AAC/muxer bytes are not
+    // bit-identical across platforms (unit-04 CI run 41155736605: Linux
+    // eaa3b2b7… vs mac-recorded 99f102f1…). CC-04.9 consumes duration +
+    // chunk shape, so the cross-platform contract is structural: 7200 s
+    // declared (±1 s, metadata-first parser like every other row) inside a
+    // size envelope. Set ZIPSCRIBE_PERF_SHA256 to additionally pin bytes
+    // strictly (re-recording workflow).
+    const bytes = statSync(out).size
+    if (bytes < 10_000_000 || bytes > 60_000_000) {
+      throw new Error(`audio-120min.mp4 is ${bytes} bytes, outside the 10–60 MB envelope — the pinned ffmpeg-static build changed`)
+    }
+    const perfDurationSec = await declaredAudioDuration(out)
+    if (!(Math.abs(perfDurationSec - 7200) <= 1)) {
+      throw new Error(`audio-120min.mp4 declared duration ${perfDurationSec}s is not 7200 ±1 s — the pinned ffmpeg-static build changed`)
+    }
+    const sha = sha256(out)
+    if (process.env.ZIPSCRIBE_PERF_SHA256 && sha !== process.env.ZIPSCRIBE_PERF_SHA256) {
+      throw new Error(`audio-120min.mp4 sha256 ${sha} != ZIPSCRIBE_PERF_SHA256 ${process.env.ZIPSCRIBE_PERF_SHA256}`)
+    }
+    if (sha !== PERF_SHA256) {
+      console.warn(`make-fixtures: audio-120min.mp4 sha256 ${sha} differs from the mac-recorded ${PERF_SHA256} (expected cross-platform byte drift; structure asserted instead)`)
     }
     register('audio-120min.mp4', out, {
       duration: 7200,
