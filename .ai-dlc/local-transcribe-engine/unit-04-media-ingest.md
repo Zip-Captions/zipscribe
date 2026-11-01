@@ -1,5 +1,6 @@
 ---
-status: pending
+status: done   # merged (PR #7); reviewer-approved 0 blockers/majors
+phase: mvp
 discipline: dev
 depends_on: [unit-01-scaffold-quality-gates]
 workflow: tdd

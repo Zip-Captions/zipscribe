@@ -1,5 +1,6 @@
 ---
 status: pending
+phase: mvp
 discipline: dev
 depends_on: [unit-01-scaffold-quality-gates, unit-05-transcription-pipeline]
 workflow: tdd

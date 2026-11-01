@@ -1,5 +1,6 @@
 ---
 status: pending
+phase: mvp
 discipline: frontend
 depends_on: [unit-201-styling-engine, local-transcribe-engine/unit-03-model-manager, local-transcribe-engine/unit-07-caption-import]
 workflow: tdd

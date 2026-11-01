@@ -1,5 +1,6 @@
 ---
 status: pending
+phase: mvp
 discipline: frontend
 depends_on: [local-transcribe-engine/unit-01-scaffold-quality-gates]   # engine units (04/05/07) are consumed via mocked worker + contract types
 workflow: default

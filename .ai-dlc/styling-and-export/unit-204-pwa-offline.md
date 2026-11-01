@@ -1,7 +1,8 @@
 ---
 status: pending
+phase: mvp
 discipline: frontend
-depends_on: [unit-200-style-export-offline-design, unit-203-production-deploy, local-transcribe-engine/unit-03-model-manager, caption-studio-ui/unit-106-persistence]
+depends_on: [unit-200-style-export-offline-design, unit-202-export, local-transcribe-engine/unit-03-model-manager, caption-studio-ui/unit-106-persistence]   # unit-203 deliberately NOT a dependency: 204 verifies against `vite preview` of the production build and self-provides the sw/manifest _headers entries (FR-204.6); deployed-header assertions on Cloudflare stay in unit-203 (phase: production)
 workflow: tdd
 mode: HITL   # service workers are easy to get subtly wrong and hard to roll back on users' machines
 ---
@@ -45,8 +46,8 @@ Turn the deployed app into an installable Progressive Web App that works offline
 - **FR-204.3** Precache budget: total precache ≤ 15 MB; build fails above it (check alongside `check-bundle`); each file ≤ 25 MiB (Cloudflare Pages limit).
 - **FR-204.4** `ui/pwa/`: `useInstallPrompt`, `useOnlineStatus` (`navigator.onLine` + `online/offline` events + model-host fetch failures from `jobs` errors), `useSwUpdate`, `OfflineModelsPanel`, `launchQueue` consumer.
 - **FR-204.5** Persistent storage: request on install (`appinstalled`), on first "Make available offline", and from the panel button; never on page load without user action.
-- **FR-204.6** Manifest + SW served with unit-203 headers (`no-cache` for `sw.js` and manifest); SW scope `/`.
-- **FR-204.7** Kill switch: shipping a `sw.js` that unregisters itself and clears caches is documented in `docs/RELEASE.md` (unit-203) as the emergency rollback for a broken SW.
+- **FR-204.6** Manifest + SW served `no-cache`: this unit self-provides the `public/_headers` entries for `/sw.js` and `/manifest.webmanifest` (the subset of unit-203 FR-203.1 it owns; unit-203 later extends the same file for `/assets/*`, `/wasm/*` and CSP) and verifies them against the `vite preview` server in e2e; deployed-header assertions on Cloudflare remain unit-203 `[DEPLOY]` (CC-203.8). SW scope `/`.
+- **FR-204.7** Kill switch: shipping a `sw.js` that unregisters itself and clears caches is documented in `docs/ops/sw-kill-switch.md` (this unit) as the emergency rollback for a broken SW; unit-203's `docs/RELEASE.md` links it when it lands.
 
 ## Technical Specification
 
@@ -74,7 +75,7 @@ Turn the deployed app into an installable Progressive Web App that works offline
 ## Boundaries
 
 - Web Share Target, window-controls-overlay, background sync/periodic sync, push: seeds or out of scope (no server).
-- Model caching/verification itself: unit-03. Storage schema/migrations: unit-106. Headers/CSP: unit-203.
+- Model caching/verification itself: unit-03. Storage schema/migrations: unit-106. Full deployed headers/CSP + CD on Cloudflare: unit-203 (phase: production) — this unit only self-provides the `sw.js`/manifest `no-cache` header entries (FR-204.6).
 
 ## Docs to consult
 

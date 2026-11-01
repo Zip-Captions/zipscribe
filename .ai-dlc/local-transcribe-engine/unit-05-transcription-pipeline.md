@@ -1,5 +1,6 @@
 ---
 status: pending
+phase: mvp
 discipline: dev
 depends_on: [unit-03-model-manager, unit-04-media-ingest]
 workflow: tdd

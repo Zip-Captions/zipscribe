@@ -12,6 +12,7 @@ const repoRoot = resolve(fileURLToPath(import.meta.url), '../..')
 const dlcRoot = join(repoRoot, '.ai-dlc')
 
 const STATUS = new Set(['pending', 'in-progress', 'in_progress', 'blocked', 'done', 'done-with-followups'])
+const PHASE = new Set(['mvp', 'production'])
 const DISCIPLINE = new Set(['dev', 'frontend', 'design', 'devops', 'qa'])
 const WORKFLOW = new Set(['tdd', 'default'])
 const MODE = new Set(['HITL', 'AHOTL'])
@@ -68,6 +69,7 @@ function checkFrontmatter(file: UnitFile): void {
     return
   }
   if (!fm.status || !STATUS.has(fm.status)) fail(rel, `frontmatter status "${fm.status ?? ''}" not in {${[...STATUS].join(', ')}}`)
+  if (!fm.phase || !PHASE.has(fm.phase)) fail(rel, `frontmatter phase "${fm.phase ?? ''}" not in {${[...PHASE].join(', ')}}`)
   if (!fm.discipline || !DISCIPLINE.has(fm.discipline)) fail(rel, `frontmatter discipline "${fm.discipline ?? ''}" not in {${[...DISCIPLINE].join(', ')}}`)
   if (!fm.workflow || !WORKFLOW.has(fm.workflow)) fail(rel, `frontmatter workflow "${fm.workflow ?? ''}" not in {${[...WORKFLOW].join(', ')}}`)
   if (!fm.mode || !MODE.has(fm.mode)) fail(rel, `frontmatter mode "${fm.mode ?? ''}" not in {HITL, AHOTL}`)

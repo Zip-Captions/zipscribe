@@ -1,5 +1,6 @@
 ---
-status: pending
+status: done-with-followups   # merged (PR #6); follow-ups: HITL registry/runtime pin approval (revert point af06525), FR-03.7 @network manual run, registry v2 runtimeWasm SHAs, sherpa-onnx devDep removal
+phase: mvp
 discipline: dev
 depends_on: [unit-02-model-eval-spike]
 workflow: tdd

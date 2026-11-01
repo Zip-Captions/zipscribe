@@ -1,5 +1,6 @@
 ---
 status: pending
+phase: mvp
 discipline: frontend
 depends_on: [unit-102-editor-core-playback, local-transcribe-engine/unit-04-media-ingest]
 workflow: tdd

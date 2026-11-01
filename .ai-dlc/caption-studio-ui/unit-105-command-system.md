@@ -1,5 +1,6 @@
 ---
 status: pending
+phase: mvp
 discipline: frontend
 depends_on: [unit-102-editor-core-playback, unit-103-timeline, unit-104-transcript-editor]
 workflow: default

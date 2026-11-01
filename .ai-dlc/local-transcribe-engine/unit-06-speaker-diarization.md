@@ -1,5 +1,6 @@
 ---
 status: pending
+phase: mvp
 discipline: dev
 depends_on: [unit-05-transcription-pipeline]
 workflow: tdd

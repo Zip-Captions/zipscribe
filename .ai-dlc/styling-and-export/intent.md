@@ -50,7 +50,9 @@ Maps to Epic 3 (US 3.1–3.2) of the original brief; corrects its mp4-muxer choi
 | unit-201-styling-engine | dev | frontend | unit-200, caption-studio-ui/unit-102, caption-studio-ui/unit-104 |
 | unit-202-export | dev | frontend | unit-201, local-transcribe-engine/unit-03, local-transcribe-engine/unit-07 |
 | unit-203-production-deploy | dev | devops | unit-202, caption-studio-ui/unit-106 |
-| unit-204-pwa-offline | dev | frontend | unit-200, unit-203, local-transcribe-engine/unit-03, caption-studio-ui/unit-106 |
+| unit-204-pwa-offline | dev | frontend | unit-200, unit-202, local-transcribe-engine/unit-03, caption-studio-ui/unit-106 |
+
+**Phasing (owner decision 2026-10-31):** units 200–202 + 204 are `phase: mvp` — all provable locally (`vite preview`, Playwright, CDP), no external accounts. unit-203 is `phase: production`: it and this intent's `[DEPLOY]` criteria (CC-I3.9) plus unit-01's deferred CC-01.14/15/16 are gated on Cloudflare credentials and run only after every MVP unit is complete (`.agent/SPEC-GUIDE.md` § Build order). The intent `status` may only flip to `complete` once the phase-2 criteria pass on real deploys.
 
 ## Risks
 

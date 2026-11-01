@@ -1,5 +1,6 @@
 ---
 status: pending
+phase: mvp
 discipline: frontend
 depends_on: [unit-101-workbench-shell]
 workflow: tdd

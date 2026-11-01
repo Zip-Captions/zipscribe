@@ -1,5 +1,6 @@
 ---
 status: pending
+phase: production   # Phase 2: gated on owner-provisioned Cloudflare credentials; starts only after all phase:mvp units complete (SPEC-GUIDE § Build order)
 discipline: devops
 depends_on: [unit-202-export, caption-studio-ui/unit-106-persistence]
 workflow: default

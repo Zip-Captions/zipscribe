@@ -1,5 +1,6 @@
 ---
 status: pending
+phase: mvp
 discipline: dev
 depends_on: [local-transcribe-engine/unit-01-scaffold-quality-gates, caption-studio-ui/unit-102-editor-core-playback]
 workflow: tdd

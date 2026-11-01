@@ -1,5 +1,6 @@
 ---
-status: pending
+status: done-with-followups   # merged (PR #3 + #4); follow-ups: CC-01.14/15/16 [DEPLOY] awaiting-credentials (phase 2), Pro-plan branch protection, corpus vendoring
+phase: mvp
 discipline: dev
 depends_on: []
 workflow: tdd

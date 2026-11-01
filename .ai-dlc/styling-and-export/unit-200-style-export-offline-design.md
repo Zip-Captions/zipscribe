@@ -1,5 +1,6 @@
 ---
 status: pending
+phase: mvp
 discipline: design
 depends_on: [caption-studio-ui/unit-101-workbench-shell]
 workflow: default

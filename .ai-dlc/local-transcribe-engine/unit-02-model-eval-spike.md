@@ -1,5 +1,6 @@
 ---
-status: pending
+status: done-with-followups   # merged (PR #5); follow-ups: CC-02.10 [MANUAL] license sign-off, HITL tier approval (revert point 6bf16a4)
+phase: mvp
 discipline: dev
 depends_on: [unit-01-scaffold-quality-gates]
 workflow: default
