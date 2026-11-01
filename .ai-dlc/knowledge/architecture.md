@@ -146,9 +146,13 @@ type NoticeCode = 'TIER_DOWNGRADE' | 'MULTI_TRACK' | 'FFMPEG_FALLBACK' | 'WORKER
 interface Notice { code: NoticeCode; params?: Record<string, string | number> }  // UI maps code → copy
 
 // Events shared by all workers
+interface GuardStats {   // hallucination-guard counters (FR-05.9) — numbers only (SECURITY-03)
+  repeatedNgramDropped?: number; shortSpeechDropped?: number; maxTokensFlagged?: number
+}
+interface JobStats { guard?: GuardStats; language?: string }  // language = BCP-47 code (US-05.1 detect), never transcript content
 type JobEvent =
   | { t: 'job:progress'; jobId: string; processedSec: number; totalSec: number }
-  | { t: 'job:done'; jobId: string }
+  | { t: 'job:done'; jobId: string; stats?: JobStats }
   | { t: 'job:error'; jobId: string; error: EngineError }
   | { t: 'notice'; jobId?: string; notice: Notice };
 type ModelEvent =
