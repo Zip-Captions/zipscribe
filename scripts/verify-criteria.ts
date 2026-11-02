@@ -17,7 +17,7 @@
 // negative tests); the unit file always resolves against the repository root.
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -134,26 +134,90 @@ function collectTests(testRoot: string): TestCase[] {
   // files must be freshly written inside the spawn window. A deleted spec +
   // planted junit can therefore never fabricate e2e coverage.
   if (testRoot === repoRoot) {
-    const playwrightOutDir = join(outDir, 'pw')
-    const playwrightJunitFile = join(playwrightOutDir, 'junit.xml')
-    const evidence = collectPlaywrightEvidence({
-      tmpJunitFile: playwrightJunitFile,
-      persistentJunitFile: join(repoRoot, 'test-results', 'junit.xml'),
-      spawn: (junitFile) =>
-        // unit-04 CC-04.9: the `memory` project (e2e/media/memory/**) is
-        // testIgnore-excluded from chromium to keep its spec-spawned isolated
-        // preview (4312) single-owner; it must still be exercised for the
-        // e2e-sourced criteria to be collectible. GREEN-phase note: the real
-        // 120-min decode is a reference-hardware gate — if it outgrows this
-        // window at release time the memory project belongs in `qualify`,
-        // not a longer spawn here (unit report follow-up).
-        run('corepack', ['pnpm', 'exec', 'playwright', 'test', '--project=chromium', '--project=memory', '--reporter=junit', `--output=${playwrightOutDir}`], 20 * 60_000, {
-          PLAYWRIGHT_JUNIT_OUTPUT_FILE: junitFile,
-        }),
-      parse: (file) => parseJunit(file, 'playwright'),
-    })
-    cases.push(...evidence.cases)
-    if (evidence.failure) console.error(`verify:unit: e2e evidence rejected — ${evidence.failure}`)
+    const persistentJunitFile = join(repoRoot, 'test-results', 'junit.xml')
+    if (process.env.CI) {
+      // CI branch — mirrors the two-phase L4–L5 split in
+      // .github/workflows/ci.yml (gh run 41483128610: the single
+      // chromium+memory spawn let the frozen e2e/asr/longtask.spec.ts take
+      // the full perf-fixture path at CI RTF ≫ 0.29 → 2×35-min timeouts).
+      // Same doctrine as ci.yml ("slow legs belong in the qualify/release
+      // flow, not a longer spawn" — unit-05 verify note): memory runs first
+      // with the perf fixture present (CC-04.9's 120-min decode + unit-05's
+      // recycle-10min), the fixture is then removed, and chromium runs
+      // without it so longtask takes its own authored fallback
+      // (speech-10min.mp4 loop, 25-min timeout). Trust mechanics are NOT
+      // weakened: each phase is an independent collectPlaywrightEvidence —
+      // its own pre-spawn junit wipe, and a null (killed/timed-out) or
+      // nonzero spawn yields ZERO cases for that phase, whose untagged
+      // criteria then surface as UNCOVERED. junit files merge into the
+      // evidence only through these per-phase trust windows.
+      // Budget: 120 min per CI spawn (2-core runner timing, gh run
+      // 41483128610; chromium worst case ≈ 2×25-min fallback attempts +
+      // boot). The reference-hardware 60-min combined budget below stays
+      // frozen — it is the qualify doctrine, not this constant.
+      const perfFixture = join(repoRoot, 'fixtures/audio-120min.mp4')
+      // ci.yml provisions this fixture before L4–L5 and REMOVES it before
+      // the chromium phase (which precedes this step) — re-provision it for
+      // the memory spawn, deterministically (~30 s, self-checking; same call
+      // as ci.yml's perf-fixture step). CC-04.9 skips when absent →
+      // UNCOVERED → exit 1 (unit-04 precedent), so "fixture present" is a
+      // precondition of this branch, enforced here rather than by step
+      // ordering.
+      const perf = run('corepack', ['pnpm', 'exec', 'node', 'scripts/make-fixtures.ts', '--perf'], 10 * 60_000)
+      if (perf.status !== 0)
+        console.error(
+          `verify:unit: perf fixture regeneration ${perf.status === null ? 'did not complete (spawn failed, killed, or timed out)' : `exited ${perf.status}`} — CC-04.9's memory leg will skip and report UNCOVERED`,
+        )
+      const phase = (name: string, projectArg: string) => {
+        const phaseOutDir = join(outDir, `pw-${name}`)
+        return collectPlaywrightEvidence({
+          tmpJunitFile: join(phaseOutDir, 'junit.xml'),
+          persistentJunitFile,
+          spawn: (junitFile) => run('corepack', ['pnpm', 'exec', 'playwright', 'test', projectArg, '--reporter=junit', `--output=${phaseOutDir}`], 120 * 60_000, { PLAYWRIGHT_JUNIT_OUTPUT_FILE: junitFile }),
+          parse: (file) => parseJunit(file, 'playwright'),
+        })
+      }
+      const memory = phase('memory', '--project=memory')
+      // ci.yml's "drop perf fixture" counterpart — generated + gitignored,
+      // safe to remove; regenerated by the line above on the next run.
+      rmSync(perfFixture, { force: true })
+      const chromium = phase('chromium', '--project=chromium')
+      cases.push(...memory.cases, ...chromium.cases)
+      for (const failure of [memory.failure, chromium.failure]) if (failure) console.error(`verify:unit: e2e evidence rejected — ${failure}`)
+    } else {
+      const playwrightOutDir = join(outDir, 'pw')
+      const playwrightJunitFile = join(playwrightOutDir, 'junit.xml')
+      const evidence = collectPlaywrightEvidence({
+        tmpJunitFile: playwrightJunitFile,
+        persistentJunitFile,
+        spawn: (junitFile) =>
+          // unit-04 CC-04.9: the `memory` project (e2e/media/memory/**) is
+          // testIgnore-excluded from chromium to keep its spec-spawned isolated
+          // preview (4312) single-owner; it must still be exercised for the
+          // e2e-sourced criteria to be collectible. GREEN-phase note: the real
+          // 120-min decode is a reference-hardware gate — if it outgrows this
+          // window at release time the memory project belongs in `qualify`,
+          // not a longer spawn here (unit report follow-up).
+          //
+          // Builder extension (unit-05): the chromium project gained
+          // e2e/asr/longtask.spec.ts (test.setTimeout 35 min, measured ~25 min
+          // local) on top of the media/deploy specs, so the chromium serial
+          // worker stream cannot finish inside 20 min — the spawn was killed and
+          // every Playwright-cited criterion (CC-05.2/.3/.5) went to zero
+          // (verify:unit "e2e evidence rejected"). 60 min keeps the whole
+          // chromium+memory sweep inside one window on reference hardware;
+          // CI-runner timing headroom stays a Follow-up (unit-05: gh run
+          // 41483128610 — on CI the CI branch above mirrors ci.yml's
+          // two-phase split instead). The freeze on the budget is the QUALIFY
+          // doctrine above, not this constant.
+          run('corepack', ['pnpm', 'exec', 'playwright', 'test', '--project=chromium', '--project=memory', '--reporter=junit', `--output=${playwrightOutDir}`], 60 * 60_000, {
+            PLAYWRIGHT_JUNIT_OUTPUT_FILE: junitFile,
+          }),
+        parse: (file) => parseJunit(file, 'playwright'),
+      })
+      cases.push(...evidence.cases)
+      if (evidence.failure) console.error(`verify:unit: e2e evidence rejected — ${evidence.failure}`)
+    }
   }
   return cases
 }

@@ -73,8 +73,21 @@ export interface Notice {
 } // UI maps code → copy
 
 // Events shared by all workers
+export interface GuardStats {
+  // hallucination-guard counters (FR-05.9) — numbers only (SECURITY-03)
+  repeatedNgramDropped?: number
+  shortSpeechDropped?: number
+  maxTokensFlagged?: number
+}
+export interface JobStats {
+  guard?: GuardStats
+  language?: string
+} // language = BCP-47 code (US-05.1 detect), never transcript content
 export type JobEvent =
-  { t: 'job:progress'; jobId: string; processedSec: number; totalSec: number } | { t: 'job:done'; jobId: string } | { t: 'job:error'; jobId: string; error: EngineError } | { t: 'notice'; jobId?: string; notice: Notice }
+  | { t: 'job:progress'; jobId: string; processedSec: number; totalSec: number }
+  | { t: 'job:done'; jobId: string; stats?: JobStats }
+  | { t: 'job:error'; jobId: string; error: EngineError }
+  | { t: 'notice'; jobId?: string; notice: Notice }
 
 export type ModelEvent =
   | { t: 'model:confirm-required'; model: ModelId; bytes: number } // > 100 MB gate (unit-03)

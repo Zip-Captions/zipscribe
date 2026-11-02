@@ -16,7 +16,13 @@
     "noEmit": true,
     "types": ["node"],
     "resolveJsonModule": true,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "baseUrl": ".",
+    "paths": {
+      "@engine/*": ["./src/engine/*"],
+      "@state/*": ["./src/state/*"],
+      "@ui/*": ["./src/ui/*"]
+    }
   },
   "include": [
     "vite.config.ts",
