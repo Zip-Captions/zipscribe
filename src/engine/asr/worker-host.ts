@@ -35,6 +35,15 @@
 // the typed `LANGUAGE_REQUIRED` validation BEFORE anything is posted to the
 // worker. Detected language relays from `job:done` stats (codes only).
 //
+// CC-05.3 (bulk-PCM zero-copy): posting a `{kind:'transfer', buffer}`
+// request deep-clones the buffer on the MAIN thread per epoch (~120-250 ms
+// for 460 MB — a long task). When `Worker` exists the host hands the buffer
+// once to `src/workers/pcm-broker.worker.ts` (O(1) ownership transfer) and
+// asks it for a fresh off-thread clone per post, transferring that straight
+// into `asr.worker` — the main thread never serializes bulk PCM. Without a
+// `Worker` global (unit-test environments) the request posts directly,
+// unchanged.
+//
 // SECURITY-03: host-generated notices/errors carry codes and numbers only;
 // transcript text is data, relayed through `segments`, never into detail
 // strings. No DOM/SDK globals: the worker arrives through DI
@@ -105,6 +114,65 @@ export interface AsrWorkerHost {
 /** Error codes that trigger the single auto-downgrade (US-1.2.7). */
 const DOWNGRADE_CODES: readonly EngineErrorCode[] = ['GPU_OOM', 'SESSION_LOST']
 
+/** Below this size the direct main-thread clone is far under the 50 ms budget — no broker hop. */
+const PCM_BROKER_MIN_BYTES = 16 * 1024 * 1024
+
+/** Message-wrapped view of `src/workers/pcm-broker.worker.ts` (private wire format, not the ASR protocol). */
+interface BrokerPortLike {
+  postMessage(message: { t: string; requestId?: number; buffer?: ArrayBuffer }, transfer?: Transferable[]): void
+  onMessage(listener: (message: { t?: string; requestId?: number; buffer?: ArrayBuffer }) => void): () => void
+  terminate(): void
+}
+
+interface PcmBroker {
+  port: BrokerPortLike
+  ready: Promise<boolean>
+  nextRequestId: number
+  pending: Map<number, (buffer: ArrayBuffer) => void>
+}
+
+function createPcmBroker(): PcmBroker | null {
+  if (typeof Worker === 'undefined') return null
+  const raw = new Worker(new URL('../../workers/pcm-broker.worker.ts', import.meta.url), { type: 'module' })
+  const pending = new Map<number, (buffer: ArrayBuffer) => void>()
+  const port: BrokerPortLike = {
+    postMessage: (message, transfer) => raw.postMessage(message, transfer === undefined ? undefined : { transfer }),
+    onMessage: (listener) => {
+      const handler = (event: MessageEvent<{ t?: string; requestId?: number; buffer?: ArrayBuffer }>) => listener(event.data)
+      raw.addEventListener('message', handler)
+      return () => raw.removeEventListener('message', handler)
+    },
+    terminate: () => raw.terminate(),
+  }
+  const broker: PcmBroker = { port, ready: Promise.resolve(false), nextRequestId: 0, pending }
+  broker.ready = new Promise<boolean>((resolveReady) => {
+    let settled = false
+    const finish = (ok: boolean) => {
+      if (!settled) {
+        settled = true
+        resolveReady(ok)
+      }
+    }
+    port.onMessage((msg) => {
+      if (msg.t === 'ready') {
+        finish(true)
+        return
+      }
+      if (msg.t === 'clone' && typeof msg.requestId === 'number' && msg.buffer instanceof ArrayBuffer) {
+        const resolveClone = pending.get(msg.requestId)
+        if (resolveClone !== undefined) {
+          pending.delete(msg.requestId)
+          resolveClone(msg.buffer)
+        }
+      }
+    })
+    raw.addEventListener('error', () => finish(false))
+    port.postMessage({ t: 'ready' })
+    setTimeout(() => finish(false), 5000)
+  })
+  return broker
+}
+
 interface Run {
   params: TranscribeParams
   /** Kept (committed) segments, absolute media seconds, append-only. */
@@ -138,6 +206,38 @@ interface WarmWorker {
 export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
   let activeRun: Run | null = null
   let warm: WarmWorker | null = null
+  let brokerPromise: Promise<PcmBroker | null> | null = null
+  /** The buffer the broker currently owns (detached on the page once set). */
+  let brokerOwned: ArrayBuffer | null = null
+
+  function ensurePcmBroker(): Promise<PcmBroker | null> {
+    if (brokerPromise === null) {
+      brokerPromise = Promise.resolve(createPcmBroker()).then((broker) => {
+        if (broker === null) return null
+        return broker.ready.then((ok) => (ok ? broker : null))
+      })
+    }
+    return brokerPromise
+  }
+
+  /**
+   * Hand `buffer` to the broker (once) and receive a fresh off-thread clone
+   * for one `transcribe` post. Resolves null when the broker is unavailable
+   * (caller must fall back to the direct — cloning — post).
+   */
+  async function requestPcmClone(buffer: ArrayBuffer): Promise<ArrayBuffer | null> {
+    const broker = await ensurePcmBroker()
+    if (broker === null) return null
+    if (brokerOwned !== buffer) {
+      broker.port.postMessage({ t: 'own', buffer }, [buffer])
+      brokerOwned = buffer
+    }
+    const requestId = (broker.nextRequestId += 1)
+    return new Promise<ArrayBuffer>((resolveClone) => {
+      broker.pending.set(requestId, resolveClone)
+      broker.port.postMessage({ t: 'clone', requestId })
+    })
+  }
 
   function relay(event: AsrEvent): void {
     opts.onEvent?.(event)
@@ -194,8 +294,9 @@ export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
     run.workerEpochs += 1
   }
 
-  function postTranscribe(run: Run, resumeFromSec: Seconds | undefined): void {
-    if (run.worker === null) return
+  async function postTranscribe(run: Run, resumeFromSec: Seconds | undefined): Promise<void> {
+    const worker = run.worker
+    if (worker === null) return
     const request: Extract<AsrRequest, { t: 'transcribe' }> = {
       t: 'transcribe',
       jobId: run.params.jobId,
@@ -204,7 +305,27 @@ export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
       language: run.params.language,
     }
     if (resumeFromSec !== undefined) request.resumeFromSec = resumeFromSec
-    run.worker.postMessage(request)
+    const pcm = run.params.pcm
+    // Once the broker OWNS a buffer, every epoch must go through it — the
+    // original is detached on the page, so a direct post would DataCloneError.
+    // (A detached ArrayBuffer reports byteLength 0 — `owned === pcm.buffer`
+    // is the only reliable "already transferred" test.)
+    const brokerEligible = pcm.kind === 'transfer' && (pcm.buffer === brokerOwned || pcm.buffer.byteLength >= PCM_BROKER_MIN_BYTES)
+    if (brokerEligible) {
+      // CC-05.3: clone on the broker thread, transfer in and out — the main
+      // thread posts only the request shell + the ownership move. If the
+      // run/worker went away while cloning, the copy is dropped (GC) and
+      // nothing is posted.
+      const clone = await requestPcmClone(pcm.buffer)
+      if (clone !== null) {
+        if (run.worker !== worker || run.aborted || run.finalized) return
+        worker.postMessage({ ...request, pcm: { kind: 'transfer', buffer: clone } }, [clone])
+        return
+      }
+      if (brokerOwned === pcm.buffer) return // broker died after owning — never post the detached original
+    }
+    if (run.worker !== worker || run.aborted || run.finalized) return
+    worker.postMessage(request)
   }
 
   async function startEpoch(run: Run, worker: AsrWorkerLike, plan: TierPlan, resumeFromSec: Seconds | undefined): Promise<void> {
@@ -216,12 +337,32 @@ export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
     await ready
     run.settleReady = null
     if (run.aborted || run.finalized) return
-    postTranscribe(run, resumeFromSec)
+    await postTranscribe(run, resumeFromSec)
+  }
+
+  /**
+   * Let the dying worker free its big heaps (loop abort + `unload` session
+   * dispose) one event-loop turn BEFORE `terminate()` (which drops queued
+   * messages and would strand the weights until the dead-context GC). Keeps
+   * the recycled-epoch footprint tiny so CC-05.2's heap sampler never counts
+   * stranded weights as growth. Termination stays synchronous after the yield.
+   */
+  async function retireForRecycle(run: Run): Promise<void> {
+    const doomed = run.worker
+    if (doomed !== null) {
+      doomed.postMessage({ t: 'cancel', jobId: run.params.jobId })
+      doomed.postMessage({ t: 'unload' })
+    }
+    await new Promise<void>((yieldTurn) => {
+      setTimeout(yieldTurn, 0)
+    })
+    if (run.worker === doomed) retireWorker(run)
+    else doomed?.terminate()
   }
 
   /** terminate → respawn → reload → resume (FR-05.3 recycle, US-1.2.7 downgrade). */
   async function respawn(run: Run, plan: TierPlan, resumeFromSec: Seconds): Promise<void> {
-    retireWorker(run)
+    await retireForRecycle(run)
     if (run.aborted || run.finalized) return
     const worker = opts.createWorker()
     await startEpoch(run, worker, plan, resumeFromSec)
@@ -356,7 +497,7 @@ export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
       warm = null
       entry.unsubscribe?.()
       attachWorker(run, entry.worker, entry.plan)
-      if (!run.aborted && !run.finalized) postTranscribe(run, params.resumeFromSec)
+      if (!run.aborted && !run.finalized) void postTranscribe(run, params.resumeFromSec)
     } else {
       // Synchronous through `createWorker` + `loadModel` post so a cancel
       // issued immediately after this call still finds a live worker.
@@ -386,6 +527,12 @@ export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
       warm.unsubscribe?.()
       warm.worker.terminate()
       warm = null
+    }
+    brokerOwned = null
+    if (brokerPromise !== null) {
+      const settling = brokerPromise
+      brokerPromise = null
+      void settling.then((broker) => broker?.port.terminate())
     }
   }
 

@@ -30,11 +30,13 @@
 //                 emits nothing further for that job).
 //   unload      → dispose both sessions (the worker stays alive for reload).
 //
-// `resumeFromSec` (host recycle/downgrade resume): VAD segments fully behind
-// the resume point are dropped before window planning; the host's commit
-// dedupe absorbs any boundary overlap (US-1.2.7).
+// `resumeFromSec` (host recycle/downgrade resume): the window plan is always
+// computed over the FULL VAD list and whole windows behind the resume point
+// are skipped (TranscribeOptions.resumeFromSec — re-packing from filtered
+// segments shifts the boundary window's padding and is not transcript-preserving);
+// the host's commit dedupe absorbs any boundary overlap (US-1.2.7).
 
-import type { AsrEvent, AsrRequest, Device, EngineError, ModelId, PcmChunk, PcmSource, VadSegment } from '@engine/protocol'
+import type { AsrEvent, AsrRequest, Device, EngineError, ModelId, PcmChunk, PcmSource } from '@engine/protocol'
 import { transcribe, type EngineSession } from '@engine/asr/transcriber'
 import { runVad, type VadScorer } from '@engine/asr/vad'
 import { MODEL_REGISTRY, getModel } from '@engine/model/registry'
@@ -222,9 +224,6 @@ async function handleTranscribe(request: Extract<AsrRequest, { t: 'transcribe' }
     if (runCancel.cancelled) return
     post({ t: 'vad:segments', jobId: request.jobId, segments: vadSegments })
 
-    const resumeFromSec = request.resumeFromSec
-    const planningSegments: VadSegment[] = resumeFromSec === undefined ? vadSegments : vadSegments.filter((segment) => segment.end > resumeFromSec)
-
     const outcome = await transcribe(
       pcmChunks(samples),
       {
@@ -233,7 +232,10 @@ async function handleTranscribe(request: Extract<AsrRequest, { t: 'transcribe' }
         language: request.language,
         engineFlags: { confidence: false, punctuation: false, languageDetect: request.language === null },
       },
-      { vad: planningSegments, createSession: () => session },
+      // Resume skips whole committed windows (the plan itself is computed
+      // over the FULL VAD list — TranscribeOptions.resumeFromSec); the host's
+      // commit dedupe absorbs any boundary overlap (US-1.2.7).
+      { vad: vadSegments, createSession: () => session, ...(request.resumeFromSec === undefined ? {} : { resumeFromSec: request.resumeFromSec }) },
       (event) => {
         // The core emits its placeholder job id; the worker re-tags. Its
         // `job:done` is suppressed here — the worker emits the protocol one

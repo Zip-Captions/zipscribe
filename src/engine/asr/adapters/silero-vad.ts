@@ -5,9 +5,15 @@
 // `models/ci-registry.json`, fetched to `.cache/models/silero-vad/` by
 // `pnpm models:fetch`) behind the pure `VadScorer` DI seam in
 // `src/engine/asr/vad.ts`. IO names/dims were verified against the pinned
-// file with the same ORT (input `input` [1,512] f32, `state` [2,1,128] f32,
-// `sr` int64 scalar → output `output` [1,1], `stateN` [2,1,128]): the LSTM
-// state carries across `scoreWindow` calls, reset per stream instance.
+// file with the same ORT (input `input` [1,576] f32 = the official 64-sample
+// context + the 512-sample scoring window, `state` [2,1,128] f32, `sr` int64
+// scalar → output `output` [1,1], `stateN` [2,1,128]): the LSTM state carries
+// across `scoreWindow` calls, reset per stream instance, and so does the
+// trailing-context window (official v5 JS contract,
+// https://github.com/snakers4/silero-vad/blob/master/utils/javascript/silero.js
+// — feeding [1,512] without the context is accepted by the graph but
+// collapses the probabilities on real speech: measured mean 0.16 vs 0.84 on
+// speech-10min, which truncated the VAD to its first ~4 s).
 //
 // ORT instance discipline (AGENTS.md § Off the main thread): the session is
 // created through the `InferenceSession` factory re-exported from the
@@ -25,7 +31,7 @@
 
 import { Tensor } from '@huggingface/transformers'
 import type { VadScorer } from '@engine/asr/vad'
-import { VAD_SAMPLE_RATE } from '@engine/asr/vad'
+import { VAD_SAMPLE_RATE, VAD_WINDOW_SAMPLES } from '@engine/asr/vad'
 
 /** Minimal structural view of a bundled-ORT session (only `run` is used). */
 export interface OrtSessionLike {
@@ -43,6 +49,9 @@ const SILERO_HF_URL = 'https://huggingface.co/onnx-community/silero-vad/resolve/
 const STATE_ROWS = 2
 const STATE_BATCH = 1
 const STATE_DIM = 128
+/** Official v5 contract: the 64 trailing samples of the previous window are
+ *  prepended to the scored 512-sample frame (the conv layer's receptive field). */
+const CONTEXT_SAMPLES = 64
 
 /** The exported `Tensor` is the transformers.js wrapper over the bundled
  *  ORT tensor (`utils/tensor.js` stores the runtime tensor as `ort_tensor`);
@@ -75,16 +84,25 @@ export async function createSileroScorer(createSession: OrtSessionFactory): Prom
   const bytes = await fetchSileroBytes()
   const session = await createSession(bytes, { executionProviders: ['wasm'] })
   let state = new Float32Array(STATE_ROWS * STATE_BATCH * STATE_DIM)
+  const context = new Float32Array(CONTEXT_SAMPLES)
+  const input = new Float32Array(CONTEXT_SAMPLES + VAD_WINDOW_SAMPLES)
+  input.set(context, 0)
   return {
     async scoreWindow(frame: Float32Array): Promise<number> {
+      if (frame.length !== VAD_WINDOW_SAMPLES) throw new Error('silero_frame_length')
+      // context (64) + window (512); the trailing 64 samples of THIS frame
+      // become the next call's context (the official wrapper keeps them on
+      // the JS side — they are raw audio, not model state).
+      input.set(frame, CONTEXT_SAMPLES)
       const outputs = await session.run({
-        input: ortFeedValue(new Tensor('float32', frame, [1, frame.length])),
+        input: ortFeedValue(new Tensor('float32', input, [1, input.length])),
         state: ortFeedValue(new Tensor('float32', state, [STATE_ROWS, STATE_BATCH, STATE_DIM])),
         sr: ortFeedValue(new Tensor('int64', BigInt64Array.from([BigInt(VAD_SAMPLE_RATE)]), [])),
       })
       const next = outputs['stateN'] ?? outputs['state']
       const prob = outputs['output']?.data?.[0]
       if (next === undefined || prob === undefined) throw new Error('silero_output_missing')
+      context.set(frame.subarray(frame.length - CONTEXT_SAMPLES))
       // Copy: the session may recycle its output buffers on the next run.
       state = new Float32Array(next.data.length)
       for (let i = 0; i < next.data.length; i++) state[i] = next.data[i] as number

@@ -93,6 +93,14 @@ export interface TranscribeOptions {
   minGuardedSpeechSec?: number
   /** Optional backpressure ceiling for buffered PCM ahead of the engine; default 30 (FR-05.2). */
   maxBufferedAheadSec?: number
+  /**
+   * Resume point (FR-05.3 recycle/downgrade): windows fully at or behind it
+   * are skipped. Planning always runs over the FULL `vad` list — filtering
+   * segments before packing shifts the boundary window's clamped padding and
+   * breaks CC-05.9's "recycling is invisible" (observed: first post-recycle
+   * window start off by 0.008 s → different greedy engine output).
+   */
+  resumeFromSec?: Seconds
 }
 
 export interface TranscribeOutcome {
@@ -307,7 +315,10 @@ export async function transcribe(stream: AsyncIterable<PcmChunk>, spec: Transcri
   const guardStats = zeroGuardStats()
   const minGuardedSpeechSec = opts.minGuardedSpeechSec ?? DEFAULT_MIN_GUARDED_SPEECH_SEC
   const sortedVad = [...(opts.vad ?? [])].sort((a, b) => a.start - b.start)
-  const windows = planWindows(sortedVad)
+  const allWindows = planWindows(sortedVad)
+  // Resume skips whole windows only — never re-plans from filtered segments
+  // (see TranscribeOptions.resumeFromSec).
+  const windows = opts.resumeFromSec === undefined ? allWindows : allWindows.filter((w) => w.end > opts.resumeFromSec!)
   const reader = createPcmReader(stream, opts.maxBufferedAheadSec ?? DEFAULT_MAX_BUFFERED_AHEAD_SEC)
   const kept: RawSegment[] = []
   let windowsCommitted = 0
