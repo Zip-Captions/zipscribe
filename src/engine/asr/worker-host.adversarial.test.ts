@@ -226,54 +226,57 @@ describe('adversary: PCM broker dying between slice posts (CC-05.3 off-main-thre
     }
     let cloneServed = 0
     const brokers: { requests: BrokerRequest[]; terminated: boolean }[] = []
-    vi.stubGlobal('Worker', class {
-      readonly requests: BrokerRequest[] = []
-      terminated = false
-      private held: ArrayBuffer | null = null
-      private readonly listeners = new Map<string, ((event: { data: unknown }) => void)[]>()
+    vi.stubGlobal(
+      'Worker',
+      class {
+        readonly requests: BrokerRequest[] = []
+        terminated = false
+        private held: ArrayBuffer | null = null
+        private readonly listeners = new Map<string, ((event: { data: unknown }) => void)[]>()
 
-      constructor() {
-        brokers.push(this)
-      }
-
-      addEventListener(type: string, listener: (event: { data: unknown }) => void): void {
-        const list = this.listeners.get(type) ?? []
-        list.push(listener)
-        this.listeners.set(type, list)
-      }
-
-      removeEventListener(type: string, listener: (event: { data: unknown }) => void): void {
-        const list = this.listeners.get(type) ?? []
-        const at = list.indexOf(listener)
-        if (at >= 0) list.splice(at, 1)
-      }
-
-      postMessage(message: BrokerRequest): void {
-        this.requests.push(message)
-        if (message.t === 'ready') {
-          this.dispatch('message', { t: 'ready' })
-          return
+        constructor() {
+          brokers.push(this)
         }
-        if (message.t === 'own') {
-          if (message.buffer instanceof ArrayBuffer) this.held = message.buffer
-          return
-        }
-        if (message.t === 'clone' && typeof message.requestId === 'number') {
-          if (cloneServed >= 1) return // broker CRASHES after serving the first clone
-          cloneServed += 1
-          const copy = (this.held ?? new ArrayBuffer(0)).slice(0)
-          this.dispatch('message', { t: 'clone', requestId: message.requestId, buffer: copy })
-        }
-      }
 
-      terminate(): void {
-        this.terminated = true
-      }
+        addEventListener(type: string, listener: (event: { data: unknown }) => void): void {
+          const list = this.listeners.get(type) ?? []
+          list.push(listener)
+          this.listeners.set(type, list)
+        }
 
-      private dispatch(type: string, data: unknown): void {
-        for (const listener of [...(this.listeners.get(type) ?? [])]) listener({ data })
-      }
-    })
+        removeEventListener(type: string, listener: (event: { data: unknown }) => void): void {
+          const list = this.listeners.get(type) ?? []
+          const at = list.indexOf(listener)
+          if (at >= 0) list.splice(at, 1)
+        }
+
+        postMessage(message: BrokerRequest): void {
+          this.requests.push(message)
+          if (message.t === 'ready') {
+            this.dispatch('message', { t: 'ready' })
+            return
+          }
+          if (message.t === 'own') {
+            if (message.buffer instanceof ArrayBuffer) this.held = message.buffer
+            return
+          }
+          if (message.t === 'clone' && typeof message.requestId === 'number') {
+            if (cloneServed >= 1) return // broker CRASHES after serving the first clone
+            cloneServed += 1
+            const copy = (this.held ?? new ArrayBuffer(0)).slice(0)
+            this.dispatch('message', { t: 'clone', requestId: message.requestId, buffer: copy })
+          }
+        }
+
+        terminate(): void {
+          this.terminated = true
+        }
+
+        private dispatch(type: string, data: unknown): void {
+          for (const listener of [...(this.listeners.get(type) ?? [])]) listener({ data })
+        }
+      },
+    )
 
     const { workers, host } = harness({ duration: 2, windowSec: 1 }, { recycleEveryNWindows: 1 })
     const original = new ArrayBuffer(BULK_BYTES)
@@ -284,7 +287,10 @@ describe('adversary: PCM broker dying between slice posts (CC-05.3 off-main-thre
     // posts transcribe to the respawned worker.
     expect(raced, 'postTranscribe hung on a dead broker after owning the buffer (worker-host.ts:325 fallback is unreachable)').not.toBe('TIMEOUT')
     expect(workers).toHaveLength(2)
-    expect(workers[1]!.sent.some((m) => m.t === 'transcribe'), 'the respawned epoch must receive the resume transcribe post').toBe(true)
+    expect(
+      workers[1]!.sent.some((m) => m.t === 'transcribe'),
+      'the respawned epoch must receive the resume transcribe post',
+    ).toBe(true)
     host.dispose()
   })
 })
@@ -388,8 +394,8 @@ describe('adversary: hostile worker streams (FR-05.5 dedupe discipline, jobId di
   test('a foreign-jobId GPU_OOM arriving mid-recycle must not downgrade or corrupt the run (US-1.2.7 discrimination)', async () => {
     const { workers, host, notices } = harness({ duration: 3, windowSec: 1, foreignEventsOnCancel: true }, { recycleEveryNWindows: 1 })
     const result = await host.transcribe(transferParams(new ArrayBuffer(4096)))
-    expect(result.downgraded, 'a foreign job:error is not this run\'s OOM').toBe(false)
-    expect(result.error, 'the foreign error must not surface as this run\'s error').toBeUndefined()
+    expect(result.downgraded, "a foreign job:error is not this run's OOM").toBe(false)
+    expect(result.error, "the foreign error must not surface as this run's error").toBeUndefined()
     expect(notices.filter((n) => n.t === 'notice' && n.notice.code === 'TIER_DOWNGRADE')).toHaveLength(0)
     expect(result.segments.map((s) => s.start)).toEqual([0, 1, 2]) // every window committed once, across the recycle
     expect(workers.length).toBeGreaterThanOrEqual(3) // recycles did happen (cadence 1)

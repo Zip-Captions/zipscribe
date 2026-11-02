@@ -180,30 +180,33 @@ afterEach(() => {
 
 test('CC-05.3: bulk transfer PCM is cloned ON the broker thread, never posted directly', async () => {
   const brokers: FakeBrokerWorker[] = []
-  vi.stubGlobal('Worker', class {
-    private readonly inner: FakeBrokerWorker
-    constructor() {
-      this.inner = new FakeBrokerWorker('ok')
-      brokers.push(this.inner)
-    }
+  vi.stubGlobal(
+    'Worker',
+    class {
+      private readonly inner: FakeBrokerWorker
+      constructor() {
+        this.inner = new FakeBrokerWorker('ok')
+        brokers.push(this.inner)
+      }
 
-    postMessage(message: BrokerRequest, transfer?: unknown): void {
-      void transfer
-      this.inner.postMessage(message)
-    }
+      postMessage(message: BrokerRequest, transfer?: unknown): void {
+        void transfer
+        this.inner.postMessage(message)
+      }
 
-    addEventListener(type: string, listener: (event: { data: unknown }) => void): void {
-      this.inner.addEventListener(type, listener)
-    }
+      addEventListener(type: string, listener: (event: { data: unknown }) => void): void {
+        this.inner.addEventListener(type, listener)
+      }
 
-    removeEventListener(type: string, listener: (event: { data: unknown }) => void): void {
-      this.inner.removeEventListener(type, listener)
-    }
+      removeEventListener(type: string, listener: (event: { data: unknown }) => void): void {
+        this.inner.removeEventListener(type, listener)
+      }
 
-    terminate(): void {
-      this.inner.terminate()
-    }
-  })
+      terminate(): void {
+        this.inner.terminate()
+      }
+    },
+  )
   const { workers, host } = harness({ duration: 1, windowSec: 1 }, { recycleEveryNWindows: 1 })
   const original = new ArrayBuffer(BULK_BYTES)
   const result = await host.transcribe(transferParams(original))
@@ -238,29 +241,32 @@ test('CC-05.3: bulk transfer PCM is cloned ON the broker thread, never posted di
 
 test('CC-05.3: broker error falls back to the direct post with the original buffer', async () => {
   const brokers: FakeBrokerWorker[] = []
-  vi.stubGlobal('Worker', class {
-    private readonly inner: FakeBrokerWorker
-    constructor() {
-      this.inner = new FakeBrokerWorker('error')
-      brokers.push(this.inner)
-    }
+  vi.stubGlobal(
+    'Worker',
+    class {
+      private readonly inner: FakeBrokerWorker
+      constructor() {
+        this.inner = new FakeBrokerWorker('error')
+        brokers.push(this.inner)
+      }
 
-    postMessage(message: BrokerRequest): void {
-      this.inner.postMessage(message)
-    }
+      postMessage(message: BrokerRequest): void {
+        this.inner.postMessage(message)
+      }
 
-    addEventListener(type: string, listener: (event: { data: unknown }) => void): void {
-      this.inner.addEventListener(type, listener)
-    }
+      addEventListener(type: string, listener: (event: { data: unknown }) => void): void {
+        this.inner.addEventListener(type, listener)
+      }
 
-    removeEventListener(type: string, listener: (event: { data: unknown }) => void): void {
-      this.inner.removeEventListener(type, listener)
-    }
+      removeEventListener(type: string, listener: (event: { data: unknown }) => void): void {
+        this.inner.removeEventListener(type, listener)
+      }
 
-    terminate(): void {
-      this.inner.terminate()
-    }
-  })
+      terminate(): void {
+        this.inner.terminate()
+      }
+    },
+  )
   const { workers, host } = harness({ duration: 1, windowSec: 1 })
   const original = new ArrayBuffer(BULK_BYTES)
   const result = await host.transcribe(transferParams(original))
@@ -273,14 +279,17 @@ test('CC-05.3: broker error falls back to the direct post with the original buff
 
 test('FR-05.3/US-1.2.7: cancel during the recycle yield terminates only the doomed worker and skips the respawn', async () => {
   let hostRef: ReturnType<typeof createAsrWorkerHost> | null = null
-  const { workers, host } = harness({ duration: 3, windowSec: 1 }, {
-    recycleEveryNWindows: 1,
-    // retireForRecycle posts cancel+unload synchronously, THEN yields;
-    // cancelling from the unload hook lands exactly inside that yield.
-    onUnload: () => {
-      void hostRef?.cancel('j1')
+  const { workers, host } = harness(
+    { duration: 3, windowSec: 1 },
+    {
+      recycleEveryNWindows: 1,
+      // retireForRecycle posts cancel+unload synchronously, THEN yields;
+      // cancelling from the unload hook lands exactly inside that yield.
+      onUnload: () => {
+        void hostRef?.cancel('j1')
+      },
     },
-  })
+  )
   hostRef = host
   const buffer = new ArrayBuffer(4096)
   const result = await host.transcribe(transferParams(buffer))

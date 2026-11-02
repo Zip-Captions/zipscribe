@@ -30,7 +30,7 @@ describe('adversary: merge-gap boundary (FR-05.1 "merge segments closer than 0.3
     // exactly on the midpoint, never crossing it.
     const windows = packWindows([seg(0, 1), seg(1.35, 2.35)], { maxWindowSec: 1.5 })
     expect(windows).toHaveLength(2)
-    const [a, b] = windows as [ { start: number; end: number }, { start: number; end: number } ]
+    const [a, b] = windows as [{ start: number; end: number }, { start: number; end: number }]
     // Midpoint of [1, 1.35] is 1.175: pad = min(0.2, 0.35/2) = 0.175 each side.
     expect(a.end).toBeCloseTo(1.175, 9)
     expect(b.start).toBeCloseTo(1.175, 9)

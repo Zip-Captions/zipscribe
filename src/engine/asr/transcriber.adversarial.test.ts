@@ -55,12 +55,20 @@ const spec = (language: string | null, languageDetect = false) => ({
 
 async function run(seconds: number, vad: readonly VadSegment[], session: EngineSession, overrides: { resumeFromSec?: number; language?: string | null } = {}) {
   const events: AsrEvent[] = []
-  const outcome = await transcribe(pcmStream(seconds), spec(overrides.language ?? 'en'), { vad, createSession: () => Promise.resolve(session), ...(overrides.resumeFromSec !== undefined ? { resumeFromSec: overrides.resumeFromSec } : {}) }, (e) => events.push(e))
+  const outcome = await transcribe(
+    pcmStream(seconds),
+    spec(overrides.language ?? 'en'),
+    { vad, createSession: () => Promise.resolve(session), ...(overrides.resumeFromSec !== undefined ? { resumeFromSec: overrides.resumeFromSec } : {}) },
+    (e) => events.push(e),
+  )
   return { outcome, events }
 }
 
 describe('adversary: resumeFromSec exactly at window boundaries (CC-05.9 block-for-block, FR-05.3)', () => {
-  const vad: VadSegment[] = [{ start: 0, end: 10 }, { start: 20, end: 30 }]
+  const vad: VadSegment[] = [
+    { start: 0, end: 10 },
+    { start: 20, end: 30 },
+  ]
   // FR-05.1 packing: two clusters (10 s silence between), pad 0.2 both sides
   // clamped to silence midpoints → windows [0, 10.2] and [19.8, 30.2].
   test('resume at exactly the first window end skips ONLY that window and reproduces the tail block-for-block', async () => {
@@ -105,7 +113,10 @@ describe('adversary: resumeFromSec exactly at window boundaries (CC-05.9 block-f
 
 describe('adversary: the exactly-0.35 s internal silence cut (FR-05.1 legal cut / US-1.2.2 cut in silence)', () => {
   test('a 0.35 s gap is a legal cut: two engine calls, boundary ≥ 0.1 s from any speech, midpoint-clamped pads', async () => {
-    const vad: VadSegment[] = [{ start: 0, end: 2 }, { start: 2.35, end: 4.35 }]
+    const vad: VadSegment[] = [
+      { start: 0, end: 2 },
+      { start: 2.35, end: 4.35 },
+    ]
     const { session, calls } = scriptedSession(new Map())
     await run(5, vad, session)
     expect(calls).toHaveLength(2)

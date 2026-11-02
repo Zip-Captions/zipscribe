@@ -98,8 +98,7 @@ function bundledSessionFactory(pipelineHandle: WhisperPipelineLike): OrtSessionF
   const first = sessions === undefined ? undefined : Object.values(sessions)[0]
   const create = first === undefined ? undefined : (Object.getPrototypeOf(first) as { constructor?: { create?: unknown } }).constructor?.create
   if (typeof create !== 'function') throw new Error('whisper_ort_class_unavailable')
-  return (modelBytes: Uint8Array, sessionOptions?: Record<string, unknown>) =>
-    (create as (bytes: Uint8Array, options?: unknown) => Promise<OrtSessionLike>)(modelBytes, sessionOptions)
+  return (modelBytes: Uint8Array, sessionOptions?: Record<string, unknown>) => (create as (bytes: Uint8Array, options?: unknown) => Promise<OrtSessionLike>)(modelBytes, sessionOptions)
 }
 
 /** Map one word chunk to a word token (window-relative seconds); null when malformed. */
@@ -137,15 +136,13 @@ export async function createWhisperEngine(spec: WhisperLoadSpec, onProgress: (pr
   const cacheDir = spec.cacheDir
   const HF_ONNX = /^https:\/\/huggingface\.co\/[^/]+\/[^/]+\/resolve\/[0-9a-f]{40}\/(.+\.onnx)$/
   if (cacheDir !== undefined) {
-    globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+    globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
       const match = HF_ONNX.exec(url)
       const file = match?.[1]
       if (file === undefined) return originalFetch.call(globalThis, input, init)
-      return originalFetch.call(globalThis, `/.cache/models/${cacheDir}/${file}`, init).then((response) =>
-        response.ok ? response : originalFetch.call(globalThis, url, init),
-      )
-    })
+      return originalFetch.call(globalThis, `/.cache/models/${cacheDir}/${file}`, init).then((response) => (response.ok ? response : originalFetch.call(globalThis, url, init)))
+    }
   }
 
   // Spike-approved runtime configuration (tools/eval/pages/asr-runner.ts
@@ -250,9 +247,7 @@ export async function createWhisperEngine(spec: WhisperLoadSpec, onProgress: (pr
         const tokenizer = handle.tokenizer
         if (processor === null || processor === undefined || model?.generate === undefined || tokenizer === undefined) return 'und'
         const features = await processor(audio)
-        const generated = (await model.generate({ inputs: features['input_features'], max_new_tokens: LANGUAGE_PROBE_TOKENS })) as
-          | { sequences?: { tolist?: () => unknown } }
-          | undefined
+        const generated = (await model.generate({ inputs: features['input_features'], max_new_tokens: LANGUAGE_PROBE_TOKENS })) as { sequences?: { tolist?: () => unknown } } | undefined
         const rowsRaw = generated?.sequences?.tolist?.()
         if (!Array.isArray(rowsRaw)) return 'und'
         const rowRaw = (rowsRaw as unknown[])[0]

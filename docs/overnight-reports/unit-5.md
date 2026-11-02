@@ -171,13 +171,13 @@ reviewer's adjudication, not unilateral softening):
   byte-identical (diff is exactly those two lines; no measurement changed).
   `node scripts/qualification-check.ts` exit 0; `pnpm test` leaves `git status` clean.
 - **F2 FIXED (`5cc2005`)** — the two red F1 adversarial tests corrected per the reviewer's
-  accepted rebuttal (never deleted), quoting the adjudication: *"Test 2 (60-char line):
+  accepted rebuttal (never deleted), quoting the adjudication: _"Test 2 (60-char line):
   unsatisfiable — the 60-char word is atomic (words never split by block operations;
   US-1.2.6 never-mid-word) so every blockization leaves a ≥60-char line; the test's premise
   that splitting before the second word satisfies the bound is false. Test 1 (5×breakAfter in
   one block): unsatisfiable as written — toHaveLength(1) + domain invariant 2 (each non-final
   breakAfter keeps its \n) forces 5 lines against the ≤2-line assertion on the same block;
-  shipped code already produces 3 blocks ≤2 lines (compliant)."* New assertions: test 1 pins
+  shipped code already produces 3 blocks ≤2 lines (compliant)."_ New assertions: test 1 pins
   EVERY block ≤ maxLines and ≤ the char bound, all intra-block manual `'\n'` joins preserved
   (block-final breaks vacuous per `blockText`), full word coverage, and the 3-block output;
   test 2 documents the unbreakable-word residue — atomic word intact (never mid-word split),

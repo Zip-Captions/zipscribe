@@ -85,7 +85,7 @@ describe('adversary: breakAfter words must respect the same block bounds as engi
   // Review round 1, finding 2 (reviewer adjudication of the F1 rebuttal,
   // accepted): the original assertions were UNSATISFIABLE, not violations —
   // corrected here per the prescribed disposition (correct, never delete).
-  test('CC-05.7: 5×breakAfter words are split so EVERY block satisfies ≤ maxLines (default 2) and the char bound, manual \'\\n\' joins preserved, full word coverage', () => {
+  test("CC-05.7: 5×breakAfter words are split so EVERY block satisfies ≤ maxLines (default 2) and the char bound, manual '\\n' joins preserved, full word coverage", () => {
     // Five 4-char words joined by manual breaks. The original test asserted
     // toHaveLength(1) + ≤ 2 lines on that single block — unsatisfiable:
     // domain invariant 2 (block.text == words joined with '\n' after every

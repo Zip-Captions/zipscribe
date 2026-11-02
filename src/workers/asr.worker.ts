@@ -260,11 +260,7 @@ async function handleTranscribe(request: Extract<AsrRequest, { t: 'transcribe' }
           shortSpeechDropped: outcome.guardStats.shortWindowDropped,
           maxTokensFlagged: outcome.guardStats.maxTokensDropped,
         },
-        ...(outcome.detectedLanguage !== null
-          ? { language: outcome.detectedLanguage }
-          : request.language !== null
-            ? { language: request.language }
-            : {}),
+        ...(outcome.detectedLanguage !== null ? { language: outcome.detectedLanguage } : request.language !== null ? { language: request.language } : {}),
       },
     })
   } catch (error) {
