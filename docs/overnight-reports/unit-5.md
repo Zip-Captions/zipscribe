@@ -133,6 +133,9 @@ None outside `settings.yml` approved sets (`fast-check ^4.10.2` was already a de
 - Stream-path PCM held chunks + merged copy ≈ 2× peak vs the CC-05.1 `[RQ]` < 1 GB gate —
   release-qualify the streaming path with explicit VAD-segment release / chunk-ref drops before
   the measurement (review round 1, finding 6 — recorded, not implemented).
+- re-sign discipline: any commit touching hash-scope files (src/**, public/**, package.json,
+  pnpm-lock.yaml, models/*.json) requires a qualification re-sign before merge — consider wiring
+  into a pre-push hook or release step.
 
 ## Adversary round (AUDIT_CLEAN record — orchestrator-appended per process.md Step 1.8)
 
@@ -213,3 +216,15 @@ reviewer's adjudication, not unilateral softening):
   `node scripts/qualification-check.ts` exit 0 ACCEPT; `corepack pnpm test` exit 0 —
   700 passed / 1 skipped / 1 todo (0 failures) with `git status` **empty** after the run
   (in-suite qualify leg writes the identical committed value); lint + typecheck exit 0.
+
+## CI fix (actor: fix — third pass, re-sign at head `e379140`)
+
+- **CI ACCEPT-legs FIXED (this commit)** — `e379140` added `models/ci-registry.json` (a file
+  INSIDE the `scripts/lib/qualification-hash.ts` hash scope: src/**, public/**, package.json,
+  pnpm-lock.yaml, model registries), so the `7546aaf` re-sign (contentHash `9f80c913…`) was
+  stale at head and CI L1–L3 failed the three ACCEPT legs in
+  `qualification-check-adversarial.test.ts`. Re-ran the canonical re-sign flow exactly as
+  `7546aaf` (`node scripts/qualify.ts` on the HEAD-matching tree): `contentHash`
+  `f36a8b6876d6…` + hash-derived `startedAt` ONLY — `results[]`/`manual[]`/`machine`
+  byte-identical (diff is exactly those two lines). This is the second recurrence of the
+  stale-hash class — see the new Follow-ups line on re-sign discipline.
