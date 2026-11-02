@@ -32,8 +32,8 @@ import { chromium } from '@playwright/test'
 import { join } from 'node:path'
 import { rmSync } from 'node:fs'
 import { REPO_ROOT } from '../../tests/helpers/repo'
-import { assertModelCachePresent, startHarnessServer, stopHarnessServer, type HarnessServer } from '../../e2e/asr/helpers/asr.ts'
 import {
+  assertTinyModelCachePresent,
   defaultModel,
   gpuCalibration,
   HARNESS_PATH,
@@ -47,6 +47,9 @@ import {
   QualifyGpuSampler,
   recordMeasurementRow,
   routeQualifyAsrNetwork,
+  startQualifyHarnessServer,
+  stopQualifyHarnessServer,
+  type HarnessServer,
   spikeLaunchArgs,
   recycleCeiling,
   TINY_MODEL_ID,
@@ -74,7 +77,7 @@ async function runMemoryMeasurements(options: QualifyRunOptions, port: number): 
   modelHost: number
   gpu: { gpuPid: number | null; missingReason: string | null; firstBytes: number | null; maxBytes: number | null; growthBytes: number | null; sampleCount: number }
 }> {
-  const server: HarnessServer = await startHarnessServer(port, { isolated: true, probePath: HARNESS_PATH })
+  const server: HarnessServer = await startQualifyHarnessServer(port, { isolated: true, probePath: HARNESS_PATH })
   const profileDir = join(REPO_ROOT, '.night', 'qualify', `chrome-${port}`)
   rmSync(profileDir, { recursive: true, force: true })
   // Persistent context (unit-02 harness doctrine): the profile directory is
@@ -152,7 +155,7 @@ async function runMemoryMeasurements(options: QualifyRunOptions, port: number): 
     clearInterval(gpuTimer)
     await context.close()
     rmSync(profileDir, { recursive: true, force: true })
-    await stopHarnessServer(server.child)
+    await stopQualifyHarnessServer(server.child)
   }
 }
 
@@ -178,7 +181,7 @@ test.describe('CC-05.1 measurement — 120-min run within the memory gate (ZIPSC
     'CC-05.1: T2+tiny 120-min run keeps sustained JS-heap growth under 1 GB on the COOP/COEP isolated path',
     { skip: !MEASURE, timeout: RUN_TIMEOUT_MS },
     async () => {
-      assertModelCachePresent()
+      assertTinyModelCachePresent()
       const options: QualifyRunOptions = {
         fixture: PERF_FIXTURE_REPO_PATH,
         modelId: TINY_MODEL_ID,

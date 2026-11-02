@@ -35,8 +35,7 @@
 // assertions, the record and this file's failure output.
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import { chromium } from '@playwright/test'
-import { assertDefaultModelCachePresent, defaultModel, defaultModelWerBaseline, GOLDEN_WER_TOLERANCE_POINTS, groundTruthTranscript, HARNESS_PATH, MEASURE, PORT_GOLDEN_WER, recordMeasurementRow, routeQualifyAsrNetwork, scoreWerPercent, spikeLaunchArgs, type QualifyRunOptions, type QualifyRunSummary } from './helpers/measurement'
-import { startHarnessServer, stopHarnessServer, type HarnessServer } from '../../e2e/asr/helpers/asr.ts'
+import { assertDefaultModelCachePresent, defaultModel, defaultModelWerBaseline, GOLDEN_WER_TOLERANCE_POINTS, groundTruthTranscript, HARNESS_PATH, MEASURE, PORT_GOLDEN_WER, recordMeasurementRow, routeQualifyAsrNetwork, scoreWerPercent, spikeLaunchArgs, startQualifyHarnessServer, stopQualifyHarnessServer, type HarnessServer, type QualifyRunOptions, type QualifyRunSummary } from './helpers/measurement'
 
 interface GoldenClip {
   fixture: string
@@ -59,10 +58,10 @@ beforeAll(async () => {
   assertDefaultModelCachePresent()
   // Non-isolated: the golden WER gate needs no measureUserAgentSpecificMemory
   // (the CC-05.5 tiny-smoke precedent); the webgpu session runs identically.
-  server = await startHarnessServer(PORT_GOLDEN_WER, { isolated: false, probePath: HARNESS_PATH })
+  server = await startQualifyHarnessServer(PORT_GOLDEN_WER, { isolated: false, probePath: HARNESS_PATH })
 })
 afterAll(async () => {
-  if (server) await stopHarnessServer(server.child)
+  if (server) await stopQualifyHarnessServer(server.child)
 })
 
 async function scoreGoldenSet(category: 'en-clean' | 'fr-clean'): Promise<{ werPct: number; clipCount: number; wordCount: number; blocked: string[]; modelHost: number }> {
@@ -130,11 +129,19 @@ test.describe('CC-05.6 preflight — baseline and goldens READ from committed ar
     expect(defaultModel().registryId, 'the DEFAULT model is the T1 tier recommendation').toBe('whisper-base_timestamped@608c49e6')
   })
 
-  test('CC-05.6: every golden clip has committed ground truth', () => {
+  test('CC-05.6: the golden-set taxonomy is declared (fixture ground-truth EXISTENCE is asserted in measurement mode — fixtures/ is a setup tree, absent from qualification scratch copies)', () => {
     for (const [category, clips] of Object.entries(GOLDEN_SETS)) {
       expect(clips.length, `${category} has clips`).toBeGreaterThan(0)
       for (const clip of clips) {
-        expect(groundTruthTranscript(clip.groundTruth).trim().length > 0, `${clip.groundTruth} has a non-empty transcript`).toBe(true)
+        expect(clip.fixture.startsWith('fixtures/'), `${clip.groundTruth} references a fixtures/ clip`).toBe(true)
+        expect(['en', 'fr']).toContain(clip.language)
+      }
+    }
+    if (MEASURE) {
+      for (const [category, clips] of Object.entries(GOLDEN_SETS)) {
+        for (const clip of clips) {
+          expect(groundTruthTranscript(clip.groundTruth).trim().length > 0, `${category}/${clip.groundTruth} has a non-empty committed transcript`).toBe(true)
+        }
       }
     }
   })

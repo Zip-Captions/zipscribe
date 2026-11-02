@@ -26,8 +26,7 @@
 // The corpus is interim (sine-formant synthetic speech — real-corpus
 // vendoring AWAITING-OWNER), so absolute WER is corpus-bound: the assertion
 // is a regression guard at baseline + tolerance, not a quality claim.
-import { spawnSync } from 'node:child_process'
-import { execFile } from 'node:child_process'
+import { execFile, spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
@@ -238,6 +237,70 @@ export function scoreWerPercent(runId: string, reference: string, hypothesis: st
     return Number(last) * 100
   } finally {
     rmSync(scratch, { recursive: true, force: true })
+  }
+}
+
+// --- spec-owned harness server (vendored from the frozen e2e/asr/helpers/asr.ts
+// doctrine: spawn the isolated harness vite config, poll, kill — unit-02
+// orphan-server rules). Vendored (not imported) because the qualification
+// scratch trees (tests/unit/model-eval/qualify-pipeline-fabrication-adversarial)
+// copy `qualify/**` + `tests/**` + `src/**` but NOT `e2e/**`, and the frozen
+// files are untouchable. -----------------------------------------------------
+
+export interface HarnessServer {
+  child: ChildProcess
+  base: string
+}
+
+export async function startQualifyHarnessServer(port: number, options: { isolated: boolean; probePath: string }): Promise<HarnessServer> {
+  const base = `http://127.0.0.1:${port}`
+  const child = spawn('corepack', ['pnpm', 'exec', 'vite', '--config', 'e2e/asr/fixtures/vite.harness.config.ts', '--port', String(port), '--strictPort'], {
+    cwd: REPO_ROOT,
+    env: { ...process.env, CI: '1', NO_COLOR: '1', ...(options.isolated ? { ZIPSCRIBE_ISOLATED: '1' } : {}) },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  let output = ''
+  child.stdout?.on('data', (chunk: Buffer) => (output += chunk.toString()))
+  child.stderr?.on('data', (chunk: Buffer) => (output += chunk.toString()))
+  for (let attempt = 0; attempt < 240; attempt++) {
+    try {
+      const response = await fetch(`${base}${options.probePath}`, { signal: AbortSignal.timeout(1_000) })
+      if (response.status < 500) return { child, base }
+    } catch {
+      /* not up yet */
+    }
+    if (child.exitCode !== null) break
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+  await stopQualifyHarnessServer(child)
+  throw new Error(`unit-05 qualify harness vite server (port ${port}) did not start: ${output.slice(-2_000)}`)
+}
+
+export async function stopQualifyHarnessServer(child: ChildProcess): Promise<void> {
+  if (child.exitCode !== null) return
+  child.kill('SIGTERM')
+  await new Promise<void>((resolve) => {
+    const kill = setTimeout(() => {
+      child.kill('SIGKILL')
+      resolve()
+    }, 3_000)
+    child.once('exit', () => {
+      clearTimeout(kill)
+      resolve()
+    })
+  })
+}
+
+/** CI-served tiny model cache precondition (same doctrine as the frozen
+ *  e2e helper: `pnpm models:fetch` is a setup step, never a test download). */
+export function assertTinyModelCachePresent(): void {
+  const registry = JSON.parse(readFileSync(join(REPO_ROOT, 'models/eval-registry.json'), 'utf8')) as { models: Record<string, EvalRegistryRow> }
+  const row = registry.models[TINY_MODEL_ID]
+  if (!row) throw new Error('models/eval-registry.json lacks whisper-tiny-timestamped')
+  for (const file of row.files) {
+    if (!existsSync(join(REPO_ROOT, '.cache/models', TINY_MODEL_ID, file.path))) {
+      throw new Error(`model cache incomplete: .cache/models/${TINY_MODEL_ID}/${file.path} missing — run \`pnpm models:fetch\` (setup step, never during a test)`)
+    }
   }
 }
 
