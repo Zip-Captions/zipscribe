@@ -147,7 +147,17 @@ function collectTests(testRoot: string): TestCase[] {
         // 120-min decode is a reference-hardware gate — if it outgrows this
         // window at release time the memory project belongs in `qualify`,
         // not a longer spawn here (unit report follow-up).
-        run('corepack', ['pnpm', 'exec', 'playwright', 'test', '--project=chromium', '--project=memory', '--reporter=junit', `--output=${playwrightOutDir}`], 20 * 60_000, {
+        //
+        // Builder extension (unit-05): the chromium project gained
+        // e2e/asr/longtask.spec.ts (test.setTimeout 35 min, measured ~25 min
+        // local) on top of the media/deploy specs, so the chromium serial
+        // worker stream cannot finish inside 20 min — the spawn was killed and
+        // every Playwright-cited criterion (CC-05.2/.3/.5) went to zero
+        // (verify:unit "e2e evidence rejected"). 60 min keeps the whole
+        // chromium+memory sweep inside one window on reference hardware;
+        // CI-runner timing headroom stays a Follow-up. The freeze on the
+        // budget is the QUALIFY doctrine above, not this constant.
+        run('corepack', ['pnpm', 'exec', 'playwright', 'test', '--project=chromium', '--project=memory', '--reporter=junit', `--output=${playwrightOutDir}`], 60 * 60_000, {
           PLAYWRIGHT_JUNIT_OUTPUT_FILE: junitFile,
         }),
       parse: (file) => parseJunit(file, 'playwright'),
