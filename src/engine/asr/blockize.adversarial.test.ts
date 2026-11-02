@@ -82,28 +82,64 @@ describe('adversary: degenerate word lists', () => {
 })
 
 describe('adversary: breakAfter words must respect the same block bounds as engine words', () => {
-  test('VIOLATION CANDIDATE: breakAfter words beyond maxLines stay in one block (US-1.2.6: every block satisfies ≤ maxLines, default 2)', () => {
-    // Five 4-char words joined by manual breaks: nothing in groupWords splits
-    // (no punctuation, gap 0.2 < 0.6, joined 4*5+4 = 24 ≤ 85 char budget,
-    // span 2.3 s < 7 s) → one block whose text has five '\n'-separated lines.
+  // Review round 1, finding 2 (reviewer adjudication of the F1 rebuttal,
+  // accepted): the original assertions were UNSATISFIABLE, not violations —
+  // corrected here per the prescribed disposition (correct, never delete).
+  test('CC-05.7: 5×breakAfter words are split so EVERY block satisfies ≤ maxLines (default 2) and the char bound, manual \'\\n\' joins preserved, full word coverage', () => {
+    // Five 4-char words joined by manual breaks. The original test asserted
+    // toHaveLength(1) + ≤ 2 lines on that single block — unsatisfiable:
+    // domain invariant 2 (block.text == words joined with '\n' after every
+    // non-final breakAfter word) forces five '\n'-separated lines in one
+    // block. The only US-1.2.6-legal remedy is the between-words split the
+    // implementation performs (blockize.ts groupWords `overLines`), so the
+    // bounds are asserted over EVERY block of the lawful output.
     const words = [0, 1, 2, 3, 4].map((i) => word('word', i * 0.5, i * 0.5 + 0.3, { breakAfter: true }))
     const blocks = blockize(words)
-    expect(blocks).toHaveLength(1) // grouping itself
-    const lines = blocks[0]!.text.split('\n')
-    expect(lines.length, 'US-1.2.6: every block satisfies ≤ maxLines (default 2)').toBeLessThanOrEqual(2)
+    expect(blocks).toHaveLength(3) // shipped compliant output (reviewer-verified)
+    const covered: WordToken[] = []
+    let preservedBreaks = 0
+    for (const block of blocks) {
+      const lines = block.text.split('\n')
+      expect(lines.length, 'US-1.2.6: every block satisfies ≤ maxLines (default 2)').toBeLessThanOrEqual(2)
+      for (const line of lines) {
+        expect(line.length, `US-1.2.6: ≤ 42 chars/line estimate, got ${line.length}`).toBeLessThanOrEqual(42)
+      }
+      // Every word carries breakAfter, so every intra-block joiner is the
+      // manual '\n' (invariant 2): the split never collapses a manual break
+      // into a ' ' joiner.
+      expect(block.text).toBe(block.words.map((w) => w.text).join('\n'))
+      preservedBreaks += lines.length - 1
+      covered.push(...block.words)
+    }
+    expect(covered).toEqual(words) // full coverage: every word in exactly one block, order kept
+    // 4 breakAfter words, 2 intra-block '\n' survive; the block-final ones are
+    // vacuous (blockText emits joiners only between words — invariant 2).
+    expect(preservedBreaks).toBe(2)
   })
 
-  test('VIOLATION CANDIDATE: a breakAfter line longer than the 42-char estimate is not re-split (US-1.2.6: every block satisfies ≤ 42 chars/line estimate)', () => {
-    // joined length 60 + 1 + 24 = 85 = the char budget → stays one block with
-    // a first line of 60 characters; splitting BEFORE the second word (never
-    // mid-word) would satisfy the bound, so "where words allow" is met.
+  test('CC-05.7: unbreakable-word residue — a 60-char atomic word stays intact (never mid-word), every OTHER line respects ≤ 42', () => {
+    // The original assertion (every line ≤ 42) was unsatisfiable: the
+    // 60-char word is ATOMIC — words are never split by block operations
+    // (US-1.2.6 "never mid-word"; domain.md Word token: "Never split by
+    // block operations") — so EVERY legal blockization leaves a ≥ 60-char
+    // line. The premise that splitting before the second word
+    // satisfies the bound is false: the over-long line IS the single first
+    // word (domain invariant 2 keeps it as its own '\n'-line here). This is
+    // the documented unrepairable residue; the enforceable bound — every
+    // OTHER line ≤ 42 — is asserted.
     const long = 'a'.repeat(60)
     const short = 'b'.repeat(24)
     const blocks = blockize([word(long, 0, 0.5, { breakAfter: true }), word(short, 0.6, 1.1)])
     expect(blocks).toHaveLength(1)
-    const lines = blocks[0]!.text.split('\n')
-    for (const line of lines) {
-      expect(line.length, `US-1.2.6: ≤ 42 chars/line estimate, got ${line.length}`).toBeLessThanOrEqual(42)
+    const [block] = blocks
+    // The atomic word is intact — never mid-word split.
+    expect(block!.words.map((w) => w.text)).toEqual([long, short])
+    const lines = block!.text.split('\n')
+    expect(lines).toHaveLength(2)
+    expect(lines[0]).toBe(long) // invariant 2: '\n' after the breakAfter word
+    expect(lines[1]).toBe(short)
+    for (const line of lines.slice(1)) {
+      expect(line.length, `US-1.2.6: ≤ 42 chars/line estimate for every breakable line, got ${line.length}`).toBeLessThanOrEqual(42)
     }
   })
 })

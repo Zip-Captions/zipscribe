@@ -20,13 +20,15 @@ interface EngineCall {
   audio: number[]
 }
 
-const h = vi.hoisted(() => ({ calls: [] as EngineCall[] }))
+const h = vi.hoisted(() => ({ calls: [] as EngineCall[], segments: null as null | (() => RawSegment[]) }))
+
+const DEFAULT_SEGMENTS = (): RawSegment[] => [{ start: 0.05, end: 0.85, text: 'hello', words: [{ text: 'hello', start: 0.05, end: 0.85, timing: 'asr' as const }] }]
 
 vi.mock('@engine/asr/adapters/transformers-whisper', () => ({
   createWhisperEngine: () => ({
     transcribeWindow(start: number, end: number, audio: Float32Array, options: Record<string, unknown>): Promise<{ segments: RawSegment[] }> {
       h.calls.push({ start, end, options, audio: Array.from(audio) })
-      return Promise.resolve({ segments: [{ start: 0.05, end: 0.85, text: 'hello', words: [{ text: 'hello', start: 0.05, end: 0.85, timing: 'asr' as const }] }] })
+      return Promise.resolve({ segments: (h.segments ?? DEFAULT_SEGMENTS)() })
     },
     createSileroSession: () => Promise.resolve({}),
     dispose: () => Promise.resolve(),
@@ -70,8 +72,9 @@ function chunksOutOfOrder(data: Float32Array): PcmChunk[] {
   return [per(2), per(0), per(1)] // shuffled delivery: readPcmSource must sort by startSec
 }
 
-async function runWorker(pcm: { kind: 'transfer'; buffer: ArrayBuffer } | { kind: 'stream'; port: FakePort }): Promise<{ events: AsrEvent[]; calls: EngineCall[] }> {
+async function runWorker(pcm: { kind: 'transfer'; buffer: ArrayBuffer } | { kind: 'stream'; port: FakePort }, engineSegments?: () => RawSegment[]): Promise<{ events: AsrEvent[]; calls: EngineCall[] }> {
   h.calls.length = 0
+  h.segments = engineSegments ?? null
   const events: AsrEvent[] = []
   const scope: { handler: ((event: { data: AsrRequest }) => void) | null } = { handler: null }
   vi.stubGlobal('addEventListener', (type: string, listener: (event: { data: AsrRequest }) => void) => {
@@ -124,7 +127,41 @@ describe('adversary: FR-05.5 "transcribe accepts both PcmSource kinds" — equiv
     if (done !== undefined && done.t === 'job:done') {
       const stats = (done as unknown as { stats: { guard: Record<string, number>; language?: string } }).stats
       expect(Object.values(stats.guard).every((v) => typeof v === 'number')).toBe(true)
+      // Review round 1, finding 3: the relay key NAMES are part of the
+      // protocol (GuardStats, protocol.ts) — the worker remaps the core's
+      // shortWindowDropped/maxTokensDropped onto these exact keys, so the
+      // set itself is pinned, not just "all values numeric" (a dropped key
+      // previously stayed green — kill-check finding).
+      expect(Object.keys(stats.guard).sort()).toEqual(['maxTokensFlagged', 'repeatedNgramDropped', 'shortSpeechDropped'])
       expect(stats.language).toBe('en')
+    }
+  })
+
+  test('FR-05.9 guard relay end-to-end: a window tripping the repeated-ngram guard reaches job:done with the exact protocol key set and its segments are dropped', async () => {
+    // Review round 1, finding 3: drive one guard trigger THROUGH the real
+    // worker glue so the key names AND the remap (core GuardStats
+    // shortWindowDropped/maxTokensDropped → protocol shortSpeechDropped/
+    // maxTokensFlagged) are exercised, not just their presence. Four
+    // consecutive copies of one word trip FR-05.9 trigger 1
+    // (hasRepeatedNgram, transcriber.ts); the 3 s of VAD speech keeps the
+    // short-speech guard (≥ 0.5 s) and maxTokens (absent) at zero.
+    const data = samples()
+    const transferBuffer = new ArrayBuffer(data.byteLength)
+    new Float32Array(transferBuffer).set(data)
+    const repeated = (): RawSegment[] => [
+      {
+        start: 0.05,
+        end: 2.4,
+        text: 'blah blah blah blah',
+        words: [0, 1, 2, 3].map((i) => ({ text: 'blah', start: 0.05 + i * 0.5, end: 0.4 + i * 0.5, timing: 'asr' as const })),
+      },
+    ]
+    const { events } = await runWorker({ kind: 'transfer', buffer: transferBuffer }, repeated)
+    expect(events.some((e) => e.t === 'job:segments')).toBe(false) // guarded window dropped
+    const done = events.find((e) => e.t === 'job:done')
+    expect(done).toBeDefined()
+    if (done !== undefined && done.t === 'job:done') {
+      expect(done.stats?.guard).toEqual({ repeatedNgramDropped: 1, shortSpeechDropped: 0, maxTokensFlagged: 0 })
     }
   })
 
