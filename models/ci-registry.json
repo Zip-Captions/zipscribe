@@ -65,6 +65,61 @@
           "sha256": "a4a068cd6cf1ea8355b84327595838ca748ec29a25bc91fc82e6c299ccdc5808"
         }
       ]
+    },
+    "whisper-tiny-timestamped": {
+      "repo": "onnx-community/whisper-tiny_timestamped",
+      "revision": "517244293732ee2d58139af5814231b7e6830a0d",
+      "description": "CI-tier ASR: Whisper tiny with word-timestamp DTW weights (e2e/asr specs; same pins as the eval-registry row)",
+      "files": [
+        {
+          "path": "config.json",
+          "sha256": "46aeea0a406afbeb563fc8e59ca10609203df4299af6a83f73752fef369efd2d"
+        },
+        {
+          "path": "generation_config.json",
+          "sha256": "f5c67e5a4f7102f8cb4d058bc95da276bbc19eeec997267c3bb0f25ef68facd1"
+        },
+        {
+          "path": "preprocessor_config.json",
+          "sha256": "a6a76d28c93edb273669eb9e0b0636a2bddbb1272c3261e47b7ca6dfdbac1b8d"
+        },
+        {
+          "path": "tokenizer.json",
+          "sha256": "27fc476bfe7f17299480be2273fc0608e4d5a99aba2ab5dec5374b4482d1a566"
+        },
+        {
+          "path": "tokenizer_config.json",
+          "sha256": "2a4c4281cf9f51ac6ccc406fdc711a087afe6530f671fa7b80953edc498275ce"
+        },
+        {
+          "path": "vocab.json",
+          "sha256": "50d6a919f0a0601d56a04eb583c780d18553aa388254ba3158eb6a00f13e2c1a"
+        },
+        {
+          "path": "merges.txt",
+          "sha256": "2df2990a395e35e8dfbc7511e08c12d56018d8d04691e0133e5d63b21e154dc6"
+        },
+        {
+          "path": "normalizer.json",
+          "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd"
+        },
+        {
+          "path": "added_tokens.json",
+          "sha256": "9715fd2243b6f06a5858b5e32950d2853f73dd5bc201aafcf76f5082a2d8acd1"
+        },
+        {
+          "path": "special_tokens_map.json",
+          "sha256": "e67ae3a0aaa99abcd9f187138e12db1f65c16a14761c50ef10eef2c174a7a691"
+        },
+        {
+          "path": "onnx/encoder_model.onnx",
+          "sha256": "8944ec04111e040305cdb07ac97f50363024255bf0bdc67ab93ecb76645f31ae"
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx",
+          "sha256": "a3308674834b99123b32c33e3577b09b6547df8c3cea16b5f1d0c36ebbd02b1f"
+        }
+      ]
     }
   }
 }
