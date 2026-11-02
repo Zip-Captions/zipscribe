@@ -17,9 +17,12 @@
 // Recycling (FR-05.3): terminate → respawn → reload the (cached) model →
 // resume with `resumeFromSec` = end of the last committed window, `WORKER_
 // RECYCLED` notice; `recycleEveryNWindows` is the CC-05.9 test hook for the
-// leak-driven cadence (identical mechanism). Termination happens
-// synchronously inside the `job:segments` handler, so the recycled worker
-// cannot commit another window.
+// leak-driven cadence (identical mechanism). Termination is NOT synchronous
+// inside the `job:segments` handler: `retireForRecycle` first yields one
+// event-loop turn (setTimeout(0)) so the dying worker can free its heaps
+// before `terminate()`. A late `job:segments` arriving during that yield is
+// made harmless by the commit dedupe in `commitSegments` (only segments
+// past the last committed end are kept), not by synchronous termination.
 //
 // Degradation (US-1.2.7): a `GPU_OOM`/`SESSION_LOST` `job:error` triggers
 // exactly ONE auto-downgrade T1→T2 (worker from the `tiers` plan), `TIER_
@@ -482,8 +485,9 @@ export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
     if (cadence !== undefined && cadence > 0 && run.committedSinceEpoch >= cadence) {
       run.committedSinceEpoch = 0
       emitNotice(run, 'WORKER_RECYCLED', { committedWindows: cadence })
-      // Synchronous inside the worker's emit: the terminate lands before the
-      // worker's loop can commit another window.
+      // Kick-off is synchronous inside the worker's emit, but termination
+      // yields one turn first (`retireForRecycle`); a window committed
+      // during that yield is absorbed by the dedupe above.
       void respawn(run, run.plan, run.lastCommittedEnd)
     }
   }
