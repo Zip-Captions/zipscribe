@@ -127,6 +127,12 @@ None outside `settings.yml` approved sets (`fast-check ^4.10.2` was already a de
   should merge `qualification/unit-05-measurements.json` rows into the qualification artifact.
 - Qualification-record re-signing when `src/**` changes should become an explicit release step
   (the canonical-tree write policy does the work; the re-sign at `810dbbf` shows the manual path).
+- PCM broker: respawn + retry-once before failing the run on a slow (> 500 ms watchdog) `clone`
+  reply (review round 1, finding 5 — recorded, not implemented; the F4 watchdog currently marks
+  the broker dead and falls back, but a served-slow broker still costs the epoch its fast path).
+- Stream-path PCM held chunks + merged copy ≈ 2× peak vs the CC-05.1 `[RQ]` < 1 GB gate —
+  release-qualify the streaming path with explicit VAD-segment release / chunk-ref drops before
+  the measurement (review round 1, finding 6 — recorded, not implemented).
 
 ## Adversary round (AUDIT_CLEAN record — orchestrator-appended per process.md Step 1.8)
 
@@ -151,3 +157,45 @@ Test-adversary (fresh context, post-implementation) filed 5 failing regression t
   quote the very clauses that make them contradictory. Reviewer to adjudicate per
   process.md (rebuttal with invariant citation counts as handled; if accepted, the tests
   are corrected by a test-author round, never silently deleted).
+
+## Review round 1 (actor: fix — independent review, PR #8)
+
+Six findings; dispositions per the review (test edits below are EXPLICITLY REQUIRED by the
+reviewer's adjudication, not unilateral softening):
+
+- **F1 FIXED (`9a46df3`)** — stale `qualification/0.0.0-spike.json` contentHash
+  (committed `517f55b1…` ≠ recomputed `bcffad13…` at head `629c65e`: the `810dbbf` re-sign
+  predated the adversary `src/**` commits `11cbb14`/`4adc0ab`). Re-signed via the same
+  canonical-tree flow as `810dbbf` (`node scripts/qualify.ts` on a tree matching HEAD):
+  `contentHash` `1f5ed0c0…` + hash-derived `startedAt` only — `results[]`/`manual[]`/`machine`
+  byte-identical (diff is exactly those two lines; no measurement changed).
+  `node scripts/qualification-check.ts` exit 0; `pnpm test` leaves `git status` clean.
+- **F2 FIXED (`5cc2005`)** — the two red F1 adversarial tests corrected per the reviewer's
+  accepted rebuttal (never deleted), quoting the adjudication: *"Test 2 (60-char line):
+  unsatisfiable — the 60-char word is atomic (words never split by block operations;
+  US-1.2.6 never-mid-word) so every blockization leaves a ≥60-char line; the test's premise
+  that splitting before the second word satisfies the bound is false. Test 1 (5×breakAfter in
+  one block): unsatisfiable as written — toHaveLength(1) + domain invariant 2 (each non-final
+  breakAfter keeps its \n) forces 5 lines against the ≤2-line assertion on the same block;
+  shipped code already produces 3 blocks ≤2 lines (compliant)."* New assertions: test 1 pins
+  EVERY block ≤ maxLines and ≤ the char bound, all intra-block manual `'\n'` joins preserved
+  (block-final breaks vacuous per `blockText`), full word coverage, and the 3-block output;
+  test 2 documents the unbreakable-word residue — atomic word intact (never mid-word split),
+  every OTHER line ≤ 42 — with the invariant 2 / US-1.2.6 citation in the test.
+- **F3 FIXED (`5cc2005`)** — `asr-worker-glue.adversarial.test.ts` now asserts the EXACT
+  `job:done` guard key set `{repeatedNgramDropped, shortSpeechDropped, maxTokensFlagged}`
+  (protocol.ts `GuardStats`) and drives one guard trigger end-to-end through the real worker
+  (repeated-ngram window → `repeatedNgramDropped: 1`, others 0, window's `job:segments`
+  dropped), pinning the `asr.worker.ts:254-269` relay key remap that a key-drop previously
+  survived.
+- **F4 FIXED (`bf23f0b`)** — `worker-host.ts` header comment claimed recycle termination is
+  synchronous inside the `job:segments` handler; reality (post-F2-fix) is a
+  `setTimeout(0)` yield in `retireForRecycle` before `terminate()`, with late-commit safety
+  coming from the `commitSegments` dedupe (`:467-479`). Header comment updated to match; the
+  identical false claim in the `commitSegments` call-site comment (same mechanism, same
+  finding) corrected alongside.
+- **F5 RECORDED** (this report, Follow-ups) — broker respawn + retry-once before failing the
+  run on a slow (> 500 ms) clone reply.
+- **F6 RECORDED** (this report, Follow-ups) — stream-path PCM held chunks + merged copy
+  ≈ 2× peak vs the CC-05.1 `[RQ]` < 1 GB gate; stream VAD/release refs before release
+  qualification.
