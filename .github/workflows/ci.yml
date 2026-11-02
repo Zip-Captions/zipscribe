@@ -80,8 +80,35 @@ jobs:
         # `pnpm fixtures --perf` wrapper swallows the flag (unit-04 report
         # Deviations §3).
         run: corepack pnpm exec node scripts/make-fixtures.ts --perf
-      - name: L4–L5 — Playwright (chromium)
-        run: corepack pnpm test:e2e
+      # Unit-05 CI split (documented follow-up firing; gh run 41483128610):
+      # one `pnpm test:e2e` ran chromium+memory together, so the frozen
+      # e2e/asr/longtask.spec.ts transcribed the FULL perf fixture on the
+      # 2-core runner (wasm T2, numThreads=1; measured CI RTF ≫ 0.29) and
+      # burned two 35-min timeouts — the step died at 1 h 19 m. Doctrine
+      # (unit-05 verify note): "if it outgrows this window the slow legs
+      # belong in the qualify/release flow, not a longer spawn" — so instead
+      # of growing budgets, the perf fixture is scoped to the phase that
+      # needs it. memory first WITH the fixture (CC-04.9's 120-min DECODE is
+      # fast — decode-only, plus unit-05's recycle-10min), then the fixture
+      # is removed, then chromium: longtask then takes its own authored
+      # fallback path (speech-10min.mp4, ≤ 4 runs until a ≥ 60 s window,
+      # 25-min timeout — longtask.spec.ts lines 34/56), which fits the CI
+      # runner; everything else in chromium is fixture-independent. This
+      # split is CI-only structure: non-CI reference-hardware runs keep the
+      # combined `pnpm test:e2e` sweep with full perf-fixture coverage. Each
+      # phase boots the root 4310 preview (the extra build is the cost of the
+      # split, ~1 min), and both phases run through playwright.config.ts, so
+      # CI retries:1 + the retry-pass flake reporter stay exactly as set.
+      - name: L4–L5 — Playwright memory phase (perf fixture present)
+        run: corepack pnpm exec playwright test --project=memory
+      - name: drop perf fixture for the chromium phase
+        # Generated + gitignored (regenerable, `pnpm fixtures --perf`).
+        # verify:unit re-provisions it itself before its CI memory phase
+        # (scripts/verify-criteria.ts CI branch — CC-04.9 skips without it
+        # → UNCOVERED → exit 1, unit-04 precedent).
+        run: rm -f fixtures/audio-120min.mp4
+      - name: L4–L5 — Playwright chromium phase (longtask fallback path)
+        run: corepack pnpm exec playwright test --project=chromium
       - name: criteria traceability (unit branch)
         run: corepack pnpm verify:unit --from-branch
       - uses: actions/upload-artifact@v4
