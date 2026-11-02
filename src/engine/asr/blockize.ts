@@ -11,7 +11,10 @@
 // enforced as the total joined-length bound the CC-05.7 suite checks) or past
 // a `maxDurationSec` word span. Words are never split (domain invariant 1)
 // and `block.text` is the (punctuation-flag-filtered) word texts joined with
-// ' ', using '\n' after `breakAfter` words (domain invariant 2).
+// ' ', using '\n' after `breakAfter` words (domain invariant 2). The
+// `breakAfter`-formed lines obey the same US-1.2.6 bounds as engine words —
+// ≤ maxLines per block, ≤ maxCharsPerLine per line where words allow — with
+// an overflowing block split between words (words are never split).
 //
 // Padding: `block.start = firstWord.start − paddingSec`,
 // `block.end = lastWord.end + paddingSec`, each clamped into the inter-word
@@ -75,7 +78,9 @@ const PUNCTUATION_CHARS = /[.!?]/g
 const EPS = 1e-9
 
 interface ResolvedOptions {
+  maxLines: number
   charBudget: number
+  maxCharsPerLine: number
   gapSplitSec: number
   minDurationSec: number
   maxDurationSec: number
@@ -88,6 +93,8 @@ function resolveOptions(opts: BlockizeOptions): ResolvedOptions {
   const maxLines = opts.maxLines ?? DEFAULT_MAX_LINES
   const maxCharsPerLine = opts.maxCharsPerLine ?? DEFAULT_MAX_CHARS_PER_LINE
   return {
+    maxLines,
+    maxCharsPerLine,
     // The 42-chars-per-line estimate is enforced as the total joined-length
     // bound (lines + joiners), the bound the CC-05.7 suite pins.
     charBudget: maxLines * maxCharsPerLine + (maxLines - 1),
@@ -115,6 +122,14 @@ function groupWords(words: readonly WordToken[], opts: ResolvedOptions): Group[]
   const groups: Group[] = []
   let first = 0
   let joinedLength = 0
+  // Line state for the US-1.2.6 per-line bounds: `breakAfter` words create
+  // manual lines, and every block — however its lines were formed — must
+  // satisfy ≤ maxLines and the ≤ maxCharsPerLine estimate (US-1.2.6). The
+  // only legal remedy when a bound breaks is a split between words (domain
+  // invariant 1: words are never split), so an overflowing block splits.
+  let lineStart = 0
+  let lineLength = 0
+  let lineCount = 1
   for (let i = 0; i < words.length; i++) {
     const word = words[i]!
     const text = effectiveText(word, opts.engineFlags.punctuation)
@@ -125,13 +140,33 @@ function groupWords(words: readonly WordToken[], opts: ResolvedOptions): Group[]
       const overChars = joinedLength + 1 + text.length > opts.charBudget
       const overDuration = word.end - words[first]!.start > opts.maxDurationSec
       const forced = SENTENCE_END.test(previousText) || gap > opts.gapSplitSec
-      if (forced || overChars || overDuration) {
+      const manual = previous.breakAfter === true
+      // A manual break starting line maxLines+1 forces the block split here;
+      // the breakAfter word becomes the block's last word, where its trailing
+      // '\n' would be vacuous (blockText emits joiners between words only).
+      const overLines = manual && lineCount + 1 > opts.maxLines
+      // US-1.2.6 per-line estimate: word i would overflow its line (the line
+      // it joins is fresh when the break is manual). Splitting before the
+      // word is legal whenever the line already holds an earlier word; a
+      // line started by one atomic word > estimate cannot be legally re-split
+      // (never mid-word) and stands.
+      const prospective = manual ? text.length : lineLength + (i > lineStart ? 1 : 0) + text.length
+      const overLineChars = prospective > opts.maxCharsPerLine && !manual && i > lineStart
+      if (forced || overChars || overDuration || overLines || overLineChars) {
         groups.push({ first, last: i - 1 })
         first = i
+        lineStart = i
+        lineCount = 1
+        lineLength = 0
         joinedLength = 0
+      } else if (manual) {
+        lineCount += 1
+        lineStart = i
+        lineLength = 0
       }
     }
     joinedLength += (i > first ? 1 : 0) + text.length
+    lineLength += (i > lineStart ? 1 : 0) + text.length
   }
   if (words.length > 0) {
     groups.push({ first, last: words.length - 1 })

@@ -117,6 +117,17 @@ const DOWNGRADE_CODES: readonly EngineErrorCode[] = ['GPU_OOM', 'SESSION_LOST']
 /** Below this size the direct main-thread clone is far under the 50 ms budget — no broker hop. */
 const PCM_BROKER_MIN_BYTES = 16 * 1024 * 1024
 
+/**
+ * Zombie-broker backstop (FR-05.3 "resume"): a real crashed worker reports
+ * itself through the `error` event, but one that merely stops answering
+ * clone requests (OOM-killed queue, wedged loop) must not hang the recycle
+ * resume forever. An off-thread clone measures in the low hundreds of ms
+ * (file header); expiry past this budget means the broker is dead — pending
+ * clones resolve null, the run takes the direct fallback and the next bulk
+ * post respawns a fresh broker.
+ */
+const PCM_CLONE_WATCHDOG_MS = 500
+
 /** Message-wrapped view of `src/workers/pcm-broker.worker.ts` (private wire format, not the ASR protocol). */
 interface BrokerPortLike {
   postMessage(message: { t: string; requestId?: number; buffer?: ArrayBuffer }, transfer?: Transferable[]): void
@@ -128,13 +139,16 @@ interface PcmBroker {
   port: BrokerPortLike
   ready: Promise<boolean>
   nextRequestId: number
-  pending: Map<number, (buffer: ArrayBuffer) => void>
+  pending: Map<number, (buffer: ArrayBuffer | null) => void>
+  /** True once the broker answered `ready` (it then owns whatever it was given). */
+  served: boolean
+  dead: boolean
 }
 
-function createPcmBroker(): PcmBroker | null {
+function createPcmBroker(onDeath: (broker: PcmBroker) => void): PcmBroker | null {
   if (typeof Worker === 'undefined') return null
   const raw = new Worker(new URL('../../workers/pcm-broker.worker.ts', import.meta.url), { type: 'module' })
-  const pending = new Map<number, (buffer: ArrayBuffer) => void>()
+  const pending = new Map<number, (buffer: ArrayBuffer | null) => void>()
   const port: BrokerPortLike = {
     postMessage: (message, transfer) => raw.postMessage(message, transfer === undefined ? undefined : { transfer }),
     onMessage: (listener) => {
@@ -144,7 +158,7 @@ function createPcmBroker(): PcmBroker | null {
     },
     terminate: () => raw.terminate(),
   }
-  const broker: PcmBroker = { port, ready: Promise.resolve(false), nextRequestId: 0, pending }
+  const broker: PcmBroker = { port, ready: Promise.resolve(false), nextRequestId: 0, pending, served: false, dead: false }
   broker.ready = new Promise<boolean>((resolveReady) => {
     let settled = false
     const finish = (ok: boolean) => {
@@ -155,6 +169,7 @@ function createPcmBroker(): PcmBroker | null {
     }
     port.onMessage((msg) => {
       if (msg.t === 'ready') {
+        broker.served = true
         finish(true)
         return
       }
@@ -166,7 +181,10 @@ function createPcmBroker(): PcmBroker | null {
         }
       }
     })
-    raw.addEventListener('error', () => finish(false))
+    raw.addEventListener('error', () => {
+      finish(false)
+      onDeath(broker)
+    })
     port.postMessage({ t: 'ready' })
     setTimeout(() => finish(false), 5000)
   })
@@ -209,10 +227,17 @@ export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
   let brokerPromise: Promise<PcmBroker | null> | null = null
   /** The buffer the broker currently owns (detached on the page once set). */
   let brokerOwned: ArrayBuffer | null = null
+  /**
+   * Every worker this host terminated (or doomed to be terminated by an
+   * in-flight recycle). A doomed worker must never be adopted warm (FR-05.5
+   * keeps only a USABLE worker), and a superseded live epoch must be
+   * terminated like any retired one (FR-05.3 "terminate, respawn").
+   */
+  const terminatedWorkers = new WeakSet<AsrWorkerLike>()
 
   function ensurePcmBroker(): Promise<PcmBroker | null> {
     if (brokerPromise === null) {
-      brokerPromise = Promise.resolve(createPcmBroker()).then((broker) => {
+      brokerPromise = Promise.resolve(createPcmBroker(markBrokerDead)).then((broker) => {
         if (broker === null) return null
         return broker.ready.then((ok) => (ok ? broker : null))
       })
@@ -221,20 +246,54 @@ export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
   }
 
   /**
+   * Broker death (crash event or watchdog expiry): fail every pending clone
+   * null (callers take the direct fallback — FR-05.3 "resume") and, for a
+   * broker that had gone live, drop the ownership record and the cache so
+   * the next bulk post respawns a fresh broker (FR-05.3 "respawn").
+   */
+  function markBrokerDead(broker: PcmBroker): void {
+    if (broker.dead) return
+    broker.dead = true
+    for (const resolveClone of broker.pending.values()) resolveClone(null)
+    broker.pending.clear()
+    broker.port.terminate()
+    brokerOwned = null
+    if (broker.served) brokerPromise = null
+  }
+
+  /**
    * Hand `buffer` to the broker (once) and receive a fresh off-thread clone
    * for one `transcribe` post. Resolves null when the broker is unavailable
-   * (caller must fall back to the direct — cloning — post).
+   * or died (caller must fall back to the direct — cloning — post).
    */
   async function requestPcmClone(buffer: ArrayBuffer): Promise<ArrayBuffer | null> {
     const broker = await ensurePcmBroker()
-    if (broker === null) return null
+    if (broker === null || broker.dead) return null
     if (brokerOwned !== buffer) {
-      broker.port.postMessage({ t: 'own', buffer }, [buffer])
+      try {
+        broker.port.postMessage({ t: 'own', buffer }, [buffer])
+      } catch {
+        markBrokerDead(broker)
+        return null
+      }
       brokerOwned = buffer
     }
     const requestId = (broker.nextRequestId += 1)
-    return new Promise<ArrayBuffer>((resolveClone) => {
-      broker.pending.set(requestId, resolveClone)
+    return new Promise<ArrayBuffer | null>((resolveClone) => {
+      const watchdog = setTimeout(() => {
+        if (broker.pending.delete(requestId)) {
+          markBrokerDead(broker)
+          // The broker may have died after we recorded ownership (the own
+          // post to a dead port is dropped, never detached): clear the stale
+          // record so the direct fallback below is reachable (FR-05.3).
+          if (brokerOwned === buffer) brokerOwned = null
+          resolveClone(null)
+        }
+      }, PCM_CLONE_WATCHDOG_MS)
+      broker.pending.set(requestId, (copy) => {
+        clearTimeout(watchdog)
+        resolveClone(copy)
+      })
       broker.port.postMessage({ t: 'clone', requestId })
     })
   }
@@ -267,7 +326,11 @@ export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
   function retireWorker(run: Run): void {
     run.unsubscribe?.()
     run.unsubscribe = null
-    run.worker?.terminate()
+    const worker = run.worker
+    if (worker !== null) {
+      terminatedWorkers.add(worker)
+      worker.terminate()
+    }
     run.worker = null
   }
 
@@ -279,7 +342,9 @@ export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
     // aborted/finalized guard after the await stops any further posting.
     run.settleReady?.()
     run.settleReady = null
-    if (!cancelled && run.error === undefined && run.worker !== null) {
+    // FR-05.5: only a WORKER may be kept warm — a worker a recycle has
+    // doomed (terminate pending) must never be adopted (FR-05.3 race).
+    if (!cancelled && run.error === undefined && run.worker !== null && !terminatedWorkers.has(run.worker)) {
       warm = { worker: run.worker, plan: run.plan, unsubscribe: run.unsubscribe }
       run.unsubscribe = null
     }
@@ -287,16 +352,27 @@ export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
   }
 
   function attachWorker(run: Run, worker: AsrWorkerLike, plan: TierPlan): void {
+    const superseded = run.worker
     run.unsubscribe?.()
+    run.unsubscribe = null
+    // FR-05.3: every retired epoch is terminated. A live worker that a new
+    // epoch replaces without having gone through a retire path (concurrent
+    // recycle + downgrade race) would otherwise orphan its loaded model.
+    if (superseded !== null && superseded !== worker && !terminatedWorkers.has(superseded)) {
+      terminatedWorkers.add(superseded)
+      superseded.terminate()
+    }
+    // Release a superseded epoch's loadModel wait — its postTranscribe
+    // re-checks run.worker and will not post into the new epoch.
+    run.settleReady?.()
+    run.settleReady = null
     run.unsubscribe = worker.onMessage((event) => onWorkerEvent(run, event))
     run.worker = worker
     run.plan = plan
     run.workerEpochs += 1
   }
 
-  async function postTranscribe(run: Run, resumeFromSec: Seconds | undefined): Promise<void> {
-    const worker = run.worker
-    if (worker === null) return
+  async function postTranscribe(run: Run, worker: AsrWorkerLike, resumeFromSec: Seconds | undefined): Promise<void> {
     const request: Extract<AsrRequest, { t: 'transcribe' }> = {
       t: 'transcribe',
       jobId: run.params.jobId,
@@ -322,22 +398,39 @@ export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
         worker.postMessage({ ...request, pcm: { kind: 'transfer', buffer: clone } }, [clone])
         return
       }
-      if (brokerOwned === pcm.buffer) return // broker died after owning — never post the detached original
+      // Broker unavailable or respawned (watchdog): fall through to the
+      // direct post so a recycle resume never waits on a dead broker
+      // (FR-05.3). Only while the broker still verifiably OWNS this exact
+      // buffer (original detached on the page) is a direct post forbidden.
+      if (brokerOwned === pcm.buffer) return
     }
     if (run.worker !== worker || run.aborted || run.finalized) return
-    worker.postMessage(request)
+    try {
+      worker.postMessage(request)
+    } catch {
+      // Only reachable when the original buffer is detached with no live
+      // broker to clone from — the resume is unrecoverable; surface a coded
+      // error (SECURITY-03: codes/numbers only) instead of hanging.
+      run.error = { code: 'ENGINE_INTERNAL', retryable: false }
+      retireWorker(run)
+      finishRun(run, false)
+    }
   }
 
   async function startEpoch(run: Run, worker: AsrWorkerLike, plan: TierPlan, resumeFromSec: Seconds | undefined): Promise<void> {
     attachWorker(run, worker, plan)
+    let settle!: () => void
     const ready = new Promise<void>((resolveReady) => {
-      run.settleReady = resolveReady
+      settle = resolveReady
     })
+    run.settleReady = settle
     worker.postMessage({ t: 'loadModel', model: plan.modelId, device: plan.device })
     await ready
-    run.settleReady = null
+    // Only release OUR own wait — a superseded epoch woken by attachWorker's
+    // release must never clear the successor epoch's resolver.
+    if (run.settleReady === settle) run.settleReady = null
     if (run.aborted || run.finalized) return
-    await postTranscribe(run, resumeFromSec)
+    await postTranscribe(run, worker, resumeFromSec)
   }
 
   /**
@@ -350,6 +443,9 @@ export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
   async function retireForRecycle(run: Run): Promise<void> {
     const doomed = run.worker
     if (doomed !== null) {
+      // Mark BEFORE the yield: the final window's `job:done` can finalize the
+      // run inside this yield, and a doomed worker must never be adopted warm.
+      terminatedWorkers.add(doomed)
       doomed.postMessage({ t: 'cancel', jobId: run.params.jobId })
       doomed.postMessage({ t: 'unload' })
     }
@@ -492,12 +588,16 @@ export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
       promise,
     }
     activeRun = run
+    // FR-05.5 host lifecycle: only a WORKABLE worker may be reused — a warm
+    // entry terminated after parking (or while a recycle doomed it) is
+    // discarded and the run respawns, never posting into a corpse.
+    if (warm !== null && terminatedWorkers.has(warm.worker)) warm = null
     if (warm !== null) {
       const entry = warm
       warm = null
       entry.unsubscribe?.()
       attachWorker(run, entry.worker, entry.plan)
-      if (!run.aborted && !run.finalized) void postTranscribe(run, params.resumeFromSec)
+      if (!run.aborted && !run.finalized) void postTranscribe(run, entry.worker, params.resumeFromSec)
     } else {
       // Synchronous through `createWorker` + `loadModel` post so a cancel
       // issued immediately after this call still finds a live worker.
@@ -525,6 +625,7 @@ export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
     if (run !== null) void cancel(run.params.jobId)
     if (warm !== null) {
       warm.unsubscribe?.()
+      terminatedWorkers.add(warm.worker)
       warm.worker.terminate()
       warm = null
     }
