@@ -199,3 +199,17 @@ reviewer's adjudication, not unilateral softening):
 - **F6 RECORDED** (this report, Follow-ups) — stream-path PCM held chunks + merged copy
   ≈ 2× peak vs the CC-05.1 `[RQ]` < 1 GB gate; stream VAD/release refs before release
   qualification.
+
+## Review round 2 (actor: fix — independent review, PR #8)
+
+- **F1 FIXED (`7546aaf`)** — the `3629e54` prettier pass touched 7 `src/**` files (inside the
+  `scripts/lib/qualification-hash.ts` hash scope), re-creating the round-1 F1 class at HEAD:
+  `qualification-check` REJECTed (file `1f5ed0c0d6bc…`, recomputed `9f80c91371c2…`), the three
+  ACCEPT legs in `qualification-check-adversarial.test.ts` failed on the stale committed
+  record, and the post-run `git status` was dirty. Re-signed via the same canonical-tree flow
+  as `9a46df3` (`node scripts/qualify.ts` on the HEAD-matching tree): `contentHash`
+  `9f80c913…` + hash-derived `startedAt` only — `results[]`/`manual[]`/`machine`
+  byte-identical (diff is exactly those two lines). Gates on head `7546aaf`:
+  `node scripts/qualification-check.ts` exit 0 ACCEPT; `corepack pnpm test` exit 0 —
+  700 passed / 1 skipped / 1 todo (0 failures) with `git status` **empty** after the run
+  (in-suite qualify leg writes the identical committed value); lint + typecheck exit 0.
