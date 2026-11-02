@@ -127,3 +127,27 @@ None outside `settings.yml` approved sets (`fast-check ^4.10.2` was already a de
   should merge `qualification/unit-05-measurements.json` rows into the qualification artifact.
 - Qualification-record re-signing when `src/**` changes should become an explicit release step
   (the canonical-tree write policy does the work; the re-sign at `810dbbf` shows the manual path).
+
+## Adversary round (AUDIT_CLEAN record — orchestrator-appended per process.md Step 1.8)
+
+Test-adversary (fresh context, post-implementation) filed 5 failing regression tests
+(commit `11cbb14`, `src/engine/asr/{blockize,worker-host}.adversarial.test.ts`) plus
+~25 surviving edge-case tests. One in-build fix cycle (`4adc0ab`) resolved:
+
+- **F2 FIXED** — recycle on the last window racing `job:done` handed a terminated worker
+  to the next run (warm adoption of doomed worker now impossible; dead warm respawns).
+- **F3 FIXED** — GPU_OOM mid-recycle orphaned a live model-loading worker (every retire
+  path now terminates every epoch it created; FR-05.3).
+- **F4 FIXED** — PCM broker dying after owning the buffer hung the recycle forever
+  (clone watchdog + `markBrokerDead` make the direct-post fallback reachable).
+
+- **F1 REBUTTED — 2 tests remain FAILING, referred to the review loop for adjudication.**
+  `blockize.adversarial.test.ts` cases at :91/93 and :96–107 are unsatisfiable against
+  `knowledge/domain.md` invariant 2 (block.text equality keeps every non-final breakAfter
+  word's `'\n'`) and US-1.2.6 "never mid-word" (a 60-char atomic word cannot yield a
+  ≤ 42-char line without mid-word split). The fix cycle enforces both bounds for every
+  block where a word-boundary split exists (test-1 input → 3 blocks ≤ 2 lines; atomic-word
+  overflow is acknowledged unrepairable residue). Evidence: the two tests' own headers
+  quote the very clauses that make them contradictory. Reviewer to adjudicate per
+  process.md (rebuttal with invariant citation counts as handled; if accepted, the tests
+  are corrected by a test-author round, never silently deleted).
