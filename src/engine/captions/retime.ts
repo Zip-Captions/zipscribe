@@ -30,12 +30,16 @@ function mapTime(t: number, anchor: number, scale: number, offset: number, durat
 /**
  * US-07.4: offset fixes constant sync drift, scale fixes frame-rate drift
  * (e.g. 23.976 → 25 fps) about `anchorSec`. Defaults are the identity
- * (offset 0, scale 1, anchor 0). The map is monotone, so clamping keeps
- * `start ≤ end` and word order (domain invariant 1).
+ * (offset 0, scale 1, anchor 0). A scale < 0 map is strictly decreasing, and
+ * clamping cannot restore `start ≤ end` — it is repaired to the nearest
+ * monotone map (0: the documented degenerate collapse onto anchor + offset),
+ * so the result always satisfies domain invariant 1. `solveRetime` still
+ * reports the raw solved scale (a reversed two-point pick is visible there;
+ * the contract reserves TypeError for the degenerate solve only).
  */
 export function retimeAll(project: Project, opts: RetimeOptions = {}): Project {
   const offset = opts.offsetSec ?? 0
-  const scale = opts.scale ?? 1
+  const scale = Math.max(0, opts.scale ?? 1)
   const anchor = opts.anchorSec ?? 0
   const duration = project.asset.duration
   const map = (t: number): number => mapTime(t, anchor, scale, offset, duration)
