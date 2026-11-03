@@ -131,6 +131,13 @@ export default defineConfig({
             '**/tests/unit/scaffold/bundle-budget-adversarial.test.ts',
             '**/tests/unit/scaffold/branch-policy.test.ts',
             '**/tests/unit/scaffold/coverage-gate.test.ts',
+            // unit-07 (RED phase): the caption suites import `@engine/captions/*`
+            // modules that do not exist yet; inside the child's 30 s
+            // representative-subset run their import errors would mask the
+            // command-wiring proof. They execute in the parent suite and in
+            // `verify:unit`/CI. Retire this block when unit-07 goes green
+            // (unit-04 audio precedent).
+            'tests/unit/captions/**/*.test.ts',
             ...defaultExclude,
           ]
         : defaultExclude,

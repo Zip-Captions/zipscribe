@@ -1,0 +1,15 @@
+{
+  "language": "en",
+  "blocks": [
+    {
+      "start": 0,
+      "end": 1,
+      "text": "Structured json here"
+    },
+    {
+      "start": 2.5,
+      "end": 3.5,
+      "text": "Second json cue"
+    }
+  ]
+}
