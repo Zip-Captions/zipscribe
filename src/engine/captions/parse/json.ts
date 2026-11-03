@@ -24,7 +24,11 @@ function requireBlock(value: unknown, index: number): JsonBlock {
   if (typeof start !== 'number' || !Number.isFinite(start) || typeof end !== 'number' || !Number.isFinite(end) || typeof text !== 'string') {
     throw new CaptionFailureError('UNRECOGNIZED_FORMAT', `zipscribe-json blocks[${index}] needs numeric start/end and string text`)
   }
-  return { start, end, text }
+  // Domain invariant 1 (0 ≤ times; "import never violates invariants 1–4"):
+  // this is the only format that can express a minus sign, so negative times
+  // clamp to 0 here; the importer's invariant-11 pass repairs any resulting
+  // zero duration.
+  return { start: Math.max(0, start), end: Math.max(0, end), text }
 }
 
 export async function parseZipscribeJson(text: string, opts?: ParseOptions): Promise<ParseResult> {

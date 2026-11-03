@@ -10,7 +10,9 @@
 // estimate-timing's), VTT `<v>` voices and FR-07.5 speaker prefixes become
 // speakers (`speakerSource:'manual'`, stable new `SPK_` ids), invariant 11
 // fixes are clamped/fixed/dropped and COUNTED, `captionOrigin='imported'`;
-// existing translations are dropped unless the user confirmed keeping them.
+// existing translations are dropped unless the user confirmed keeping them
+// (confirmed `imported` tracks are reconciled: entries whose block id no
+// longer exists are dropped — domain invariant 10).
 // as { translation }: each cue → source block with MAXIMUM positive time
 // overlap; several cues on one block space-join; cues overlapping no block
 // are dropped and counted `CUE_UNMATCHED`; track `origin:'imported'`,
@@ -380,6 +382,24 @@ export async function importCaptions(project: Project, file: CaptionFileInput, o
     }
   })
 
+  // FR-07.3 confirm-gate: kept tracks must not dangle — source replacement
+  // mints new block ids, so an 'imported' track's keys (the cues-to-block
+  // mappings of a previous import) that no longer resolve are dropped, the
+  // FR-07.3 "unmatched are dropped" rule reapplied on reconciliation (domain
+  // invariant 10). 'machine'/'manual' tracks are confirmed user assets and
+  // stay as they were (QC flags drift via sourceHash on surviving blocks).
+  const blockIds = new Set(blocks.map((block) => block.id))
+  const keptTranslations = opts.keepTranslations === true
+    ? project.translations.map((track) => {
+        if (track.origin !== 'imported') return track
+        const entries: Record<string, TranslationEntry> = {}
+        for (const [blockId, entry] of Object.entries(track.entries)) {
+          if (blockIds.has(blockId)) entries[blockId] = entry
+        }
+        return { ...track, entries }
+      })
+    : []
+
   return {
     project: {
       ...project,
@@ -387,7 +407,7 @@ export async function importCaptions(project: Project, file: CaptionFileInput, o
       speakers,
       speakerSource: namedSpeakerSeen ? 'manual' : project.speakerSource,
       captionOrigin: 'imported',
-      translations: opts.keepTranslations === true ? project.translations : [],
+      translations: keptTranslations,
     },
     report: buildReport(cues.length),
   }
@@ -411,15 +431,34 @@ async function parseCaptions(format: CaptionFormat, text: string, scheduleYield:
   }
 }
 
+/** Zero/negative-duration repair (invariant 11): 0.1 s, never past `capSec`. */
+function repairZeroDuration(start: Seconds, capSec: Seconds): Seconds {
+  return Math.max(start, Math.min(round3(start + ZERO_DURATION_SEC), capSec))
+}
+
 /**
  * Domain invariant 11, counted, never silent: file-order pass — an earlier
  * cue whose end passes a later cue's start ends at that start
  * (OVERLAP_CLAMPED); a zero/negative duration becomes 0.1 s
- * (ZERO_DURATION_FIXED). (EMPTY_CUE_DROPPED happens before this pass.)
+ * (ZERO_DURATION_FIXED), a clamp-induced one never past the later cue's
+ * start (prev.end ≤ next.start survives the repair). The cues are then
+ * ordered ascending by start (invariant 1 "blocks ordered" — file order is
+ * the stable tie-break) and a final pass re-clamps neighbour pairs the
+ * file-order pass could not compare; a pair already clamped (and counted)
+ * above is repaired without a second OVERLAP_CLAMPED count.
+ * (EMPTY_CUE_DROPPED happens before this pass.)
  */
 function clampAndFix(cues: MappedCue[], adjustments: Map<ImportReport['adjustments'][number]['code'], number>): void {
   let overlaps = 0
   let zeros = 0
+  const originalIndex = new Map<MappedCue, number>()
+  cues.forEach((cue, index) => originalIndex.set(cue, index))
+  const pairKey = (a: MappedCue, b: MappedCue): string => {
+    const ia = originalIndex.get(a)!
+    const ib = originalIndex.get(b)!
+    return ia < ib ? `${ia}:${ib}` : `${ib}:${ia}`
+  }
+  const clampedPairs = new Set<string>()
   for (let index = 0; index < cues.length; index++) {
     const cue = cues[index]!
     if (cue.end <= cue.start) {
@@ -431,10 +470,28 @@ function clampAndFix(cues: MappedCue[], adjustments: Map<ImportReport['adjustmen
       if (previous.end > cue.start) {
         previous.end = cue.start
         overlaps += 1
+        clampedPairs.add(pairKey(previous, cue))
         if (previous.end <= previous.start) {
-          previous.end = round3(previous.start + ZERO_DURATION_SEC)
+          previous.end = repairZeroDuration(previous.start, cue.start)
           zeros += 1
         }
+      }
+    }
+  }
+  cues.sort((a, b) => a.start - b.start)
+  for (let at = 1; at < cues.length; at++) {
+    const previous = cues[at - 1]!
+    const cue = cues[at]!
+    if (previous.end > cue.start) {
+      previous.end = cue.start
+      const pair = pairKey(previous, cue)
+      if (!clampedPairs.has(pair)) {
+        clampedPairs.add(pair)
+        overlaps += 1
+      }
+      if (previous.end <= previous.start) {
+        previous.end = repairZeroDuration(previous.start, cue.start)
+        zeros += 1
       }
     }
   }
