@@ -26,9 +26,9 @@ test('CC-07.3 / US-07.3: character weight — double the characters get double t
 
 test('CC-07.3 / US-07.3: punctuation adds a short pause weight after the word (golden)', () => {
   const bare = words('go now', 0, 2.1) // weights 2/3 over Σ5 → boundary 0.840
-  const punctuated = words('go. now', 0, 2.1) // weights 3/3 over Σ6 → boundary 1.050
+  const punctuated = words('go. now', 0, 2.1) // weights 4/3 over Σ7 → boundary 1.200
   expect(bare[1]!.start).toBeCloseTo(0.84, 3)
-  expect(punctuated[1]!.start, 'the sentence-final punctuation pushes the next word later').toBeCloseTo(1.05, 3)
+  expect(punctuated[1]!.start, 'the sentence-final punctuation pushes the next word later').toBeCloseTo(1.2, 3)
   expect(punctuated[1]!.start).toBeGreaterThan(bare[1]!.start)
   expect(punctuated[1]!.end).toBe(2.1)
 })

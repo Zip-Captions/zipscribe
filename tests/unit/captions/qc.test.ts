@@ -10,9 +10,11 @@ import type { CaptionBlock, TranslationTrack, WordToken } from '@engine/model@07
 import { makeBlock, makeProject } from './project-support'
 
 function blockWithText(start: number, end: number, text: string, id: string): CaptionBlock {
-  const tokens = text.split(/\s+/).filter(Boolean)
+  const pieces = text.split(/(\s+)/).filter((piece) => piece.length > 0)
+  const tokens = pieces.filter((piece) => !/^\s/.test(piece))
+  const separators = pieces.filter((piece) => /^\s/.test(piece))
   const step = tokens.length > 0 ? (end - start) / tokens.length : 0
-  const words: WordToken[] = tokens.map((token, index) => ({ text: token, start: start + index * step, end: start + (index + 1) * step, timing: 'asr' }))
+  const words: WordToken[] = tokens.map((token, index) => ({ text: token, start: start + index * step, end: start + (index + 1) * step, timing: 'asr', ...(separators[index]?.includes('\n') ? { breakAfter: true } : {}) }))
   return makeBlock(start, end, words, 'SPK_1', id)
 }
 
