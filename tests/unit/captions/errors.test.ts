@@ -5,7 +5,7 @@
 import { expect, test } from 'vitest'
 import { importCaptions } from '@engine/captions/import'
 import type { Project } from '@engine/model@07'
-import { CANARY_MARKER, containsCanary, createRedactionSpy, scanError } from 'src/test-support/redaction'
+import { CANARY_MARKER, containsCanary, createRedactionSpy, scanError } from '../../../src/test-support/redaction'
 import { canonical } from './canonical'
 import { captionFile, makeBlock, makeProject, makeWord } from './project-support'
 

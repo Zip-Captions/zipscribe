@@ -707,7 +707,7 @@
       "expectedPath": null
     },
     "golden/captions/overlap-zero-empty.srt.expected.json": {
-      "sha256": "6462c684b4e73079dabdcf87bb155bb545c0fff1dd07787140d4bfba1d7b5221",
+      "sha256": "5bfb7d05889ba4a8b60ed81009ca08090210544dfa15092086098932f5d50ab2",
       "duration": null,
       "kind": "golden",
       "language": null,
@@ -763,7 +763,7 @@
       "expectedPath": null
     },
     "golden/captions/sample.zipscribe.json.expected.json": {
-      "sha256": "9f225b7ef8b4d5d6e3cc2e07834feca1c69276f0db08ff5cc538c46aed508e79",
+      "sha256": "2928167fe99ba77d031bfff83ce15100ecf084eb823284ca9a6c0079e3e33ce4",
       "duration": null,
       "kind": "golden",
       "language": null,
@@ -819,7 +819,7 @@
       "expectedPath": null
     },
     "golden/captions/two-line.srt.expected.json": {
-      "sha256": "575678ae350272e2a69f2d01b3fbe8fb22f3751a6c2d276b6cba7f673451a516",
+      "sha256": "ea06e1b41656c7eaa2ca80ad4e92d66c76ead49881203e3e86772d55a26c49a9",
       "duration": null,
       "kind": "golden",
       "language": null,

@@ -82,8 +82,9 @@ test('invariant 11: imported blocks are ordered and non-overlapping after clampi
   for (let index = 1; index < project.blocks.length; index++) {
     expect(project.blocks[index]!.start, 'blocks ordered & non-overlapping').toBeGreaterThanOrEqual(project.blocks[index - 1]!.end - 1e-9)
   }
-  const zero = project.blocks.find((block) => block.end - block.start === 0.1)
+  const zero = project.blocks.find((block) => block.text === 'Tiny')
   expect(zero, 'zero-duration cue became 0.1 s (invariant 11)').toBeDefined()
+  expect(zero!.end - zero!.start, 'zero-duration cue became 0.1 s (invariant 11)').toBeCloseTo(0.1, 3)
 })
 
 // --- FR-07.3: translation mode ----------------------------------------------
