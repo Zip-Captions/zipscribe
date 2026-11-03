@@ -22,11 +22,11 @@ describe('CC-101.5: Alt+1/2/3 focus regions', () => {
   test('CC-101.5: Alt+1/2/3 focus the sidebar, stage and timeline regions', async () => {
     await mountWorkbench({ project: {} })
     const user = userEvent.setup()
-    await user.keyboard('{Alt>1}')
+    await user.keyboard('{Alt>}1')
     expect(activeRegion(), 'Alt+1 focuses the sidebar (Clipchamp Alt+N)').toBe('sidebar')
-    await user.keyboard('{Alt>2}')
+    await user.keyboard('{Alt>}2')
     expect(activeRegion(), 'Alt+2 focuses the preview stage').toBe('stage')
-    await user.keyboard('{Alt>3}')
+    await user.keyboard('{Alt>}3')
     expect(activeRegion(), 'Alt+3 focuses the timeline').toBe('timeline')
   })
 
@@ -45,7 +45,7 @@ describe('CC-101.5: Alt+1/2/3 focus regions', () => {
     await user.click(nameInput)
     expect(document.activeElement, 'the name input is focused (editing)').toBe(nameInput)
 
-    await user.keyboard('{Alt>2}')
+    await user.keyboard('{Alt>}2')
     expect(document.activeElement, 'Alt+2 is suppressed while editing (conventions § UI conventions)', ).toBe(nameInput)
   })
 
