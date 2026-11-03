@@ -112,7 +112,7 @@ test('CC-07.1: a .zipscribe.json that is not valid JSON is UNRECOGNIZED_FORMAT, 
 })
 
 test('CC-07.1: translation-mode import into a project with ZERO blocks reports CUE_UNMATCHED for every cue', async () => {
-  const cue = (index: number): string => `${clock(index, '.')} --> ${clock(index + 0.5, '.')}\nline ${index}\n`
+  const cue = (index: number): string => `${clock(index, '.')} --> ${clock(index + 0.5, '.')}\nline ${index}\n\n`
   const body = `WEBVTT\n\n${cue(1)}${cue(2)}`
   const { report } = await importCaptions(makeProject({ duration: 100 }), { name: 'orphan.vtt', bytes: utf8.encode(body) }, { as: { translation: 'es' } })
   expect(report.adjustments.find((a) => a.code === 'CUE_UNMATCHED')?.count).toBe(2)
