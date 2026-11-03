@@ -165,7 +165,11 @@ function issuesForIds(project: Project, rules: QcRules, indices: number[]): QcIs
 /** US-07.5 full pass: every block, in order (per-block rules, gap, translations). */
 export function checkCaptions(project: Project, rules?: Partial<QcRules>): QcIssue[] {
   const resolved = resolveRules(rules)
-  return issuesForIds(project, resolved, project.blocks.map((_block, index) => index))
+  return issuesForIds(
+    project,
+    resolved,
+    project.blocks.map((_block, index) => index),
+  )
 }
 
 /**
@@ -183,7 +187,11 @@ export function createQcChecker(project: Project, rules?: Partial<QcRules>): QcC
   }
   return {
     all(): QcIssue[] {
-      return issuesForIds(project, resolved, project.blocks.map((_block, index) => index))
+      return issuesForIds(
+        project,
+        resolved,
+        project.blocks.map((_block, index) => index),
+      )
     },
     changedBlock(blockId: string): QcIssue[] {
       const index = indexOf(blockId)

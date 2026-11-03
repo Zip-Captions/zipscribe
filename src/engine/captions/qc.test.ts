@@ -45,7 +45,19 @@ function project(overrides: { duration?: number; fps?: number; blocks?: CaptionB
     id: 'p1',
     name: 'P1',
     schemaVersion: 1,
-    asset: { id: 'a1', name, kind: 'video', container: 'mp4', audioCodec: 'aac', videoCodec: 'h264', duration, width: 1920, height: 1080, fps, fingerprint: { name, size: 1_000_000, durationMs: duration * 1000, sampleHashes: ['a'.repeat(64), 'b'.repeat(64), 'c'.repeat(64)] } },
+    asset: {
+      id: 'a1',
+      name,
+      kind: 'video',
+      container: 'mp4',
+      audioCodec: 'aac',
+      videoCodec: 'h264',
+      duration,
+      width: 1920,
+      height: 1080,
+      fps,
+      fingerprint: { name, size: 1_000_000, durationMs: duration * 1000, sampleHashes: ['a'.repeat(64), 'b'.repeat(64), 'c'.repeat(64)] },
+    },
     blocks: overrides.blocks ?? [],
     captionOrigin: 'transcribed',
     translations: overrides.translations ?? [],
@@ -135,7 +147,12 @@ describe('CC-07.5: translation tracks', () => {
       blocks: [textBlock('blk-1', 0, 2, 'alpha bravo'), textBlock('blk-2', 3, 5, 'charlie delta')],
       translations: [
         { language: 'fr', origin: 'machine', engine: null, entries: { 'blk-1': { text: 'x', status: 'translated', sourceHash: 'ffffffffffffffff' } } },
-        { language: 'de', origin: 'machine', engine: null, entries: { 'blk-1': { text: 'y', status: 'translated', sourceHash: sourceTextHash('alpha bravo') }, 'blk-2': { text: 'z', status: 'translated', sourceHash: sourceTextHash('charlie delta') } } },
+        {
+          language: 'de',
+          origin: 'machine',
+          engine: null,
+          entries: { 'blk-1': { text: 'y', status: 'translated', sourceHash: sourceTextHash('alpha bravo') }, 'blk-2': { text: 'z', status: 'translated', sourceHash: sourceTextHash('charlie delta') } },
+        },
       ],
     })
     const issues = checkCaptions(subject)
@@ -157,7 +174,10 @@ describe('CC-07.5: incremental checker branches', () => {
     const changed = subject.blocks[0]!
     changed.end = 2.45 // encroaches: gap 0.05 < 0.08 → GAP_TINY on blk-2
     const incremental = checker.changedBlock('blk-1')
-    expect(incremental.map((i) => i.code), 'the later neighbour is re-checked').toEqual(['GAP_TINY'])
+    expect(
+      incremental.map((i) => i.code),
+      'the later neighbour is re-checked',
+    ).toEqual(['GAP_TINY'])
     expect(incremental[0]!.blockId).toBe('blk-2')
     const expected = checker.all().filter((i) => ['blk-1', 'blk-2'].includes(i.blockId))
     expect(incremental).toEqual(expected)
@@ -168,6 +188,11 @@ describe('CC-07.5: incremental checker branches', () => {
     const checker = createQcChecker(subject)
     expect(checker.changedBlock('blk-1')).toEqual([])
     subject.blocks = [textBlock('blk-9', 0, 2, 'x'.repeat(44))]
-    expect(checker.changedBlock('blk-9').map((i) => i.code).sort()).toEqual(['CPS_HIGH', 'LINE_TOO_LONG'])
+    expect(
+      checker
+        .changedBlock('blk-9')
+        .map((i) => i.code)
+        .sort(),
+    ).toEqual(['CPS_HIGH', 'LINE_TOO_LONG'])
   })
 })

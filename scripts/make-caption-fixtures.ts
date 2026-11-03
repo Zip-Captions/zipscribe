@@ -136,10 +136,7 @@ function files(): Map<string, Uint8Array> {
   )
 
   // SBV (YouTube): H:MM:SS.mmm,H:MM:SS.mmm header lines.
-  put(
-    'sample.sbv',
-    ['0:00:00.000,0:00:01.500', 'One two three four', '', '0:00:02.000,0:00:03.000', '<i>Italic SBV</i>', ''].join('\n'),
-  )
+  put('sample.sbv', ['0:00:00.000,0:00:01.500', 'One two three four', '', '0:00:02.000,0:00:03.000', '<i>Italic SBV</i>', ''].join('\n'))
 
   // TTML/DFXP text profile incl. ttp:frameRate (50f = 2.000 s at 25 fps) and xml:lang.
   put(
@@ -181,25 +178,22 @@ function files(): Map<string, Uint8Array> {
   // Zipscribe JSON sidecar (cue-level shape per the frozen contract).
   put(
     'sample.zipscribe.json',
-    `${JSON.stringify({ language: 'en', blocks: [{ start: 0, end: 1, text: 'Structured json here' }, { start: 2.5, end: 3.5, text: 'Second json cue' }] }, null, 2)}\n`,
+    `${JSON.stringify(
+      {
+        language: 'en',
+        blocks: [
+          { start: 0, end: 1, text: 'Structured json here' },
+          { start: 2.5, end: 3.5, text: 'Second json cue' },
+        ],
+      },
+      null,
+      2,
+    )}\n`,
   )
 
   // BOM variants (FR-07.1).
   put('bom-utf8.srt', bytes(new Uint8Array([0xef, 0xbb, 0xbf]), utf8.encode(srt([{ start: 0, end: 1, text: 'Bom utf eight' }]))))
-  put(
-    'bom-utf16le.srt',
-    bytes(
-      new Uint8Array([0xff, 0xfe]),
-      new Uint8Array(
-        Buffer.from(
-          srt([
-            { start: 0, end: 1, text: 'Utf sixteen le' },
-          ]),
-          'utf16le',
-        ),
-      ),
-    ),
-  )
+  put('bom-utf16le.srt', bytes(new Uint8Array([0xff, 0xfe]), new Uint8Array(Buffer.from(srt([{ start: 0, end: 1, text: 'Utf sixteen le' }]), 'utf16le'))))
   put('bom-utf16be.srt', bytes(new Uint8Array([0xfe, 0xff]), utf16be(srt([{ start: 0, end: 1, text: 'Utf sixteen be' }]))))
 
   // cp1252 accents: é/ï as single 0xE9/0xEF bytes, em dash 0x97 (invalid UTF-8 → fallback).
@@ -229,10 +223,7 @@ function files(): Map<string, Uint8Array> {
   )
 
   // Risks section: VTT inline timestamps are stripped from text (cue timing is the file's truth).
-  put(
-    'vtt-inline-timestamps.vtt',
-    ['WEBVTT', '', '00:00:00.000 --> 00:00:02.000', '<00:00:00.500>Hello <00:00:01.000>there friends', ''].join('\n'),
-  )
+  put('vtt-inline-timestamps.vtt', ['WEBVTT', '', '00:00:00.000 --> 00:00:02.000', '<00:00:00.500>Hello <00:00:01.000>there friends', ''].join('\n'))
 
   // FR-07.2: content sniff beats the extension (WEBVTT body in a .srt name).
   put('mislabelled.srt', ['WEBVTT', '', '00:00:00.000 --> 00:00:01.000', 'Sniff wins here', ''].join('\n'))

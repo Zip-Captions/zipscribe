@@ -389,16 +389,17 @@ export async function importCaptions(project: Project, file: CaptionFileInput, o
   // invariant 10). 'machine'/'manual' tracks are confirmed user assets and
   // stay as they were (QC flags drift via sourceHash on surviving blocks).
   const blockIds = new Set(blocks.map((block) => block.id))
-  const keptTranslations = opts.keepTranslations === true
-    ? project.translations.map((track) => {
-        if (track.origin !== 'imported') return track
-        const entries: Record<string, TranslationEntry> = {}
-        for (const [blockId, entry] of Object.entries(track.entries)) {
-          if (blockIds.has(blockId)) entries[blockId] = entry
-        }
-        return { ...track, entries }
-      })
-    : []
+  const keptTranslations =
+    opts.keepTranslations === true
+      ? project.translations.map((track) => {
+          if (track.origin !== 'imported') return track
+          const entries: Record<string, TranslationEntry> = {}
+          for (const [blockId, entry] of Object.entries(track.entries)) {
+            if (blockIds.has(blockId)) entries[blockId] = entry
+          }
+          return { ...track, entries }
+        })
+      : []
 
   return {
     project: {
