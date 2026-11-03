@@ -10,10 +10,13 @@
 // match iff normalizeToken equality where
 //   normalizeToken(t) = t.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, '').trim()
 // unit match score, unit gap penalties ⇒ maximum non-crossing matching (LCS).
-// Matched words copy the ASR start/end (round3) and get timing 'aligned';
-// unmatched words are re-interpolated LINEARLY (evenly) between the nearest
-// aligned neighbours — or the block bounds where no aligned neighbour exists
-// on that side — and stay/return 'estimated'.
+// Matched words copy the ASR start/end (round3) and get timing 'aligned' —
+// but only when those times lie within the block's own [start, end]
+// (model.ts:30 words-within-bounds, domain invariant 1): an ASR word whose
+// times fall outside the bounds is treated as UNMATCHED. Unmatched words are
+// re-interpolated LINEARLY (evenly) between the nearest aligned neighbours —
+// or the block bounds where no aligned neighbour exists on that side — and
+// stay/return 'estimated'.
 
 import type { Project, Seconds, WordToken } from '../model'
 
@@ -126,12 +129,24 @@ export function alignCaptionsToWords(project: Project, asrWords: readonly AsrWor
     const words = block.words
     const alignedEnds: (Seconds | undefined)[] = new Array<Seconds | undefined>(words.length)
     const alignedStarts: (Seconds | undefined)[] = new Array<Seconds | undefined>(words.length)
+    const boundStart = round3(block.start)
+    const boundEnd = round3(block.end)
     for (let index = 0; index < words.length; index++) {
       const asrIndex = matchedAsr[flatIndex + index]
       if (asrIndex === undefined) continue
       const asr = asrWords[asrIndex]!
-      alignedStarts[index] = round3(asr.start)
-      alignedEnds[index] = round3(asr.end)
+      const asrStart = round3(asr.start)
+      const asrEnd = round3(asr.end)
+      // model.ts:30 / domain invariant 1: words stay within [block.start,
+      // block.end] — a lexically matching ASR token timed outside the bounds
+      // is treated as unmatched (the word re-interpolates, stays 'estimated',
+      // and is not counted aligned). No fabrication, no out-of-bounds times.
+      // Comparison happens on the 3-decimal grid every written time lands on
+      // (invariant 6), so a boundary-equal ASR time is never lost to float
+      // representation error.
+      if (asrStart < boundStart || asrEnd > boundEnd || asrEnd < asrStart) continue
+      alignedStarts[index] = asrStart
+      alignedEnds[index] = asrEnd
       wordsAligned += 1
     }
 
