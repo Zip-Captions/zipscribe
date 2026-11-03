@@ -13,8 +13,11 @@ import type { ParseOptions, ParseResult, ParsedCue } from '../types'
 import { CaptionFailureError } from '../failure'
 import { decodeEntities, stripTags, toLines, YIELD_EVERY_CUES, yieldScheduler } from './shared'
 
-// TTML2 clock time: hours ':' minutes ':' seconds (('.' fraction) | (':' frames)).
-const CLOCK = /^(\d{1,3}):([0-5]\d):([0-5]\d)(?:[.](\d{1,9})|:(\d{1,2}))?$/
+// TTML2 clock time (§ 12.3.1): hours ':' minutes ':' seconds (('.' fraction) |
+// (':' frames)) — hours are hours2|hours3plus (no length cap) and frames are
+// 2+ digits per spec; this parser additionally tolerates 1-digit forms
+// (ttml.test.ts).
+const CLOCK = /^(\d+):([0-5]\d):([0-5]\d)(?:[.](\d{1,9})|:(\d+))?$/
 // TTML2 offset time: number + unit (h | m | s | ms | f | t).
 const OFFSET = /^(\d+(?:\.\d+)?)(h|m|s|ms|f|t)$/
 
