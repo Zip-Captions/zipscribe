@@ -9,13 +9,17 @@
 // Grounded surface: the ambient stub in tests/unit/asr/fast-check.d.ts
 // (approved devDependency, installed: fast-check 4.10.2).
 import { expect, test } from 'vitest'
-import { array, assert, constantFrom, integer, pre, property, record } from 'fast-check'
+import { array, assert, asyncProperty, constantFrom, integer, pre, record } from 'fast-check'
 import { parseSrt } from '@engine/captions/parse/srt'
 import { parseVtt } from '@engine/captions/parse/vtt'
 import { parseSbv } from '@engine/captions/parse/sbv'
 import { parseTtml } from '@engine/captions/parse/ttml'
 import type { ParsedCue, ParseResult } from '@engine/captions/contract@07'
 import { writeSbv, writeSrt, writeTtml, writeVtt } from './writers'
+
+declare module 'fast-check' {
+  export function asyncProperty(...args: unknown[]): unknown
+}
 
 const WORDS = ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel', 'india', 'juliet'] as const
 
@@ -38,9 +42,9 @@ function toCues(plan: CuePlan[]): ParsedCue[] {
 }
 
 /** One property body reused per format. */
-function roundTrip(label: string, write: (cues: ParsedCue[]) => string, parse: (text: string) => Promise<ParseResult>, seed: number): void {
-  assert(
-    property(array(cueArb, { minLength: 1, maxLength: 6 }), async (plan: unknown) => {
+async function roundTrip(label: string, write: (cues: ParsedCue[]) => string, parse: (text: string) => Promise<ParseResult>, seed: number): Promise<void> {
+  await assert(
+    asyncProperty(array(cueArb, { minLength: 1, maxLength: 6 }), async (plan: unknown) => {
       const cues = toCues(plan as CuePlan[])
       const parsed = await parse(write(cues))
       expect(parsed.format, `${label}: parser self-identifies`).toBe(label)
@@ -57,29 +61,29 @@ function roundTrip(label: string, write: (cues: ParsedCue[]) => string, parse: (
   )
 }
 
-test('CC-07.2: SRT round-trip — text exact, times ± 1 ms (property)', () => {
-  roundTrip('srt', writeSrt, parseSrt, 0x07c20001)
+test('CC-07.2: SRT round-trip — text exact, times ± 1 ms (property)', async () => {
+  await roundTrip('srt', writeSrt, parseSrt, 0x07c20001)
 })
 
-test('CC-07.2: WebVTT round-trip — text exact, times ± 1 ms (property)', () => {
-  roundTrip('vtt', writeVtt, parseVtt, 0x07c20002)
+test('CC-07.2: WebVTT round-trip — text exact, times ± 1 ms (property)', async () => {
+  await roundTrip('vtt', writeVtt, parseVtt, 0x07c20002)
 })
 
-test('CC-07.2: SBV round-trip — text exact, times ± 1 ms (property)', () => {
-  roundTrip('sbv', writeSbv, parseSbv, 0x07c20003)
+test('CC-07.2: SBV round-trip — text exact, times ± 1 ms (property)', async () => {
+  await roundTrip('sbv', writeSbv, parseSbv, 0x07c20003)
 })
 
-test('CC-07.2: TTML round-trip — text exact, times ± 1 ms (property)', () => {
-  roundTrip('ttml', writeTtml, parseTtml, 0x07c20004)
+test('CC-07.2: TTML round-trip — text exact, times ± 1 ms (property)', async () => {
+  await roundTrip('ttml', writeTtml, parseTtml, 0x07c20004)
 })
 
-test('CC-07.2: empty generator input is rejected by pre() — the property is non-vacuous', () => {
+test('CC-07.2: empty generator input is rejected by pre() — the property is non-vacuous', async () => {
   // Sanity: the writer/parse pair is actually exercised above; here pin that
   // a no-cue plan never reaches the assertions (pre() prunes it), so a
   // vacuous "0 cues == 0 cues" run cannot pass silently.
   let nonEmptyRuns = 0
-  assert(
-    property(array(cueArb, { minLength: 0, maxLength: 3 }), (plan: unknown) => {
+  await assert(
+    asyncProperty(array(cueArb, { minLength: 0, maxLength: 3 }), async (plan: unknown) => {
       pre((plan as CuePlan[]).length > 0)
       nonEmptyRuns += 1
     }),
