@@ -26,7 +26,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'tests/unit/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
     // The gate-spawning scaffold re-enters the suite when it is itself the
     // spawned child (`ZIPSCRIBE_CHILD=1` — same guard as gates.test's own
     // `isChildRun()` check on its recursive test). gates.test invokes
@@ -131,6 +131,18 @@ export default defineConfig({
             '**/tests/unit/scaffold/bundle-budget-adversarial.test.ts',
             '**/tests/unit/scaffold/branch-policy.test.ts',
             '**/tests/unit/scaffold/coverage-gate.test.ts',
+            // unit-101 (CC-101.*, RED phase): the workbench suites import
+            // production modules that do not exist yet (`@ui/shell/Workbench`,
+            // `@state/{settings,jobs,project}`, `@state/services/intake`,
+            // `@ui/commands/registry`) and APPROVED-but-not-yet-installed
+            // devDeps (`@testing-library/react`, `@testing-library/user-event`)
+            // — their unresolved-import failures inside the child would mask
+            // the command-wiring proof (unit-04 audio / unit-07 captions
+            // precedent). They execute in the parent `pnpm test` and in
+            // `verify:unit`, which clears ZIPSCRIBE_CHILD. Retire both entries
+            // when unit-101 goes green.
+            'tests/unit/workbench/**/*.test.ts',
+            'tests/unit/workbench/**/*.test.tsx',
             ...defaultExclude,
           ]
         : defaultExclude,
