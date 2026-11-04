@@ -42,8 +42,26 @@ test.describe('FR-2.0.6: bridges are gated on STRICT ?ziptest=1', () => {
       undefined,
       { timeout: 20_000 },
     )
-    const installed = await bridges(page)
-    expect(typeof (installed.editor as { openProjectWithMedia?: unknown }).openProjectWithMedia).toBe('function')
-    expect(typeof (installed.editor as { getEditorState?: unknown }).getEditorState).toBe('function')
+    // Functions do not survive evaluate serialization — probe `typeof` IN
+    // the page and return the strings.
+    const shapes = await page.evaluate(() => {
+      const w = window as unknown as Record<string, Record<string, unknown> | undefined>
+      const editor = w.__zipEditorBridge
+      const workbench = w.__zipWorkbenchBridge
+      return {
+        editorOpen: typeof editor?.openProjectWithMedia,
+        editorState: typeof editor?.getEditorState,
+        editorCommand: typeof editor?.command,
+        editorScrub: typeof editor?.scrubTo,
+        editorRelease: typeof editor?.releaseScrub,
+        workbenchType: typeof workbench,
+      }
+    })
+    expect(shapes.editorOpen).toBe('function')
+    expect(shapes.editorState).toBe('function')
+    expect(shapes.editorCommand).toBe('function')
+    expect(shapes.editorScrub).toBe('function')
+    expect(shapes.editorRelease).toBe('function')
+    expect(shapes.workbenchType).toBe('object')
   })
 })
