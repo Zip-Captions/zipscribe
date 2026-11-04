@@ -14,7 +14,7 @@
 // codes and numbers only, which is what the canary-redaction suites assert.
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
-import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import type { DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual'
 import type { Range, ReactVirtualizerOptions } from '@tanstack/react-virtual'
 import type { Notice, RawSegment, Tier } from '../../engine/protocol'
@@ -22,8 +22,9 @@ import type { MediaAsset } from '../../engine/model'
 import type { JobsState, JobsStore } from '../../state/jobs'
 import type { SettingsStore, WorkbenchSettings } from '../../state/settings'
 import type { ProjectStore } from '../../state/project'
-import type { IntakeService } from '../../state/services/intake'
+import type { ImportReport, IntakeService } from '../../state/services/intake'
 import { useCommands } from '../commands/useCommands'
+import { TranscribePopover } from './TranscribePopover'
 import './workbench.css'
 
 export interface WorkbenchProps {
@@ -291,6 +292,71 @@ function MediaTab({ asset }: { asset: MediaAsset | null }): ReactNode {
   )
 }
 
+// CC-101.2: the import report renders the unit-07 `ImportReport` VERBATIM —
+// numbers, format and adjustment codes only (SECURITY-03 safe; caption text
+// never reaches this component, it came through the injectable seam).
+function ImportReportBanner({ report }: { report: ImportReport }): ReactNode {
+  return (
+    <div data-testid="import-report" role="status" className="ws-import-report">
+      <span className="ws-import-headline">
+        Imported {report.format} ({report.encoding}) — {report.cues} cues, {report.blocks} blocks{report.detectedLanguage === null ? '' : `, language ${report.detectedLanguage}`}
+      </span>
+      {report.adjustments.map((adjustment) => (
+        <span key={adjustment.code} className="ws-adjustment-code">
+          {adjustment.code} ×{adjustment.count}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+// CC-101.2: rejections are announced with the reason CODE only — never the
+// file name (SECURITY-03); nothing is silently dropped.
+function Toast({ codes }: { codes: readonly string[] }): ReactNode {
+  return (
+    <div data-testid="toast" role="alert" className="ws-toast">
+      {codes.join(' · ')}
+    </div>
+  )
+}
+
+// CC-101.2 / US-2.0.2: the centered drop zone doubles as the first-run screen
+// (media + caption intake by content sniff + extension through the intake
+// service; caption parsing stays behind the unit-07 seam) and carries the
+// model/tier status from the jobs store.
+function DropZone({ jobsState, onFiles, onSample }: { jobsState: JobsState; onFiles: (files: File[]) => void; onSample: () => void }): ReactNode {
+  const capability = jobsState.capability
+  return (
+    <div
+      data-testid="drop-zone"
+      className="ws-drop-zone"
+      onDragOver={(event) => {
+        event.preventDefault()
+      }}
+      onDrop={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        const files = Array.from(event.dataTransfer?.files ?? [])
+        if (files.length > 0) onFiles(files)
+      }}
+    >
+      <p className="ws-drop-title">Drop a video or audio file to begin</p>
+      <p className="ws-drop-hint">Caption files (.srt .vtt .sbv .ttml .dfxp .xml .ass .ssa .zipscribe.json) may come along — they import as the source track.</p>
+      <button
+        type="button"
+        data-testid="sample-clip-button"
+        className="ws-button ws-button-primary"
+        onClick={() => {
+          onSample()
+        }}
+      >
+        Try a sample clip
+      </button>
+      <p className="ws-drop-status">{capability === null ? 'Checking device capability…' : `Tier ${capability.tier} · ${TIER_LABEL[capability.tier]} · ${capability.reasons.length === 0 ? 'model cache local' : 'capability notes apply'}`}</p>
+    </div>
+  )
+}
+
 // FR-2.0.4: polite live region — progress % while a job runs, model · tier ·
 // cache otherwise. Numbers and codes only.
 function StatusBar({ jobsState }: { jobsState: JobsState }): ReactNode {
@@ -323,15 +389,37 @@ function BlockedScreen({ reasons }: { reasons: readonly string[] }): ReactNode {
 }
 
 export function Workbench(props: WorkbenchProps): ReactNode {
-  // `props.intake` is consumed by the slice-C drop zone / sample action; the
-  // prop surface is the frozen contract, so it is accepted from the first slice.
-  const { jobs, settings, project } = props
+  const { jobs, settings, project, intake } = props
 
   useCommands(settings)
   const jobsState = useSnapshot(jobs)
   const settingsState = useSnapshot(settings)
   const { project: currentProject } = useSnapshot(project)
   const [tab, setTab] = useState<SidebarTab>('subtitles')
+  const [popoverOpen, setPopoverOpen] = useState(false)
+  const [toastCodes, setToastCodes] = useState<readonly string[] | null>(null)
+  const [importReport, setImportReport] = useState<ImportReport | null>(null)
+
+  // Intake flows (drop / sample): outcomes are pushed into local UI state —
+  // rejections as reason CODES, the latest import as the report. flushSync so
+  // the DOM settles before awaiting callers resume (same contract as
+  // useSnapshot's store binding).
+  async function runIntake(files: readonly File[]): Promise<void> {
+    const outcome = await intake.handleFiles(files)
+    flushSync(() => {
+      setToastCodes(outcome.rejected.length > 0 ? [...new Set(outcome.rejected.map((entry) => entry.reason))] : null)
+      setImportReport(outcome.importedCaptions.at(-1)?.report ?? null)
+    })
+  }
+
+  // Always-on: the whole shell accepts drops (FR-2.0.3 Media-tab re-import
+  // shares this intake); the first-run drop zone stops propagation so a drop
+  // is never processed twice.
+  const onShellDrop = (event: ReactDragEvent<HTMLDivElement>): void => {
+    event.preventDefault()
+    const files = Array.from(event.dataTransfer?.files ?? [])
+    if (files.length > 0) void runIntake(files)
+  }
 
   const theme = resolveTheme(settingsState)
   // FR-2.0.5: the theme attribute lives on the document root so the design
@@ -344,7 +432,7 @@ export function Workbench(props: WorkbenchProps): ReactNode {
   if (jobsState.capability?.tier === 'T4') return <BlockedScreen reasons={jobsState.capability.reasons} />
 
   return (
-    <div data-testid="workbench-shell" className="ws-shell">
+    <div data-testid="workbench-shell" className="ws-shell" onDragOver={(event) => event.preventDefault()} onDrop={onShellDrop}>
       <header role="banner" className="ws-header">
         <span className="ws-brand">Zipscribe</span>
         <input
@@ -358,13 +446,25 @@ export function Workbench(props: WorkbenchProps): ReactNode {
           }}
         />
         <TierChip tier={jobsState.capability?.tier ?? null} notice={jobsState.tierNotice} />
-        <button type="button" data-testid="transcribe-button" className="ws-button ws-button-primary" disabled={currentProject === null || jobsState.running !== null}>
-          Transcribe
-        </button>
+        <span className="ws-transcribe-wrap">
+          <button
+            type="button"
+            data-testid="transcribe-button"
+            className="ws-button ws-button-primary"
+            disabled={currentProject === null || jobsState.running !== null}
+            onClick={() => {
+              setPopoverOpen((open) => !open)
+            }}
+          >
+            Transcribe
+          </button>
+          {popoverOpen && currentProject !== null && <TranscribePopover jobs={jobs} jobsState={jobsState} hasCaptions={currentProject.blocks.length > 0} />}
+        </span>
         <button type="button" data-testid="export-button" className="ws-button" disabled={!project.hasBlocks()}>
           Export
         </button>
       </header>
+      {importReport !== null && <ImportReportBanner report={importReport} />}
       <div className="ws-body">
         {!settingsState.collapsed.sidebar && (
           <>
@@ -417,6 +517,21 @@ export function Workbench(props: WorkbenchProps): ReactNode {
         <div className="ws-center">
           <section data-region="stage" data-testid="panel-stage" tabIndex={-1} role="region" aria-label="Preview stage" className="ws-stage">
             <div data-testid="preview-canvas-layer" className="ws-canvas-layer" aria-hidden="true" />
+            {currentProject === null && (
+              <DropZone
+                jobsState={jobsState}
+                onFiles={(files) => {
+                  void runIntake(files)
+                }}
+                onSample={() => {
+                  void intake.loadSample().catch(() => {
+                    flushSync(() => {
+                      setToastCodes(['SAMPLE_FAILED'])
+                    })
+                  })
+                }}
+              />
+            )}
           </section>
           {!settingsState.collapsed.timeline && (
             <>
@@ -434,6 +549,7 @@ export function Workbench(props: WorkbenchProps): ReactNode {
           )}
         </div>
       </div>
+      {toastCodes !== null && <Toast codes={toastCodes} />}
       <StatusBar jobsState={jobsState} />
     </div>
   )

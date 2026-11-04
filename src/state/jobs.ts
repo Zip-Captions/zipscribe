@@ -13,7 +13,7 @@
 import { createStore } from 'zustand/vanilla'
 import { immer } from 'zustand/middleware/immer'
 import type { AsrEvent, AsrRequest, Device, DiarizeRequest, EngineError, MediaEvent, MediaRequest, ModelId, Notice, PcmSource, RawSegment, Tier } from '../engine/protocol'
-import { MODEL_REGISTRY } from '../engine/model/registry'
+import { MODEL_REGISTRY, TIER_DEFAULT_MODEL } from '../engine/model/registry'
 import { newJobId } from './ids'
 
 /**
@@ -58,6 +58,12 @@ export interface ActiveJob {
   jobId: string
 }
 
+/** unit-03 `model:confirm-required` gate (> 100 MB) surfaced to the popover. */
+export interface PendingModelDownload {
+  model: ModelId
+  bytes: number
+}
+
 export interface JobsState {
   capability: CapabilitySnapshot | null
   /** US-2.0.3: chip tooltip copy source; UI maps `code` → copy (never the code alone as the whole tooltip). */
@@ -70,11 +76,17 @@ export interface JobsState {
   modelOptions: ModelOptionView[]
   running: ActiveJob | null
   progress: { processedSec: number; totalSec: number } | null
-  /** Latest accumulated `job:segments` (sorted by start) — drives the streaming rows + status %. */
-  segments: RawSegment[]
-  error: EngineError | null
-  notices: Notice[]
-}
+    /** Latest accumulated `job:segments` (sorted by start) — drives the streaming rows + status %. */
+    segments: RawSegment[]
+    error: EngineError | null
+    notices: Notice[]
+    /**
+     * Extension beyond the frozen minimal shape (unit-102 may keep/extend it):
+     * the unit-03 `model:confirm-required` gate the popover renders as the
+     * download confirmation — codes/numbers only (SECURITY-03).
+     */
+    pendingConfirmDownload: PendingModelDownload | null
+  }
 
 export interface StartTranscribeOptions {
   language: string | null
@@ -91,6 +103,13 @@ export interface JobsStore {
   setTierNotice(notice: Notice | null): void
   startTranscribe(options: StartTranscribeOptions): void
   cancel(): void
+  /** User accepted the `model:confirm-required` gate → post `confirmDownload` (unit-03). */
+  confirmModelDownload(model: ModelId): void
+}
+
+/** Registry default for a tier (unit-02 CC-02.11 spike recommendation); T4/unknown → the T1 row. */
+export function defaultModelForTier(tier: Tier | null | undefined): ModelId {
+  return TIER_DEFAULT_MODEL[tier === 'T1' || tier === 'T2' || tier === 'T3' ? tier : 'T1']
 }
 
 const INITIAL_STATE: JobsState = {
@@ -102,6 +121,7 @@ const INITIAL_STATE: JobsState = {
   segments: [],
   error: null,
   notices: [],
+  pendingConfirmDownload: null,
 }
 
 function sizeLabel(approxBytes: number): string {
@@ -160,6 +180,13 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
           state.segments = sortByStart([...state.segments, ...event.segments])
         })
         return
+      case 'model:confirm-required':
+        // unit-03 > 100 MB gate — the popover renders the confirmation
+        // (FR-2.0.2: never a disabled Start for an uncached model).
+        store.setState((state) => {
+          state.pendingConfirmDownload = { model: event.model, bytes: event.bytes }
+        })
+        return
       default:
         // media:probed / peaks:chunk / decode:support / vad:segments /
         // model:* are consumed by the intake seam and the popover (unit-102
@@ -207,6 +234,7 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
         state.segments = []
         state.progress = null
         state.error = null
+        state.pendingConfirmDownload = null
       })
       deps.engine.postAsr({ t: 'loadModel', model: options.modelId, device })
       deps.engine.postAsr({ t: 'transcribe', jobId, pcm: placeholderPcm(), sampleRate: 16000, language: options.language })
@@ -222,6 +250,12 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
       deps.engine.postMedia({ t: 'cancel', jobId: running.jobId })
       store.setState((state) => {
         state.running = null
+      })
+    },
+    confirmModelDownload(model: ModelId): void {
+      deps.engine.postAsr({ t: 'confirmDownload', model })
+      store.setState((state) => {
+        state.pendingConfirmDownload = null
       })
     },
   }

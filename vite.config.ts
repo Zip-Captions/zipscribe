@@ -5,6 +5,7 @@ import { execSync } from 'node:child_process'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { copyAllRuntimeWasm } from './scripts/copy-wasm.ts'
+import { copySamples } from './scripts/copy-samples.ts'
 
 // Product configuration (the test-only config is vitest.config.ts).
 // vite 7 specifics verified against official docs — docs-mcp indexes vite only
@@ -66,8 +67,24 @@ function selfHostedWasm(): Plugin {
   }
 }
 
+// unit-101 (CC-101.2 / US-2.0.2): the "Try a sample clip" action fetches
+// /samples/speech-2min.mp4 from the app origin — the byte is copied out of
+// fixtures/ at dev/build time so fixtures themselves are never served
+// (public/samples/ is gitignored build output).
+function servedSamples(): Plugin {
+  return {
+    name: 'zipscribe:served-samples',
+    buildStart() {
+      copySamples()
+    },
+    configureServer() {
+      copySamples()
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), selfHostedWasm()],
+  plugins: [react(), selfHostedWasm(), servedSamples()],
   define: {
     __ZIP_VERSION__: JSON.stringify(`${pkg.version}+${gitHash()}`),
   },

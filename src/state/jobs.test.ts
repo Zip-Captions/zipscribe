@@ -7,7 +7,7 @@
 // segments, done/error) and cancel. The L2 half is the frozen
 // tests/unit/workbench/transcribe-popover.test.tsx.
 import { describe, expect, test, vi } from 'vitest'
-import { createJobsStore } from './jobs'
+import { createJobsStore, defaultModelForTier } from './jobs'
 import type { EnginePort, ModelCachePort } from './jobs'
 import type { AsrEvent, AsrRequest, DiarizeRequest, MediaEvent, MediaRequest, ModelId } from '../engine/protocol'
 
@@ -238,3 +238,40 @@ describe('CC-101.3: popover model options derive from the registry × cache (US-
     expect(Array.isArray(cached?.languages)).toBe(true)
   })
 })
+
+describe('CC-101.3: model download confirmation gate (FR-2.0.2, unit-03 seam)', () => {
+  test('CC-101.3: model:confirm-required arms pendingConfirmDownload; confirmModelDownload posts and clears it', () => {
+    const { engine, asrRequests, emitAsr } = createEngineDouble()
+    const jobs = createJobsStore({ engine, modelCache: createModelCache([CACHED_MODEL]) })
+    jobs.setCapability({ tier: 'T1', reasons: [] })
+    jobs.startTranscribe({ language: null, modelId: UNCACHED_MODEL, diarize: false, mode: 'replace' })
+    expect(jobs.getState().pendingConfirmDownload, 'Start is not gated by the store — the engine answers').toBeNull()
+
+    emitAsr({ t: 'model:confirm-required', model: UNCACHED_MODEL, bytes: 460_000_000 })
+    expect(jobs.getState().pendingConfirmDownload, 'the > 100 MB gate arms the confirmation').toEqual({ model: UNCACHED_MODEL, bytes: 460_000_000 })
+
+    jobs.confirmModelDownload(UNCACHED_MODEL)
+    const confirmed = ofTag(asrRequests, 'confirmDownload')[0]
+    expect(confirmed?.t, 'confirmDownload reaches the engine').toBe('confirmDownload')
+    if (confirmed?.t === 'confirmDownload') expect(confirmed.model).toBe(UNCACHED_MODEL)
+    expect(jobs.getState().pendingConfirmDownload, 'confirming disarms').toBeNull()
+  })
+
+  test('CC-101.3: a fresh startTranscribe clears a stale confirmation', () => {
+    const { engine, emitAsr } = createEngineDouble()
+    const jobs = createJobsStore({ engine, modelCache: createModelCache() })
+    emitAsr({ t: 'model:confirm-required', model: UNCACHED_MODEL, bytes: 460_000_000 })
+    expect(jobs.getState().pendingConfirmDownload).not.toBeNull()
+    jobs.startTranscribe({ language: null, modelId: CACHED_MODEL, diarize: false, mode: 'replace' })
+    expect(jobs.getState().pendingConfirmDownload, 'no stale confirm dialog across runs').toBeNull()
+  })
+
+  test('CC-101.3: defaultModelForTier maps the tiers to the registry spike defaults with a T1 fallback', () => {
+    expect(defaultModelForTier('T1')).toBe('whisper-base_timestamped@608c49e6')
+    expect(defaultModelForTier('T2')).toBe('sherpa-zipformer-en-int8@11a70a47')
+    expect(defaultModelForTier('T3')).toBe('cactus-whistle@b358ddad')
+    expect(defaultModelForTier('T4'), 'T4 (blocked) still yields a usable id — never throws').toBe('whisper-base_timestamped@608c49e6')
+    expect(defaultModelForTier(null)).toBe('whisper-base_timestamped@608c49e6')
+  })
+})
+
