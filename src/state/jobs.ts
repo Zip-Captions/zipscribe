@@ -152,6 +152,12 @@ function sortByStart(segments: RawSegment[]): RawSegment[] {
 export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCachePort }): JobsStore {
   const store = createStore<JobsState>()(immer(() => structuredClone(INITIAL_STATE)))
 
+  // jobId of the most recent startTranscribe, sticky across done/cancel. The
+  // streaming/error correlation below filters by it once the store has ever
+  // started a job; before the first start the slice folds events verbatim
+  // (frozen L1 `job:segments accumulate` + L2 streaming pins).
+  let lastStartedJobId: string | null = null
+
   const handleEvent = (event: MediaEvent | AsrEvent): void => {
     switch (event.t) {
       case 'job:progress':
@@ -166,6 +172,12 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
         return
       case 'job:error':
         store.setState((state) => {
+          // SM.3 (adversary adjudication): only the running job may own the
+          // error slot — a stale job:error from an orphaned job is ignored
+          // exactly like job:done already filters by jobId. With no job
+          // running the error still records (contract: job:error updates
+          // state — the late error-after-done pin, SM.5).
+          if (state.running !== null && state.running.jobId !== event.jobId) return
           state.error = event.error
           if (state.running?.jobId === event.jobId) state.running = null
         })
@@ -177,6 +189,13 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
         return
       case 'job:segments':
         store.setState((state) => {
+          // SM.1/SM.2 (adversary adjudication): correlate by jobId exactly as
+          // job:done/job:error do — a foreign jobId (stale worker flush) or a
+          // late flush of a replaced/cancelled job must never contaminate the
+          // streaming rows. Before the store ever started a job there is no
+          // correlation target to filter against (frozen accumulate/streaming
+          // pins fold verbatim).
+          if (lastStartedJobId !== null && state.running?.jobId !== event.jobId) return
           state.segments = sortByStart([...state.segments, ...event.segments])
         })
         return
@@ -227,8 +246,10 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
       })
     },
     startTranscribe(options: StartTranscribeOptions): void {
+      const displaced = store.getState().running
       const jobId = newJobId()
       const device: Device = store.getState().capability?.tier === 'T1' ? 'webgpu' : 'wasm'
+      lastStartedJobId = jobId
       store.setState((state) => {
         state.running = { kind: options.mode === 'align' ? 'align' : 'transcribe', jobId }
         state.segments = []
@@ -236,6 +257,14 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
         state.error = null
         state.pendingConfirmDownload = null
       })
+      if (displaced !== null) {
+        // SM.4 (adversary adjudication, FR-2.0.6): a displaced job must not
+        // keep running on the worker uncancellable — post the same cancel
+        // triple cancel() posts before replacing the running job.
+        deps.engine.postAsr({ t: 'cancel', jobId: displaced.jobId })
+        deps.engine.postDiarize({ t: 'cancel', jobId: displaced.jobId })
+        deps.engine.postMedia({ t: 'cancel', jobId: displaced.jobId })
+      }
       deps.engine.postAsr({ t: 'loadModel', model: options.modelId, device })
       deps.engine.postAsr({ t: 'transcribe', jobId, pcm: placeholderPcm(), sampleRate: 16000, language: options.language })
       if (options.diarize) {
