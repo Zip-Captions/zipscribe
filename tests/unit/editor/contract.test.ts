@@ -95,7 +95,7 @@ describe('CC-102.5 / FR-102.7: committed contract artifacts', () => {
   test('CC-102.5: src/state/CONTRACT.md is committed and covers every frozen surface (FR-102.7)', () => {
     expect(existsSync(CONTRACT_MD), 'CONTRACT.md must be committed with the unit (contract freeze)').toBe(true)
     const md = stripComments(readFileSync(CONTRACT_MD, 'utf8'))
-    for (const heading of ['store', 'command', 'SyncArbitrator', 'exportService', 'payload']) {
+    for (const heading of ['store', 'command', 'syncarbitrator', 'exportservice', 'payload']) {
       expect(md.toLowerCase(), `CONTRACT.md must document the ${heading} surface`).toContain(heading)
     }
     for (const id of ['block-split', 'block-merge', 'block-retime', 'block-edit-text', 'block-delete', 'block-delete-close-gap', 'captions-retime-all', 'captions-reflow', 'captions-import', 'speaker-']) {
