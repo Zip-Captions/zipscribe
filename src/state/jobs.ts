@@ -162,6 +162,13 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
     switch (event.t) {
       case 'job:progress':
         store.setState((state) => {
+          // MAJOR-1 (review R2): correlate by the running jobId exactly as
+          // job:segments (:198), job:error and job:done do — a stale or late
+          // progress event from an orphaned/finished job must never overwrite
+          // the displayed %. Before the store ever started a job there is no
+          // correlation target to filter against (frozen pre-start progress
+          // pins fold verbatim — same never-started exception as segments).
+          if (lastStartedJobId !== null && state.running?.jobId !== event.jobId) return
           state.progress = { processedSec: event.processedSec, totalSec: event.totalSec }
         })
         return
