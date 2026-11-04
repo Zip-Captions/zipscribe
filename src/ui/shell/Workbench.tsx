@@ -25,6 +25,7 @@ import type { SettingsStore, WorkbenchSettings } from '../../state/settings'
 import type { ProjectStore } from '../../state/project'
 import type { ImportReport, IntakeService } from '../../state/services/intake'
 import { useCommands } from '../commands/useCommands'
+import { formatTimecode } from '../format'
 import { TranscribePopover } from './TranscribePopover'
 import './workbench.css'
 
@@ -118,13 +119,6 @@ function useSnapshot<T>(store: { getState(): T; subscribe: (listener: () => void
     })
   }, [store])
   return snapshot
-}
-
-function formatTimecode(seconds: number): string {
-  const tenths = Math.max(0, Math.round(seconds * 10))
-  const minutes = Math.floor(tenths / 600)
-  const rest = (tenths - minutes * 600) / 10
-  return `${String(minutes).padStart(2, '0')}:${rest.toFixed(1).padStart(4, '0')}`
 }
 
 function resolveTheme(settingsState: WorkbenchSettings): 'dark' | 'light' {
