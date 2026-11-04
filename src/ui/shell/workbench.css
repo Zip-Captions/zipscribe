@@ -4,6 +4,17 @@
    wiring stays at the token/class-hook level until design-pass units demand
    more (FR-2.0.5, no styled-components). */
 
+/* US-2.0.1 (CC-101.1 CLS gate): the height chain must exist from the very
+   first frame — without it the shell lays out at content height on first
+   commit and "grows" afterwards, which the frozen CLS budget counts as
+   layout thrash (measured 0.13 + 0.22 pre-fix). */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
 :root[data-theme='dark'] {
   --bg-app: #0d0f12;
   --bg-panel: #15181d;
@@ -80,6 +91,13 @@
   margin-right: 8px;
 }
 
+.ws-build-info {
+  margin-right: 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
 .ws-project-name {
   height: 28px;
   padding: 0 8px;
@@ -100,6 +118,10 @@
 
 .ws-tier-chip {
   display: inline-block;
+  /* US-2.0.1: reserve the widest label ('Limited') so the pending '—' →
+     tier transition never shifts the header controls beside it (CLS). */
+  min-width: 56px;
+  text-align: center;
   padding: 2px 8px;
   border: 1px solid var(--border-subtle);
   border-radius: 4px;
@@ -136,7 +158,9 @@
 }
 
 .ws-button-primary {
-  background: var(--accent);
+  /* axe CC-101.5: --accent (#4c8dff) with #fff text is 3.2:1 (serious
+     color-contrast); --accent-strong clears AA at 4.7:1 (design.md palette). */
+  background: var(--accent-strong);
   border-color: var(--accent-strong);
   color: #fff;
 }

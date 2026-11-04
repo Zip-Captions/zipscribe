@@ -82,7 +82,11 @@ const BLOCKED_REQUIREMENT_COPY: Record<string, string> = {
   NO_SECURE_CONTEXT: 'A secure (HTTPS) browsing context',
 }
 
-const BASELINE_REQUIREMENTS: readonly string[] = ['WebAssembly SIMD support (Chrome/Edge 91+ or Firefox 90+)', 'At least 4 GB of device memory (navigator.deviceMemory)', 'A Chromium- or Gecko-based desktop browser at ≥ 1280×720']
+const BASELINE_REQUIREMENTS: readonly string[] = [
+  'WebAssembly SIMD support (Chrome/Edge 91+ or Firefox 90+)',
+  'At least 4 GB of device memory (navigator.deviceMemory)',
+  'A Chromium- or Gecko-based desktop browser at ≥ 1280×720',
+]
 
 function requirementsFor(reasons: readonly string[]): string[] {
   const rows = reasons.map((reason) => BLOCKED_REQUIREMENT_COPY[reason] ?? `This device is missing a required capability (${reason}).`)
@@ -133,12 +137,7 @@ function TierChip({ tier, notice }: { tier: Tier | null; notice: Notice | null }
   const tooltipId = useId()
   return (
     <span className="ws-tier-wrap">
-      <span
-        data-testid="tier-chip"
-        className="ws-tier-chip"
-        aria-describedby={notice === null ? undefined : tooltipId}
-        title={notice === null ? undefined : tierNoticeCopy(notice)}
-      >
+      <span data-testid="tier-chip" className="ws-tier-chip" aria-describedby={notice === null ? undefined : tooltipId} title={notice === null ? undefined : tierNoticeCopy(notice)}>
         {tier === null ? '—' : TIER_LABEL[tier]}
       </span>
       {notice !== null && (
@@ -211,18 +210,19 @@ const syntheticElementRect: NonNullable<ReactVirtualizerOptions<HTMLDivElement, 
 
 function TranscriptPane({ segments }: { segments: readonly RawSegment[] }): ReactNode {
   const scrollRef = useRef<HTMLDivElement | null>(null)
-  const rangeExtractor = useCallback(
-    (range: Range): number[] => {
-      const element = scrollRef.current
-      if (element === null || element.clientHeight === 0) return Array.from({ length: range.count }, (_unused, index) => index)
-      return defaultRangeExtractor(range)
-    },
-    [],
-  )
+  const rangeExtractor = useCallback((range: Range): number[] => {
+    const element = scrollRef.current
+    if (element === null || element.clientHeight === 0) return Array.from({ length: range.count }, (_unused, index) => index)
+    return defaultRangeExtractor(range)
+  }, [])
   const virtualizer = useVirtualizer({
     count: segments.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => 40,
+    // Generous overscan: streamed batches stay fully rendered (the frozen CLS
+    // spec asserts rows reach the injected batch total), while a 10 000-block
+    // transcript stays windowed (design.md § virtualization).
+    overscan: 24,
     rangeExtractor,
     ...(LAYOUTLESS ? { observeElementRect: syntheticElementRect } : {}),
   })
@@ -263,10 +263,7 @@ function TranscriptPane({ segments }: { segments: readonly RawSegment[] }): Reac
 
 // FR-2.0.3 Media tab: asset card (name, duration, codec; res/fps for video).
 function MediaTab({ asset }: { asset: MediaAsset | null }): ReactNode {
-  if (asset === null)
-    return (
-      <p className="ws-empty">No media loaded. Drop a video or audio file to begin.</p>
-    )
+  if (asset === null) return <p className="ws-empty">No media loaded. Drop a video or audio file to begin.</p>
   return (
     <div className="ws-media-card" data-testid="media-asset-card">
       <p className="ws-media-name">{asset.name}</p>
@@ -352,7 +349,9 @@ function DropZone({ jobsState, onFiles, onSample }: { jobsState: JobsState; onFi
       >
         Try a sample clip
       </button>
-      <p className="ws-drop-status">{capability === null ? 'Checking device capability…' : `Tier ${capability.tier} · ${TIER_LABEL[capability.tier]} · ${capability.reasons.length === 0 ? 'model cache local' : 'capability notes apply'}`}</p>
+      <p className="ws-drop-status">
+        {capability === null ? 'Checking device capability…' : `Tier ${capability.tier} · ${TIER_LABEL[capability.tier]} · ${capability.reasons.length === 0 ? 'model cache local' : 'capability notes apply'}`}
+      </p>
     </div>
   )
 }
@@ -435,6 +434,11 @@ export function Workbench(props: WorkbenchProps): ReactNode {
     <div data-testid="workbench-shell" className="ws-shell" onDragOver={(event) => event.preventDefault()} onDrop={onShellDrop}>
       <header role="banner" className="ws-header">
         <span className="ws-brand">Zipscribe</span>
+        {/* FR-1.0.8 deploy-smoke contract: the build identity stays visible.
+            typeof-guarded because the vite `define` is absent under vitest. */}
+        <span data-testid="build-info" className="ws-build-info">
+          {typeof __ZIP_VERSION__ === 'string' ? __ZIP_VERSION__ : ''}
+        </span>
         <input
           data-testid="project-name"
           className="ws-project-name"
@@ -465,7 +469,7 @@ export function Workbench(props: WorkbenchProps): ReactNode {
         </button>
       </header>
       {importReport !== null && <ImportReportBanner report={importReport} />}
-      <div className="ws-body">
+      <main className="ws-body">
         {!settingsState.collapsed.sidebar && (
           <>
             <section data-region="sidebar" data-testid="panel-sidebar" tabIndex={-1} role="region" aria-label="Sidebar" className="ws-sidebar" style={{ width: settingsState.panels.sidebarPx }}>
@@ -548,7 +552,7 @@ export function Workbench(props: WorkbenchProps): ReactNode {
             </>
           )}
         </div>
-      </div>
+      </main>
       {toastCodes !== null && <Toast codes={toastCodes} />}
       <StatusBar jobsState={jobsState} />
     </div>
