@@ -195,9 +195,49 @@ export const restrictedGlobals = {
   },
 }
 
+export const noMediaCurrentTime = {
+  meta: {
+    type: 'problem',
+    messages: {
+      currentTime:
+        "Media time `{{name}}` is owned by the SyncArbitrator layer — reading or writing it outside src/state/services/playback/** is forbidden (FR-102.3, CC-102.5: components never touch a media element's currentTime; the frozen contract scan mirrors this rule).",
+    },
+    schema: [],
+  },
+  create(context) {
+    // Name-based on purpose (no type information needed): the frozen
+    // contract-side guard (tests/unit/editor/contract.test.ts CC-102.5) is a
+    // text scan for `.currentTime` outside the playback directory; this rule
+    // enforces the same policy as a real lint error and additionally catches
+    // the computed form (`el['currentTime']`) and destructuring
+    // (`const { currentTime } = el`) that the text scan would miss.
+    const isCurrentTimeKey = (node) => {
+      if (!node) return false
+      if (node.type === 'Identifier') return node.name === 'currentTime'
+      if (node.type === 'Literal') return node.value === 'currentTime'
+      return false
+    }
+    return {
+      MemberExpression: (node) => {
+        if (node.computed && node.property.type !== 'Literal') return
+        if (!isCurrentTimeKey(node.property)) return
+        context.report({ node: node.property, messageId: 'currentTime', data: { name: 'currentTime' } })
+      },
+      Property: (node) => {
+        // Destructuring only — object-literal keys (`{ currentTime: 0 }`) and
+        // type members are not media-element time access.
+        if (node.parent?.type !== 'ObjectPattern') return
+        if (!isCurrentTimeKey(node.key)) return
+        context.report({ node: node.key, messageId: 'currentTime', data: { name: 'currentTime' } })
+      },
+    }
+  },
+}
+
 export const purityPlugin = {
   rules: {
     'restricted-imports': restrictedImports,
     'restricted-globals': restrictedGlobals,
+    'no-media-current-time': noMediaCurrentTime,
   },
 }
