@@ -143,8 +143,19 @@ export function createEditorApp(deps: EditorAppDeps): EditorApp {
       ? null
       : createSyncArbitrator({ clock: deps.mediaClock, rafs: deps.rafs, onPlayhead: (t) => editorActions.setPlayhead(t) })
 
+  // Stable `{ project }` view object (slice C perf): the root store notifies
+  // on EVERY commit — playhead included — and the shell's store→React
+  // binding compares `getState()` by reference. Re-wrapping per call would
+  // re-render the whole Workbench per rAF frame; the wrapper is refreshed
+  // only when the project reference itself changes (immer semantics make
+  // that exact).
+  let projectView: { project: Project | null } = { project: null }
   const project: ProjectStore = {
-    getState: () => ({ project: store.getState().project }),
+    getState: () => {
+      const current = store.getState().project
+      if (current !== projectView.project) projectView = { project: current }
+      return projectView
+    },
     subscribe: store.subscribe,
     createProject(asset, captionImport) {
       commit((root) => {

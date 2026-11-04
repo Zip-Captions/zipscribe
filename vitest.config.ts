@@ -149,13 +149,13 @@ export default defineConfig({
             // command system; RETIRE each entry as its slice goes green.
             // RETIRED at slice B (GREEN: arbitrator, serialize, export-seam,
             // transport-commands, active-word + the new builder L1
-            // src/state/services/playback/media-clock.test.ts). REMAINING
-            // (slice C/D): contract — CONTRACT.md + generated types are the
-            // slice-D deliverable; carried-101 — the `transport-time-current`
-            // render check needs the slice-C transport bar. Parent `pnpm test`
-            // and `verify:unit` (clears ZIPSCRIBE_CHILD) execute all of it.
+            // src/state/services/playback/media-clock.test.ts) and at slice C
+            // (GREEN: carried-101 — the slice-C transport bar renders
+            // `transport-time-current` through the shared formatTimecode).
+            // REMAINING (slice D): contract — CONTRACT.md + generated types
+            // are the slice-D deliverable. Parent `pnpm test` and
+            // `verify:unit` (clears ZIPSCRIBE_CHILD) execute all of it.
             '**/contract.test.ts',
-            '**/carried-101-obligations.test.ts',
             ...defaultExclude,
           ]
         : defaultExclude,

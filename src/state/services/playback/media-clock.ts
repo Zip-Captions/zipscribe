@@ -55,3 +55,62 @@ export function createElementMediaClock(element: HTMLMediaElement): MediaClock {
     },
   }
 }
+
+/**
+ * Deferred element clock (slice C composition root): the app composes the
+ * SyncArbitrator ONCE at boot, while the stage `<video>` element exists only
+ * after a project opens — this clock is the placeholder-to-element swap the
+ * composition root performs via `attach`. Detached behavior is inert
+ * (`currentTime` 0, controls no-ops) EXCEPT `seek` still counts: the bridge's
+ * single-seek diagnostics ("`seekCount` = total MediaClock.seek invocations
+ * since open") count every seek command the arbitrator proxied, attached or
+ * not. Stays under this directory — the only sanctioned `currentTime` home
+ * (CC-102.5).
+ */
+export interface DeferredMediaClock extends MediaClock {
+  /** Swap the backing element (null detaches; the arbitrator keeps one clock for its lifetime). */
+  attach(element: HTMLMediaElement | null): void
+  /** Total `seek()` invocations (diagnostic number only — SECURITY-03). */
+  readonly seekCount: number
+  resetSeekCount(): void
+}
+
+export function createDeferredMediaClock(): DeferredMediaClock {
+  let element: HTMLMediaElement | null = null
+  let seekCount = 0
+  return {
+    get duration(): Seconds {
+      return element?.duration ?? 0
+    },
+    currentTime: () => element?.currentTime ?? 0,
+    get paused(): boolean {
+      return element?.paused ?? true
+    },
+    play: () => {
+      void element?.play().catch(() => undefined)
+    },
+    pause: () => {
+      element?.pause()
+    },
+    seek: (t: Seconds) => {
+      seekCount += 1
+      if (element !== null) element.currentTime = t
+    },
+    setRate: (rate: number) => {
+      if (element !== null) element.playbackRate = rate
+    },
+    dispose: () => {
+      element?.pause()
+      element = null
+    },
+    attach: (next: HTMLMediaElement | null) => {
+      element = next
+    },
+    get seekCount(): number {
+      return seekCount
+    },
+    resetSeekCount: () => {
+      seekCount = 0
+    },
+  }
+}

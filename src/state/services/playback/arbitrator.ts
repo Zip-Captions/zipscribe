@@ -48,6 +48,10 @@ export interface SyncArbitrator {
   readonly playing: boolean
   readonly loop: [Seconds, Seconds] | null
   readonly playhead: Seconds
+  /** The element clock's real position. This layer is the sanctioned reader
+   *  of `MediaClock.currentTime` (CC-102.5 single-clock-reader guard) — the
+   *  e2e bridge reads the element truth through here, never the element. */
+  clockTime(): Seconds
   /** Scrub session (US-2.1.5): `scrubTo` seeks (paused, no autoplay); `endScrub` resumes the PRE-scrub play state at the scrub position WITHOUT issuing another `clock.seek` (the release never double-seeks). */
   beginScrub(): void
   scrubTo(t: Seconds): void
@@ -169,6 +173,9 @@ export function createSyncArbitrator(deps: { clock: MediaClock; rafs: RafDriver;
     },
     get playhead() {
       return playhead
+    },
+    clockTime() {
+      return clock.currentTime()
     },
     beginScrub() {
       if (scrubbing) return

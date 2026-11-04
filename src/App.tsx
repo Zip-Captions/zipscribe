@@ -11,12 +11,17 @@ export function App(): ReactNode {
     let mounted = true
     void createAppContext()
       .then(async (created) => {
-        // E2E-only bridge (unit-101 frozen contract): STRICT `ziptest=1`
-        // query check + lazy import, so the bridge never reaches the initial
-        // bundle and production users (who never set the flag) never load it.
+        // E2E-only bridges (unit-101/unit-102 frozen contracts): STRICT
+        // `ziptest=1` query check + lazy imports, so neither bridge reaches
+        // the initial bundle and production users (who never set the flag)
+        // never load them. No bridge module self-installs on import.
         if (new URLSearchParams(window.location.search).get('ziptest') === '1') {
-          const { installWorkbenchBridge } = await import('./ui/testing/workbench-bridge')
+          const [{ installWorkbenchBridge }, { installEditorBridge }] = await Promise.all([
+            import('./ui/testing/workbench-bridge'),
+            import('./ui/testing/editor-bridge'),
+          ])
           installWorkbenchBridge()
+          installEditorBridge()
         }
         if (mounted) setContext(created)
       })
@@ -30,5 +35,13 @@ export function App(): ReactNode {
   }, [])
 
   if (context === null) return null
-  return <Workbench jobs={context.jobs} settings={context.settings} project={context.project} intake={context.intake} />
+  return (
+    <Workbench
+      jobs={context.jobs}
+      settings={context.settings}
+      project={context.project}
+      intake={context.intake}
+      transport={{ app: context.editorApp, stage: context.stage }}
+    />
+  )
 }

@@ -14,7 +14,11 @@ function chordOf(event: KeyboardEvent): string {
   if (event.altKey) modifiers.push('Alt')
   if (event.shiftKey) modifiers.push('Shift')
   if (event.metaKey) modifiers.push('Meta')
-  return [...modifiers, event.key].join('+')
+  // design.md writes the play/pause chord as `Space` (DOM key ' ') and letter
+  // keys canonically uppercase (`J`, `Y` — DOM key is the typed case); named
+  // keys (`ArrowLeft`) keep their DOM spelling.
+  const key = event.key === ' ' ? 'Space' : event.key.length === 1 ? event.key.toUpperCase() : event.key
+  return [...modifiers, key].join('+')
 }
 
 function focusRegion(region: 'sidebar' | 'stage' | 'timeline'): void {

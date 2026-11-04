@@ -5,7 +5,7 @@
 // The behavioral half (real <video>, seek ≤ 1 frame, loop wrap, Playwright)
 // is the CC-102.2 e2e half (slice D playback spec).
 import { describe, expect, test } from 'vitest'
-import { createElementMediaClock } from './media-clock'
+import { createElementMediaClock, createDeferredMediaClock } from './media-clock'
 import type { MediaClock } from './media-clock'
 
 interface MediaElementStub {
@@ -90,5 +90,54 @@ describe('FR-102.3 / CC-102.5: element MediaClock over the media element', () =>
     clock.dispose()
     expect(stub.pauseCalls, 'dispose pauses (element side); the arbitrator cancels rAF').toBe(1)
     expect(clock.paused).toBe(true)
+  })
+})
+
+describe('FR-102.3 / CC-102.5: deferred element clock (slice C composition root)', () => {
+  test('FR-102.3: detached is inert — time 0, paused, controls no-op — but every seek still counts', () => {
+    const clock = createDeferredMediaClock()
+    expect(clock.currentTime()).toBe(0)
+    expect(clock.duration, 'no element yet: 0 duration, no throw').toBe(0)
+    expect(clock.paused).toBe(true)
+    clock.play()
+    clock.pause()
+    clock.setRate(2)
+    expect(clock.seekCount, 'inert controls are no-ops').toBe(0)
+    clock.seek(10)
+    clock.seek(20)
+    expect(clock.seekCount, 'the single-seek diagnostic counts DETACHED seeks too').toBe(2)
+    clock.resetSeekCount()
+    expect(clock.seekCount).toBe(0)
+  })
+
+  test('FR-102.3: attach swaps the backing element live (arbitrator keeps one clock for its lifetime)', () => {
+    const clock = createDeferredMediaClock()
+    const first = stubElement({ currentTime: 5, duration: 60 })
+    clock.attach(first as unknown as HTMLMediaElement)
+    expect(clock.currentTime()).toBe(5)
+    expect(clock.duration).toBe(60)
+    clock.seek(30)
+    expect(first.currentTime, 'attached seek writes the element AND counts').toBe(30)
+    expect(clock.seekCount).toBe(1)
+    clock.attach(null)
+    expect(clock.currentTime(), 'detach returns to inert reads').toBe(0)
+    clock.seek(31)
+    expect(clock.seekCount, 'seekCount is lifetime-since-open, attached or not').toBe(2)
+  })
+
+  test('FR-102.3: play/pause/setRate proxy the attached element; dispose pauses and detaches', () => {
+    const stub = stubElement()
+    const clock = createDeferredMediaClock()
+    clock.attach(stub as unknown as HTMLMediaElement)
+    clock.play()
+    expect(stub.playCalls).toBe(1)
+    expect(clock.paused).toBe(false)
+    clock.pause()
+    expect(stub.pauseCalls).toBe(1)
+    clock.setRate(1.5)
+    expect(stub.playbackRate).toBe(1.5)
+    clock.dispose()
+    expect(stub.pauseCalls).toBe(2)
+    expect(clock.currentTime(), 'dispose detaches the element').toBe(0)
   })
 })
