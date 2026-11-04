@@ -247,8 +247,18 @@ export function createEditorApp(deps: EditorAppDeps): EditorApp {
   }
 
   const history: EditorHistoryApi = {
-    undo: (steps) => temporalStore().undo(steps),
-    redo: (steps) => temporalStore().redo(steps),
+    // CH.1 (unit-102 adversary): navigating history kills the coalescing
+    // chain. An edit landing after an undo/redo boundary is a fresh step —
+    // merging it into the (already undone/replayed) chain would leave a
+    // user-visible mutation unrecoverable (US-2.1.4).
+    undo: (steps) => {
+      mergeChain = null
+      temporalStore().undo(steps)
+    },
+    redo: (steps) => {
+      mergeChain = null
+      temporalStore().redo(steps)
+    },
     clear: () => {
       mergeChain = null
       temporalStore().clear()

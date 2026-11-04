@@ -93,7 +93,13 @@ export function createSyncArbitrator(deps: { clock: MediaClock; rafs: RafDriver;
     if (!playing || disposed) return
     const raw = clock.currentTime()
     let next = playhead
-    if (raw !== lastRaw) {
+    // CS.3 (unit-102 adversary): a DETACHED deferred clock reports inert 0
+    // (media-clock.test.ts freezes that read) — that is an ABSENCE of truth,
+    // not a seek to 0. While playing, duration 0 + time 0 + a non-zero last
+    // delivered time is the deferred-detach signature: hold the last emitted
+    // playhead (the dt model keeps it advancing) instead of regressing it.
+    const detachedIdle = raw === 0 && lastRaw !== 0 && clock.duration === 0
+    if (!detachedIdle && raw !== lastRaw) {
       // The element delivered a new time (real advance or element-side seek):
       // follow the clock — never re-derive what the clock says.
       next = raw
@@ -101,6 +107,11 @@ export function createSyncArbitrator(deps: { clock: MediaClock; rafs: RafDriver;
     }
     // In-flight dt·rate advance (the element keeps moving between deliveries).
     next += lastDtSec * rate
+    // CS.2 (unit-102 adversary): one-truth bound — while the element sits
+    // pinned at its duration (an <video> stops at `ended`) dt-modeling may
+    // not extrapolate the playhead past the media end (rate > 0 forward).
+    const duration = clock.duration
+    if (rate > 0 && Number.isFinite(duration) && duration > 0 && next > duration && raw <= duration) next = duration
     const region = loop
     if (region !== null && playhead < region[1] && next >= region[1]) {
       // Crossing detection uses the last DELIVERED playhead: an explicit seek
@@ -145,6 +156,12 @@ export function createSyncArbitrator(deps: { clock: MediaClock; rafs: RafDriver;
       deliver(t)
     },
     setLoop(region) {
+      // CS.7 (unit-102 adversary): the documented wrap is [b → a]; an
+      // inverted region (b ≤ a) makes that meaningless and must never
+      // fabricate a forward seek — honestly rejected, the region stays
+      // exactly as it was (the command layer rejects these too with
+      // LOOP_RANGE_INVALID; this is the direct-call last line of defense).
+      if (region !== null && !(region[1] > region[0])) return
       loop = region === null ? null : [region[0], region[1]]
     },
     get rate() {

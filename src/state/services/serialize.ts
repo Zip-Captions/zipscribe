@@ -39,8 +39,18 @@ export class ProjectParseError extends ZipscribeError {
   }
 }
 
+/**
+ * The 3-decimal rule, overflow-safe (CS.8, unit-102 adversary): scaling by
+ * 1000 pushes |v| beyond MAX_VALUE into Infinity for 1e305-scale FINITE
+ * inputs, which JSON.stringify would then render as `null` — breaking the
+ * invariant-8 parse∘serialize roundtrip. Above the threshold the ulp
+ * (≈2e289) dwarfs 0.001, so rounding is the identity anyway; -0 normalizes
+ * to 0 (canonical value domain).
+ */
 function round3(value: number): number {
-  return Math.round(value * PRECISION_FACTOR) / PRECISION_FACTOR
+  if (Math.abs(value) >= Number.MAX_VALUE / PRECISION_FACTOR) return value
+  const rounded = Math.round(value * PRECISION_FACTOR) / PRECISION_FACTOR
+  return rounded === 0 ? 0 : rounded
 }
 
 function canonicalizeValue(value: unknown): string {

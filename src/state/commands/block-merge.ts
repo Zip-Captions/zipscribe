@@ -30,7 +30,25 @@ export function createBlockMergeCommand(deps: CommandDeps): EditorCommand<'block
       const right = project.blocks[ib]
       if (left === undefined || right === undefined) return reject('DANGLING_BLOCK_REF', rightId)
       const words = [...left.words, ...right.words].map((w) => ({ ...w }))
-      const merged: CaptionBlock = { ...left, id: left.id, start: left.start, end: right.end, words, text: deriveBlockText(words) }
+      // CH.10 (unit-102 adversary): knowledge/domain.md § Speaker assignment —
+      // "`word.speakerId` (truth) materialized onto `block.speakerId` by
+      // majority vote". Merging across a speaker boundary must RE-DERIVE the
+      // block label from the combined word set, never keep the left label.
+      // Ties resolve to the earliest appearance (left-biased); when no word
+      // carries a speakerId there is no truth to vote on — keep the left.
+      const votes = new Map<string, number>()
+      for (const w of words) {
+        if (typeof w.speakerId === 'string') votes.set(w.speakerId, (votes.get(w.speakerId) ?? 0) + 1)
+      }
+      let speakerId = left.speakerId
+      let best = 0
+      for (const [id, count] of votes) {
+        if (count > best) {
+          best = count
+          speakerId = id
+        }
+      }
+      const merged: CaptionBlock = { ...left, id: left.id, start: left.start, end: right.end, words, text: deriveBlockText(words), speakerId }
       project.blocks.splice(ia, 2, merged)
       deps.translationRules.onBlockMerge(project, left.id, [leftId, rightId])
       project.updatedAt = deps.clock.now()

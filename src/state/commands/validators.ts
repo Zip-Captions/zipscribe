@@ -8,9 +8,10 @@ import type { CaptionBlock, Project, Seconds, Speaker } from '../../engine/model
 import type { CommandReject, CommandRejectCode } from './types'
 import { deriveBlockText } from './derive-text'
 
-/** Invariant 6: 3-decimal precision ceiling on everything the reducers write. */
+/** Invariant 6: 3-decimal precision ceiling on everything the reducers write. CH.8 (unit-102 adversary): -0 normalizes to 0 — the canonical byte form (invariant 8) cannot represent negative zero, so the store's value domain never contains it (parse(serialize) roundtrip stays exact). */
 export function round3(value: number): number {
-  return Math.round(value * 1000) / 1000
+  const rounded = Math.round(value * 1000) / 1000
+  return rounded === 0 ? 0 : rounded
 }
 
 export function isFiniteNumber(value: unknown): value is number {
