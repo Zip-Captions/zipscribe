@@ -14,11 +14,12 @@
 // codes and numbers only, which is what the canary-redaction suites assert.
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
-import type { DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import type { DragEvent as ReactDragEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual'
 import type { Range, ReactVirtualizerOptions } from '@tanstack/react-virtual'
 import type { Notice, RawSegment, Tier } from '../../engine/protocol'
 import type { MediaAsset } from '../../engine/model'
+import { defaultModelForTier } from '../../state/jobs'
 import type { JobsState, JobsStore } from '../../state/jobs'
 import type { SettingsStore, WorkbenchSettings } from '../../state/settings'
 import type { ProjectStore } from '../../state/project'
@@ -149,8 +150,11 @@ function TierChip({ tier, notice }: { tier: Tier | null; notice: Notice | null }
   )
 }
 
-const RESIZE_KEY_STEPS: Record<string, number> = { ArrowLeft: -8, ArrowRight: 8, ArrowUp: -8, ArrowDown: 8 }
-
+// Keyboard allowlist (conventions § UI conventions): components never bind
+// keys — the separator is pointer-drag only. A keyboard-resize chord is NOT
+// in the design.md v1 shortcut map; if it lands it goes through the command
+// registry as a unit-105 binding, never as a local onKeyDown here (review R2
+// B1). The separator keeps tabIndex + separator ARIA for AT announcement.
 function ResizeHandle({ region, value, onResize }: { region: 'sidebar' | 'timeline'; value: number; onResize: (px: number) => void }): ReactNode {
   const dragRef = useRef<{ origin: number; size: number } | null>(null)
   const vertical = region === 'sidebar'
@@ -169,13 +173,6 @@ function ResizeHandle({ region, value, onResize }: { region: 'sidebar' | 'timeli
     dragRef.current = null
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
   }
-  const onKeyDown = (event: ReactKeyboardEvent<HTMLElement>): void => {
-    const step = RESIZE_KEY_STEPS[event.key]
-    if (step === undefined) return
-    event.preventDefault()
-    onResize(value + step)
-  }
-
   return (
     <div
       data-testid={`resize-handle-${region}`}
@@ -188,7 +185,6 @@ function ResizeHandle({ region, value, onResize }: { region: 'sidebar' | 'timeli
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onKeyDown={onKeyDown}
     />
   )
 }
@@ -317,6 +313,23 @@ function Toast({ codes }: { codes: readonly string[] }): ReactNode {
   )
 }
 
+// CC-101 review R2 (#2 honesty): the cache segment reports the ACTUAL state
+// the jobs slice hydrated (registry rows × modelCache — async, arrives as
+// `modelOptions`) instead of a hardcoded claim. `cache pending` before
+// hydration lands; `cache local` only when the tier-default model (what
+// first transcription picks) is offline-ready; otherwise the honest
+// cached/total count with the on-first-use consequence. Numbers only
+// (SECURITY-03).
+function cacheCopy(jobsState: JobsState): string {
+  const options = jobsState.modelOptions
+  if (options.length === 0) return 'cache pending'
+  const cached = options.filter((option) => option.offlineReady).length
+  if (cached === 0) return 'cache empty · models download on first use'
+  const preferred = defaultModelForTier(jobsState.capability?.tier)
+  if (options.some((option) => option.id === preferred && option.offlineReady)) return 'cache local'
+  return `cache partial ${cached}/${options.length} · model downloads on first use`
+}
+
 // CC-101.2 / US-2.0.2: the centered drop zone doubles as the first-run screen
 // (media + caption intake by content sniff + extension through the intake
 // service; caption parsing stays behind the unit-07 seam) and carries the
@@ -350,7 +363,7 @@ function DropZone({ jobsState, onFiles, onSample }: { jobsState: JobsState; onFi
         Try a sample clip
       </button>
       <p className="ws-drop-status">
-        {capability === null ? 'Checking device capability…' : `Tier ${capability.tier} · ${TIER_LABEL[capability.tier]} · ${capability.reasons.length === 0 ? 'model cache local' : 'capability notes apply'}`}
+        {capability === null ? 'Checking device capability…' : `Tier ${capability.tier} · ${TIER_LABEL[capability.tier]} · ${capability.reasons.length === 0 ? cacheCopy(jobsState) : 'capability notes apply'}`}
       </p>
     </div>
   )
@@ -364,7 +377,7 @@ function StatusBar({ jobsState }: { jobsState: JobsState }): ReactNode {
   const tier = jobsState.capability === null ? 'tier pending' : TIER_LABEL[jobsState.capability.tier]
   return (
     <footer data-testid="status-bar" role="status" aria-live="polite" className="ws-status">
-      {`${percent} · ${model} · ${tier} · cache local`}
+      {`${percent} · ${model} · ${tier} · ${cacheCopy(jobsState)}`}
     </footer>
   )
 }
