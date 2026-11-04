@@ -43,6 +43,8 @@ export type { Blockizer, SpeakerEngine } from './commands'
 
 /** Frozen zundo configuration (FR-102.2). */
 export const ZUNDO_LIMIT = 150 as const
+/** The limit as a TYPE — the single home of the number (contract-types.ts derives its frozen marker from here, never restates it). */
+export type ZundoLimitType = typeof ZUNDO_LIMIT
 export const EDIT_TEXT_MERGE_WINDOW_MS = 1000 as const
 
 /** Consecutive accepted `block-edit-text` commands for the SAME blockId within `EDIT_TEXT_MERGE_WINDOW_MS` (injected `clock.now()`, exclusive upper bound: `< 1000 ms` coalesce, `≥ 1000 ms` separate) collapse into ONE undo step. Any other accepted command ends the merge chain. */
@@ -138,10 +140,7 @@ export function createEditorApp(deps: EditorAppDeps): EditorApp {
   // FR-102.3 single clock owner — present exactly when a MediaClock was
   // injected (unit-101 intake-seam doctrine: composition root supplies the
   // element clock; unit-107 swaps in the decoded clock behind the same seam).
-  const arbitrator: SyncArbitrator | null =
-    deps.mediaClock === undefined
-      ? null
-      : createSyncArbitrator({ clock: deps.mediaClock, rafs: deps.rafs, onPlayhead: (t) => editorActions.setPlayhead(t) })
+  const arbitrator: SyncArbitrator | null = deps.mediaClock === undefined ? null : createSyncArbitrator({ clock: deps.mediaClock, rafs: deps.rafs, onPlayhead: (t) => editorActions.setPlayhead(t) })
 
   // Stable `{ project }` view object (slice C perf): the root store notifies
   // on EVERY commit — playhead included — and the shell's store→React
