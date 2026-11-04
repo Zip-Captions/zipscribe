@@ -139,6 +139,20 @@ export default defineConfig({
             // `@testing-library/*` + `@axe-core/playwright` are installed, and
             // the 6 jsdom suites run ~3 s in the serial child
             // (unit-07 6b4aa96 precedent for retiring a slice-time exclusion).
+            // unit-102 (RED phase): the editor suites import the not-yet-built
+            // frozen modules (`@state/history`, `@state/commands`,
+            // `@state/editor`, `@state/selectors`,
+            // `@state/services/{serialize,export,playback/*}`,
+            // `@state/generated/contract-types`, `@engine/translate/track`,
+            // `@ui/format`, `@ui/canvas/overlay`) — import-resolution errors
+            // in the serial child would mask the command-wiring proof
+            // (unit-04 audio / unit-07 captions / unit-101 RED precedent).
+            // The cache-copy-pins jsdom file is green today but travels with
+            // its directory. RETIRE this block when unit-102 goes green
+            // (builder merge); the parent `pnpm test` and `verify:unit`
+            // (clears ZIPSCRIBE_CHILD) execute all of it meanwhile.
+            'tests/unit/editor/**/*.test.ts',
+            'tests/unit/editor/**/*.test.tsx',
             ...defaultExclude,
           ]
         : defaultExclude,
