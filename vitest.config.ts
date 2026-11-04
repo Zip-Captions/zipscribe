@@ -26,7 +26,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'tests/unit/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
     // The gate-spawning scaffold re-enters the suite when it is itself the
     // spawned child (`ZIPSCRIBE_CHILD=1` — same guard as gates.test's own
     // `isChildRun()` check on its recursive test). gates.test invokes
@@ -131,6 +131,14 @@ export default defineConfig({
             '**/tests/unit/scaffold/bundle-budget-adversarial.test.ts',
             '**/tests/unit/scaffold/branch-policy.test.ts',
             '**/tests/unit/scaffold/coverage-gate.test.ts',
+            // unit-101 (CC-101.*): the workbench suites were excluded here
+            // through the RED phases (unresolved imports of not-yet-built
+            // modules + not-yet-installed approved devDeps would have masked
+            // the command-wiring proof — unit-04 audio / unit-07 captions
+            // precedent). RETIRED at unit-101 slice D: the modules exist,
+            // `@testing-library/*` + `@axe-core/playwright` are installed, and
+            // the 6 jsdom suites run ~3 s in the serial child
+            // (unit-07 6b4aa96 precedent for retiring a slice-time exclusion).
             ...defaultExclude,
           ]
         : defaultExclude,

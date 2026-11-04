@@ -1,0 +1,527 @@
+/* Unit-101 shell styling — knowledge/design.md § Design tokens (dark default,
+   light mirror; tokens switch, no component forks) plus the minimal layout
+   hooks the workbench needs. Tailwind v4 is the approved styling dependency;
+   wiring stays at the token/class-hook level until design-pass units demand
+   more (FR-2.0.5, no styled-components). */
+
+/* US-2.0.1 (CC-101.1 CLS gate): the height chain must exist from the very
+   first frame — without it the shell lays out at content height on first
+   commit and "grows" afterwards, which the frozen CLS budget counts as
+   layout thrash (measured 0.13 + 0.22 pre-fix). */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+:root[data-theme='dark'] {
+  --bg-app: #0d0f12;
+  --bg-panel: #15181d;
+  --bg-raised: #1c2027;
+  --bg-overlay: #232830;
+  --border-subtle: #2a2f38;
+  --border-focus: #4c8dff;
+  --text-primary: #e8eaed;
+  --text-secondary: #9aa2ad;
+  --text-disabled: #5c6470;
+  --accent: #4c8dff;
+  --accent-strong: #2f6fe0;
+  --accent-soft: rgba(76, 141, 255, 0.14);
+  --danger: #e5534b;
+  --success: #4ab871;
+  --warning: #d9a03f;
+  --waveform: #3d4450;
+  --waveform-active: #4c8dff;
+  --playhead: #ff5c5c;
+  --selection: rgba(76, 141, 255, 0.22);
+  --speaker-palette: #4c8dff, #e5534b, #4ab871, #d9a03f, #a06bd9, #3fb8c9, #d96ba0, #8fa03f;
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg-app: #f7f8fa;
+  --bg-panel: #ffffff;
+  --bg-raised: #eef0f3;
+  --bg-overlay: #e4e7eb;
+  --border-subtle: #d5d9df;
+  --border-focus: #2f6fe0;
+  --text-primary: #1c2027;
+  --text-secondary: #5c6470;
+  --text-disabled: #9aa2ad;
+  --accent: #2f6fe0;
+  --accent-strong: #1f5bc4;
+  --accent-soft: rgba(47, 111, 224, 0.12);
+  --danger: #c93c34;
+  --success: #2f9459;
+  --warning: #a8762a;
+  --waveform: #c4cad3;
+  --waveform-active: #2f6fe0;
+  --playhead: #d94141;
+  --selection: rgba(47, 111, 224, 0.18);
+  --speaker-palette: #2f6fe0, #c93c34, #2f9459, #a8762a, #7c46bd, #2694a6, #b34c7d, #6b7a2c;
+  color-scheme: light;
+}
+
+.ws-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-app);
+  color: var(--text-primary);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 13px;
+}
+
+.ws-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  flex: none;
+  padding: 0 12px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ws-brand {
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.ws-build-info {
+  margin-right: 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-project-name {
+  height: 28px;
+  padding: 0 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.ws-project-name:disabled {
+  color: var(--text-disabled);
+}
+
+.ws-tier-wrap {
+  position: relative;
+}
+
+.ws-tier-chip {
+  display: inline-block;
+  /* US-2.0.1: reserve the widest label ('Limited') so the pending '—' →
+     tier transition never shifts the header controls beside it (CLS). */
+  min-width: 56px;
+  text-align: center;
+  padding: 2px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--bg-raised);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-tier-tooltip {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 10;
+  max-width: 240px;
+  padding: 4px 8px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  color: var(--text-primary);
+}
+
+.ws-button {
+  height: 28px;
+  padding: 0 12px;
+  background: var(--bg-raised);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  font: inherit;
+}
+
+.ws-button:disabled {
+  color: var(--text-disabled);
+}
+
+.ws-button-primary {
+  /* axe CC-101.5: --accent (#4c8dff) with #fff text is 3.2:1 (serious
+     color-contrast); --accent-strong clears AA at 4.7:1 (design.md palette). */
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: #fff;
+}
+
+.ws-button-primary:disabled {
+  background: var(--bg-raised);
+  color: var(--text-disabled);
+}
+
+.ws-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.ws-sidebar {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border-subtle);
+}
+
+.ws-tabs {
+  display: flex;
+  gap: 4px;
+  flex: none;
+  padding: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ws-tab {
+  height: 28px;
+  padding: 0 8px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font: inherit;
+}
+
+.ws-tab[aria-selected='true'] {
+  background: var(--accent-soft);
+  color: var(--text-primary);
+}
+
+.ws-intent-badge {
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--bg-overlay);
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.ws-tabpanel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+}
+
+.ws-transcript {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.ws-segment-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  box-sizing: border-box;
+  padding: 4px 8px;
+  line-height: 1.45;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ws-segment-time {
+  flex: none;
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ws-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: var(--bg-app);
+}
+
+.ws-canvas-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ws-resizer {
+  flex: none;
+  background: var(--border-subtle);
+}
+
+.ws-resizer:hover,
+.ws-resizer:focus-visible {
+  background: var(--accent);
+}
+
+.ws-resizer-col {
+  width: 4px;
+  cursor: col-resize;
+}
+
+.ws-resizer-row {
+  height: 4px;
+  cursor: row-resize;
+}
+
+.ws-timeline {
+  flex: none;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.ws-status {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  flex: none;
+  padding: 0 12px;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-media-name {
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.ws-media-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+}
+
+.ws-media-grid dt {
+  color: var(--text-secondary);
+}
+
+.ws-media-grid dd {
+  margin: 0;
+}
+
+.ws-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-empty {
+  color: var(--text-secondary);
+  padding: 12px;
+}
+
+.ws-blocked {
+  max-width: 560px;
+  margin: 10vh auto;
+  padding: 24px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+
+.ws-blocked-requirements {
+  padding-left: 20px;
+  line-height: 1.6;
+}
+
+.ws-transcribe-wrap {
+  position: relative;
+}
+
+.ws-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 320px;
+  padding: 12px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+}
+
+.ws-popover-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ws-popover-label {
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.ws-popover-row select {
+  height: 26px;
+  background: var(--bg-raised);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  font: inherit;
+}
+
+.ws-model-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ws-model-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--bg-raised);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  font: inherit;
+  text-align: left;
+}
+
+.ws-model-option[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.ws-model-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-model-size {
+  flex: none;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-offline-badge {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.ws-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background: var(--bg-raised);
+  border: 1px solid var(--warning);
+  border-radius: 4px;
+}
+
+.ws-confirm-copy {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.ws-drop-zone {
+  position: absolute;
+  inset: 16px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  background: var(--bg-panel);
+  border: 2px dashed var(--border-subtle);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.ws-drop-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.ws-drop-hint,
+.ws-drop-status {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.ws-import-report {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  padding: 6px 12px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-import-headline {
+  color: var(--text-primary);
+}
+
+.ws-adjustment-code {
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--bg-raised);
+}
+
+.ws-toast {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  padding: 8px 16px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  color: var(--text-primary);
+}
+
+:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+::selection {
+  background: var(--selection);
+}

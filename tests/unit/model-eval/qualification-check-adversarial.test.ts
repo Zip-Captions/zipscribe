@@ -20,13 +20,34 @@
 // in-repo byte-flip/accept-unchanged legs; this file extends coverage to the
 // remaining hash inputs and the missing-ID leg.
 import { afterAll, beforeAll, expect, test } from 'vitest'
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
 import { REPO_ROOT, runIn } from '../../helpers/repo'
 
 const QUALIFICATION_FILE = join('qualification', '0.0.0-spike.json')
-const GENERATED_PUBLIC = ['public/wasm', 'public/sherpa', 'public/hf-cache', 'public/fixtures', 'public/eval4x']
+// CI-flake adjudication (unit-101 R3): `pnpm build` regenerates the gitignored
+// public/ artifacts in place — scripts/build-harness.ts (public/harness) and
+// copySamples (public/samples, truncated at vite buildStart) — and a build
+// killed by the frozen 30 s spawn budget (tests/helpers/repo.ts runPnpm
+// default) leaves torn state behind on cold/contended runs. Copying those
+// live dirs raced the build ⇒ spurious "REJECT — contentHash mismatch".
+//   public/harness joins the generated set: it is pure build output and NOT a
+// hash input (excluded by GENERATED_PUBLIC_DIRS, scripts/lib/
+// qualification-hash.ts:18 — the unit-04 F-1 fix never reached this list).
+//   public/samples IS a hash input (qualificationInputFiles enumerates
+// public/samples/speech-2min.mp4), so it cannot simply be filtered — it is
+// skipped here and re-materialized byte-exactly from its committed source
+// below, per the scripts/copy-samples.ts contract (single sample,
+// copyFileSync from fixtures/). Reconstruction is immune both to racing
+// writers and to the torn-residue a makeScratch file lock could not detect
+// (the killed build is already gone when the copy runs). Branches without
+// the copySamples build contract (pre-unit-101 trees) never hash samples —
+// materialization is gated on that committed contract file so this file
+// behaves identically on both.
+const GENERATED_PUBLIC = ['public/wasm', 'public/sherpa', 'public/hf-cache', 'public/fixtures', 'public/eval4x', 'public/harness', 'public/samples']
+const SAMPLES_CONTRACT = 'scripts/copy-samples.ts'
+const SAMPLES_MIRROR: readonly { source: string; target: string }[] = [{ source: 'fixtures/speech-2min.mp4', target: 'public/samples/speech-2min.mp4' }]
 
 let scratch: string
 
@@ -41,6 +62,12 @@ function makeScratch(): string {
       recursive: true,
       filter: (source) => !GENERATED_PUBLIC.some((skip) => source.startsWith(join(REPO_ROOT, skip))),
     })
+  }
+  if (existsSync(join(REPO_ROOT, SAMPLES_CONTRACT))) {
+    for (const sample of SAMPLES_MIRROR) {
+      mkdirSync(join(dir, dirname(sample.target)), { recursive: true })
+      cpSync(join(REPO_ROOT, sample.source), join(dir, sample.target))
+    }
   }
   mkdirSync(join(dir, '.cache'), { recursive: true })
   return dir
