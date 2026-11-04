@@ -110,13 +110,16 @@ function isMediaFile(file: File): boolean {
 }
 
 export function createIntakeService(deps: { engine: EnginePort; jobs: JobsStore; project: ProjectStore; importService: ImportCaptionsService }): IntakeService {
-  // Caption imports collected by the current drop, consumed in order by the
-  // `media:probed` replies of the same drop (media + captions together).
-  let pendingCaptionImports: CaptionImportResult[] = []
+  // IN.3/IN.4 (adversary adjudication): per-drop pairing — each imported
+  // caption is bound to the probe jobId ITS OWN drop posts, so a slow probe
+  // reply can never consume a later drop's caption (a global FIFO leaked) and
+  // an unpaired import of a captions-only drop can never resurface.
+  const pendingByProbeJobId = new Map<string, CaptionImportResult>()
 
   deps.engine.onMediaEvent((event) => {
     if (event.t !== 'media:probed') return
-    const captionImport = pendingCaptionImports.shift()
+    const captionImport = pendingByProbeJobId.get(event.jobId)
+    pendingByProbeJobId.delete(event.jobId)
     deps.project.createProject(event.asset, captionImport)
   })
 
@@ -130,7 +133,16 @@ export function createIntakeService(deps: { engine: EnginePort; jobs: JobsStore;
         continue
       }
       if (CAPTION_EXTENSIONS.has(extensionOf(file.name))) {
-        const format = await deps.importService.sniff(file)
+        let format: CaptionFormat | null = null
+        try {
+          format = await deps.importService.sniff(file)
+        } catch {
+          // IN.1 (adversary adjudication, CC-101.2): a rejecting seam degrades
+          // to a rejected entry with a reason CODE — it must never take the
+          // drop (or the sibling media probe) down with it.
+          outcome.rejected.push({ reason: 'UNSUPPORTED_CAPTION' })
+          continue
+        }
         if (format !== null) captions.push(file)
         else outcome.rejected.push({ reason: 'UNSUPPORTED_CAPTION' })
       } else {
@@ -140,15 +152,22 @@ export function createIntakeService(deps: { engine: EnginePort; jobs: JobsStore;
 
     const imported: CaptionImportResult[] = []
     for (const file of captions) {
-      imported.push(await deps.importService.importCaptions(file))
+      try {
+        imported.push(await deps.importService.importCaptions(file))
+      } catch {
+        // IN.2 (adversary adjudication, CC-101.2): same rule mid-pipeline —
+        // report the CODE, keep classifying, still probe the media.
+        outcome.rejected.push({ reason: 'UNSUPPORTED_CAPTION' })
+      }
     }
     outcome.importedCaptions = imported
 
-    // Captions of THIS drop attach to the probes of THIS drop; a stale queue
-    // must never leak into a later media-only drop.
-    pendingCaptionImports = [...imported]
+    const pairable = [...imported]
     for (const file of media) {
-      deps.engine.postMedia({ t: 'probe', jobId: newJobId(), file })
+      const jobId = newJobId()
+      const captionImport = pairable.shift()
+      if (captionImport !== undefined) pendingByProbeJobId.set(jobId, captionImport)
+      deps.engine.postMedia({ t: 'probe', jobId, file })
       outcome.mediaPosted += 1
     }
     return outcome
