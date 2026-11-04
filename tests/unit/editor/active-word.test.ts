@@ -12,7 +12,7 @@ const b: CaptionBlock = block('blk_aw', 1, 6, 'SPK_1', [word('one', 1, 2), word(
 describe('FR-102.4: activeWord boundaries', () => {
   test('FR-102.4: exactly-on-boundary — word.start is inclusive, word.end is exclusive', () => {
     expect(activeWord(b, 1)?.text, 'block/word start is inclusive').toBe('one')
-    expect(activeWord(b, 2)?.text, 'word end is exclusive → next-word gap begins').toBeNull()
+    expect(activeWord(b, 2), 'word end is exclusive → next-word gap begins').toBeNull()
     expect(activeWord(b, 2.5)?.text).toBe('two')
     expect(activeWord(b, 4)?.text).toBe('three')
   })
