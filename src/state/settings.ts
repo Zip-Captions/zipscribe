@@ -53,10 +53,37 @@ const DEFAULT_SETTINGS: WorkbenchSettings = {
   theme: 'dark',
 }
 
+/**
+ * SET.2 (adversary adjudication): the frozen contract words the clamp as
+ * MIN-only, but US-2.0.1 "layout-boundedness" makes a panel size beyond any
+ * real display as corrupt as NaN — the slice must bound it too. Upper bound
+ * is viewport-derived when measurable (a panel can never exceed its
+ * viewport axis), else a fixed cap documented as ~8K-display maximum for
+ * non-browser hosts (node tests, SSR).
+ */
+const MAX_PANEL_PX = 8192
+
+function upperBoundPx(region: 'sidebar' | 'timeline'): number {
+  const min = region === 'sidebar' ? MIN_SIDEBAR_PX : MIN_TIMELINE_PX
+  if (typeof window !== 'undefined') {
+    const viewport = region === 'sidebar' ? window.innerWidth : window.innerHeight
+    if (Number.isFinite(viewport) && viewport > 0) return Math.max(min, Math.round(viewport))
+  }
+  return Math.max(min, MAX_PANEL_PX)
+}
+
 function clampSize(region: 'sidebar' | 'timeline', px: number): number {
   const min = region === 'sidebar' ? MIN_SIDEBAR_PX : MIN_TIMELINE_PX
   if (typeof px !== 'number' || !Number.isFinite(px)) return DEFAULT_PANELS[`${region}Px` as keyof PanelSizes]
-  return Math.max(min, Math.round(px))
+  return Math.min(upperBoundPx(region), Math.max(min, Math.round(px)))
+}
+
+/** SET.2: a persisted size beyond the bound is corruption — hydrate to the bounded default, not the clamped corrupt value. */
+function hydrateSize(region: 'sidebar' | 'timeline', value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value > upperBoundPx(region)) {
+    return DEFAULT_PANELS[`${region}Px` as keyof PanelSizes]
+  }
+  return clampSize(region, value)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -75,8 +102,8 @@ function hydrate(raw: string | null): WorkbenchSettings {
   if (!isRecord(parsed)) return structuredClone(DEFAULT_SETTINGS)
   const panels = isRecord(parsed.panels) ? parsed.panels : {}
   const collapsed = isRecord(parsed.collapsed) ? parsed.collapsed : {}
-  const sidebarPx = typeof panels.sidebarPx === 'number' ? clampSize('sidebar', panels.sidebarPx) : DEFAULT_PANELS.sidebarPx
-  const timelinePx = typeof panels.timelinePx === 'number' ? clampSize('timeline', panels.timelinePx) : DEFAULT_PANELS.timelinePx
+  const sidebarPx = hydrateSize('sidebar', panels.sidebarPx)
+  const timelinePx = hydrateSize('timeline', panels.timelinePx)
   const theme = parsed.theme === 'light' || parsed.theme === 'system' ? parsed.theme : 'dark'
   return {
     panels: { sidebarPx, timelinePx },
@@ -85,38 +112,41 @@ function hydrate(raw: string | null): WorkbenchSettings {
   }
 }
 
-/** Hydrates from storage (missing key → defaults; corrupt JSON → defaults, never throws). Persists on every setter. */
+/** Hydrates from storage (missing key → defaults; corrupt JSON → defaults; a rejecting read → defaults — SET.4 (adversary adjudication): "never throws" is symmetric with the tolerated write failure, the unit-106 IDB adapter may transiently fail and a blank app is unacceptable). Persists on every setter. */
 export function createSettingsStore(deps: { storage: SettingsStorage }): Promise<SettingsStore> {
-  return deps.storage.get(SETTINGS_STORAGE_KEY).then((raw) => {
-    const store = createStore<WorkbenchSettings>()(immer(() => hydrate(raw)))
-    const persist = (): void => {
-      // Fire-and-forget: a storage failure must never break an interaction
-      // (the next setter retries); the unit-106 adapter owns error reporting.
-      void deps.storage.set(SETTINGS_STORAGE_KEY, JSON.stringify(store.getState())).catch(() => undefined)
-    }
-    return {
-      getState: store.getState,
-      subscribe: store.subscribe,
-      setPanelSize(region: 'sidebar' | 'timeline', px: number): void {
-        const size = clampSize(region, px)
-        store.setState((state) => {
-          if (region === 'sidebar') state.panels.sidebarPx = size
-          else state.panels.timelinePx = size
-        })
-        persist()
-      },
-      toggleCollapsed(region: 'sidebar' | 'timeline'): void {
-        store.setState((state) => {
-          state.collapsed[region] = !state.collapsed[region]
-        })
-        persist()
-      },
-      setTheme(theme: 'dark' | 'light' | 'system'): void {
-        store.setState((state) => {
-          state.theme = theme
-        })
-        persist()
-      },
-    }
-  })
+  return deps.storage
+    .get(SETTINGS_STORAGE_KEY)
+    .catch(() => null)
+    .then((raw) => {
+      const store = createStore<WorkbenchSettings>()(immer(() => hydrate(raw)))
+      const persist = (): void => {
+        // Fire-and-forget: a storage failure must never break an interaction
+        // (the next setter retries); the unit-106 adapter owns error reporting.
+        void deps.storage.set(SETTINGS_STORAGE_KEY, JSON.stringify(store.getState())).catch(() => undefined)
+      }
+      return {
+        getState: store.getState,
+        subscribe: store.subscribe,
+        setPanelSize(region: 'sidebar' | 'timeline', px: number): void {
+          const size = clampSize(region, px)
+          store.setState((state) => {
+            if (region === 'sidebar') state.panels.sidebarPx = size
+            else state.panels.timelinePx = size
+          })
+          persist()
+        },
+        toggleCollapsed(region: 'sidebar' | 'timeline'): void {
+          store.setState((state) => {
+            state.collapsed[region] = !state.collapsed[region]
+          })
+          persist()
+        },
+        setTheme(theme: 'dark' | 'light' | 'system'): void {
+          store.setState((state) => {
+            state.theme = theme
+          })
+          persist()
+        },
+      }
+    })
 }
