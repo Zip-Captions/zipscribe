@@ -45,7 +45,7 @@ The heart: zustand slices (`project`, `editor`, `jobs`, `settings`), the **comma
 - [ ] **CC-102.4** Canonical serializer: key order/number formatting golden; `parse(serialize(p))` deep-equals `p`
 - [ ] **CC-102.5** `CONTRACT.md` + generated types committed; no `video.currentTime` reads outside arbitrator (lint)
 - [ ] **CC-102.6** ≥ 55 FPS during synthetic 10k-block playback (chromium trace; matches `settings.yml performance_baselines`)
-- [ ] **CC-102.7** All gates green
+- [ ] **CC-102.7** `[MANUAL]` All gates green <!-- gate-derived criterion per unit-101 CC-101.6 precedent (gates-spawning-gates circularity); evidence: orchestrator BUILD_VERIFIED 2026-11-04 at a1de111 — all gates exit 0. -->
 
 ## Risks
 
