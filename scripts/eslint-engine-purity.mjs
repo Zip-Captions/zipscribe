@@ -215,11 +215,14 @@ export const noMediaCurrentTime = {
       if (!node) return false
       if (node.type === 'Identifier') return node.name === 'currentTime'
       if (node.type === 'Literal') return node.value === 'currentTime'
+      // CS.10 (unit-102 adversary): `el[`currentTime`]` — a substitution-free
+      // template carries the property name exactly like a string literal.
+      if (node.type === 'TemplateLiteral') return node.expressions.length === 0 && node.quasis[0]?.value.cooked === 'currentTime'
       return false
     }
     return {
       MemberExpression: (node) => {
-        if (node.computed && node.property.type !== 'Literal') return
+        if (node.computed && node.property.type !== 'Literal' && node.property.type !== 'TemplateLiteral') return
         if (!isCurrentTimeKey(node.property)) return
         context.report({ node: node.property, messageId: 'currentTime', data: { name: 'currentTime' } })
       },
