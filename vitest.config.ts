@@ -131,18 +131,14 @@ export default defineConfig({
             '**/tests/unit/scaffold/bundle-budget-adversarial.test.ts',
             '**/tests/unit/scaffold/branch-policy.test.ts',
             '**/tests/unit/scaffold/coverage-gate.test.ts',
-            // unit-101 (CC-101.*, RED phase): the workbench suites import
-            // production modules that do not exist yet (`@ui/shell/Workbench`,
-            // `@state/{settings,jobs,project}`, `@state/services/intake`,
-            // `@ui/commands/registry`) and APPROVED-but-not-yet-installed
-            // devDeps (`@testing-library/react`, `@testing-library/user-event`)
-            // — their unresolved-import failures inside the child would mask
-            // the command-wiring proof (unit-04 audio / unit-07 captions
-            // precedent). They execute in the parent `pnpm test` and in
-            // `verify:unit`, which clears ZIPSCRIBE_CHILD. Retire both entries
-            // when unit-101 goes green.
-            'tests/unit/workbench/**/*.test.ts',
-            'tests/unit/workbench/**/*.test.tsx',
+            // unit-101 (CC-101.*): the workbench suites were excluded here
+            // through the RED phases (unresolved imports of not-yet-built
+            // modules + not-yet-installed approved devDeps would have masked
+            // the command-wiring proof — unit-04 audio / unit-07 captions
+            // precedent). RETIRED at unit-101 slice D: the modules exist,
+            // `@testing-library/*` + `@axe-core/playwright` are installed, and
+            // the 6 jsdom suites run ~3 s in the serial child
+            // (unit-07 6b4aa96 precedent for retiring a slice-time exclusion).
             ...defaultExclude,
           ]
         : defaultExclude,
