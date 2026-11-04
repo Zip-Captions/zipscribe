@@ -76,17 +76,17 @@ export interface JobsState {
   modelOptions: ModelOptionView[]
   running: ActiveJob | null
   progress: { processedSec: number; totalSec: number } | null
-    /** Latest accumulated `job:segments` (sorted by start) — drives the streaming rows + status %. */
-    segments: RawSegment[]
-    error: EngineError | null
-    notices: Notice[]
-    /**
-     * Extension beyond the frozen minimal shape (unit-102 may keep/extend it):
-     * the unit-03 `model:confirm-required` gate the popover renders as the
-     * download confirmation — codes/numbers only (SECURITY-03).
-     */
-    pendingConfirmDownload: PendingModelDownload | null
-  }
+  /** Latest accumulated `job:segments` (sorted by start) — drives the streaming rows + status %. */
+  segments: RawSegment[]
+  error: EngineError | null
+  notices: Notice[]
+  /**
+   * Extension beyond the frozen minimal shape (unit-102 may keep/extend it):
+   * the unit-03 `model:confirm-required` gate the popover renders as the
+   * download confirmation — codes/numbers only (SECURITY-03).
+   */
+  pendingConfirmDownload: PendingModelDownload | null
+}
 
 export interface StartTranscribeOptions {
   language: string | null

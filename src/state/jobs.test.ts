@@ -274,4 +274,3 @@ describe('CC-101.3: model download confirmation gate (FR-2.0.2, unit-03 seam)', 
     expect(defaultModelForTier(null)).toBe('whisper-base_timestamped@608c49e6')
   })
 })
-
