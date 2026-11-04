@@ -4,14 +4,14 @@ Status: complete
 
 ## Completion criteria (verify:unit --from-branch @ d7794c4)
 
-| ID | level | tests | result |
-|---|---|---|---|
-| CC-101.1 | untagged (L2+L5) | 6 | pass |
-| CC-101.2 | untagged (L2+L5) | 8 | pass |
-| CC-101.3 | untagged (L2) | 13 | pass |
-| CC-101.4 | untagged (L2) | 6 | pass |
-| CC-101.5 | untagged (L2+L5) | 6 | pass |
-| CC-101.6 | [MANUAL] gate-derived | — | owner: orchestrator BUILD_VERIFIED evidence below |
+| ID       | level                 | tests | result                                            |
+| -------- | --------------------- | ----- | ------------------------------------------------- |
+| CC-101.1 | untagged (L2+L5)      | 6     | pass                                              |
+| CC-101.2 | untagged (L2+L5)      | 8     | pass                                              |
+| CC-101.3 | untagged (L2)         | 13    | pass                                              |
+| CC-101.4 | untagged (L2)         | 6     | pass                                              |
+| CC-101.5 | untagged (L2+L5)      | 6     | pass                                              |
+| CC-101.6 | [MANUAL] gate-derived | —     | owner: orchestrator BUILD_VERIFIED evidence below |
 
 `[MANUAL]` (CC-101.6): orchestrator, 2026-11-04, chromium headless + node 22 — all gate commands exit 0 at d7794c4 (see Gates). Adjudicated gate-derived; circular as an automated test (gates-spawning-gates); same tag applies to the identical criterion in units 102–107.
 
