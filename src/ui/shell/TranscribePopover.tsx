@@ -139,6 +139,7 @@ export function TranscribePopover({ jobs, jobsState, hasCaptions }: TranscribePo
           type="button"
           data-testid="transcribe-start-button"
           className="ws-button ws-button-primary"
+          disabled={jobsState.running !== null}
           onClick={() => {
             dispatch('replace')
           }}

@@ -404,11 +404,20 @@ export function Workbench(props: WorkbenchProps): ReactNode {
   // the DOM settles before awaiting callers resume (same contract as
   // useSnapshot's store binding).
   async function runIntake(files: readonly File[]): Promise<void> {
-    const outcome = await intake.handleFiles(files)
-    flushSync(() => {
-      setToastCodes(outcome.rejected.length > 0 ? [...new Set(outcome.rejected.map((entry) => entry.reason))] : null)
-      setImportReport(outcome.importedCaptions.at(-1)?.report ?? null)
-    })
+    try {
+      const outcome = await intake.handleFiles(files)
+      flushSync(() => {
+        setToastCodes(outcome.rejected.length > 0 ? [...new Set(outcome.rejected.map((entry) => entry.reason))] : null)
+        setImportReport(outcome.importedCaptions.at(-1)?.report ?? null)
+      })
+    } catch {
+      // IN.9 (adversary adjudication, CC-101.2): a rejecting intake (seam or
+      // engine) is announced honestly at the UI boundary — mirror of
+      // loadSample's catch — and never escapes as an unhandled rejection.
+      flushSync(() => {
+        setToastCodes(['INTAKE_FAILED'])
+      })
+    }
   }
 
   // Always-on: the whole shell accepts drops (FR-2.0.3 Media-tab re-import
