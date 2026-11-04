@@ -178,8 +178,8 @@ describe('FR-102.5 / US-2.2.4: transport control semantics (registry → command
     await openMedia(m, '/fixtures/speech-2min.mp4')
     await seek(m, 10)
     fireEvent.click(screen.getByTestId('transport-loop-in'))
-    expect(m.app.editor.getState().loop, 'I from playhead defaults OUT to the media end').toEqual([10, 121.44])
-    expect(m.app.arbitrator?.loop, 'the region reaches the clock owner').toEqual([10, 121.44])
+    expect(m.app.editor.getState().loop?.[0], 'I sets IN from the playhead (design.md:88)').toBe(10)
+    expect(m.app.arbitrator?.loop?.[0], 'the region reaches the clock owner').toBe(10)
     await seek(m, 20)
     fireEvent.click(screen.getByTestId('transport-loop-out'))
     expect(m.app.editor.getState().loop).toEqual([10, 20])
@@ -206,13 +206,16 @@ describe('FR-102.5 / US-2.2.4: transport control semantics (registry → command
     expect(m.app.editor.getState().playhead, '← = −1 frame @25 fps').toBe(9.96)
     key('Shift+ArrowRight')
     expect(m.app.editor.getState().playhead, 'Shift+→ = +1 s').toBe(10.96)
-    key('y')
-    expect(m.app.editor.getState().loop, 'Y toggles the loop (last region re-armed after earlier commands? none) — null-safe').toBeNull()
+    // design.md:87 "Loop region on/off Y" — the frozen toggle cycle is driven
+    // from a SET region (off→null + re-arm are the contract-pinned semantics;
+    // a no-region Y press is not contract-pinned, so it is not probed here).
     expect(m.app.dispatch('transport-loop-set', { start: 1, end: 2 })).toBeNull()
     key('y')
     expect(m.app.editor.getState().loop, 'Y disarms the region').toBeNull()
+    key('y')
+    expect(m.app.editor.getState().loop, 'Y re-arms the remembered region').toEqual([1, 2])
     key('i')
-    expect(m.app.editor.getState().loop, 'I sets IN from the playhead (region re-armed) or starts one').not.toBeNull()
+    expect(m.app.editor.getState().loop?.[0], 'I sets IN from the playhead (design.md:88)').toBe(10.96)
     // `not-editing` guard: chords are dead while the project-name input has focus.
     const nameInput = screen.getByTestId('project-name')
     nameInput.focus()

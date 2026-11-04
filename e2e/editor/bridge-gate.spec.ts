@@ -1,8 +1,11 @@
 // SECURITY gate (slice C, FR-2.0.6): the test bridges exist ONLY under the
 // strict `?ziptest=1` query value. `?ziptest=0`, `?ziptest=true` and the bare
 // app must expose NEITHER __zipEditorBridge NOR __zipWorkbenchBridge — a
-// truthiness-gated implementation (or a self-installing module import) fails
-// this spec. Positive half: `?ziptest=1` installs both.
+// truthiness-gated implementation fails this spec. A self-installing module
+// import is unobservable here (App.tsx lazy-imports the bridge modules only
+// behind the strict gate, so they never load without the flag) and is caught
+// by tests/unit/editor/editor-bridge-gate.test.ts at the import level.
+// Positive half: `?ziptest=1` installs both.
 import { expect, test } from '@playwright/test'
 
 async function waitForShell(page: import('@playwright/test').Page): Promise<void> {
