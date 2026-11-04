@@ -51,7 +51,8 @@ describe('CC-101.2: import drop zone and empty state', () => {
   })
 
   test('CC-101.2: dropping media + a caption file together creates the imported source track and shows the import report', async () => {
-    const { project, importService } = await mountWorkbench({ importService: createFakeImportService().service })
+    const fake = createFakeImportService()
+    const { project } = await mountWorkbench({ importService: fake.service })
     dispatchDrop(dropZone(), [makeMediaFile(), makeCaptionFile()])
     await waitFor(() => expect(project.getState().project?.blocks.length, 'imported source track (unit-07 seam, faked)').toBe(CANNED_BLOCKS.length))
     const created = project.getState().project
@@ -64,7 +65,7 @@ describe('CC-101.2: import drop zone and empty state', () => {
     expect(report.textContent, 'adjustment codes are surfaced verbatim').toContain('OVERLAP_CLAMPED')
     expect(report.textContent).toContain('EMPTY_CUE_DROPPED')
     expect(screen.getByTestId('transcribe-button'), 'Transcribe stays available (it would replace or align)').toBeTruthy()
-    expect(importService.importCalls.length, 'the caption file went through the seam').toBe(1)
+    expect(fake.importCalls.length, 'the caption file went through the seam').toBe(1)
   })
 
   test('CC-101.2: wrong-type files are rejected with a toast — never silently dropped', async () => {
