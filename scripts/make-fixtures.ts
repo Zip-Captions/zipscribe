@@ -951,14 +951,23 @@ function writeHarness(): void {
     writeFileSync(join(HARNESS, 'ground-truth', `${name}.json`), `${JSON.stringify(gt, null, 2)}\n`)
   }
   const ordered: Record<string, ManifestEntry> = {}
-  // `golden/…` entries are hand-authored reference pairs (fixtures/golden/
-  // README) merged into the manifest by hand — the generator never produces
-  // them, so regeneration must carry them over rather than drop them.
+  // Entries this generator never produces are carried over, not dropped, on
+  // regeneration: `golden/…` hand-authored reference pairs (fixtures/golden/
+  // README) AND committed input fixtures recorded with `generated:false`
+  // (the unit-07 `captions/*` corpus). The previous `golden/`-only rule
+  // dropped the 22 `captions/*` input entries, and `fixtures:verify` then
+  // reported every caption file as `unlicensed fixture captions/…` (CI run
+  // 41691407458, fixtures-verify job). Existence-checked on disk like
+  // verify's locate() (fixtures/audio/, then the corpus root); anything this
+  // run generates still wins (merged after this loop).
   const manifestFile = join(HARNESS, 'manifest.json')
   if (existsSync(manifestFile)) {
     const previous = JSON.parse(readFileSync(manifestFile, 'utf8')) as { files?: Record<string, ManifestEntry> }
     for (const [key, entry] of Object.entries(previous.files ?? {})) {
-      if (key.startsWith('golden/') && !(key in manifestFiles)) ordered[key] = entry
+      if (key in manifestFiles) continue
+      if (!(key.startsWith('golden/') || entry.generated === false)) continue
+      if (!existsSync(join(AUDIO, key)) && !existsSync(join(FIXTURES, key))) continue
+      ordered[key] = entry
     }
   }
   for (const key of Object.keys(manifestFiles)) ordered[key] = manifestFiles[key]!
