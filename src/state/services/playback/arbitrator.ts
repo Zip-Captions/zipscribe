@@ -1,13 +1,31 @@
 // SyncArbitrator — one truth for playback position (FR-102.3, US-2.1.5).
 //
 // Interfaces are frozen by tests/unit/editor/unit102-api-contract.d.ts §
-// '@state/services/playback/arbitrator'. Slice A ships the seam TYPES only
-// (the editor store, command registry and app composition build against them);
-// the single-rAF-loop implementation (`createSyncArbitrator`) lands in
-// unit-102 slice B together with the element MediaClock and the scrub/loop
-// behavior suite (tests/unit/editor/arbitrator.test.ts, CC-102.2).
+// '@state/services/playback/arbitrator'. Slice B ships the single-rAF-loop
+// implementation over the injected MediaClock (element clock in
+// `./media-clock.ts`; unit-107 adds the decoded clock) plus the scrub/loop
+// behavior proven by tests/unit/editor/arbitrator.test.ts (CC-102.2).
+//
+// Rules the frozen suites pin: EXACTLY ONE `clock.seek` per seek/scrub request
+// (the release never double-seeks); subscribers are notified synchronously on
+// `seek`; while playing every flushed frame delivers one sample; paused means
+// frozen; the loop region wraps [b → a] on the crossing frame (≤ 33 ms);
+// components NEVER read a media element's `currentTime` — this layer is the
+// only reader (CC-102.5).
+//
+// dt-based smoothing: every playing frame models the element's in-flight
+// advance (dt·rate, dt from the rAF timestamps); a raw clock read that CHANGED
+// since the last sample (real element advance or element-side seek) is
+// followed immediately — the clock stays the single truth, dt only fills the
+// gap between element deliveries (a backgrounded/throttled element keeps the
+// playhead moving for one modeled frame, and `visibilitychange` resyncs).
+//
+// Background-tab drift (unit-102 Risks): a `visibilitychange` listener
+// re-samples on return to foreground so subscribers do not wait for the first
+// rAF tick; guarded for non-DOM (node/L1) environments.
 
 import type { Seconds } from '../../../engine/model'
+import type { MediaClock } from './media-clock'
 
 /** Manual animation-frame driver: `request` queues a callback (timestamp in ms, monotonic from the injected clock), `frame(dtMs)` advances the clock and flushes the queue — no timers anywhere (conventions § 3). */
 export interface RafDriver {
@@ -35,4 +53,155 @@ export interface SyncArbitrator {
   scrubTo(t: Seconds): void
   endScrub(): void
   dispose(): void
+}
+
+/** Upper bound on one modelled in-flight frame (throttled/backgrounded rAF
+ *  must not teleport the playhead; `visibilitychange` resyncs from the clock). */
+const MAX_MODELLED_FRAME_MS = 1000
+
+export function createSyncArbitrator(deps: { clock: MediaClock; rafs: RafDriver; /** Optional sink — the editor store's setPlayhead. */ onPlayhead?: (playhead: Seconds) => void }): SyncArbitrator {
+  const { clock, rafs, onPlayhead } = deps
+  const subscribers = new Set<(playhead: Seconds) => void>()
+
+  let playhead: Seconds = clock.currentTime()
+  let lastRaw: Seconds = playhead
+  let playing = false
+  let rate = 1
+  let loop: [Seconds, Seconds] | null = null
+  let scrubbing = false
+  let wasPlayingBeforeScrub = false
+  let disposed = false
+  // The frozen `RafDriver` has no `now()`; the test fake supplies one (the dt
+  // window then opens at construction). Self-anchoring adapters (no `now()`)
+  // anchor the window at the first observed frame.
+  const driverNow = (rafs as Partial<{ now(): number }>).now
+  let lastFrameMs: number | null = typeof driverNow === 'function' ? driverNow.call(rafs) : null
+  let lastDtSec = 0
+  let rafId = rafs.request(onFrame)
+
+  function deliver(t: Seconds): void {
+    playhead = t
+    for (const cb of [...subscribers]) cb(t)
+    onPlayhead?.(t)
+  }
+
+  function sample(): void {
+    if (!playing || disposed) return
+    const raw = clock.currentTime()
+    let next = playhead
+    if (raw !== lastRaw) {
+      // The element delivered a new time (real advance or element-side seek):
+      // follow the clock — never re-derive what the clock says.
+      next = raw
+      lastRaw = raw
+    }
+    // In-flight dt·rate advance (the element keeps moving between deliveries).
+    next += lastDtSec * rate
+    const region = loop
+    if (region !== null && playhead < region[1] && next >= region[1]) {
+      // Crossing detection uses the last DELIVERED playhead: an explicit seek
+      // past the loop end is honored (not re-wrapped); playback crossing [b]
+      // wraps to [a] within one frame (≤ 33 ms, CC-102.2).
+      clock.seek(region[0])
+      lastRaw = region[0]
+      deliver(region[0])
+      return
+    }
+    deliver(next)
+  }
+
+  function onFrame(timeMs: number): void {
+    if (disposed) return
+    rafId = rafs.request(onFrame)
+    const dtMs = lastFrameMs === null ? 0 : Math.min(Math.max(0, timeMs - lastFrameMs), MAX_MODELLED_FRAME_MS)
+    lastFrameMs = timeMs
+    lastDtSec = dtMs / 1000
+    sample()
+  }
+
+  const onVisibility = (): void => {
+    // Background-tab rAF throttling: resync immediately on return to
+    // foreground instead of waiting for the first frame tick.
+    sample()
+  }
+  const hasDocument = typeof document !== 'undefined' && typeof document.addEventListener === 'function'
+  if (hasDocument) document.addEventListener('visibilitychange', onVisibility)
+
+  return {
+    subscribe(cb) {
+      subscribers.add(cb)
+      return () => {
+        subscribers.delete(cb)
+      }
+    },
+    seek(t) {
+      // EXACTLY one clock.seek per request (single-seek rule, US-2.1.5).
+      clock.seek(t)
+      lastRaw = t
+      deliver(t)
+    },
+    setLoop(region) {
+      loop = region === null ? null : [region[0], region[1]]
+    },
+    get rate() {
+      return rate
+    },
+    set rate(value: number) {
+      if (value === rate) return
+      rate = value
+      clock.setRate(value)
+    },
+    play() {
+      if (playing || disposed) return
+      playing = true
+      clock.play()
+    },
+    pause() {
+      if (!playing) return
+      playing = false
+      clock.pause()
+    },
+    get playing() {
+      return playing
+    },
+    get loop() {
+      return loop
+    },
+    get playhead() {
+      return playhead
+    },
+    beginScrub() {
+      if (scrubbing) return
+      scrubbing = true
+      wasPlayingBeforeScrub = playing
+      if (playing) {
+        playing = false
+        clock.pause()
+      }
+    },
+    scrubTo(t) {
+      // One seek per move; no autoplay — the release owns the play resume.
+      clock.seek(t)
+      lastRaw = t
+      deliver(t)
+    },
+    endScrub() {
+      if (!scrubbing) return
+      scrubbing = false
+      if (wasPlayingBeforeScrub) {
+        // Resume at the scrub position WITHOUT another clock.seek (US-2.1.5).
+        playing = true
+        clock.play()
+      }
+    },
+    dispose() {
+      if (disposed) return
+      disposed = true
+      playing = false
+      subscribers.clear()
+      rafs.cancel(rafId)
+      if (hasDocument) document.removeEventListener('visibilitychange', onVisibility)
+      clock.dispose()
+    },
+  }
 }

@@ -29,9 +29,10 @@ import { produce } from 'immer'
 import type { Project } from '../engine/model'
 import type { MediaClock } from './services/playback/media-clock'
 import type { RafDriver, SyncArbitrator } from './services/playback/arbitrator'
+import { createSyncArbitrator } from './services/playback/arbitrator'
 import { NO_OP_TRANSLATION_RULES } from '../engine/translate/track'
 import { buildEditorCommands, DEFAULT_BLOCKIZER, NOT_IMPLEMENTED_SPEAKER_ENGINE, type Blockizer, type CommandDeps, type SpeakerEngine } from './commands'
-import type { CommandId, CommandPayloads, CommandReject, EditorCommand, BlockEditTextPayload } from './commands'
+import type { CommandId, CommandPayloads, CommandReject, EditorCommand, BlockEditTextPayload, TransportRatePayload } from './commands'
 import type { EditorStore, EditorUiStateInternal } from './editor'
 import { createInitialEditorState, makeEditorActions } from './editor'
 import type { ProjectStore } from './project'
@@ -91,15 +92,6 @@ interface EditorRootInternal {
 const REJECT_SENTINEL = new Error('zipscribe.command-reject')
 
 export function createEditorApp(deps: EditorAppDeps): EditorApp {
-  // Slice boundary (unit-102 slice B): the SyncArbitrator implementation
-  // (`createSyncArbitrator`, frozen contract § playback/arbitrator) ships
-  // with the element MediaClock. An app composed WITH a clock is not
-  // constructible until then — failing with a CODE beats a silent
-  // `arbitrator: null` that violates the frozen contract.
-  if (deps.mediaClock !== undefined) {
-    throw new Error('PLAYBACK_ARBITRATOR_PENDING_SLICE_B')
-  }
-
   const commandDeps: CommandDeps = {
     clock: deps.clock,
     speakerEngine: deps.speakerEngine ?? NOT_IMPLEMENTED_SPEAKER_ENGINE,
@@ -136,11 +128,20 @@ export function createEditorApp(deps: EditorAppDeps): EditorApp {
     commitState(produce(store.getState(), mutate))
   }
 
+  const editorActions = makeEditorActions((mutate) => commit((root) => mutate(root.editor)))
   const editor: EditorStore = {
     getState: () => store.getState().editor,
     subscribe: store.subscribe,
-    ...makeEditorActions((mutate) => commit((root) => mutate(root.editor))),
+    ...editorActions,
   }
+
+  // FR-102.3 single clock owner — present exactly when a MediaClock was
+  // injected (unit-101 intake-seam doctrine: composition root supplies the
+  // element clock; unit-107 swaps in the decoded clock behind the same seam).
+  const arbitrator: SyncArbitrator | null =
+    deps.mediaClock === undefined
+      ? null
+      : createSyncArbitrator({ clock: deps.mediaClock, rafs: deps.rafs, onPlayhead: (t) => editorActions.setPlayhead(t) })
 
   const project: ProjectStore = {
     getState: () => ({ project: store.getState().project }),
@@ -196,7 +197,43 @@ export function createEditorApp(deps: EditorAppDeps): EditorApp {
     commitState(next)
     if (coalesce) temporalStore().resume()
     mergeChain = editText !== null ? { blockId: editText.blockId, at: now } : null
+    mirrorTransportToArbitrator(id, payload)
     return rejection
+  }
+
+  /** Accepted transport commands drive the single clock owner (FR-102.3):
+   *  the reducer owns clamp/validation (UI-only playhead truth), the
+   *  arbitrator owns the element — EXACTLY one `clock.seek` per seek-flavored
+   *  command (single-seek rule, asserted via the fake clock's call counts). */
+  function mirrorTransportToArbitrator(id: CommandId, payload: CommandPayloads[CommandId]): void {
+    if (arbitrator === null) return
+    const current = store.getState().editor
+    switch (id) {
+      case 'transport-play':
+        arbitrator.play()
+        return
+      case 'transport-pause':
+        arbitrator.pause()
+        return
+      case 'transport-seek':
+      case 'transport-skip':
+      case 'transport-step-frame':
+      case 'transport-step-second':
+        arbitrator.seek(current.playhead)
+        return
+      case 'transport-rate':
+        arbitrator.rate = (payload as TransportRatePayload).rate
+        return
+      case 'transport-loop-set':
+      case 'transport-loop-in':
+      case 'transport-loop-out':
+      case 'transport-loop-clear':
+      case 'transport-loop-toggle':
+        arbitrator.setLoop(current.loop)
+        return
+      default:
+        return
+    }
   }
 
   const history: EditorHistoryApi = {
@@ -218,13 +255,13 @@ export function createEditorApp(deps: EditorAppDeps): EditorApp {
   return {
     project,
     editor,
-    arbitrator: null,
+    arbitrator,
     getEditorCommands: () => commands,
     getCommand: (id) => commandsById.get(id),
     dispatch,
     history,
     dispose() {
-      // Slice B extends this with the arbitrator teardown (its loop owns rAF).
+      arbitrator?.dispose()
     },
   }
 }

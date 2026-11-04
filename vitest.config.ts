@@ -147,23 +147,15 @@ export default defineConfig({
             // undo-redo.property, translations-stub, cache-copy-pins) RUN in
             // the child (~1.5 s serial) so the command-wiring proof sees the
             // command system; RETIRE each entry as its slice goes green.
-            // arbitrator/serialize/transport-commands: slice B (mediaClock
-            // seam throws `PLAYBACK_ARBITRATOR_PENDING_SLICE_B`); export-seam:
-            // slice B/C; contract: slice D (CONTRACT.md + generated types);
-            // carried-101: `transport-time-current` render check needs the
-            // slice-B/C transport bar; active-word: frozen-defect DISPUTE
-            // (line 15 asserts `activeWord(b,2)?.text` toBeNull — a nullish
-            // base makes `?.text` evaluate to `undefined`, and the same test
-            // line 21 requires the gap input to be literal `null`, so no
-            // implementation can satisfy both). Parent `pnpm test` and
-            // `verify:unit` (clears ZIPSCRIBE_CHILD) execute all of it.
-            '**/arbitrator.test.ts',
-            '**/serialize.test.ts',
-            '**/export-seam.test.ts',
-            '**/transport-commands.test.ts',
+            // RETIRED at slice B (GREEN: arbitrator, serialize, export-seam,
+            // transport-commands, active-word + the new builder L1
+            // src/state/services/playback/media-clock.test.ts). REMAINING
+            // (slice C/D): contract — CONTRACT.md + generated types are the
+            // slice-D deliverable; carried-101 — the `transport-time-current`
+            // render check needs the slice-C transport bar. Parent `pnpm test`
+            // and `verify:unit` (clears ZIPSCRIBE_CHILD) execute all of it.
             '**/contract.test.ts',
             '**/carried-101-obligations.test.ts',
-            '**/active-word.test.ts',
             ...defaultExclude,
           ]
         : defaultExclude,
@@ -201,27 +193,16 @@ export default defineConfig({
         '**/*.test.tsx',
         'src/engine/**/adapters/**',
         'src/workers/**',
-        // unit-102 (slice A, child only): the transport reducers, selectors
-        // and playback type-seams are covered exclusively by editor suites
-        // the child excludes (transport-commands, active-word, arbitrator —
-        // see the child exclude block); reporting them at 0 % in the child
-        // would trip the frozen perFile `src/state/**` 80 % threshold and
-        // mask the command-wiring proof (unit-04 media-worker-wiring
-        // precedent). The authoritative parent `pnpm test --coverage` and CI
-        // measure them. RETIRE with slice B/C (arbitrator + transport bar
-        // import selectors and the transport reducers).
+        // unit-102 (slice A, child only): RETIRED at slice B — the transport
+        // reducers, selectors and playback layer now execute in the child
+        // (transport-commands + arbitrator + media-clock builder L1 cover
+        // them; unit-04 media-worker-wiring precedent for the retirement).
+        // The four core files stay excluded ONLY for their paths still
+        // exercised by child-excluded RED suites (contract scan slice D,
+        // transport-bar UI slice C). The parent `pnpm test --coverage` (CI)
+        // keeps measuring everything perFile.
         ...(process.env.ZIPSCRIBE_CHILD === '1'
           ? [
-              'src/state/commands/transport-*.ts',
-              'src/state/selectors.ts',
-              'src/state/services/playback/**',
-              // The four core files are only PARTIALLY covered by the green
-              // slice-A suites: their uncovered paths (default deps' typed
-              // not-implemented throws, store-built default command registry
-              // accessors, UI-only editor actions, the slice-B arbitrator
-              // throw) are exercised by the child-excluded RED suites
-              // (transport-commands, arbitrator, slice-C UI). The parent
-              // `pnpm test --coverage` (CI) keeps measuring them perFile.
               'src/state/commands/deps.ts',
               'src/state/commands/index.ts',
               'src/state/editor.ts',
