@@ -74,14 +74,7 @@ export function TransportBar({ editor, duration, onCycleRate }: TransportBarProp
           {formatTimecode(duration)}
         </span>
       </span>
-      <button
-        type="button"
-        data-testid="transport-loop-toggle"
-        aria-pressed={loop !== null}
-        className="ws-button ws-transport-button"
-        aria-label="Loop region"
-        onClick={() => dispatchCommand('transport.loop-toggle')}
-      >
+      <button type="button" data-testid="transport-loop-toggle" aria-pressed={loop !== null} className="ws-button ws-transport-button" aria-label="Loop region" onClick={() => dispatchCommand('transport.loop-toggle')}>
         ↻
       </button>
       <button
@@ -104,14 +97,7 @@ export function TransportBar({ editor, duration, onCycleRate }: TransportBarProp
       >
         O
       </button>
-      <button
-        type="button"
-        data-testid="transport-rate"
-        aria-haspopup="true"
-        className="ws-button ws-transport-button"
-        aria-label={`Playback rate ${rate}×`}
-        onClick={onCycleRate}
-      >
+      <button type="button" data-testid="transport-rate" aria-haspopup="true" className="ws-button ws-transport-button" aria-label={`Playback rate ${rate}×`} onClick={onCycleRate}>
         {`${rate}×`}
       </button>
     </div>

@@ -32,9 +32,7 @@ export function createBlockSplitCommand(deps: CommandDeps): EditorCommand<'block
       // reject SPLIT_EMPTY_PART, which is only consistent if straddlers
       // leave the left part).
       const leftWords = block.words.filter((w) => w.end <= at)
-      const rightWords = block.words
-        .filter((w) => w.start >= at || w.end > at)
-        .map((w) => (w.start < at ? { ...w, start: at } : { ...w }))
+      const rightWords = block.words.filter((w) => w.start >= at || w.end > at).map((w) => (w.start < at ? { ...w, start: at } : { ...w }))
       if (leftWords.length === 0 || rightWords.length === 0) return reject('SPLIT_EMPTY_PART', block.id)
       const secondId = deps.newBlockId()
       const first: CaptionBlock = { ...block, end: at, words: leftWords, text: deriveBlockText(leftWords) }

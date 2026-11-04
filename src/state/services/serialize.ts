@@ -19,16 +19,7 @@ const PRECISION_FACTOR = 10 ** SERIALIZE_PRECISION_DIGITS
 
 /** Codes the parse-side validator surfaces (SECURITY-03: codes, never content). */
 export type ProjectParseErrorCode =
-  | 'INVALID_JSON'
-  | 'INVALID_PROJECT'
-  | 'INVALID_ASSET'
-  | 'INVALID_BLOCK'
-  | 'INVALID_WORD'
-  | 'INVALID_SPEAKER'
-  | 'INVALID_TRANSLATION'
-  | 'INVALID_STYLE'
-  | 'INVALID_NUMBER'
-  | 'INVALID_TYPE'
+  'INVALID_JSON' | 'INVALID_PROJECT' | 'INVALID_ASSET' | 'INVALID_BLOCK' | 'INVALID_WORD' | 'INVALID_SPEAKER' | 'INVALID_TRANSLATION' | 'INVALID_STYLE' | 'INVALID_NUMBER' | 'INVALID_TYPE'
 
 /** Base of the state-services error lineage (the contract's "ZipscribeError"). */
 export class ZipscribeError extends Error {
@@ -180,7 +171,15 @@ function parseAsset(value: unknown): void {
   requireFinite(value, 'height', 'INVALID_ASSET')
   requireFinite(value, 'fps', 'INVALID_ASSET')
   const fingerprint = value['fingerprint']
-  if (!isObject(fingerprint) || !isString(fingerprint['name']) || !isFiniteNumber(fingerprint['size']) || !isFiniteNumber(fingerprint['durationMs']) || !Array.isArray(fingerprint['sampleHashes']) || fingerprint['sampleHashes'].length !== 3 || !fingerprint['sampleHashes'].every(isString)) {
+  if (
+    !isObject(fingerprint) ||
+    !isString(fingerprint['name']) ||
+    !isFiniteNumber(fingerprint['size']) ||
+    !isFiniteNumber(fingerprint['durationMs']) ||
+    !Array.isArray(fingerprint['sampleHashes']) ||
+    fingerprint['sampleHashes'].length !== 3 ||
+    !fingerprint['sampleHashes'].every(isString)
+  ) {
     throw new ProjectParseError('INVALID_ASSET')
   }
 }

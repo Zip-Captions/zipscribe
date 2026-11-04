@@ -34,7 +34,8 @@ export function createCaptionsImportCommand(_deps: CommandDeps): EditorCommand<'
       if (track !== null) return track
       const extraSpeakers: readonly Speaker[] = payload.speakers ?? []
       for (const s of extraSpeakers) {
-        if (typeof s.id !== 'string' || s.id === '' || typeof s.label !== 'string' || s.label.trim() === '' || typeof s.color !== 'string' || s.color === '') return reject('INVALID_PAYLOAD', typeof s.id === 'string' ? s.id : 'speaker')
+        if (typeof s.id !== 'string' || s.id === '' || typeof s.label !== 'string' || s.label.trim() === '' || typeof s.color !== 'string' || s.color === '')
+          return reject('INVALID_PAYLOAD', typeof s.id === 'string' ? s.id : 'speaker')
       }
       const knownSpeaker = (id: string): boolean => resolveSpeakerId(project.speakers, id) || resolveSpeakerId(extraSpeakers, id)
       const existingIds = new Set(project.blocks.map((b) => b.id))

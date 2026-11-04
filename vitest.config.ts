@@ -201,14 +201,7 @@ export default defineConfig({
         // exercised by child-excluded RED suites (contract scan slice D,
         // transport-bar UI slice C). The parent `pnpm test --coverage` (CI)
         // keeps measuring everything perFile.
-        ...(process.env.ZIPSCRIBE_CHILD === '1'
-          ? [
-              'src/state/commands/deps.ts',
-              'src/state/commands/index.ts',
-              'src/state/editor.ts',
-              'src/state/history.ts',
-            ]
-          : []),
+        ...(process.env.ZIPSCRIBE_CHILD === '1' ? ['src/state/commands/deps.ts', 'src/state/commands/index.ts', 'src/state/editor.ts', 'src/state/history.ts'] : []),
       ],
       thresholds: {
         // Every reported file must clear the gate (a below-threshold file fails
