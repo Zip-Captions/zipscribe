@@ -16,7 +16,7 @@ Status: complete — **HITL CONTRACT FREEZE: merge flagged for morning review; m
 
 ## Gates
 
-lint ✓ · typecheck ✓ · format:check ✓ · test ✓ (119 files, 955 passed \| 1 skipped \| 1 todo) · build+check-bundle ✓ (104.4 KB gzip / 350 KB) · test:e2e ✓ (95 passed incl. playback-sync + fps-10k; 24.6 min builder run @ slice D + full-suite CI re-coverage) · qual-check ACCEPT (contentHash e8683393, re-sign 83c9624, deep-compare) · porcelain empty.
+lint ✓ · typecheck ✓ · format:check ✓ · test ✓ (119 files, 955 passed \| 1 skipped \| 1 todo) · build+check-bundle ✓ (104.4 KB gzip / 350 KB) · test --coverage ✓ (orchestrator-run twice @ 0ec471f: 120 files/965 tests, perFile thresholds met — after review round 1 correctly flagged this gate red-at-head: dead seams now covered by tests/unit/editor/seams-coverage.test.ts [10 tests, 6/6 kill-map] and the frozen gates-child runPnpm budget raised 30s→90s [orchestrator adjudication, child suite 690 tests @ 25.7 s idle]) · test:e2e ✓ (95 passed incl. playback-sync + fps-10k; 24.6 min builder run @ slice D + reviewer re-run @ ddca97e + full-suite CI re-coverage) · qual-check ACCEPT (contentHash e8683393, re-sign 83c9624, deep-compare; test-only delta since) · porcelain empty.
 
 ## Deviations from spec
 
@@ -28,7 +28,8 @@ lint ✓ · typecheck ✓ · format:check ✓ · test ✓ (119 files, 955 passed
 ## Frozen-file adjudications (reviewers must re-verify)
 
 1. `active-word.test.ts:15` `activeWord(b,2)?.text` → `activeWord(b,2)` (`.toBeNull` kept; nullish-chain `?.text` can never be null) — ae57f8c.
-2. `contract.test.ts:98` needles `SyncArbitrator`/`exportService` → lowercase (lowercased subject can never contain mixed-case; sibling assertions untouched) — a1de111.
+2. `tests/helpers/repo.ts:48` runPnpm child budget 30_000→90_000 with growth citation (0ec471f — CI SIGTERM evidence, vitest.config-sanctioned fix).
+3. `contract.test.ts:98` needles `SyncArbitrator`/`exportService` → lowercase (lowercased subject can never contain mixed-case; sibling assertions untouched) — a1de111.
 
 ## Adversarial (tests/unit/editor/adversarial/**, additions-only)
 
