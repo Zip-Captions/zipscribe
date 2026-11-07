@@ -412,6 +412,20 @@
       "channels": null,
       "expectedPath": null
     },
+    "golden/project-canonical-v1.json": {
+      "sha256": "f2a3728ed3393dc74a6b81aad409ebf69e0ff6553a08c9446e1ae12d7ef6dc2b",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo golden)",
+      "codec": null,
+      "sampleRate": null,
+      "channels": null,
+      "expectedPath": null
+    },
     "golden/speech-22k.wav": {
       "sha256": "50320020cb28db020a2af1784b7967929c33ffacedc2f43e68e9b5c4b101f46b",
       "duration": null,

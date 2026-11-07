@@ -24,6 +24,7 @@
     "fixtures": "node scripts/make-fixtures.ts",
     "fixtures:verify": "node scripts/verify-fixtures.ts",
     "check-bundle": "node scripts/check-bundle.mjs",
+    "gen:contract": "node scripts/gen-contract-types.mjs",
     "spec-lint": "node scripts/spec-lint.ts",
     "license-check": "node scripts/license-check.ts",
     "verify:unit": "node scripts/verify-criteria.ts unit",

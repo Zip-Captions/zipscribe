@@ -24,15 +24,29 @@ import type { JobsState, JobsStore } from '../../state/jobs'
 import type { SettingsStore, WorkbenchSettings } from '../../state/settings'
 import type { ProjectStore } from '../../state/project'
 import type { ImportReport, IntakeService } from '../../state/services/intake'
+import type { EditorApp } from '../../state/history'
+import type { StageController } from '../../app/stage'
+import type { OverlayRenderer } from '../canvas/overlay'
 import { useCommands } from '../commands/useCommands'
+import { useTransportCommands } from '../commands/useTransportCommands'
+import { formatTimecode } from '../format'
+import { StageMedia } from './StageMedia'
 import { TranscribePopover } from './TranscribePopover'
 import './workbench.css'
+
+/** Slice C editor wiring (EXTENDS the frozen 101 WorkbenchProps — optional, so every frozen 101 mount path is untouched). */
+export interface WorkbenchTransport {
+  app: EditorApp
+  stage: StageController
+  overlayRenderer?: OverlayRenderer
+}
 
 export interface WorkbenchProps {
   jobs: JobsStore
   settings: SettingsStore
   project: ProjectStore
   intake: IntakeService
+  transport?: WorkbenchTransport
 }
 
 type SidebarTab = 'subtitles' | 'media' | 'style'
@@ -118,13 +132,6 @@ function useSnapshot<T>(store: { getState(): T; subscribe: (listener: () => void
     })
   }, [store])
   return snapshot
-}
-
-function formatTimecode(seconds: number): string {
-  const tenths = Math.max(0, Math.round(seconds * 10))
-  const minutes = Math.floor(tenths / 600)
-  const rest = (tenths - minutes * 600) / 10
-  return `${String(minutes).padStart(2, '0')}:${rest.toFixed(1).padStart(4, '0')}`
 }
 
 function resolveTheme(settingsState: WorkbenchSettings): 'dark' | 'light' {
@@ -401,9 +408,10 @@ function BlockedScreen({ reasons }: { reasons: readonly string[] }): ReactNode {
 }
 
 export function Workbench(props: WorkbenchProps): ReactNode {
-  const { jobs, settings, project, intake } = props
+  const { jobs, settings, project, intake, transport } = props
 
   useCommands(settings)
+  useTransportCommands(transport?.app)
   const jobsState = useSnapshot(jobs)
   const settingsState = useSnapshot(settings)
   const { project: currentProject } = useSnapshot(project)
@@ -411,6 +419,9 @@ export function Workbench(props: WorkbenchProps): ReactNode {
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [toastCodes, setToastCodes] = useState<readonly string[] | null>(null)
   const [importReport, setImportReport] = useState<ImportReport | null>(null)
+  // The FR-102.6 overlay canvas mounts INSIDE the reserved canvas layer (the
+  // host node stays unit-101's).
+  const canvasHostRef = useRef<HTMLDivElement | null>(null)
 
   // Intake flows (drop / sample): outcomes are pushed into local UI state —
   // rejections as reason CODES, the latest import as the report. flushSync so
@@ -542,7 +553,7 @@ export function Workbench(props: WorkbenchProps): ReactNode {
         )}
         <div className="ws-center">
           <section data-region="stage" data-testid="panel-stage" tabIndex={-1} role="region" aria-label="Preview stage" className="ws-stage">
-            <div data-testid="preview-canvas-layer" className="ws-canvas-layer" aria-hidden="true" />
+            <div data-testid="preview-canvas-layer" ref={canvasHostRef} className="ws-canvas-layer" aria-hidden="true" />
             {currentProject === null && (
               <DropZone
                 jobsState={jobsState}
@@ -557,6 +568,9 @@ export function Workbench(props: WorkbenchProps): ReactNode {
                   })
                 }}
               />
+            )}
+            {currentProject !== null && transport !== undefined && (
+              <StageMedia app={transport.app} stage={transport.stage} asset={currentProject.asset} canvasHostRef={canvasHostRef} overlayRenderer={transport.overlayRenderer} />
             )}
           </section>
           {!settingsState.collapsed.timeline && (

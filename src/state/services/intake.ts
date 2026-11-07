@@ -109,7 +109,19 @@ function isMediaFile(file: File): boolean {
   return file.type.startsWith('video/') || file.type.startsWith('audio/')
 }
 
-export function createIntakeService(deps: { engine: EnginePort; jobs: JobsStore; project: ProjectStore; importService: ImportCaptionsService }): IntakeService {
+export function createIntakeService(deps: {
+  engine: EnginePort
+  jobs: JobsStore
+  project: ProjectStore
+  importService: ImportCaptionsService
+  /**
+   * EXTENDS (unit-102 slice C, additive/optional): called for every accepted
+   * media file as its `probe` request is posted — the composition root uses
+   * it to bind a preview source (blob: URL) to the probe jobId. Tests and the
+   * frozen 101 contract never pass it.
+   */
+  onMediaProbe?: (file: File, jobId: string) => void
+}): IntakeService {
   // IN.3/IN.4 (adversary adjudication): per-drop pairing — each imported
   // caption is bound to the probe jobId ITS OWN drop posts, so a slow probe
   // reply can never consume a later drop's caption (a global FIFO leaked) and
@@ -167,6 +179,7 @@ export function createIntakeService(deps: { engine: EnginePort; jobs: JobsStore;
       const jobId = newJobId()
       const captionImport = pairable.shift()
       if (captionImport !== undefined) pendingByProbeJobId.set(jobId, captionImport)
+      deps.onMediaProbe?.(file, jobId)
       deps.engine.postMedia({ t: 'probe', jobId, file })
       outcome.mediaPosted += 1
     }

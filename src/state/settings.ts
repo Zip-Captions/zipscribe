@@ -10,12 +10,29 @@
 
 import { createStore } from 'zustand/vanilla'
 import { immer } from 'zustand/middleware/immer'
+import type { ModelId } from '../engine/protocol'
+import { getModel } from '../engine/model/registry'
 
 /** Persisted surface: async so the unit-106 IDB adapter can replace it; tests inject a fake over `createFakeKvStore`. */
 export interface SettingsStorage {
   get(key: string): Promise<string | null>
   set(key: string, value: string): Promise<void>
 }
+
+/**
+ * Transcribe-popover memory (design.md § Transcribe popover: language /
+ * model / diarize — "Remembered per settings"). Unit-102 MAJOR-5 EXTENDS
+ * clause of the unit-101 frozen contract: persisted inside WorkbenchSettings
+ * under key `transcribe`, hydration-tolerant like the rest of the slice
+ * (corrupt values degrade to defaults, never throw — SET.2 symmetry).
+ */
+export interface TranscribePrefs {
+  language: string | null
+  modelId: ModelId | null
+  diarize: boolean
+}
+
+const DEFAULT_TRANSCRIBE_PREFS: TranscribePrefs = { language: null, modelId: null, diarize: false }
 
 export const SETTINGS_STORAGE_KEY = 'zipscribe.settings.workbench'
 
@@ -33,6 +50,8 @@ export interface WorkbenchSettings {
   collapsed: { sidebar: boolean; timeline: boolean }
   /** FR-2.0.5: dark default; 'system' follows prefers-color-scheme only when the user never chose. */
   theme: 'dark' | 'light' | 'system'
+  /** MAJOR-5 (unit-102 EXTENDS): transcribe popover memory, per settings. */
+  transcribe: TranscribePrefs
 }
 
 export interface SettingsStore {
@@ -43,6 +62,8 @@ export interface SettingsStore {
   /** Ctrl+Alt+2 / Ctrl+Alt+3 (design.md shortcut table) land here via the command registry. */
   toggleCollapsed(region: 'sidebar' | 'timeline'): void
   setTheme(theme: 'dark' | 'light' | 'system'): void
+  /** MAJOR-5: partial merge into the persisted `transcribe` prefs (popover remembers language/model/diarize). */
+  setTranscribePrefs(prefs: Partial<TranscribePrefs>): void
 }
 
 const DEFAULT_PANELS: PanelSizes = { sidebarPx: 320, timelinePx: 200 }
@@ -51,6 +72,7 @@ const DEFAULT_SETTINGS: WorkbenchSettings = {
   panels: { ...DEFAULT_PANELS },
   collapsed: { sidebar: false, timeline: false },
   theme: 'dark',
+  transcribe: { ...DEFAULT_TRANSCRIBE_PREFS },
 }
 
 /**
@@ -90,6 +112,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+/** MAJOR-5 hydration: per-field tolerance — corrupt entries degrade to defaults (SET.2 symmetry), a modelId outside the registry is corruption. */
+function hydrateTranscribe(value: unknown): TranscribePrefs {
+  if (!isRecord(value)) return { ...DEFAULT_TRANSCRIBE_PREFS }
+  const language = typeof value.language === 'string' && value.language !== '' ? value.language : null
+  const modelId = typeof value.modelId === 'string' && getModel(value.modelId) !== undefined ? value.modelId : null
+  return { language, modelId, diarize: value.diarize === true }
+}
+
 /** Missing key → defaults; corrupt JSON → defaults, never throws (contract § createSettingsStore). */
 function hydrate(raw: string | null): WorkbenchSettings {
   if (raw === null) return structuredClone(DEFAULT_SETTINGS)
@@ -109,6 +139,7 @@ function hydrate(raw: string | null): WorkbenchSettings {
     panels: { sidebarPx, timelinePx },
     collapsed: { sidebar: collapsed.sidebar === true, timeline: collapsed.timeline === true },
     theme,
+    transcribe: hydrateTranscribe(parsed.transcribe),
   }
 }
 
@@ -144,6 +175,22 @@ export function createSettingsStore(deps: { storage: SettingsStorage }): Promise
         setTheme(theme: 'dark' | 'light' | 'system'): void {
           store.setState((state) => {
             state.theme = theme
+          })
+          persist()
+        },
+        setTranscribePrefs(prefs: Partial<TranscribePrefs>): void {
+          store.setState((state) => {
+            // Key-presence merge (an explicit `null` CLEARS, an absent key keeps the
+            // stored value), then the same per-field hydration tolerance.
+            const merged: Partial<TranscribePrefs> = {
+              language: 'language' in prefs ? prefs.language : state.transcribe.language,
+              modelId: 'modelId' in prefs ? prefs.modelId : state.transcribe.modelId,
+              diarize: 'diarize' in prefs ? prefs.diarize : state.transcribe.diarize,
+            }
+            const next = hydrateTranscribe(merged)
+            state.transcribe.language = next.language
+            state.transcribe.modelId = next.modelId
+            state.transcribe.diarize = next.diarize
           })
           persist()
         },

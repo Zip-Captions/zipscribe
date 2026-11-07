@@ -54,6 +54,32 @@ function defaultProjectName(assetName: string): string {
   return dot > 0 ? assetName.slice(0, dot) : assetName
 }
 
+/**
+ * Build the initial project from a probed asset (unit-102 slice A extraction:
+ * `createProjectStore` and `createEditorApp` share ONE construction path —
+ * the app-composed store's `createProject` must produce the identical shape).
+ */
+export function buildProjectFromAsset(asset: MediaAsset, captionImport: CaptionImportResult | undefined, now: number): Project {
+  const blocks = captionImport ? [...captionImport.blocks] : []
+  return {
+    id: newProjectId(),
+    name: defaultProjectName(asset.name),
+    schemaVersion: 1,
+    asset,
+    blocks,
+    captionOrigin: blocks.length > 0 ? 'imported' : 'none',
+    translations: [],
+    speakers: [],
+    speakerSource: 'none',
+    language: null,
+    modelId: null,
+    style: structuredClone(DEFAULT_CAPTION_STYLE),
+    outputAspect: 'source',
+    transcription: 'none',
+    updatedAt: now,
+  }
+}
+
 export function createProjectStore(deps: { clock: { now(): number } }): ProjectStore {
   const store = createStore<ProjectState>()(immer(() => ({ project: null })))
 
@@ -61,24 +87,7 @@ export function createProjectStore(deps: { clock: { now(): number } }): ProjectS
     getState: store.getState,
     subscribe: store.subscribe,
     createProject(asset: MediaAsset, captionImport?: CaptionImportResult): void {
-      const blocks = captionImport ? [...captionImport.blocks] : []
-      const project: Project = {
-        id: newProjectId(),
-        name: defaultProjectName(asset.name),
-        schemaVersion: 1,
-        asset,
-        blocks,
-        captionOrigin: blocks.length > 0 ? 'imported' : 'none',
-        translations: [],
-        speakers: [],
-        speakerSource: 'none',
-        language: null,
-        modelId: null,
-        style: structuredClone(DEFAULT_CAPTION_STYLE),
-        outputAspect: 'source',
-        transcription: 'none',
-        updatedAt: deps.clock.now(),
-      }
+      const project = buildProjectFromAsset(asset, captionImport, deps.clock.now())
       store.setState((state) => {
         state.project = project
       })
