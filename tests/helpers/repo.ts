@@ -45,7 +45,8 @@ export interface CommandResult {
   slug: string
 }
 
-export function runPnpm(script: string, args: string[] = [], timeoutMs = 30_000): CommandResult {
+// Gates-child growth (unit-102): child suite 77 files/690 tests — 25.7 s idle WITH coverage, SIGTERM ≥30 s under contention (orchestrator adjudication; gates.test child timeout 600 s unchanged).
+export function runPnpm(script: string, args: string[] = [], timeoutMs = 90_000): CommandResult {
   if (!(script in packageScripts())) {
     throw new Error(`package.json has no "${script}" script`)
   }

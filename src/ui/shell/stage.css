@@ -1,0 +1,94 @@
+/* unit-102 slice C — preview stage layer (StageMedia + TransportBar).
+   Kept OUT of workbench.css (unit-101-owned) so the frozen 101 shell file
+   stays untouched. Everything here is absolutely positioned inside the stage:
+   the 101 CLS budget belongs to the streaming rows, not to the stage
+   additions. Design tokens only (design.md § Design tokens). */
+
+.ws-stage-media {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+/* object-fit: contain — the overlay canvas replicates this box via
+   letterboxGeometry (FR-102.6 parity). */
+.ws-stage-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Audio projects: the 16:9 dark stage hosting unit-107's visualizer beneath
+   the caption overlay (design.md § Audio projects). */
+.ws-visualizer-slot {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-app);
+  aspect-ratio: 16 / 9;
+  margin: auto;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.ws-stage-notice {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  padding: 8px 16px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--warning);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.ws-stage-notice-code {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--warning);
+}
+
+.ws-transport-wrap {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+}
+
+/* design.md § Layout: `◀◀ 5s ▶/⏸ 5s▶▶ | 00:12.3/10:00` + loop · I/O · rate */
+.ws-transport {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: color-mix(in srgb, var(--bg-panel) 88%, transparent);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+
+.ws-transport-button {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-transport-time {
+  display: inline-flex;
+  gap: 2px;
+  margin: 0 4px;
+  padding: 0 4px;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}

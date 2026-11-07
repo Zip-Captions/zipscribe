@@ -18,13 +18,29 @@ export interface CommandBinding {
 }
 
 // design.md § Keyboard shortcuts (v1 map) — the complete shell subset
-// unit-101 dispatches. Chords match the table verbatim.
+// unit-101 dispatches, PLUS the unit-102 transport subset (slice C):
+// Space play/pause, J/L ±5 s (Shift ±10 s), ←/→ ±1 frame, Shift+←/→ ±1 s,
+// Y loop toggle, I/O loop in/out from the playhead. Chords match the table.
 const SHELL_BINDINGS: readonly CommandBinding[] = [
   { id: 'focus.sidebar', keys: 'Alt+1', when: 'not-editing' },
   { id: 'focus.stage', keys: 'Alt+2', when: 'not-editing' },
   { id: 'focus.timeline', keys: 'Alt+3', when: 'not-editing' },
   { id: 'panels.collapse.sidebar', keys: 'Ctrl+Alt+2', when: 'not-editing' },
   { id: 'panels.collapse.timeline', keys: 'Ctrl+Alt+3', when: 'not-editing' },
+  // unit-102 slice C transport bindings (FR-102.5, US-2.2.4 — design.md v1
+  // map; unit-105 owns the registry snapshot, the chords here match it).
+  { id: 'transport.play-pause', keys: 'Space', when: 'not-editing' },
+  { id: 'transport.skip-backward', keys: 'J', when: 'not-editing' },
+  { id: 'transport.skip-forward', keys: 'L', when: 'not-editing' },
+  { id: 'transport.skip-backward-large', keys: 'Shift+J', when: 'not-editing' },
+  { id: 'transport.skip-forward-large', keys: 'Shift+L', when: 'not-editing' },
+  { id: 'transport.step-backward', keys: 'ArrowLeft', when: 'not-editing' },
+  { id: 'transport.step-forward', keys: 'ArrowRight', when: 'not-editing' },
+  { id: 'transport.step-second-backward', keys: 'Shift+ArrowLeft', when: 'not-editing' },
+  { id: 'transport.step-second-forward', keys: 'Shift+ArrowRight', when: 'not-editing' },
+  { id: 'transport.loop-toggle', keys: 'Y', when: 'not-editing' },
+  { id: 'transport.loop-in', keys: 'I', when: 'not-editing' },
+  { id: 'transport.loop-out', keys: 'O', when: 'not-editing' },
 ]
 
 type CommandHandler = () => void
