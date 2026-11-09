@@ -121,6 +121,15 @@ const DOWNGRADE_CODES: readonly EngineErrorCode[] = ['GPU_OOM', 'SESSION_LOST']
 const PCM_BROKER_MIN_BYTES = 16 * 1024 * 1024
 
 /**
+ * Recycle drain (retireForRecycle): wait until the doomed epoch's message
+ * stream has been quiet for QUIET_MS, hard-capped at MAX_MS so a wedged
+ * worker can never hang the recycle. FR-05.6's cancel is contractually
+ * ≤ 2 s; MAX_MS leaves 1 s for the queued `unload` to run and settle.
+ */
+const RECYCLE_DRAIN_QUIET_MS = 150
+const RECYCLE_DRAIN_MAX_MS = 3_000
+
+/**
  * Zombie-broker backstop (FR-05.3 "resume"): a real crashed worker reports
  * itself through the `error` event, but one that merely stops answering
  * clone requests (OOM-killed queue, wedged loop) must not hang the recycle
@@ -203,6 +212,10 @@ interface Run {
   /** `processedSec` of the in-flight window (its segments commit it). */
   pendingProgress: Seconds
   committedSinceEpoch: number
+  /** A cadence recycle is draining/respawning (single-flight, `kickRecycle`). */
+  recycleInFlight?: boolean
+  /** A cadence trigger arrived while `recycleInFlight` was set. */
+  recyclePending?: boolean
   workerEpochs: number
   tier: Tier
   plan: TierPlan
@@ -237,6 +250,9 @@ export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
    * terminated like any retired one (FR-05.3 "terminate, respawn").
    */
   const terminatedWorkers = new WeakSet<AsrWorkerLike>()
+  /** Wall-clock ms of the most recent message from any attached worker —
+   *  the quiet detector for `retireForRecycle`'s drain. */
+  let lastWorkerMessageAt = 0
 
   function ensurePcmBroker(): Promise<PcmBroker | null> {
     if (brokerPromise === null) {
@@ -369,7 +385,10 @@ export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
     // re-checks run.worker and will not post into the new epoch.
     run.settleReady?.()
     run.settleReady = null
-    run.unsubscribe = worker.onMessage((event) => onWorkerEvent(run, event))
+    run.unsubscribe = worker.onMessage((event) => {
+      lastWorkerMessageAt = Date.now()
+      onWorkerEvent(run, event)
+    })
     run.worker = worker
     run.plan = plan
     run.workerEpochs += 1
@@ -455,6 +474,25 @@ export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
     await new Promise<void>((yieldTurn) => {
       setTimeout(yieldTurn, 0)
     })
+    // Drain the doomed epoch's message stream BEFORE terminate(): `cancel`
+    // only lands between generation tokens (FR-05.6 aborts within 2 s), and
+    // an `unload` queued behind a running window would be stranded by
+    // terminate() — the dead-context GC then holds the weights for arbitrary
+    // time (CC-05.2 reference-hardware flake, 2026-11-09: 870/918 MB of
+    // stranded generations sampled as growth). Wait until the stream goes
+    // quiet; bounded so a wedged worker can never hang the recycle (FR-05.3
+    // resume budget): cancel is contractually ≤ 2 s, + 1 s for the queued
+    // unload to run and settle.
+    if (doomed !== null) {
+      const deadline = Date.now() + RECYCLE_DRAIN_MAX_MS
+      // A finalized/aborted run resumes nothing — the drain's only purpose
+      // is a clean handover to the successor; terminate straight away.
+      while (Date.now() < deadline && !run.finalized && !run.aborted && Date.now() - lastWorkerMessageAt < RECYCLE_DRAIN_QUIET_MS) {
+        await new Promise<void>((tick) => {
+          setTimeout(tick, 50)
+        })
+      }
+    }
     if (run.worker === doomed) retireWorker(run)
     else doomed?.terminate()
   }
@@ -484,12 +522,31 @@ export function createAsrWorkerHost(opts: AsrHostOptions): AsrWorkerHost {
     const cadence = opts.recycleEveryNWindows
     if (cadence !== undefined && cadence > 0 && run.committedSinceEpoch >= cadence) {
       run.committedSinceEpoch = 0
-      emitNotice(run, 'WORKER_RECYCLED', { committedWindows: cadence })
-      // Kick-off is synchronous inside the worker's emit, but termination
-      // yields one turn first (`retireForRecycle`); a window committed
-      // during that yield is absorbed by the dedupe above.
-      void respawn(run, run.plan, run.lastCommittedEnd)
+      kickRecycle(run)
     }
+  }
+
+  /**
+   * Single-flight cadence recycle: `retireForRecycle` drains the doomed
+   * epoch for up to RECYCLE_DRAIN_MAX_MS, and windows committed during that
+   * drain must not stack concurrent respawns (each would supersede its
+   * sibling and churn worker generations). One recycle runs at a time; a
+   * trigger arriving mid-flight re-kicks the recycle when it completes.
+   */
+  function kickRecycle(run: Run): void {
+    if (run.recycleInFlight === true) {
+      run.recyclePending = true
+      return
+    }
+    run.recycleInFlight = true
+    emitNotice(run, 'WORKER_RECYCLED', { committedWindows: opts.recycleEveryNWindows ?? 0 })
+    void respawn(run, run.plan, run.lastCommittedEnd).finally(() => {
+      run.recycleInFlight = false
+      if (run.recyclePending === true) {
+        run.recyclePending = false
+        if (!run.aborted && !run.finalized) kickRecycle(run)
+      }
+    })
   }
 
   function onWorkerEvent(run: Run, event: AsrEvent): void {
