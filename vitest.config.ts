@@ -26,7 +26,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'tests/unit/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
     // The gate-spawning scaffold re-enters the suite when it is itself the
     // spawned child (`ZIPSCRIBE_CHILD=1` — same guard as gates.test's own
     // `isChildRun()` check on its recursive test). gates.test invokes
@@ -131,6 +131,31 @@ export default defineConfig({
             '**/tests/unit/scaffold/bundle-budget-adversarial.test.ts',
             '**/tests/unit/scaffold/branch-policy.test.ts',
             '**/tests/unit/scaffold/coverage-gate.test.ts',
+            // unit-101 (CC-101.*): the workbench suites were excluded here
+            // through the RED phases (unresolved imports of not-yet-built
+            // modules + not-yet-installed approved devDeps would have masked
+            // the command-wiring proof — unit-04 audio / unit-07 captions
+            // precedent). RETIRED at unit-101 slice D: the modules exist,
+            // `@testing-library/*` + `@axe-core/playwright` are installed, and
+            // the 6 jsdom suites run ~3 s in the serial child
+            // (unit-07 6b4aa96 precedent for retiring a slice-time exclusion).
+            // unit-102 (slice A): the editor suites that still fail at HEAD
+            // are excluded here (unresolved imports of not-yet-built modules
+            // + failing assertions would mask the command-wiring proof —
+            // unit-04 audio / unit-07 captions / unit-101 RED precedent).
+            // The GREEN slice-A suites (commands-reducer, speaker-commands,
+            // undo-redo.property, translations-stub, cache-copy-pins) RUN in
+            // the child (~1.5 s serial) so the command-wiring proof sees the
+            // command system; RETIRE each entry as its slice goes green.
+            // RETIRED at slice B (GREEN: arbitrator, serialize, export-seam,
+            // transport-commands, active-word + the new builder L1
+            // src/state/services/playback/media-clock.test.ts) and at slice C
+            // (GREEN: carried-101 — the slice-C transport bar renders
+            // `transport-time-current` through the shared formatTimecode).
+            // REMAINING (slice D): contract — CONTRACT.md + generated types
+            // are the slice-D deliverable. Parent `pnpm test` and
+            // `verify:unit` (clears ZIPSCRIBE_CHILD) execute all of it.
+            '**/contract.test.ts',
             ...defaultExclude,
           ]
         : defaultExclude,
@@ -163,7 +188,21 @@ export default defineConfig({
       reportsDirectory: process.env.ZIPSCRIBE_CHILD === '1' ? 'coverage/child' : 'coverage-main',
       reporter: ['text', 'json-summary'],
       include: ['src/engine/**', 'src/state/**'],
-      exclude: ['**/*.test.ts', '**/*.test.tsx', 'src/engine/**/adapters/**', 'src/workers/**'],
+      exclude: [
+        '**/*.test.ts',
+        '**/*.test.tsx',
+        'src/engine/**/adapters/**',
+        'src/workers/**',
+        // unit-102 (slice A, child only): RETIRED at slice B — the transport
+        // reducers, selectors and playback layer now execute in the child
+        // (transport-commands + arbitrator + media-clock builder L1 cover
+        // them; unit-04 media-worker-wiring precedent for the retirement).
+        // The four core files stay excluded ONLY for their paths still
+        // exercised by child-excluded RED suites (contract scan slice D,
+        // transport-bar UI slice C). The parent `pnpm test --coverage` (CI)
+        // keeps measuring everything perFile.
+        ...(process.env.ZIPSCRIBE_CHILD === '1' ? ['src/state/commands/deps.ts', 'src/state/commands/index.ts', 'src/state/editor.ts', 'src/state/history.ts'] : []),
+      ],
       thresholds: {
         // Every reported file must clear the gate (a below-threshold file fails
         // the run even when the aggregate is above it).
@@ -175,6 +214,13 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      // unit-102 (slice A): the frozen contract's VALUE import
+      // `@engine/translate/track@102` (NO_OP_TRANSLATION_RULES in
+      // tests/unit/editor/translations-stub.test.ts) — the `@102`-suffixed
+      // ambient specifiers are type-only EVERYWHERE ELSE, so this is the one
+      // runtime mapping (exact-match key; vite sorts aliases longest-first
+      // so it wins over the generic `@engine`).
+      '@engine/translate/track@102': new URL('./src/engine/translate/track.ts', import.meta.url).pathname,
       '@engine': new URL('./src/engine', import.meta.url).pathname,
       '@state': new URL('./src/state', import.meta.url).pathname,
       '@ui': new URL('./src/ui', import.meta.url).pathname,

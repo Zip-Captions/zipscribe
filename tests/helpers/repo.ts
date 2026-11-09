@@ -12,7 +12,29 @@ import { tmpdir } from 'node:os'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-export const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url))
+// Unit-101 slice-B helper fix (DISPUTES note in the unit report): under a
+// jsdom (web-transformed) environment `import.meta.url` is served as an
+// `http:` URL, so the scheme-bound derivation threw at module load and no
+// jsdom suite could import this helper at all (never exercised during the
+// workbench RED phase, which died earlier on the missing `@ui/shell/Workbench`).
+// Resolution is environment-agnostic now: the file-URL path is unchanged for
+// node-environment suites; the fallback validates the marker files so the
+// constant stays the repository root regardless of the loading scheme.
+function resolveRepoRoot(): string {
+  const candidates: string[] = []
+  try {
+    candidates.push(fileURLToPath(new URL('../../', import.meta.url)))
+  } catch {
+    /* web-transformed module (jsdom environment): import.meta.url is not file: */
+  }
+  candidates.push(process.cwd())
+  for (const candidate of candidates) {
+    if (existsSync(join(candidate, 'tests', 'helpers', 'repo.ts')) && existsSync(join(candidate, 'package.json'))) return candidate
+  }
+  throw new Error('cannot locate the repository root')
+}
+
+export const REPO_ROOT = resolveRepoRoot()
 export const SCAFFOLD_SPECIMEN = join(REPO_ROOT, 'tests/fixtures/scaffold-app')
 
 export interface CommandResult {
@@ -23,7 +45,8 @@ export interface CommandResult {
   slug: string
 }
 
-export function runPnpm(script: string, args: string[] = [], timeoutMs = 30_000): CommandResult {
+// Gates-child growth (unit-102): child suite 77 files/690 tests — 25.7 s idle WITH coverage, SIGTERM ≥30 s under contention (orchestrator adjudication; gates.test child timeout 600 s unchanged).
+export function runPnpm(script: string, args: string[] = [], timeoutMs = 90_000): CommandResult {
   if (!(script in packageScripts())) {
     throw new Error(`package.json has no "${script}" script`)
   }

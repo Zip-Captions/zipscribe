@@ -44,7 +44,7 @@ Panel architecture per `knowledge/design.md` layout: resizable sidebar (Subtitle
 - [ ] **CC-101.3** Transcribe popover: language/model/diarize choices dispatch the right job payload; existing-captions case offers replace vs align (mocked worker)
 - [ ] **CC-101.4** Tier chip + blocked screen (T4 via fake capability) tested
 - [ ] **CC-101.5** Tab keyboard `Alt+1/2/3` + focus-visible rings (axe clean on shell)
-- [ ] **CC-101.6** All gates green (chromium)
+- [ ] **CC-101.6** `[MANUAL]` All gates green (chromium) <!-- gate-derived criterion: exit-gate item 1 restated; circular as an automated test (gates-spawning-gates). Verified by orchestrator BUILD_VERIFIED 2026-11-04 at 06f03f1 (re-verified by independent reviewer at 3b0214b; fix-cycle head qualified @ 1ddb4a69): lint/typecheck/format/test(96f/767)/build+bundle(94.8KB)/test:e2e(89 passed)/qual-check ACCEPT, all exit 0. Same adjudication applies to the identical criterion in unit-102..107. -->
 
 ## Docs to consult
 

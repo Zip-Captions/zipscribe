@@ -54,3 +54,6 @@ public/fixtures/*
 tools/eval/logs/
 public/hf-cache/
 tools/eval/tmp/
+# app-served sample clips (copied at dev/build time by scripts/copy-samples.ts
+# via the vite plugin; CC-101.2 — fixtures/ itself is never served)
+public/samples/

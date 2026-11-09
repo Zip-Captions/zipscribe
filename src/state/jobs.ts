@@ -1,0 +1,300 @@
+// Jobs slice — engine-backed job state for the shell (tier chip, popover,
+// progress, streaming segments).
+//
+// Shapes are the unit-101 frozen contract
+// (tests/unit/workbench/unit101-api-contract.d.ts § @state/jobs); the canonical
+// store shape is unit-102's, which extends — never breaks — these members.
+// The engine is the FR-2.0.6 injectable seam: production wires the real
+// workers behind `EnginePort`, tests script a double.
+//
+// SECURITY-03: this slice stores protocol objects verbatim; nothing here ever
+// logs or derives strings from segment/caption content.
+
+import { createStore } from 'zustand/vanilla'
+import { immer } from 'zustand/middleware/immer'
+import type { AsrEvent, AsrRequest, Device, DiarizeRequest, EngineError, MediaEvent, MediaRequest, ModelId, Notice, PcmSource, RawSegment, Tier } from '../engine/protocol'
+import { MODEL_REGISTRY, TIER_DEFAULT_MODEL } from '../engine/model/registry'
+import { newJobId } from './ids'
+
+/**
+ * FR-2.0.6 injectable fake-engine seam: the app-side adapter over the real
+ * workers in production, a scripted double in tests
+ * (`tests/unit/workbench/helpers/fake-engine.ts`).
+ */
+export interface EnginePort {
+  postMedia(request: MediaRequest): void
+  postAsr(request: AsrRequest): void
+  postDiarize(request: DiarizeRequest): void
+  onMediaEvent(listener: (event: MediaEvent) => void): () => void
+  onAsrEvent(listener: (event: AsrEvent) => void): () => void
+  dispose(): void
+}
+
+/** Offline-readiness source for the popover badges (Cache API in production, a Set in tests). */
+export interface ModelCachePort {
+  listCached(): Promise<ModelId[]>
+}
+
+/** Capability probe result as the UI consumes it (codes/strings only — never content, SECURITY-03). */
+export interface CapabilitySnapshot {
+  tier: Tier
+  /** Blocked reasons (T4). Empty on a working tier. */
+  reasons: string[]
+}
+
+export interface ModelOptionView {
+  id: ModelId
+  /** Human size label, e.g. '39 MB' (derived from registry `approxBytes`). */
+  sizeLabel: string
+  offlineReady: boolean
+  /** BCP-47 primary tags this model supports ('*' = multilingual auto-detect). */
+  languages: readonly string[]
+}
+
+export type JobKind = 'transcribe' | 'align'
+
+export interface ActiveJob {
+  kind: JobKind
+  jobId: string
+}
+
+/** unit-03 `model:confirm-required` gate (> 100 MB) surfaced to the popover. */
+export interface PendingModelDownload {
+  model: ModelId
+  bytes: number
+}
+
+export interface JobsState {
+  capability: CapabilitySnapshot | null
+  /** US-2.0.3: chip tooltip copy source; UI maps `code` → copy (never the code alone as the whole tooltip). */
+  tierNotice: Notice | null
+  /**
+   * Popover model list: derived by the store from the model registry rows
+   * (unit-03) with `offlineReady` computed from `modelCache.listCached()`
+   * (async — consumers render options as they arrive).
+   */
+  modelOptions: ModelOptionView[]
+  running: ActiveJob | null
+  progress: { processedSec: number; totalSec: number } | null
+  /** Latest accumulated `job:segments` (sorted by start) — drives the streaming rows + status %. */
+  segments: RawSegment[]
+  error: EngineError | null
+  notices: Notice[]
+  /**
+   * Extension beyond the frozen minimal shape (unit-102 may keep/extend it):
+   * the unit-03 `model:confirm-required` gate the popover renders as the
+   * download confirmation — codes/numbers only (SECURITY-03).
+   */
+  pendingConfirmDownload: PendingModelDownload | null
+}
+
+export interface StartTranscribeOptions {
+  language: string | null
+  modelId: ModelId
+  diarize: boolean
+  /** US-2.0.4: 'replace' overwrites the source track; 'align' keeps imported captions. */
+  mode: 'replace' | 'align'
+}
+
+export interface JobsStore {
+  getState(): JobsState
+  subscribe(listener: () => void): () => void
+  setCapability(capability: CapabilitySnapshot): void
+  setTierNotice(notice: Notice | null): void
+  startTranscribe(options: StartTranscribeOptions): void
+  cancel(): void
+  /** User accepted the `model:confirm-required` gate → post `confirmDownload` (unit-03). */
+  confirmModelDownload(model: ModelId): void
+}
+
+/** Registry default for a tier (unit-02 CC-02.11 spike recommendation); T4/unknown → the T1 row. */
+export function defaultModelForTier(tier: Tier | null | undefined): ModelId {
+  return TIER_DEFAULT_MODEL[tier === 'T1' || tier === 'T2' || tier === 'T3' ? tier : 'T1']
+}
+
+const INITIAL_STATE: JobsState = {
+  capability: null,
+  tierNotice: null,
+  modelOptions: [],
+  running: null,
+  progress: null,
+  segments: [],
+  error: null,
+  notices: [],
+  pendingConfirmDownload: null,
+}
+
+function sizeLabel(approxBytes: number): string {
+  if (approxBytes >= 1_000_000_000) return `${(approxBytes / 1_000_000_000).toFixed(1)} GB`
+  if (approxBytes >= 1_000_000) return `${Math.round(approxBytes / 1_000_000)} MB`
+  return `${approxBytes} B`
+}
+
+// Transcribe/diarize PCM arrives from the media worker's decode tee once the
+// app wiring lands (worker-registry + pcm-broker); the frozen contract's
+// startTranscribe posts loadModel → transcribe directly, so the request is
+// typed with an empty transfer buffer. Follow-up: real stream plumbing.
+function placeholderPcm(): PcmSource {
+  return { kind: 'transfer', buffer: new ArrayBuffer(0) }
+}
+
+function sortByStart(segments: RawSegment[]): RawSegment[] {
+  return [...segments].sort((a, b) => a.start - b.start)
+}
+
+/**
+ * Subscribes to the engine at creation: `job:progress`/`job:done`/`job:error`
+ * /`notice`/`job:segments` update state per protocol.ts. `startTranscribe`
+ * posts `loadModel` ({device: tier==='T1' ? 'webgpu' : 'wasm'}) then
+ * `transcribe` (sampleRate 16000, language as given) and — when `diarize` —
+ * one `diarize` request with the SAME jobId.
+ */
+export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCachePort }): JobsStore {
+  const store = createStore<JobsState>()(immer(() => structuredClone(INITIAL_STATE)))
+
+  // jobId of the most recent startTranscribe, sticky across done/cancel. The
+  // streaming/error correlation below filters by it once the store has ever
+  // started a job; before the first start the slice folds events verbatim
+  // (frozen L1 `job:segments accumulate` + L2 streaming pins).
+  let lastStartedJobId: string | null = null
+
+  const handleEvent = (event: MediaEvent | AsrEvent): void => {
+    switch (event.t) {
+      case 'job:progress':
+        store.setState((state) => {
+          // MAJOR-1 (review R2): correlate by the running jobId exactly as
+          // job:segments (:198), job:error and job:done do — a stale or late
+          // progress event from an orphaned/finished job must never overwrite
+          // the displayed %. Before the store ever started a job there is no
+          // correlation target to filter against (frozen pre-start progress
+          // pins fold verbatim — same never-started exception as segments).
+          if (lastStartedJobId !== null && state.running?.jobId !== event.jobId) return
+          state.progress = { processedSec: event.processedSec, totalSec: event.totalSec }
+        })
+        return
+      case 'job:done':
+        store.setState((state) => {
+          if (state.running?.jobId === event.jobId) state.running = null
+        })
+        return
+      case 'job:error':
+        store.setState((state) => {
+          // SM.3 (adversary adjudication): only the running job may own the
+          // error slot — a stale job:error from an orphaned job is ignored
+          // exactly like job:done already filters by jobId. With no job
+          // running the error still records (contract: job:error updates
+          // state — the late error-after-done pin, SM.5).
+          if (state.running !== null && state.running.jobId !== event.jobId) return
+          state.error = event.error
+          if (state.running?.jobId === event.jobId) state.running = null
+        })
+        return
+      case 'notice':
+        store.setState((state) => {
+          state.notices.push(event.notice)
+        })
+        return
+      case 'job:segments':
+        store.setState((state) => {
+          // SM.1/SM.2 (adversary adjudication): correlate by jobId exactly as
+          // job:done/job:error do — a foreign jobId (stale worker flush) or a
+          // late flush of a replaced/cancelled job must never contaminate the
+          // streaming rows. Before the store ever started a job there is no
+          // correlation target to filter against (frozen accumulate/streaming
+          // pins fold verbatim).
+          if (lastStartedJobId !== null && state.running?.jobId !== event.jobId) return
+          state.segments = sortByStart([...state.segments, ...event.segments])
+        })
+        return
+      case 'model:confirm-required':
+        // unit-03 > 100 MB gate — the popover renders the confirmation
+        // (FR-2.0.2: never a disabled Start for an uncached model).
+        store.setState((state) => {
+          state.pendingConfirmDownload = { model: event.model, bytes: event.bytes }
+        })
+        return
+      default:
+        // media:probed / peaks:chunk / decode:support / vad:segments /
+        // model:* are consumed by the intake seam and the popover (unit-102
+        // owns their slices) — the jobs slice ignores them here.
+        return
+    }
+  }
+
+  deps.engine.onMediaEvent(handleEvent)
+  deps.engine.onAsrEvent(handleEvent)
+
+  void deps.modelCache.listCached().then((cached) => {
+    const cachedSet = new Set(cached)
+    const options: ModelOptionView[] = Object.values(MODEL_REGISTRY).map((spec) => ({
+      id: spec.id,
+      sizeLabel: sizeLabel(spec.approxBytes),
+      offlineReady: cachedSet.has(spec.id),
+      languages: spec.languages,
+    }))
+    store.setState((state) => {
+      // Immer's draft widens `readonly string[]` to mutable; the view object
+      // is freshly built per hydration, so the widening is inert.
+      state.modelOptions = options as typeof state.modelOptions
+    })
+  })
+
+  return {
+    getState: store.getState,
+    subscribe: store.subscribe,
+    setCapability(capability: CapabilitySnapshot): void {
+      store.setState((state) => {
+        state.capability = capability
+      })
+    },
+    setTierNotice(notice: Notice | null): void {
+      store.setState((state) => {
+        state.tierNotice = notice
+      })
+    },
+    startTranscribe(options: StartTranscribeOptions): void {
+      const displaced = store.getState().running
+      const jobId = newJobId()
+      const device: Device = store.getState().capability?.tier === 'T1' ? 'webgpu' : 'wasm'
+      lastStartedJobId = jobId
+      store.setState((state) => {
+        state.running = { kind: options.mode === 'align' ? 'align' : 'transcribe', jobId }
+        state.segments = []
+        state.progress = null
+        state.error = null
+        state.pendingConfirmDownload = null
+      })
+      if (displaced !== null) {
+        // SM.4 (adversary adjudication, FR-2.0.6): a displaced job must not
+        // keep running on the worker uncancellable — post the same cancel
+        // triple cancel() posts before replacing the running job.
+        deps.engine.postAsr({ t: 'cancel', jobId: displaced.jobId })
+        deps.engine.postDiarize({ t: 'cancel', jobId: displaced.jobId })
+        deps.engine.postMedia({ t: 'cancel', jobId: displaced.jobId })
+      }
+      deps.engine.postAsr({ t: 'loadModel', model: options.modelId, device })
+      deps.engine.postAsr({ t: 'transcribe', jobId, pcm: placeholderPcm(), sampleRate: 16000, language: options.language })
+      if (options.diarize) {
+        deps.engine.postDiarize({ t: 'diarize', jobId, pcm: placeholderPcm(), sampleRate: 16000 })
+      }
+    },
+    cancel(): void {
+      const running = store.getState().running
+      if (running === null) return
+      deps.engine.postAsr({ t: 'cancel', jobId: running.jobId })
+      deps.engine.postDiarize({ t: 'cancel', jobId: running.jobId })
+      deps.engine.postMedia({ t: 'cancel', jobId: running.jobId })
+      store.setState((state) => {
+        state.running = null
+      })
+    },
+    confirmModelDownload(model: ModelId): void {
+      deps.engine.postAsr({ t: 'confirmDownload', model })
+      store.setState((state) => {
+        state.pendingConfirmDownload = null
+      })
+    },
+  }
+}
+
+export type { Device }

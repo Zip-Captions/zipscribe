@@ -70,6 +70,25 @@ export default tseslint.config(
     },
   },
 
+  // FR-102.3/CC-102.5 single clock reader: media `currentTime` (read OR write,
+  // incl. computed and destructuring forms) is forbidden outside
+  // src/state/services/playback/** — the SyncArbitrator/MediaClock layer is
+  // the one clock owner; components never touch a media element's time. The
+  // frozen contract scan (tests/unit/editor/contract.test.ts) mirrors this
+  // repo-wide as the test-side guard. SEED (unit-105): the
+  // keyboard→command-registry allowlist rule (conventions § UI conventions —
+  // no `onKeyDown` outside the editable-component paths) joins this block when
+  // the binding table lands; reviewer round-1 confirmed neither rule existed
+  // before slice D.
+  {
+    files: ['src/**/*.ts', 'src/**/*.tsx'],
+    ignores: ['src/state/services/playback/**/*.ts'],
+    plugins: { '2:zipscribe': purityPlugin },
+    rules: {
+      '2:zipscribe/no-media-current-time': 'error',
+    },
+  },
+
   // The test tree (tests/**, e2e/**) is authored by the separate test-author
   // role and frozen for unit-01 — it declares documentation constants and
   // helpers that a stricter unused-vars rule would flag. Lint scope is
