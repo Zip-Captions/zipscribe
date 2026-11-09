@@ -1,0 +1,1391 @@
+{
+ "transcript": "honourable senators veterans' week invites us to pause and look upon the fragile gift of peace with profound awe and sacred gratitude we honour the more than two million canadians who have stepped forward in uniform throughout our history bearing the weight of our highest ideals and we grieve the precious souls who did not return remembrance lives deeply within our own shared canadian story in the memories of grandparents and loved ones who answered the call in world wars conflicts and peacekeeping missions across the globe we honour the quiet dignity of those who returned home the steadfast hearts of those currently serving in uniform and the hidden sacrifices of military families whose lives have been forever shaped by service like millions of people of like millions of people of korean heritage across canada and around the world i owe my very existence and every breath of freedom i take to the veterans of the korean war who crossed oceans to defend a land they had never known their selfless courage changed the course of history in profound ways is to pass these truths on to our is to pass these truths on to o children and grandchildren ensuring they understand that our peace was bought with a heavy price tomorrow in this chamber and wherever we gather on november 11 we stand not merely to look back but to pledge our living loyalty to their memory when the silence falls at the may we hold their courage close to our hearts never take our freedoms for granted and resolve to always be worthy of the sacrifices that made our lives possible we will remember them",
+ "language": "en",
+ "words": [
+  {
+   "text": "honourable",
+   "start": 2.49,
+   "end": 6.593
+  },
+  {
+   "text": "senators",
+   "start": 6.593,
+   "end": 10.696
+  },
+  {
+   "text": "veterans'",
+   "start": 10.698,
+   "end": 10.884
+  },
+  {
+   "text": "week",
+   "start": 10.884,
+   "end": 11.071
+  },
+  {
+   "text": "invites",
+   "start": 11.071,
+   "end": 11.257
+  },
+  {
+   "text": "us",
+   "start": 11.257,
+   "end": 11.444
+  },
+  {
+   "text": "to",
+   "start": 11.444,
+   "end": 11.63
+  },
+  {
+   "text": "pause",
+   "start": 11.632,
+   "end": 11.758
+  },
+  {
+   "text": "and",
+   "start": 11.758,
+   "end": 11.885
+  },
+  {
+   "text": "look",
+   "start": 11.885,
+   "end": 12.011
+  },
+  {
+   "text": "upon",
+   "start": 12.011,
+   "end": 12.138
+  },
+  {
+   "text": "the",
+   "start": 12.138,
+   "end": 12.264
+  },
+  {
+   "text": "fragile",
+   "start": 12.266,
+   "end": 12.432
+  },
+  {
+   "text": "gift",
+   "start": 12.432,
+   "end": 12.599
+  },
+  {
+   "text": "of",
+   "start": 12.599,
+   "end": 12.765
+  },
+  {
+   "text": "peace",
+   "start": 12.765,
+   "end": 12.932
+  },
+  {
+   "text": "with",
+   "start": 12.932,
+   "end": 13.098
+  },
+  {
+   "text": "profound",
+   "start": 13.1,
+   "end": 13.3
+  },
+  {
+   "text": "awe",
+   "start": 13.3,
+   "end": 13.499
+  },
+  {
+   "text": "and",
+   "start": 13.499,
+   "end": 13.699
+  },
+  {
+   "text": "sacred",
+   "start": 13.699,
+   "end": 13.899
+  },
+  {
+   "text": "gratitude",
+   "start": 13.901,
+   "end": 14.087
+  },
+  {
+   "text": "we",
+   "start": 14.087,
+   "end": 14.274
+  },
+  {
+   "text": "honour",
+   "start": 14.274,
+   "end": 14.46
+  },
+  {
+   "text": "the",
+   "start": 14.46,
+   "end": 14.647
+  },
+  {
+   "text": "more",
+   "start": 14.647,
+   "end": 14.833
+  },
+  {
+   "text": "than",
+   "start": 14.835,
+   "end": 14.995
+  },
+  {
+   "text": "two",
+   "start": 14.995,
+   "end": 15.155
+  },
+  {
+   "text": "million",
+   "start": 15.155,
+   "end": 15.314
+  },
+  {
+   "text": "canadians",
+   "start": 15.314,
+   "end": 15.474
+  },
+  {
+   "text": "who",
+   "start": 15.474,
+   "end": 15.634
+  },
+  {
+   "text": "have",
+   "start": 15.636,
+   "end": 15.983
+  },
+  {
+   "text": "stepped",
+   "start": 15.983,
+   "end": 16.329
+  },
+  {
+   "text": "forward",
+   "start": 16.329,
+   "end": 16.676
+  },
+  {
+   "text": "in",
+   "start": 16.676,
+   "end": 17.022
+  },
+  {
+   "text": "uniform",
+   "start": 17.022,
+   "end": 17.369
+  },
+  {
+   "text": "throughout",
+   "start": 17.371,
+   "end": 17.637
+  },
+  {
+   "text": "our",
+   "start": 17.637,
+   "end": 17.904
+  },
+  {
+   "text": "history",
+   "start": 17.904,
+   "end": 18.17
+  },
+  {
+   "text": "bearing",
+   "start": 18.172,
+   "end": 18.345
+  },
+  {
+   "text": "the",
+   "start": 18.345,
+   "end": 18.518
+  },
+  {
+   "text": "weight",
+   "start": 18.518,
+   "end": 18.691
+  },
+  {
+   "text": "of",
+   "start": 18.691,
+   "end": 18.864
+  },
+  {
+   "text": "our",
+   "start": 18.864,
+   "end": 19.037
+  },
+  {
+   "text": "highest",
+   "start": 19.039,
+   "end": 19.392
+  },
+  {
+   "text": "ideals",
+   "start": 19.392,
+   "end": 19.746
+  },
+  {
+   "text": "and",
+   "start": 19.746,
+   "end": 20.099
+  },
+  {
+   "text": "we",
+   "start": 20.099,
+   "end": 20.453
+  },
+  {
+   "text": "grieve",
+   "start": 20.453,
+   "end": 20.806
+  },
+  {
+   "text": "the",
+   "start": 20.808,
+   "end": 21.365
+  },
+  {
+   "text": "precious",
+   "start": 21.365,
+   "end": 21.923
+  },
+  {
+   "text": "souls",
+   "start": 21.923,
+   "end": 22.48
+  },
+  {
+   "text": "who",
+   "start": 22.48,
+   "end": 23.038
+  },
+  {
+   "text": "did",
+   "start": 23.038,
+   "end": 23.595
+  },
+  {
+   "text": "not",
+   "start": 23.595,
+   "end": 24.153
+  },
+  {
+   "text": "return",
+   "start": 24.153,
+   "end": 24.71
+  },
+  {
+   "text": "remembrance",
+   "start": 24.712,
+   "end": 25
+  },
+  {
+   "text": "lives",
+   "start": 25,
+   "end": 25.289
+  },
+  {
+   "text": "deeply",
+   "start": 25.289,
+   "end": 25.577
+  },
+  {
+   "text": "within",
+   "start": 25.579,
+   "end": 26.456
+  },
+  {
+   "text": "our",
+   "start": 26.456,
+   "end": 27.333
+  },
+  {
+   "text": "own",
+   "start": 27.333,
+   "end": 28.21
+  },
+  {
+   "text": "shared",
+   "start": 28.21,
+   "end": 29.086
+  },
+  {
+   "text": "canadian",
+   "start": 29.086,
+   "end": 29.963
+  },
+  {
+   "text": "story",
+   "start": 29.963,
+   "end": 30.84
+  },
+  {
+   "text": "in",
+   "start": 30.84,
+   "end": 31.717
+  },
+  {
+   "text": "the",
+   "start": 31.719,
+   "end": 31.952
+  },
+  {
+   "text": "memories",
+   "start": 31.952,
+   "end": 32.185
+  },
+  {
+   "text": "of",
+   "start": 32.185,
+   "end": 32.418
+  },
+  {
+   "text": "grandparents",
+   "start": 32.418,
+   "end": 32.651
+  },
+  {
+   "text": "and",
+   "start": 32.653,
+   "end": 32.799
+  },
+  {
+   "text": "loved",
+   "start": 32.799,
+   "end": 32.946
+  },
+  {
+   "text": "ones",
+   "start": 32.946,
+   "end": 33.092
+  },
+  {
+   "text": "who",
+   "start": 33.092,
+   "end": 33.239
+  },
+  {
+   "text": "answered",
+   "start": 33.239,
+   "end": 33.385
+  },
+  {
+   "text": "the",
+   "start": 33.387,
+   "end": 34.501
+  },
+  {
+   "text": "call",
+   "start": 34.501,
+   "end": 35.615
+  },
+  {
+   "text": "in",
+   "start": 35.615,
+   "end": 36.729
+  },
+  {
+   "text": "world",
+   "start": 36.729,
+   "end": 37.843
+  },
+  {
+   "text": "wars",
+   "start": 37.843,
+   "end": 38.957
+  },
+  {
+   "text": "conflicts",
+   "start": 38.959,
+   "end": 39.236
+  },
+  {
+   "text": "and",
+   "start": 39.236,
+   "end": 39.514
+  },
+  {
+   "text": "peacekeeping",
+   "start": 39.514,
+   "end": 39.791
+  },
+  {
+   "text": "missions",
+   "start": 39.793,
+   "end": 39.98
+  },
+  {
+   "text": "across",
+   "start": 39.98,
+   "end": 40.166
+  },
+  {
+   "text": "the",
+   "start": 40.166,
+   "end": 40.353
+  },
+  {
+   "text": "globe",
+   "start": 40.353,
+   "end": 40.539
+  },
+  {
+   "text": "we",
+   "start": 40.539,
+   "end": 40.726
+  },
+  {
+   "text": "honour",
+   "start": 40.728,
+   "end": 40.874
+  },
+  {
+   "text": "the",
+   "start": 40.874,
+   "end": 41.021
+  },
+  {
+   "text": "quiet",
+   "start": 41.021,
+   "end": 41.167
+  },
+  {
+   "text": "dignity",
+   "start": 41.167,
+   "end": 41.314
+  },
+  {
+   "text": "of",
+   "start": 41.314,
+   "end": 41.46
+  },
+  {
+   "text": "those",
+   "start": 41.462,
+   "end": 41.815
+  },
+  {
+   "text": "who",
+   "start": 41.815,
+   "end": 42.168
+  },
+  {
+   "text": "returned",
+   "start": 42.168,
+   "end": 42.522
+  },
+  {
+   "text": "home",
+   "start": 42.522,
+   "end": 42.875
+  },
+  {
+   "text": "the",
+   "start": 42.875,
+   "end": 43.228
+  },
+  {
+   "text": "steadfast",
+   "start": 43.23,
+   "end": 43.446
+  },
+  {
+   "text": "hearts",
+   "start": 43.446,
+   "end": 43.663
+  },
+  {
+   "text": "of",
+   "start": 43.663,
+   "end": 43.879
+  },
+  {
+   "text": "those",
+   "start": 43.879,
+   "end": 44.096
+  },
+  {
+   "text": "currently",
+   "start": 44.098,
+   "end": 44.331
+  },
+  {
+   "text": "serving",
+   "start": 44.331,
+   "end": 44.564
+  },
+  {
+   "text": "in",
+   "start": 44.564,
+   "end": 44.797
+  },
+  {
+   "text": "uniform",
+   "start": 44.797,
+   "end": 45.03
+  },
+  {
+   "text": "and",
+   "start": 45.032,
+   "end": 45.585
+  },
+  {
+   "text": "the",
+   "start": 45.585,
+   "end": 46.139
+  },
+  {
+   "text": "hidden",
+   "start": 46.139,
+   "end": 46.692
+  },
+  {
+   "text": "sacrifices",
+   "start": 46.692,
+   "end": 47.246
+  },
+  {
+   "text": "of",
+   "start": 47.246,
+   "end": 47.799
+  },
+  {
+   "text": "military",
+   "start": 47.801,
+   "end": 48.034
+  },
+  {
+   "text": "families",
+   "start": 48.034,
+   "end": 48.267
+  },
+  {
+   "text": "whose",
+   "start": 48.267,
+   "end": 48.501
+  },
+  {
+   "text": "lives",
+   "start": 48.501,
+   "end": 48.734
+  },
+  {
+   "text": "have",
+   "start": 48.736,
+   "end": 50.537
+  },
+  {
+   "text": "been",
+   "start": 50.537,
+   "end": 52.339
+  },
+  {
+   "text": "forever",
+   "start": 52.339,
+   "end": 54.14
+  },
+  {
+   "text": "shaped",
+   "start": 54.14,
+   "end": 55.942
+  },
+  {
+   "text": "by",
+   "start": 55.942,
+   "end": 57.743
+  },
+  {
+   "text": "service",
+   "start": 57.743,
+   "end": 59.545
+  },
+  {
+   "text": "like",
+   "start": 59.547,
+   "end": 59.76
+  },
+  {
+   "text": "millions",
+   "start": 59.76,
+   "end": 59.973
+  },
+  {
+   "text": "of",
+   "start": 59.973,
+   "end": 60.186
+  },
+  {
+   "text": "people",
+   "start": 60.186,
+   "end": 60.399
+  },
+  {
+   "text": "of",
+   "start": 60.399,
+   "end": 60.612
+  },
+  {
+   "text": "like",
+   "start": 60.614,
+   "end": 60.717
+  },
+  {
+   "text": "millions",
+   "start": 60.717,
+   "end": 60.821
+  },
+  {
+   "text": "of",
+   "start": 60.821,
+   "end": 60.924
+  },
+  {
+   "text": "people",
+   "start": 60.924,
+   "end": 61.027
+  },
+  {
+   "text": "of",
+   "start": 61.027,
+   "end": 61.13
+  },
+  {
+   "text": "korean",
+   "start": 61.13,
+   "end": 61.234
+  },
+  {
+   "text": "heritage",
+   "start": 61.234,
+   "end": 61.337
+  },
+  {
+   "text": "across",
+   "start": 61.337,
+   "end": 61.44
+  },
+  {
+   "text": "canada",
+   "start": 61.44,
+   "end": 61.544
+  },
+  {
+   "text": "and",
+   "start": 61.544,
+   "end": 61.647
+  },
+  {
+   "text": "around",
+   "start": 61.649,
+   "end": 61.799
+  },
+  {
+   "text": "the",
+   "start": 61.799,
+   "end": 61.949
+  },
+  {
+   "text": "world",
+   "start": 61.949,
+   "end": 62.098
+  },
+  {
+   "text": "i",
+   "start": 62.098,
+   "end": 62.248
+  },
+  {
+   "text": "owe",
+   "start": 62.248,
+   "end": 62.398
+  },
+  {
+   "text": "my",
+   "start": 62.398,
+   "end": 62.548
+  },
+  {
+   "text": "very",
+   "start": 62.55,
+   "end": 62.758
+  },
+  {
+   "text": "existence",
+   "start": 62.758,
+   "end": 62.966
+  },
+  {
+   "text": "and",
+   "start": 62.966,
+   "end": 63.174
+  },
+  {
+   "text": "every",
+   "start": 63.174,
+   "end": 63.382
+  },
+  {
+   "text": "breath",
+   "start": 63.384,
+   "end": 63.812
+  },
+  {
+   "text": "of",
+   "start": 63.812,
+   "end": 64.24
+  },
+  {
+   "text": "freedom",
+   "start": 64.24,
+   "end": 64.667
+  },
+  {
+   "text": "i",
+   "start": 64.667,
+   "end": 65.095
+  },
+  {
+   "text": "take",
+   "start": 65.095,
+   "end": 65.523
+  },
+  {
+   "text": "to",
+   "start": 65.523,
+   "end": 65.951
+  },
+  {
+   "text": "the",
+   "start": 65.953,
+   "end": 66.103
+  },
+  {
+   "text": "veterans",
+   "start": 66.103,
+   "end": 66.253
+  },
+  {
+   "text": "of",
+   "start": 66.253,
+   "end": 66.402
+  },
+  {
+   "text": "the",
+   "start": 66.402,
+   "end": 66.552
+  },
+  {
+   "text": "korean",
+   "start": 66.552,
+   "end": 66.702
+  },
+  {
+   "text": "war",
+   "start": 66.702,
+   "end": 66.852
+  },
+  {
+   "text": "who",
+   "start": 66.854,
+   "end": 67.193
+  },
+  {
+   "text": "crossed",
+   "start": 67.193,
+   "end": 67.532
+  },
+  {
+   "text": "oceans",
+   "start": 67.532,
+   "end": 67.87
+  },
+  {
+   "text": "to",
+   "start": 67.87,
+   "end": 68.209
+  },
+  {
+   "text": "defend",
+   "start": 68.209,
+   "end": 68.548
+  },
+  {
+   "text": "a",
+   "start": 68.548,
+   "end": 68.887
+  },
+  {
+   "text": "land",
+   "start": 68.889,
+   "end": 69.062
+  },
+  {
+   "text": "they",
+   "start": 69.062,
+   "end": 69.235
+  },
+  {
+   "text": "had",
+   "start": 69.235,
+   "end": 69.409
+  },
+  {
+   "text": "never",
+   "start": 69.409,
+   "end": 69.582
+  },
+  {
+   "text": "known",
+   "start": 69.582,
+   "end": 69.755
+  },
+  {
+   "text": "their",
+   "start": 69.757,
+   "end": 70.215
+  },
+  {
+   "text": "selfless",
+   "start": 70.215,
+   "end": 70.673
+  },
+  {
+   "text": "courage",
+   "start": 70.673,
+   "end": 71.132
+  },
+  {
+   "text": "changed",
+   "start": 71.132,
+   "end": 71.59
+  },
+  {
+   "text": "the",
+   "start": 71.592,
+   "end": 71.758
+  },
+  {
+   "text": "course",
+   "start": 71.758,
+   "end": 71.925
+  },
+  {
+   "text": "of",
+   "start": 71.925,
+   "end": 72.091
+  },
+  {
+   "text": "history",
+   "start": 72.091,
+   "end": 72.258
+  },
+  {
+   "text": "in",
+   "start": 72.258,
+   "end": 72.424
+  },
+  {
+   "text": "profound",
+   "start": 72.426,
+   "end": 75.261
+  },
+  {
+   "text": "ways",
+   "start": 75.261,
+   "end": 78.096
+  },
+  {
+   "text": "is",
+   "start": 78.098,
+   "end": 78.219
+  },
+  {
+   "text": "to",
+   "start": 78.219,
+   "end": 78.339
+  },
+  {
+   "text": "pass",
+   "start": 78.339,
+   "end": 78.46
+  },
+  {
+   "text": "these",
+   "start": 78.46,
+   "end": 78.581
+  },
+  {
+   "text": "truths",
+   "start": 78.581,
+   "end": 78.702
+  },
+  {
+   "text": "on",
+   "start": 78.702,
+   "end": 78.822
+  },
+  {
+   "text": "to",
+   "start": 78.822,
+   "end": 78.943
+  },
+  {
+   "text": "our",
+   "start": 78.943,
+   "end": 79.064
+  },
+  {
+   "text": "is",
+   "start": 79.066,
+   "end": 79.633
+  },
+  {
+   "text": "to",
+   "start": 79.633,
+   "end": 80.2
+  },
+  {
+   "text": "pass",
+   "start": 80.2,
+   "end": 80.767
+  },
+  {
+   "text": "these",
+   "start": 80.767,
+   "end": 81.334
+  },
+  {
+   "text": "truths",
+   "start": 81.334,
+   "end": 81.901
+  },
+  {
+   "text": "on",
+   "start": 81.901,
+   "end": 82.468
+  },
+  {
+   "text": "to",
+   "start": 82.468,
+   "end": 83.035
+  },
+  {
+   "text": "o",
+   "start": 83.035,
+   "end": 83.602
+  },
+  {
+   "text": "children",
+   "start": 83.604,
+   "end": 83.904
+  },
+  {
+   "text": "and",
+   "start": 83.904,
+   "end": 84.203
+  },
+  {
+   "text": "grandchildren",
+   "start": 84.203,
+   "end": 84.503
+  },
+  {
+   "text": "ensuring",
+   "start": 84.505,
+   "end": 84.738
+  },
+  {
+   "text": "they",
+   "start": 84.738,
+   "end": 84.971
+  },
+  {
+   "text": "understand",
+   "start": 84.971,
+   "end": 85.204
+  },
+  {
+   "text": "that",
+   "start": 85.204,
+   "end": 85.437
+  },
+  {
+   "text": "our",
+   "start": 85.439,
+   "end": 85.622
+  },
+  {
+   "text": "peace",
+   "start": 85.622,
+   "end": 85.805
+  },
+  {
+   "text": "was",
+   "start": 85.805,
+   "end": 85.988
+  },
+  {
+   "text": "bought",
+   "start": 85.988,
+   "end": 86.172
+  },
+  {
+   "text": "with",
+   "start": 86.172,
+   "end": 86.355
+  },
+  {
+   "text": "a",
+   "start": 86.355,
+   "end": 86.538
+  },
+  {
+   "text": "heavy",
+   "start": 86.54,
+   "end": 88.724
+  },
+  {
+   "text": "price",
+   "start": 88.724,
+   "end": 90.909
+  },
+  {
+   "text": "tomorrow",
+   "start": 90.911,
+   "end": 91.111
+  },
+  {
+   "text": "in",
+   "start": 91.111,
+   "end": 91.311
+  },
+  {
+   "text": "this",
+   "start": 91.311,
+   "end": 91.51
+  },
+  {
+   "text": "chamber",
+   "start": 91.51,
+   "end": 91.71
+  },
+  {
+   "text": "and",
+   "start": 91.71,
+   "end": 91.91
+  },
+  {
+   "text": "wherever",
+   "start": 91.912,
+   "end": 93.059
+  },
+  {
+   "text": "we",
+   "start": 93.059,
+   "end": 94.207
+  },
+  {
+   "text": "gather",
+   "start": 94.207,
+   "end": 95.354
+  },
+  {
+   "text": "on",
+   "start": 95.354,
+   "end": 96.502
+  },
+  {
+   "text": "november",
+   "start": 96.502,
+   "end": 97.649
+  },
+  {
+   "text": "11",
+   "start": 97.651,
+   "end": 97.813
+  },
+  {
+   "text": "we",
+   "start": 97.813,
+   "end": 97.975
+  },
+  {
+   "text": "stand",
+   "start": 97.975,
+   "end": 98.137
+  },
+  {
+   "text": "not",
+   "start": 98.137,
+   "end": 98.298
+  },
+  {
+   "text": "merely",
+   "start": 98.298,
+   "end": 98.46
+  },
+  {
+   "text": "to",
+   "start": 98.46,
+   "end": 98.622
+  },
+  {
+   "text": "look",
+   "start": 98.622,
+   "end": 98.784
+  },
+  {
+   "text": "back",
+   "start": 98.786,
+   "end": 98.952
+  },
+  {
+   "text": "but",
+   "start": 98.952,
+   "end": 99.119
+  },
+  {
+   "text": "to",
+   "start": 99.119,
+   "end": 99.285
+  },
+  {
+   "text": "pledge",
+   "start": 99.285,
+   "end": 99.452
+  },
+  {
+   "text": "our",
+   "start": 99.452,
+   "end": 99.618
+  },
+  {
+   "text": "living",
+   "start": 99.618,
+   "end": 99.785
+  },
+  {
+   "text": "loyalty",
+   "start": 99.787,
+   "end": 100.762
+  },
+  {
+   "text": "to",
+   "start": 100.762,
+   "end": 101.738
+  },
+  {
+   "text": "their",
+   "start": 101.738,
+   "end": 102.713
+  },
+  {
+   "text": "memory",
+   "start": 102.713,
+   "end": 103.689
+  },
+  {
+   "text": "when",
+   "start": 103.691,
+   "end": 103.857
+  },
+  {
+   "text": "the",
+   "start": 103.857,
+   "end": 104.024
+  },
+  {
+   "text": "silence",
+   "start": 104.024,
+   "end": 104.19
+  },
+  {
+   "text": "falls",
+   "start": 104.19,
+   "end": 104.357
+  },
+  {
+   "text": "at",
+   "start": 104.357,
+   "end": 104.523
+  },
+  {
+   "text": "the",
+   "start": 104.523,
+   "end": 104.69
+  },
+  {
+   "text": "may",
+   "start": 104.692,
+   "end": 105.626
+  },
+  {
+   "text": "we",
+   "start": 105.626,
+   "end": 106.559
+  },
+  {
+   "text": "hold",
+   "start": 106.559,
+   "end": 107.493
+  },
+  {
+   "text": "their",
+   "start": 107.493,
+   "end": 108.427
+  },
+  {
+   "text": "courage",
+   "start": 108.429,
+   "end": 108.655
+  },
+  {
+   "text": "close",
+   "start": 108.655,
+   "end": 108.882
+  },
+  {
+   "text": "to",
+   "start": 108.882,
+   "end": 109.108
+  },
+  {
+   "text": "our",
+   "start": 109.108,
+   "end": 109.335
+  },
+  {
+   "text": "hearts",
+   "start": 109.335,
+   "end": 109.561
+  },
+  {
+   "text": "never",
+   "start": 109.563,
+   "end": 110.185
+  },
+  {
+   "text": "take",
+   "start": 110.185,
+   "end": 110.808
+  },
+  {
+   "text": "our",
+   "start": 110.808,
+   "end": 111.43
+  },
+  {
+   "text": "freedoms",
+   "start": 111.43,
+   "end": 112.053
+  },
+  {
+   "text": "for",
+   "start": 112.053,
+   "end": 112.675
+  },
+  {
+   "text": "granted",
+   "start": 112.675,
+   "end": 113.298
+  },
+  {
+   "text": "and",
+   "start": 113.3,
+   "end": 113.473
+  },
+  {
+   "text": "resolve",
+   "start": 113.473,
+   "end": 113.646
+  },
+  {
+   "text": "to",
+   "start": 113.646,
+   "end": 113.82
+  },
+  {
+   "text": "always",
+   "start": 113.82,
+   "end": 113.993
+  },
+  {
+   "text": "be",
+   "start": 113.993,
+   "end": 114.166
+  },
+  {
+   "text": "worthy",
+   "start": 114.168,
+   "end": 114.354
+  },
+  {
+   "text": "of",
+   "start": 114.354,
+   "end": 114.541
+  },
+  {
+   "text": "the",
+   "start": 114.541,
+   "end": 114.727
+  },
+  {
+   "text": "sacrifices",
+   "start": 114.727,
+   "end": 114.914
+  },
+  {
+   "text": "that",
+   "start": 114.914,
+   "end": 115.1
+  },
+  {
+   "text": "made",
+   "start": 115.102,
+   "end": 116.92
+  },
+  {
+   "text": "our",
+   "start": 116.92,
+   "end": 118.738
+  },
+  {
+   "text": "lives",
+   "start": 118.738,
+   "end": 120.556
+  },
+  {
+   "text": "possible",
+   "start": 120.556,
+   "end": 122.374
+  },
+  {
+   "text": "we",
+   "start": 122.376,
+   "end": 122.592
+  },
+  {
+   "text": "will",
+   "start": 122.592,
+   "end": 122.809
+  },
+  {
+   "text": "remember",
+   "start": 122.809,
+   "end": 123.025
+  },
+  {
+   "text": "them",
+   "start": 123.025,
+   "end": 123.242
+  }
+ ]
+}
