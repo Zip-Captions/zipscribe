@@ -57,7 +57,10 @@ describe('CC-01.7: fixture budget and licensing', () => {
       .filter((line) => !/^\|\s*(source|file|name)\b/i.test(line))
       .filter((line) => !/^\|[-: |]+\|$/.test(line))
     expect(rows.length, 'LICENSES.md needs at least one source row').toBeGreaterThan(0)
-    const unlicensed = rows.filter((row) => !/CC0|CC BY|Apache|MIT|BSD|Public Domain|OFL|LGPL|GPL/i.test(row))
+    // Recognized-license vocabulary (extend deliberately, with a real
+    // license name in the row — never by loosening to `.+`). "Open Parliament
+    // Licence" added for the vendored Senate of Canada CART fixtures (2026-11-09).
+    const unlicensed = rows.filter((row) => !/CC0|CC BY|Apache|MIT|BSD|Public Domain|OFL|LGPL|GPL|Open Parliament Licence/i.test(row))
     const unlinked = rows.filter((row) => !URL_PATTERN.test(row))
     expect(unlicensed, 'rows without a recognised license').toEqual([])
     expect(unlinked, 'rows without a source URL').toEqual([])
