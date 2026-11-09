@@ -54,7 +54,10 @@ jobs:
       - run: corepack pnpm test --coverage
       - run: corepack pnpm build
       - run: corepack pnpm check-bundle
-      - run: corepack pnpm test:e2e
+      # Owner ruling 2026-11-09: chromium only — the [memory] gates moved to
+      # reference-hardware qualify (ZIPSCRIBE_QUALIFY_MEMORY=1 pnpm qualify),
+      # and runner-hosted 100 MB heap sampling measured environment noise.
+      - run: corepack pnpm exec playwright test --project=chromium
       - name: deploy production
         id: deploy
         if: env.CLOUDFLARE_API_TOKEN != ''

@@ -63,7 +63,7 @@ Media worker that turns any supported video or audio file (the full list in `kno
 - [ ] **CC-04.6** `decodeForPlayback` from 0 s and from a mid-file seek matches the reference PCM at native rate (correlation ≥ 0.98 lossless)
 - [ ] **CC-04.7** webkit project: native-set files decode via WebCodecs where Safari supports the codec, else via ffmpeg — the per-browser path matrix is recorded in `discovery.md`
 - [ ] **CC-04.8** Resample/mono goldens pass thresholds above (vs ffmpeg-generated references)
-- [ ] **CC-04.9** 120-min decode memory gate (< 150 MB above baseline) via sampling test
+- [ ] **CC-04.9** `[RQ]` 120-min decode memory gate (< 150 MB above baseline) via sampling test
 - [ ] **CC-04.10** ffmpeg fallback e2e on a fixture forced through fallback (stubbed capability probe)
 - [ ] **CC-04.11** cancel/retry leaves zero active decoders (worker registry assertion)
 - [ ] **CC-04.12** Two-port tee: ASR and diarize ports receive byte-identical chunk sequences; a stalled consumer pauses decode without unbounded buffering

@@ -56,7 +56,7 @@ The core engine: consume the `PcmChunk` stream, segment with Silero VAD, pack sp
 ## Completion Criteria
 
 - [ ] **CC-05.1** `[RQ]` 120-min run within memory gate on T2+tiny and T1+default model (reference hardware)
-- [ ] **CC-05.2** 10-min run with forced worker recycles every 3 windows: JS heap flat (± 50 MB) and output identical to an unrecycled run (real `tiny` model, CI)
+- [ ] **CC-05.2** `[RQ]` 10-min run with forced worker recycles every 3 windows: JS heap flat (± 50 MB) and output identical to an unrecycled run (real `tiny` model, reference hardware)
 - [ ] **CC-05.3** No main-thread long task > 50 ms during transcription (Playwright longtask assertion)
 - [ ] **CC-05.4** Windowing property tests: every VAD segment in exactly one window; cuts only in silence; windows ≤ 28 s unless continuous speech
 - [ ] **CC-05.5** `tiny` smoke: `speech-2min.mp4` transcribes end-to-end in CI with WER ≤ spike `tiny` baseline + 5 pts
