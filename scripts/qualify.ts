@@ -67,7 +67,8 @@ interface MemoryVerdict {
 function collectMemoryResults(): Map<string, MemoryVerdict> | null {
   const perfFixture = join(repoRoot, 'fixtures', 'audio-120min.mp4')
   const perf = spawnSync('corepack', ['pnpm', 'exec', 'node', 'scripts/make-fixtures.ts', '--perf'], { cwd: repoRoot, encoding: 'utf8', timeout: 10 * 60_000 })
-  if (perf.status !== 0) console.error(`qualify: perf fixture provisioning ${perf.status === null ? 'did not complete (spawn failed, killed, or timed out)' : `exited ${perf.status}`} — memory specs will skip and record as uncovered`)
+  if (perf.status !== 0)
+    console.error(`qualify: perf fixture provisioning ${perf.status === null ? 'did not complete (spawn failed, killed, or timed out)' : `exited ${perf.status}`} — memory specs will skip and record as uncovered`)
   const outDir = join(repoRoot, '.cache', 'qualify-memory')
   const evidence = collectPlaywrightEvidence({
     tmpJunitFile: join(outDir, 'junit.xml'),
