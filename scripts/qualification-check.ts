@@ -58,7 +58,10 @@ function main(): void {
   // results[] cannot be shown to pass (Release exit line 79: every [RQ]
   // criterion of every completed unit passes), so the expected ID set from
   // the unit spec's [RQ] criteria is enforced, not just the rows present.
-  const expectedRqIds = ['CC-02.1', 'CC-02.2', 'CC-02.3', 'CC-02.4', 'CC-02.7', 'CC-02.8', 'CC-02.9', 'CC-02.11'] as const
+  // CC-04.9/CC-05.2 joined the set with the owner ruling of 2026-11-09 that
+  // moved the [memory] gates from PR CI to reference-hardware qualify
+  // (measured by scripts/qualify.ts under ZIPSCRIBE_QUALIFY_MEMORY=1).
+  const expectedRqIds = ['CC-02.1', 'CC-02.2', 'CC-02.3', 'CC-02.4', 'CC-02.7', 'CC-02.8', 'CC-02.9', 'CC-02.11', 'CC-04.9', 'CC-05.2'] as const
   const recordedIds = new Set(results.map((entry) => String(entry['id'])))
   const missingIds = expectedRqIds.filter((id) => !recordedIds.has(id))
   if (missingIds.length > 0) fail(`missing criterion id(s): ${missingIds.join(', ')} (results[] must record every [RQ] criterion)`)

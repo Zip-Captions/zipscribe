@@ -1237,6 +1237,68 @@
       "channels": 1,
       "expectedPath": "webcodecs",
       "sha256": "e80b0d898525a72c67467e8be5a251e91cc6402ef301caa63ec214fca7ea545a"
+    },
+    "senate-veterans-2min.mp4": {
+      "duration": 123.244,
+      "codec": "h264+aac",
+      "sampleRate": 48000,
+      "channels": 1,
+      "expectedPath": "webcodecs",
+      "kind": "speech",
+      "language": "en",
+      "category": "senate-live-human-captions",
+      "groundTruth": "fixtures/harness/ground-truth/senate-veterans-2min.json",
+      "generated": false,
+      "license": "Open Parliament Licence 1.0 (Parliament of Canada — vendored by scripts/fetch-vendor-fixtures.ts)",
+      "sha256": "5cf167c61b1dbf2bc4ded141297b09754feea1cfeea685f3689d8102d528fb63"
+    },
+    "captions/senate-veterans-2min.vtt": {
+      "duration": null,
+      "codec": null,
+      "sampleRate": null,
+      "channels": null,
+      "expectedPath": null,
+      "sha256": "ca849a7df1186971254e6379b4e5031c9a06845d337f590cabad471bea0d3ca4",
+      "generated": false,
+      "license": "Open Parliament Licence 1.0 (Parliament of Canada — vendored by scripts/fetch-vendor-fixtures.ts)",
+      "kind": "captions",
+      "language": "en"
+    },
+    "captions/senate-veterans-2min.srt": {
+      "duration": null,
+      "codec": null,
+      "sampleRate": null,
+      "channels": null,
+      "expectedPath": null,
+      "sha256": "7b441e55d64a44e9fc0c61148c1d1d4d1cf3e3e3ddb6250c3c939b8ec595b4ff",
+      "generated": false,
+      "license": "Open Parliament Licence 1.0 (Parliament of Canada — vendored by scripts/fetch-vendor-fixtures.ts)",
+      "kind": "captions",
+      "language": "en"
+    },
+    "sources/senate-15671.captions.json": {
+      "duration": null,
+      "codec": null,
+      "sampleRate": null,
+      "channels": null,
+      "expectedPath": null,
+      "sha256": "6beca5372cacc992f4955b73f51876252446a03f7811689ba2f40eb220424c91",
+      "generated": false,
+      "license": "Open Parliament Licence 1.0 (Parliament of Canada — vendored by scripts/fetch-vendor-fixtures.ts)",
+      "kind": "captions",
+      "language": "en+fr"
+    },
+    "captions/senate-veterans-2min-blocked.vtt": {
+      "duration": null,
+      "codec": null,
+      "sampleRate": null,
+      "channels": null,
+      "expectedPath": null,
+      "sha256": "9fe11bb8045f40c51bf274a4fceb544d0c584d3b188c96406fed46a1574ea345",
+      "generated": false,
+      "license": "Open Parliament Licence 1.0 (Parliament of Canada — vendored by scripts/fetch-vendor-fixtures.ts)",
+      "kind": "captions",
+      "language": "en"
     }
   }
 }

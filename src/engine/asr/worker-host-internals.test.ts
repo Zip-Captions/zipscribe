@@ -100,6 +100,16 @@ class MiniAsrWorker implements AsrWorkerLike {
   postMessage(message: AsrRequest): void {
     this.sent.push(message)
     if (message.t === 'unload') this.spec.onUnload?.()
+    // FR-05.6 fidelity (the adversarial double's doctrine): `cancel` is
+    // processed on the message-queue turn and stops the window loop — the
+    // drain in `retireForRecycle` relies on this to end a healthy epoch's
+    // stream promptly.
+    if (message.t === 'cancel') {
+      setTimeout(() => {
+        this.cancelled = true
+      }, 0)
+      return
+    }
     void this.handle(message)
   }
 
@@ -329,4 +339,136 @@ test('US-05.1: detected language relays from job:done stats', async () => {
   const result = await host.transcribe({ ...transferParams(buffer), language: null, engineFlags: { ...NO_FLAGS, languageDetect: true } })
   expect(result.validation).toBeUndefined()
   expect(result.detectedLanguage).toBe('fr')
+})
+
+/**
+ * Recycle drain (retireForRecycle, CC-05.2 reference-hardware flake fix
+ * 2026-11-09): terminate must wait for the doomed epoch's message stream to
+ * go quiet — an `unload` queued behind a running window is stranded by a
+ * synchronous terminate and the dead-context GC holds the weights (870/918 MB
+ * sampled as heap growth) — but bounded, so a wedged worker never hangs the
+ * recycle (FR-05.3 resume budget).
+ */
+class DrainWorker implements AsrWorkerLike {
+  terminated = false
+  terminatedAt = 0
+  unloadAt: number | null = null
+  private readonly listeners: ((event: AsrEvent) => void)[] = []
+
+  private readonly burstMs: number
+
+  private readonly duration: number
+
+  private cancelled = false
+
+  constructor(burstMs: number, duration = 1) {
+    this.burstMs = burstMs
+    this.duration = duration
+  }
+
+  postMessage(message: AsrRequest): void {
+    if (message.t === 'cancel') {
+      // FR-05.6 fidelity: cancel is processed on the queue turn and stops
+      // the window loop WITHOUT `job:done` — a healthy mid-run epoch's stream
+      // then goes quiet (the wedged case is the burst interval itself).
+      setTimeout(() => {
+        this.cancelled = true
+      }, 0)
+      return
+    }
+    if (message.t === 'unload' && this.unloadAt === null) {
+      this.unloadAt = Date.now()
+      if (this.burstMs > 0) {
+        const stop = Date.now() + this.burstMs
+        const timer = setInterval(() => {
+          for (const listener of [...this.listeners]) listener({ t: 'job:progress', jobId: 'j1', processedSec: 0.5, totalSec: 1 })
+          if (Date.now() >= stop) clearInterval(timer)
+        }, 100)
+      }
+    }
+    void this.handle(message)
+  }
+
+  onMessage(listener: (event: AsrEvent) => void): () => void {
+    this.listeners.push(listener)
+    return () => {
+      const at = this.listeners.indexOf(listener)
+      if (at >= 0) this.listeners.splice(at, 1)
+    }
+  }
+
+  terminate(): void {
+    this.terminated = true
+    this.terminatedAt = Date.now()
+  }
+
+  private async handle(request: AsrRequest): Promise<void> {
+    if (request.t === 'loadModel') {
+      for (const listener of [...this.listeners]) listener({ t: 'model:ready', model: request.model, device: request.device })
+      return
+    }
+    if (request.t !== 'transcribe') return
+    let cursor = request.resumeFromSec ?? 0
+    while (cursor < this.duration && !this.cancelled && !this.terminated) {
+      const end = Math.min(cursor + 1, this.duration)
+      for (const listener of [...this.listeners]) listener({ t: 'job:progress', jobId: request.jobId, processedSec: end, totalSec: this.duration })
+      for (const listener of [...this.listeners]) listener({ t: 'job:segments', jobId: request.jobId, segments: windowSegments(cursor, end) })
+      cursor = end
+      await new Promise((resolve) => setTimeout(resolve, 1))
+    }
+    if (!this.cancelled && !this.terminated) {
+      for (const listener of [...this.listeners]) listener({ t: 'job:done', jobId: request.jobId })
+    }
+  }
+}
+
+async function waitUntil(predicate: () => boolean, budgetMs: number): Promise<boolean> {
+  const deadline = Date.now() + budgetMs
+  while (!predicate() && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 25))
+  }
+  return predicate()
+}
+
+test('FR-05.3: recycle drains a chatty doomed epoch to the cap before terminate', async () => {
+  const workers: DrainWorker[] = []
+  const host = createAsrWorkerHost({
+    createWorker: () => {
+      const worker = new DrainWorker(4_000, 3) // mid-run recycle; the burst outlives the cap → terminate must happen AT the cap
+      workers.push(worker)
+      return worker
+    },
+    tiers: { T1: T1_PLAN, T2: T2_PLAN },
+    recycleEveryNWindows: 1,
+  })
+  const result = await host.transcribe(transferParams(new ArrayBuffer(4096)))
+  expect(result.cancelled).toBe(false)
+  expect(await waitUntil(() => workers[0]!.terminated, 6_000), 'the doomed epoch was terminated').toBe(true)
+  const doomed = workers[0]!
+  expect(doomed.unloadAt).not.toBeNull()
+  const drainMs = doomed.terminatedAt - (doomed.unloadAt ?? 0)
+  expect(drainMs, 'terminate waited for the still-chatty stream (no early terminate)').toBeGreaterThanOrEqual(2_600)
+  expect(drainMs, 'the drain cap held despite a chatty stream').toBeLessThanOrEqual(3_500)
+  expect(result.workerEpochs, 'the successor epoch still took over after the drain').toBeGreaterThanOrEqual(2)
+  host.dispose()
+})
+
+test('FR-05.3: a quiet doomed epoch is terminated promptly (drain adds no cap wait)', async () => {
+  const workers: DrainWorker[] = []
+  const host = createAsrWorkerHost({
+    createWorker: () => {
+      const worker = new DrainWorker(0)
+      workers.push(worker)
+      return worker
+    },
+    tiers: { T1: T1_PLAN, T2: T2_PLAN },
+    recycleEveryNWindows: 1,
+  })
+  const result = await host.transcribe(transferParams(new ArrayBuffer(4096)))
+  expect(result.cancelled).toBe(false)
+  expect(await waitUntil(() => workers[0]!.terminated, 4_000), 'the doomed epoch was terminated').toBe(true)
+  const doomed = workers[0]!
+  const drainMs = doomed.terminatedAt - (doomed.unloadAt ?? 0)
+  expect(drainMs, 'a quiet stream ends the drain immediately').toBeLessThanOrEqual(1_200)
+  host.dispose()
 })

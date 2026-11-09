@@ -23,6 +23,7 @@
     "format:check": "prettier --check .",
     "fixtures": "node scripts/make-fixtures.ts",
     "fixtures:verify": "node scripts/verify-fixtures.ts",
+    "fixtures:fetch-vendor": "node scripts/fetch-vendor-fixtures.ts",
     "check-bundle": "node scripts/check-bundle.mjs",
     "gen:contract": "node scripts/gen-contract-types.mjs",
     "spec-lint": "node scripts/spec-lint.ts",

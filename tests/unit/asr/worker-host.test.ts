@@ -41,6 +41,16 @@ class ScriptedAsrWorker implements AsrWorkerLike {
 
   postMessage(message: AsrRequest): void {
     this.sent.push(message)
+    // FR-05.6 fidelity (asr.worker semantics, mirroring the adversarial
+    // double's doctrine): `cancel` is processed on the queue turn and stops
+    // the window loop without `job:done` — `retireForRecycle`'s drain waits
+    // for exactly this quieting of a healthy epoch's stream.
+    if (message.t === 'cancel') {
+      setTimeout(() => {
+        this.cancelled = true
+      }, 0)
+      return
+    }
     void this.handle(message)
   }
 

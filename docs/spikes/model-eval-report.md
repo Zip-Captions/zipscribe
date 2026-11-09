@@ -2,7 +2,7 @@
 
 Machine: GPU helper pid present; calibration: PASSED (observed 1112539136 bytes of 536870912 allocated).
 
-Browser: launch mode **new-headless** (new-headless via Playwright `channel:'chromium'`, headed fallback — [playwright.dev/docs/browsers](https://playwright.dev/docs/browsers)), args `--no-sandbox --enable-unsafe-webgpu --use-angle=metal --enable-features=SharedArrayBuffer`; crossOriginIsolated=true; navigator.gpu adapter=YES; gpuSamplerPid=44427.
+Browser: launch mode **new-headless** (new-headless via Playwright `channel:'chromium'`, headed fallback — [playwright.dev/docs/browsers](https://playwright.dev/docs/browsers)), args `--no-sandbox --enable-unsafe-webgpu --use-angle=metal --enable-features=SharedArrayBuffer`; crossOriginIsolated=true; navigator.gpu adapter=YES; gpuSamplerPid=31760.
 
 ## Measured rows (US-02.1) — median-of-3 wall incl. audio decode, numThreads:1
 
@@ -10,6 +10,7 @@ CORPUS PROVISIONAL: ground truth is synthesized TTS (unit-01 fixtures) — WER/M
 
 | engine | engineId | version | model | revision | device | adapter | tier | clip | WER | wordTimingMAEms | RTF | per-run wall ms | peak JS heap (MB) | GPU Δ/window | lang | conf | punct | timestamps | license |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| transformers.js | A | 3.8.1 | onnx-community/whisper-tiny_timestamped | 5172442937 | wasm | apple metal-3 | T2 | senate-veterans-2min | 0.1227 | 1619.9 | 0.1097 | 13626.4 / 13517.2 / 13044.8 | 972 | 0 | true | false | true | word-native | Apache-2.0 |
 | transformers.js | A | 3.8.1 | onnx-community/whisper-base_timestamped | 608c49e613 | webgpu | apple metal-3 | T1 | taxi-en-technical | 1 | 20189.7 | 0.0206 | 1110.7 / 696.1 / 701 | 1091 | 0 | true | false | false | word-native | Apache-2.0 |
 | transformers.js | A | 3.8.1 | onnx-community/whisper-small_timestamped | 65caa70f29 | webgpu | apple metal-3 | T1 | taxi-en-technical | 1 | 14123.5 | 0.0424 | 1518.2 / 1425.9 / 1439.9 | 1462 | 2097152 | true | false | false | word-native | Apache-2.0 |
 | transformers.js | A | 3.8.1 | onnx-community/whisper-tiny_timestamped | 5172442937 | wasm | apple metal-3 | T2 | taxi-en-technical | 1 | 14719.5 | 0.0674 | 2373.1 / 2291.8 / 2284.3 | 894 | 0 | true | false | false | word-native | Apache-2.0 |
@@ -42,7 +43,7 @@ Pin decision: Measured per-window GPU-process growth on the pinned @huggingface/
 
 ## Parakeet verdict (CC-02.8)
 
-- Parakeet (sherpa-onnx WASM vad-asr): loads=false, blocker: https://github.com/k2-fsa/sherpa-onnx/issues/2200. load failed in sherpa WASM (Error:RuntimeError:Aborted(). Build with -sASSERTIONS for more info.|RuntimeError: Aborted(). Build with -sASSERTIONS for more info. at abort (http://localhost:4179/sherpa/sherpa-onnx-wasm-main-vad-asr.js:1); upstream wasm/vad-asr model-support limitation (640 MB int8 TDT)
+- Parakeet (sherpa-onnx WASM vad-asr): loads=false, blocker: https://github.com/k2-fsa/sherpa-onnx/issues/2200. load failed in sherpa WASM (Error:RuntimeError:Aborted(). Build with -sASSERTIONS for more info.|RuntimeError: Aborted(). Build with -sASSERTIONS for more info. at abort (http://localhost:4179/sherpa/sherpa-onnx-wasm-main-vad-asr.js:1); upstream wasm/vad-asr model-support limitation (640 MB int8 TDT)). Upstream issue closed as completed (2025-05-11): 32-bit wasm heap cannot grow; reporter closed with the smaller-model workaround, maintainer suggested sherpa-onnx-node for Node; the issue concerns parakeet-tdt-0.6b-v2. No upstream fix pending — adoption requires wasm memory-growth support or a smaller Parakeet.
 
 ## Baseline check (CC-02.7)
 

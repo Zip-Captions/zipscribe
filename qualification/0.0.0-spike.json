@@ -1,7 +1,7 @@
 {
   "version": "0.0.0-spike",
-  "contentHash": "ba9ce2efeecae069f0b2c8c3ea0cf87b124f07ee58604ccffbdd1d3bb8de00ce",
-  "startedAt": "2021-01-12T09:37:19.562Z",
+  "contentHash": "fe165b683fb41ea9bfb0e0864c2f76e3c9c67245c8a4de8bb4ef56ee9f8ff827",
+  "startedAt": "2021-01-12T07:11:34.324Z",
   "machine": {
     "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
     "os": "Darwin 24.6.0 (arm64)",
@@ -57,6 +57,18 @@
       "pass": true,
       "measured": "4/4 qualify assertions passed",
       "threshold": "all qualify assertions for the criterion pass (explicit per-file CC attribution)"
+    },
+    {
+      "id": "CC-04.9",
+      "pass": true,
+      "measured": "1/1 memory assertions passed (playwright --project=memory)",
+      "threshold": "every memory-project assertion citing the criterion passes (leading-title citation, junit-trust freshness)"
+    },
+    {
+      "id": "CC-05.2",
+      "pass": true,
+      "measured": "1/1 memory assertions passed (playwright --project=memory)",
+      "threshold": "every memory-project assertion citing the criterion passes (leading-title citation, junit-trust freshness)"
     }
   ],
   "manual": [

@@ -13,12 +13,13 @@
 import { spawnSync } from 'node:child_process'
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from '@playwright/test'
 import os from 'node:os'
 import { computeContentHash, qualificationFileName } from './lib/qualification-hash.ts'
+import { citationsOf, collectPlaywrightEvidence, parseJunit } from './lib/junit-trust.ts'
 
 const repoRoot = join(fileURLToPath(import.meta.url), '../..')
 
@@ -42,6 +43,67 @@ const RQ_COVERAGE: Record<string, readonly string[]> = {
   'qualify/model-eval/rtf-baseline.test.ts': ['CC-02.7'],
   'qualify/model-eval/parakeet-verdict.test.ts': ['CC-02.8'],
   'qualify/model-eval/tier-recommendation.test.ts': ['CC-02.11'],
+}
+
+// [RQ] memory gates (owner ruling 2026-11-09): the reference-hardware memory
+// legs — CC-04.9 (120-min decode) and CC-05.2 (10-min recycle) — left the PR
+// CI pipeline (runner-noise flakes at the 100 MB threshold) and are measured
+// here instead, opt-in via ZIPSCRIBE_QUALIFY_MEMORY=1 so the frozen CC-02.5
+// `pnpm test` leg and the fabrication suite never spawn hour-class Playwright
+// specs. Exit code stays governed by the unit-02 RQ verdicts alone (frozen
+// legs); these entries are recorded evidence.
+const MEMORY_IDS = ['CC-04.9', 'CC-05.2'] as const
+
+interface MemoryVerdict {
+  passed: number
+  failed: number
+  skipped: number
+}
+
+/** Provision the perf fixture, spawn the `memory` Playwright project under
+ *  the junit-trust doctrine (pre-spawn wipe, null/nonzero → zero credit,
+ *  freshness window), and aggregate per-criterion verdicts by leading-title
+ *  citation. Returns null when the run produced no trustworthy evidence. */
+function collectMemoryResults(): Map<string, MemoryVerdict> | null {
+  const perfFixture = join(repoRoot, 'fixtures', 'audio-120min.mp4')
+  const perf = spawnSync('corepack', ['pnpm', 'exec', 'node', 'scripts/make-fixtures.ts', '--perf'], { cwd: repoRoot, encoding: 'utf8', timeout: 10 * 60_000 })
+  if (perf.status !== 0)
+    console.error(`qualify: perf fixture provisioning ${perf.status === null ? 'did not complete (spawn failed, killed, or timed out)' : `exited ${perf.status}`} — memory specs will skip and record as uncovered`)
+  const outDir = join(repoRoot, '.cache', 'qualify-memory')
+  const evidence = collectPlaywrightEvidence({
+    tmpJunitFile: join(outDir, 'junit.xml'),
+    persistentJunitFile: join(repoRoot, 'test-results', 'junit.xml'),
+    spawn: (junitFile) => {
+      const child = spawnSync('corepack', ['pnpm', 'exec', 'playwright', 'test', '--project=memory', '--reporter=junit', `--output=${outDir}`], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        timeout: 120 * 60_000,
+        env: { ...process.env, PLAYWRIGHT_JUNIT_OUTPUT_FILE: junitFile },
+      })
+      return { status: child.status, output: `${child.stdout ?? ''}${child.stderr ?? ''}` }
+    },
+    parse: (file) => parseJunit(file, 'playwright'),
+  })
+  rmSync(perfFixture, { force: true })
+  // `make-fixtures --perf` rewrites manifest.json in its own canonical key
+  // order — semantically identical bytes, but a dirty tracked file would
+  // (correctly) block the record write via recordWriteDecision. This leg is
+  // read-only for fixtures; restore the file (no-op outside a git tree).
+  if (existsSync(join(repoRoot, '.git'))) spawnSync('git', ['checkout', '--', 'fixtures/harness/manifest.json'], { cwd: repoRoot, timeout: 30_000 })
+  if (evidence.failure) {
+    console.error(`qualify: memory evidence rejected — ${evidence.failure}`)
+    return null
+  }
+  const verdicts = new Map<string, MemoryVerdict>()
+  for (const id of MEMORY_IDS) {
+    const cases = evidence.cases.filter((testCase) => citationsOf(testCase.title).includes(id))
+    verdicts.set(id, {
+      passed: cases.filter((testCase) => testCase.status === 'passed').length,
+      failed: cases.filter((testCase) => testCase.status === 'failed').length,
+      skipped: cases.filter((testCase) => testCase.status === 'skipped').length,
+    })
+  }
+  return verdicts
 }
 
 interface AssertionResult {
@@ -319,19 +381,55 @@ async function main(): Promise<void> {
   }
 
   const machine = await collectMachine()
-  const file = {
-    version: qualificationFileName(pkg.version),
-    contentHash,
-    startedAt,
-    machine,
-    results,
-    manual,
-  }
 
   const outDir = join(repoRoot, 'qualification')
   mkdirSync(outDir, { recursive: true })
-  const recordRel = `qualification/${file.version}.json`
-  const outPath = join(outDir, `${file.version}.json`)
+  const fileName = qualificationFileName(pkg.version)
+  const recordRel = `qualification/${fileName}.json`
+  const outPath = join(outDir, `${fileName}.json`)
+
+  // Memory gates (see MEMORY_IDS): measured when opted in; otherwise carried
+  // verbatim from the committed record — record byte-stability (unit-03 F1/
+  // F2) requires that a no-env `pnpm test` leg never rewrites the record —
+  // falling back to an explicit unmeasured placeholder. The exit code stays
+  // governed by the unit-02 RQ `results` alone.
+  const memoryVerdicts = process.env.ZIPSCRIBE_QUALIFY_MEMORY === '1' ? collectMemoryResults() : null
+  const committedEntries: Array<Record<string, unknown>> = (() => {
+    try {
+      return existsSync(outPath) ? ((JSON.parse(readFileSync(outPath, 'utf8')) as { results?: Array<Record<string, unknown>> }).results ?? []) : []
+    } catch {
+      return []
+    }
+  })()
+  const memoryResults = MEMORY_IDS.map((id) => {
+    const verdict = memoryVerdicts?.get(id)
+    if (verdict) {
+      const skippedNote = verdict.skipped > 0 ? `; ${verdict.skipped} skipped (spec did not execute — coverage gap)` : ''
+      return {
+        id,
+        pass: verdict.failed === 0 && verdict.passed > 0 && verdict.skipped === 0,
+        measured: `${verdict.passed}/${verdict.passed + verdict.failed} memory assertions passed (playwright --project=memory)${skippedNote}`,
+        threshold: 'every memory-project assertion citing the criterion passes (leading-title citation, junit-trust freshness)',
+      }
+    }
+    const carried = committedEntries.find((entry) => String(entry['id']) === id)
+    if (carried) return carried
+    return {
+      id,
+      pass: false,
+      measured: 'memory gate not measured — run `ZIPSCRIBE_QUALIFY_MEMORY=1 pnpm qualify` on reference hardware (owner ruling 2026-11-09)',
+      threshold: 'every memory-project assertion citing the criterion passes (leading-title citation, junit-trust freshness)',
+    }
+  })
+
+  const file = {
+    version: fileName,
+    contentHash,
+    startedAt,
+    machine,
+    results: [...results, ...memoryResults],
+    manual,
+  }
   const intended = `${JSON.stringify(file, null, 2)}\n`
   const current = existsSync(outPath) ? readFileSync(outPath, 'utf8') : null
   if (current === intended) {

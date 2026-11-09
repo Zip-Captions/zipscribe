@@ -22,7 +22,7 @@
       },
       "error": null
     },
-    "gpuSamplerPid": 44427,
+    "gpuSamplerPid": 31760,
     "gpuSamplerMissing": null
   },
   "gpuCalibration": {
@@ -77,6 +77,57 @@
   },
   "failedRuns": [],
   "rows": [
+    {
+      "engineId": "A",
+      "engine": "transformers.js",
+      "version": "3.8.1",
+      "model": "onnx-community/whisper-tiny_timestamped",
+      "revision": "517244293732ee2d58139af5814231b7e6830a0d",
+      "device": "wasm",
+      "tier": "T2",
+      "corpusClip": "senate-veterans-2min",
+      "attemptedDevice": "wasm",
+      "adapter": {
+        "probed": true,
+        "navigatorGpu": true,
+        "adapter": true,
+        "fallbackAdapter": false,
+        "adapterInfo": {
+          "vendor": "apple",
+          "architecture": "metal-3",
+          "device": "",
+          "description": ""
+        },
+        "error": null
+      },
+      "ok": true,
+      "wer": 0.1227,
+      "wordTimingMAEms": 1619.9,
+      "rtf": 0.1097,
+      "wallMs": 13517.16000008583,
+      "wallMsRuns": [
+        13626.4,
+        13517.2,
+        13044.8
+      ],
+      "decodeMsRuns": [
+        294.8,
+        110,
+        109.5
+      ],
+      "durationSeconds": 123.24366666666667,
+      "peakJsHeapBytes": 972126719,
+      "peakJsHeapReason": null,
+      "punctuated": true,
+      "gpuMemGrowthPerWindowBytes": 0,
+      "gpuMemReason": null,
+      "languageDetect": true,
+      "confidence": false,
+      "timestamps": "word-native",
+      "license": "Apache-2.0",
+      "verified": true,
+      "hotword": null
+    },
     {
       "engineId": "A",
       "engine": "transformers.js",

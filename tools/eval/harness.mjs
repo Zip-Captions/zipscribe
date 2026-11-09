@@ -273,6 +273,24 @@ const ROW_PLANS = [
     language: 'en',
   },
   {
+    // CC-07.3 word-timing MAE baseline on REAL speech (owner ruling
+    // 2026-11-09): the vendored Senate of Canada CART clip with human
+    // caption-derived word-level GT — the taxi row's wordTimingMAEms is a
+    // sentinel on sine-formant audio (ledger 2026-11-02T00:35Z), so the
+    // align spec measures against this row instead.
+    key: 'A-tiny-wasm-senate-veterans',
+    engineId: 'A',
+    engine: 'transformers.js',
+    runtime: '3.8.1',
+    model: 'onnx-community/whisper-tiny_timestamped',
+    registryId: 'whisper-tiny-timestamped',
+    device: 'wasm',
+    tier: 'T2',
+    clip: 'senate-veterans-2min',
+    timestamps: 'word-native',
+    language: 'en',
+  },
+  {
     key: 'B-zipformer-wasm',
     engineId: 'B',
     engine: 'sherpa-onnx',
@@ -465,7 +483,6 @@ async function main() {
     }
 
     if (MODES.includes('rows')) {
-      report.rows = []
       // Slice 2C: engines B and C are measured here on OFFICIAL assets —
       // B: the k2-fsa browser wasm/vad-asr build from the pinned HF Space
       // (npm `sherpa-onnx` ships only the node-targeted build; speech-asr,
@@ -474,8 +491,20 @@ async function main() {
       // vendored + manifest SHA-256-pinned, whistle.cact from the pinned HF
       // revision). Parakeet (CC-02.8) gets its real load attempt after the
       // B row so the vad-asr path is proven first.
+      //
+      // Partial re-measurement (--only-engine= / --plan=): rows are
+      // identity-keyed against the seeded report so untouched rows (other
+      // engines, other corpus clips) survive a filtered run — the wholesale
+      // wipe pre-2026-11-09 silently dropped unmeasured rows on partial
+      // re-runs (e.g. --only-engine=A deleted the B and C rows).
       const onlyEngine = (process.argv.find((a) => a.startsWith('--only-engine=')) ?? '').split('=')[1]
-      for (const plan of ROW_PLANS.filter((p) => !onlyEngine || p.engineId === onlyEngine)) {
+      const onlyPlan = (process.argv.find((a) => a.startsWith('--plan=')) ?? '').split('=')[1]
+      const rowIdentity = (r) => `${r.engineId}|${r.model}|${r.tier}|${r.device}|${r.corpusClip ?? ''}`
+      const priorRows = report.rows ?? []
+      const measuredPlans = ROW_PLANS.filter((p) => (!onlyEngine || p.engineId === onlyEngine) && (!onlyPlan || p.key === onlyPlan))
+      if (onlyPlan && measuredPlans.length === 0) throw new Error(`harness: --plan=${onlyPlan} matches no ROW_PLANS key (${ROW_PLANS.map((p) => p.key).join(', ')})`)
+      report.rows = []
+      for (const plan of measuredPlans) {
         activeEngines.length = 0
         activeEngines.push(plan.engineId)
         if (!requestLogs.has(plan.engineId)) requestLogs.set(plan.engineId, [])
@@ -520,7 +549,14 @@ async function main() {
         report.rows.push(row)
         console.log(`row ${plan.key}: ${JSON.stringify({ ok: row.ok, wer: row.wer, rtf: row.rtf, mae: row.wordTimingMAEms, error: row.error })}`)
       }
-      if (!onlyEngine || onlyEngine === 'B') {
+      if (onlyEngine || onlyPlan) {
+        // Filtered re-run: carry the untouched rows from the seeded report.
+        const measured = new Set(report.rows.map(rowIdentity))
+        const carried = priorRows.filter((r) => !measured.has(rowIdentity(r)))
+        report.rows = [...report.rows, ...carried]
+        console.log(`rows: filtered run — ${report.rows.length - carried.length} measured, ${carried.length} carried untouched from the committed report`)
+      }
+      if (measuredPlans.length === ROW_PLANS.length || measuredPlans.some((p) => p.engineId === 'B')) {
         // CC-02.8: real Parakeet attempt on the same official vad-asr runtime,
         // attributed to engine B's request log.
         activeEngines.length = 0
