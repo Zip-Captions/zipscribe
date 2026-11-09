@@ -15,9 +15,11 @@
 // from the Hansard (drop-repairs only — CART wording is kept where the
 // edited Hansard differs). See CORRECTIONS below.
 //
-// Media timeline: SenParlVu serves VOD with PreRoll=30 s (player code:
-// mediaStartTime = actualStart − PreRoll), so media time = t_rel + 30 for
-// t_rel relative to the event wall-clock start (2026-11-05T13:29:12.05).
+// Media timeline: SenParlVu's player code says mediaStartTime = actualStart −
+// PreRoll (30 s), but this VOD empirically runs media time = t_rel − 3 for
+// t_rel relative to the event wall-clock start (2026-11-05T13:29:12.05) —
+// see EVENT.preRoll for the measurement. Captions are rebased to clip media
+// time so caption t == audio-media t.
 
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -35,9 +37,14 @@ const EVENT = {
   id: 15671,
   captionsUrl: 'https://senparlvu.parl.gc.ca/Harmony/en/api/PowerBrowserData/GetClosedCaption?meetingID=15671',
   streamUrl: 'https://senvuvod01.azureedge.net/pvvodsoc-en/_definst_/mp4:azrsoc02/archives/PVHD/2026/2026-11-05/15671_Senate%20sitting%20no.%20101_13-29-12_VH.mp4/playlist.m3u8?audioindex=1&wowzalanguage=eng',
-  // Event actual start (media t=30) and window bounds, seconds relative to
-  // the first caption (2026-11-05T13:29:12.05).
-  preRoll: 30.0,
+  // Media↔event offset: the player code says mediaStartTime = actualStart −
+  // PreRoll (30 s), but the VOD at streamUrl is offset differently — the
+  // word-timing Δ between whisper-tiny native timestamps and the human CART
+  // timeline measured −32.95 s (median, 183 LCS pairs, outside-engine repro
+  // 2026-11-09) on a cut using preRoll=30, and −0.19 s (p10 −3.6, p90 +2.0)
+  // on this cut (ss = windowStart + preRoll). So media time = t_rel − 3 for
+  // this VOD and clip media t == caption t.
+  preRoll: -3.0,
   windowStart: 180.0,
   windowEnd: 303.244,
 }
@@ -66,6 +73,14 @@ interface Cue {
 const SKIP_CUE_BEGINS = [303.244] // French "Nous nous Souviendrons d'eux." starts at the clip's end
 
 const force = process.argv.includes('--force')
+const blockedOnly = process.argv.includes('--blocked')
+
+// Paragraph-block target for the blocked caption variant: merge as-delivered
+// CART cues until a block accumulates this many word tokens (~20 s of speech).
+// The aligner's contract (align.ts boundary guards) assumes blocks span an
+// utterance; the CART feed's ~0.65 s micro-cues fragment mid-sentence and no
+// model timing can land inside them (ledger 2026-11-09).
+const MAX_BLOCK_WORDS = 60
 
 function sha256(buf: Buffer | string): string {
   return createHash('sha256').update(buf).digest('hex')
@@ -96,6 +111,35 @@ function fmt(s: number, comma: boolean): string {
   const se = String(Math.floor(ms / 1000) % 60).padStart(2, '0')
   const mm = String(ms % 1000).padStart(3, '0')
   return `${h}:${mi}:${se}${comma ? ',' : '.'}${mm}`
+}
+
+function tokenCount(text: string): number {
+  return text
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => /[a-z0-9]/.test(w)).length
+}
+
+// Deterministic merge of consecutive cues into paragraph blocks: a block
+// closes when adding the next cue would exceed maxWords (or at end of input).
+function mergeIntoBlocks(cues: Array<{ start: number; end: number; text: string }>, maxWords: number) {
+  const blocks: Array<{ start: number; end: number; text: string }> = []
+  let cur: { start: number; end: number; parts: string[]; words: number } | null = null
+  for (const c of cues) {
+    const n = tokenCount(c.text)
+    if (cur !== null && cur.words + n > maxWords) {
+      blocks.push({ start: cur.start, end: cur.end, text: cur.parts.join(' ') })
+      cur = null
+    }
+    if (cur === null) cur = { start: c.start, end: c.end, parts: [c.text], words: n }
+    else {
+      cur.end = c.end
+      cur.parts.push(c.text)
+      cur.words += n
+    }
+  }
+  if (cur !== null) blocks.push({ start: cur.start, end: cur.end, text: cur.parts.join(' ') })
+  return blocks
 }
 
 function out(path: string, content: string | Buffer): void {
@@ -146,6 +190,26 @@ async function main(): Promise<void> {
   out(join(repoRoot, 'fixtures', 'captions', 'senate-veterans-2min.vtt'), vtt)
   const srt = clipped.map((c, i) => `${i + 1}\n${fmt(c.start, true)} --> ${fmt(c.end, true)}\n${c.text}\n`).join('\n')
   out(join(repoRoot, 'fixtures', 'captions', 'senate-veterans-2min.srt'), srt)
+
+  // 2b. Blocked variant (align-mae e2e input): identical token stream and
+  //     order, cues merged into ≈MAX_BLOCK_WORDS-word paragraph blocks so
+  //     each block spans an utterance (see MAX_BLOCK_WORDS note).
+  const blockedPath = join(repoRoot, 'fixtures', 'captions', 'senate-veterans-2min-blocked.vtt')
+  const blocked = mergeIntoBlocks(clipped, MAX_BLOCK_WORDS)
+  const blockedVtt = ['WEBVTT', ''].concat(blocked.map((c) => `${fmt(c.start, false)} --> ${fmt(c.end, false)}\n${c.text}\n`)).join('\n')
+  out(blockedPath, blockedVtt)
+  const blockedEntry: Record<string, unknown> = {
+    sha256: sha256(readFileSync(blockedPath)),
+    generated: false,
+    license: LICENSE,
+    kind: 'captions',
+    language: 'en',
+  }
+
+  if (blockedOnly) {
+    mergeManifest({ 'captions/senate-veterans-2min-blocked.vtt': blockedEntry })
+    return
+  }
 
   // 3. Ground truth: CART wording with Hansard drop-repairs; parenthetical
   //    stage notes ("(Prayers)") and chair speaker tags excluded; filler
@@ -214,10 +278,6 @@ async function main(): Promise<void> {
 
   // 5. Manifest entries (verify-fixtures requires every fixtures/** file to
   //    be in the manifest with a license recorded in LICENSES.md).
-  const manifestPath = join(repoRoot, 'fixtures', 'harness', 'manifest.json')
-  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
-    files: Record<string, Record<string, unknown>>
-  }
   const entries: Record<string, Record<string, unknown>> = {
     'senate-veterans-2min.mp4': {
       duration: +(EVENT.windowEnd - EVENT.windowStart).toFixed(3),
@@ -254,6 +314,15 @@ async function main(): Promise<void> {
       kind: 'captions',
       language: 'en+fr',
     },
+    'captions/senate-veterans-2min-blocked.vtt': blockedEntry,
+  }
+  mergeManifest(entries)
+}
+
+function mergeManifest(entries: Record<string, Record<string, unknown>>): void {
+  const manifestPath = join(repoRoot, 'fixtures', 'harness', 'manifest.json')
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+    files: Record<string, Record<string, unknown>>
   }
   for (const [name, entry] of Object.entries(entries)) {
     if (force || !manifest.files[name]?.sha256 || manifest.files[name].sha256 !== entry.sha256) {

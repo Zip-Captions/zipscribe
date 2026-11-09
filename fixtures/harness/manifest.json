@@ -1250,7 +1250,7 @@
       "groundTruth": "fixtures/harness/ground-truth/senate-veterans-2min.json",
       "generated": false,
       "license": "Open Parliament Licence 1.0 (Parliament of Canada — vendored by scripts/fetch-vendor-fixtures.ts)",
-      "sha256": "029bbbaaed33cf4507795bb6a97322d259513448b9fa0fdca0e84994b99cbffb"
+      "sha256": "5cf167c61b1dbf2bc4ded141297b09754feea1cfeea685f3689d8102d528fb63"
     },
     "captions/senate-veterans-2min.vtt": {
       "duration": null,
@@ -1287,6 +1287,18 @@
       "license": "Open Parliament Licence 1.0 (Parliament of Canada — vendored by scripts/fetch-vendor-fixtures.ts)",
       "kind": "captions",
       "language": "en+fr"
+    },
+    "captions/senate-veterans-2min-blocked.vtt": {
+      "duration": null,
+      "codec": null,
+      "sampleRate": null,
+      "channels": null,
+      "expectedPath": null,
+      "sha256": "9fe11bb8045f40c51bf274a4fceb544d0c584d3b188c96406fed46a1574ea345",
+      "generated": false,
+      "license": "Open Parliament Licence 1.0 (Parliament of Canada — vendored by scripts/fetch-vendor-fixtures.ts)",
+      "kind": "captions",
+      "language": "en"
     }
   }
 }
