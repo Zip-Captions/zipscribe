@@ -155,18 +155,22 @@ export async function stopHarnessServer(child: ChildProcess): Promise<void> {
  * The spike `tiny` WER baseline — read from the spike artifact, never invented.
  *
  * CC-05.5 states the gate in percentage points ("WER ≤ spike `tiny` baseline
- * + 5 pts") to match `scoreWer`'s percent output, while the spike artifact
- * stores `wer` as a ratio (whisper-tiny T2 `wer: 1` = 100 %), so convert
- * ratio → percentage points (×100) here. The corpus is interim (sine-formant
- * synthetic speech; real-corpus vendoring is an AWAITING-OWNER item), so the
- * absolute WER is corpus-bound — the assertion is a regression guard at
- * baseline + 5 points, not an absolute quality claim.
- */
-export function spikeTinyWerBaseline(): { value: number; source: string } {
-  const report = JSON.parse(readFileSync(join(REPO_ROOT, 'docs/spikes/model-eval-report.json'), 'utf8')) as {
-    rows: { engine: string; model: string; device: string; tier: string; wer: number; ok: boolean }[]
-  }
-  const row = report.rows.find((r) => r.model === 'onnx-community/whisper-tiny_timestamped' && r.tier === 'T2' && r.engine === 'transformers.js')
-  if (!row) throw new Error('docs/spikes/model-eval-report.json has no whisper-tiny T2 row')
-  return { value: row.wer * 100, source: 'docs/spikes/model-eval-report.json rows[whisper-tiny_timestamped,T2].wer (ratio ×100 → percentage points, CC-05.5)' }
-}
+  * + 5 pts") to match `scoreWer`'s percent output, while the spike artifact
+  * stores `wer` as a ratio (whisper-tiny T2 `wer: 1` = 100 %), so convert
+  * ratio → percentage points (×100) here. The corpus is interim (sine-formant
+  * synthetic speech — tiny-smoke's regression home; a real-speech corpus is
+  * vendored since 2026-11-09 and serves CC-07.3's baseline via its own
+  * corpusClip row), so the absolute WER is corpus-bound — the assertion is a
+  * regression guard at baseline + 5 points, not an absolute quality claim.
+  * corpusClip-pinned: since 2026-11-09 the report carries whisper-tiny T2
+  * rows for more than one clip; this guard must read the taxi row it derives
+  * from, never the real-speech one.
+  */
+ export function spikeTinyWerBaseline(): { value: number; source: string } {
+   const report = JSON.parse(readFileSync(join(REPO_ROOT, 'docs/spikes/model-eval-report.json'), 'utf8')) as {
+     rows: { engine: string; model: string; device: string; tier: string; corpusClip?: string; wer: number; ok: boolean }[]
+   }
+   const row = report.rows.find((r) => r.model === 'onnx-community/whisper-tiny_timestamped' && r.tier === 'T2' && r.engine === 'transformers.js' && r.corpusClip === 'taxi-en-technical')
+   if (!row) throw new Error('docs/spikes/model-eval-report.json has no whisper-tiny T2 taxi-en-technical row')
+   return { value: row.wer * 100, source: 'docs/spikes/model-eval-report.json rows[whisper-tiny_timestamped,T2,taxi-en-technical].wer (ratio ×100 → percentage points, CC-05.5)' }
+ }

@@ -39,6 +39,9 @@ export interface AlignRunSummary {
   /** Aligned words in caption order — texts are normalized-comparable to the
    *  committed ground truth; the spec pairs index-wise with it. */
   alignedWords: { text: string; start: number; end: number; timing: string }[]
+  /** Raw ASR words (model order) — for timing-drift diagnostics; texts stay
+   *  in-process, specs log numbers only (SECURITY-03). */
+  asrWords: { text: string; start: number; end: number }[]
   eventSummary: { t: string; code?: string }[]
   runWallMs: number
 }
@@ -179,6 +182,7 @@ async function runAlign(options: AlignRunOptions): Promise<AlignRunSummary> {
       alignedWordCount: 0,
       report: { wordsTotal: 0, wordsAligned: 0, alignedRatio: 0 },
       alignedWords: [],
+      asrWords: [],
       eventSummary: events.map((event) => ({ t: event.t, ...(event.t === 'job:error' ? { code: event.error.code } : {}) })),
       runWallMs: Date.now() - started,
     }
@@ -199,6 +203,7 @@ async function runAlign(options: AlignRunOptions): Promise<AlignRunSummary> {
     captionBlockCount: importReport.blocks,
     captionWordCount: alignedBlocks.reduce((sum, block) => sum + block.words.length, 0),
     alignedWordCount: alignedBlocks.reduce((sum, block) => sum + block.words.filter((word) => word.timing === 'aligned').length, 0),
+    asrWords,
     report,
     alignedWords: alignedBlocks.flatMap((block) => block.words.map((word) => ({ text: word.text, start: word.start, end: word.end, timing: word.timing ?? 'estimated' }))),
     eventSummary: events.map((event) => ({ t: event.t, ...(event.t === 'job:error' ? { code: event.error.code } : {}) })),
