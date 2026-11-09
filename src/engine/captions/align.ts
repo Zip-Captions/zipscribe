@@ -131,6 +131,7 @@ export function alignCaptionsToWords(project: Project, asrWords: readonly AsrWor
     const alignedStarts: (Seconds | undefined)[] = new Array<Seconds | undefined>(words.length)
     const boundStart = round3(block.start)
     const boundEnd = round3(block.end)
+    let lastAlignedEnd: Seconds | undefined
     for (let index = 0; index < words.length; index++) {
       const asrIndex = matchedAsr[flatIndex + index]
       if (asrIndex === undefined) continue
@@ -143,10 +144,16 @@ export function alignCaptionsToWords(project: Project, asrWords: readonly AsrWor
       // and is not counted aligned). No fabrication, no out-of-bounds times.
       // Comparison happens on the 3-decimal grid every written time lands on
       // (invariant 6), so a boundary-equal ASR time is never lost to float
-      // representation error.
+      // representation error. The backward-overlap guard keeps invariant 1
+      // (word[i].end ≤ word[i+1].start) even against off-contract ASR input:
+      // unit-05 guarantees monotone words, so a match starting before the
+      // previous accepted end is off-contract — same 'unmatched' treatment,
+      // never a clamped (fabricated) time.
       if (asrStart < boundStart || asrEnd > boundEnd || asrEnd < asrStart) continue
+      if (lastAlignedEnd !== undefined && asrStart < lastAlignedEnd) continue
       alignedStarts[index] = asrStart
       alignedEnds[index] = asrEnd
+      lastAlignedEnd = asrEnd
       wordsAligned += 1
     }
 

@@ -203,3 +203,13 @@ test('invariant 11: a clamp that pushes the earlier cue below its own start also
     { code: 'ZERO_DURATION_FIXED', count: 1 },
   ])
 })
+
+test('FR-07.2 scan: a 4-digit-hour VTT timing with cue settings counts POSITION_DROPPED (scan mirrors the parser hours quantifier)', async () => {
+  // The parser accepts 4+ digit hours (vtt.ts \d+ per W3C webvtt1 §4.1, no
+  // cap); the settings scan must not cap them shorter or the position setting
+  // goes unreported on exactly the cues the parser accepts.
+  const bytes = utf8.encode('WEBVTT\n\n1234:00:00.000 --> 1234:00:02.000 position:50%\nlate hour\n')
+  const { report } = await importCaptions(baseProject(), { name: 'long-hour.vtt', bytes }, { as: 'source' })
+  expect(report.cues, 'the parser accepts the 4-digit-hour cue').toBe(1)
+  expect(report.adjustments).toEqual([{ code: 'POSITION_DROPPED', count: 1 }])
+})

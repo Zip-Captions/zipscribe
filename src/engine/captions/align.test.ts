@@ -141,3 +141,21 @@ test('CC-07.3: word metadata (probability, speakerId, breakAfter) survives align
   expect(aligned.blocks[0]!.id, 'block identity untouched').toBe('blk-0')
   expect(aligned.blocks[0]!.speakerId).toBe('SPK_1')
 })
+
+test('CC-07.3: overlapping ASR times on consecutive matches (off-contract input) keep invariant 1 — the later match is treated as unmatched', () => {
+  // unit-05 supplies monotone words, so this is defence in depth: an
+  // overlapping pair must never be copied verbatim into adjacent words
+  // (domain.md:56 invariant 1 — word[i].end ≤ word[i+1].start). The later
+  // match is dropped to interpolation instead of clamped, so accepted
+  // matched words still carry their ASR times verbatim (no fabrication).
+  const project0 = project([{ start: 0, end: 5, words: [word('alpha', 0, 1), word('beta', 1, 2)] }])
+  const { project: aligned, report } = alignCaptionsToWords(project0, [
+    { text: 'alpha', start: 0.2, end: 1.4 },
+    { text: 'beta', start: 1.2, end: 2.4 },
+  ])
+  const words = aligned.blocks[0]!.words
+  expect(report.wordsAligned, 'the backward-overlapping match is not counted aligned').toBe(1)
+  expect(words[0]).toMatchObject({ start: 0.2, end: 1.4, timing: 'aligned' })
+  expect(words[1]!.timing, 'beta re-interpolates instead of copying an overlapping time').toBe('estimated')
+  expect(words[1]!.start, 'invariant 1 after align').toBeGreaterThanOrEqual(words[0]!.end)
+})

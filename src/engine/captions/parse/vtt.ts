@@ -11,11 +11,12 @@ import type { ParseOptions, ParseResult, ParsedCue } from '../types'
 import { CaptionFailureError } from '../failure'
 import { decodeEntities, makeCue, stripTags, toLines, YIELD_EVERY_CUES, yieldScheduler } from './shared'
 
-// WebVTT timestamp (W3C webvtt1 § 4.1 + § 6.2): (H+ ':')? MM ':' SS '.' MMM —
+// WebVTT timestamp (W3C webvtt1 § 4.1 + § 6.3): (H+ ':')? MM ':' SS '.' MMM —
 // hours "two or more ASCII digits" (§ 4.1, no length cap; the 1-digit hour
 // stays a documented tolerance of this parser, vtt.test.ts), minutes/seconds
-// exactly two digits, and the fraction exactly three digits — § 6.2 steps
-// 13–15: "." + digits required, "not exactly three characters" is an error.
+// exactly two digits, and the fraction exactly three digits — § 6.3 "Collect
+// a WebVTT timestamp" steps 13–15: "." + digits required, "not exactly three
+// characters" is an error.
 const VTT_TIMESTAMP = String.raw`(?:(\d+):)?([0-5]\d):([0-5]\d)\.(\d{3})`
 const VTT_TIMING = new RegExp(`^\\s*${VTT_TIMESTAMP}\\s*-->\\s*${VTT_TIMESTAMP}(?:[ \\t].*)?\\s*$`)
 const VOICE_TAG = /<v[ \t]+([^>]+)>/i

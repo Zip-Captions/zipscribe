@@ -184,7 +184,9 @@ const HAS_TAGISH = /<\/?[a-zA-Z0-9][^>]*>/
 const VOICE_TAGISH = /<\/?v\b[^>]*>/gi
 const HAS_OVERRIDE = /\{[^}]*\}/
 const ASS_OVERRIDE = /\{[^}]*\}/g
-const VTT_SETTINGS = /-->\s*(?:\d{1,3}:)?[0-5]\d:[0-5]\d\.\d{1,3}[ \t]+\S/
+// Hours quantifier mirrors the parser's `(?:\d+:)?` (vtt.ts, W3C webvtt1 §4.1
+// caps hours nowhere) so every cue the parser accepts is scannable here.
+const VTT_SETTINGS = /-->\s*(?:\d+:)?[0-5]\d:[0-5]\d\.\d{1,3}[ \t]+\S/
 const TTML_INNER = /<p\b[^>]*>([\s\S]*?)<\/p\s*>/gi
 
 interface ScanResult {
