@@ -84,6 +84,11 @@ function collectMemoryResults(): Map<string, MemoryVerdict> | null {
     parse: (file) => parseJunit(file, 'playwright'),
   })
   rmSync(perfFixture, { force: true })
+  // `make-fixtures --perf` rewrites manifest.json in its own canonical key
+  // order — semantically identical bytes, but a dirty tracked file would
+  // (correctly) block the record write via recordWriteDecision. This leg is
+  // read-only for fixtures; restore the file (no-op outside a git tree).
+  if (existsSync(join(repoRoot, '.git'))) spawnSync('git', ['checkout', '--', 'fixtures/harness/manifest.json'], { cwd: repoRoot, timeout: 30_000 })
   if (evidence.failure) {
     console.error(`qualify: memory evidence rejected — ${evidence.failure}`)
     return null

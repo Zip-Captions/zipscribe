@@ -74,6 +74,16 @@ export default defineConfig({
       name: 'memory',
       use: { ...devices['Desktop Chrome'], channel: 'chromium' },
       testMatch: /memory\/.*\.spec\.ts/,
+      // Heap gates measure the USER AGENT footprint — a sibling spec's
+      // workload is measurement contamination. Measured on reference
+      // hardware (2026-11-09): CC-05.2 passes alone (8.5 min, inside the
+      // limit) but peaked 870.3 MB (limit 100) with the 120-min decode spec
+      // running as its sibling — the recycle test hook's
+      // fast cadence cannot drain terminated worker heaps while the other
+      // core pins GC with decode pressure. Same "single owner" doctrine as
+      // the spec-owned ports: these specs measure alone or not at all.
+      // (CI history: gh run 42633403941 931.5 MB — same shape.)
+      workers: 1,
     },
   ],
 })
