@@ -52,3 +52,35 @@ None added.
 - Renderer culls no blocks (full content canvas repaint per dirty frame — spec-budget-compliant at 10k, revisit with waveform + real media).
 - `window.tl` accessor could move behind the same `?ziptest=1` query guard at module load rather than call-site (already only reached via the lazy bridge chunk).
 - Bridge could expose viewport for future `timeAtX` fuzz specs (kept numbers-only per SECURITY-03).
+
+## Adversary round (AUDIT_CLEAN)
+
+Round A (adversary 5fa9a83) → fix cycle A. All three findings adjudicated REAL;
+fixed in-build with zero test edits (the three KNOWN VIOLATION proofs turn green
+via implementation; `git diff 5fa9a83..HEAD -- tests/unit/timeline e2e/timeline
+fixtures/golden/timeline` empty).
+
+- **F1 (TL.15, dispatched-edge adjacency floor)** — fixed, `62b969b`.
+  `controller.ts` endDrag re-derives the adjacency clamps from the CURRENT block
+  set before dispatch (`reClampToFinalGeometry`): gesture-side clamping dispatches
+  the clamped value (ghost 5.95 against re-timed neighbour 5.98 → dispatched
+  5.93, gap = 0.05 ≥ ADJACENCY_MIN_GAP_SEC). d.ts § controller:376-378 honoured;
+  the stale ghost stays legal (d.ts pins the DISPATCHED value, not the ghost).
+- **F2 (TL.16, same class, body side)** — fixed, `62b969b`. Body-drag floor/
+  ceiling re-derived at dispatch against final neighbour geometry (prev.end
+  2.03 → dispatched start 2.08, gap = 0.05). The impossible-clamp case
+  (clamp would reverse the gesture / neighbour inside the block's span)
+  command-rejects `BLOCKS_OVERLAP` without dispatching — which also keeps the
+  frozen TL.18 split-mid-drag expectation (reject + store untouched) green.
+- **F3 (TL.40, timeline bindings leaking into editing focus)** — fixed,
+  `239108e`. `useCommands` onKeyDown suppresses `timeline.*` binding dispatch
+  while the frozen `isEditing()` predicate is true — before `preventDefault`,
+  so the caret key reaches the input (TL.40 `defaultPrevented === false` pin).
+  Doctrine from design.md § Keyboard shortcuts:104 enforced at the dispatch
+  layer where the `not-editing` guard lives; the frozen binding table and
+  registry untouched; save/undo/overlay unaffected (not `timeline.*`).
+
+Gates after fixes: targeted `vitest run tests/unit/timeline` 101/101 (98+3);
+full `pnpm test` 1334 passed / 1 skipped / 1 todo; lint 0; typecheck 0;
+build+check-bundle 112.8 KB gzip (≤ 350 KB); `pnpm qualify` + `qualification-check`
+ACCEPT, record deep-diff = contentHash+startedAt only (`a92ce9b`).
