@@ -11,8 +11,11 @@
 // candidate — the adjacency clamp DOMINATES the snap, orch adjudication 3:
 // indicator renders the candidate edge, the dispatched value keeps the
 // 0.05 s floor); endDrag dispatches EXACTLY ONE `block-retime` (or nothing on
-// unchanged/rejected). One user gesture = one undo step (the editor slice is
-// not undoable — zundo partializes { project }, history.ts).
+// unchanged/rejected) AFTER re-deriving the adjacency clamps from the CURRENT
+// block set — the ghost is live data and may be stale under a mid-drag
+// neighbour retime; the DISPATCHED value is what the floor contract pins.
+// One user gesture = one undo step (the editor slice is not undoable — zundo
+// partializes { project }, history.ts).
 //
 // Constraints (CC-103.3): snap to adjacent edges/playhead within SNAP_PX,
 // Shift bypasses per-drag, `snapEnabled()` gates the toolbar toggle; a body
@@ -299,16 +302,64 @@ export function createTimelineController(deps: {
     }
   }
 
+  /**
+   * Final-geometry re-clamp (d.ts § controller: "adjacency floor — dispatched
+   * edges NEVER closer than ADJACENCY_MIN_GAP_SEC to a neighbour edge"). The
+   * live ghost may carry stale neighbour geometry; the DISPATCHED value is what
+   * the contract pins, so the clamps are re-derived from the CURRENT block set
+   * at endDrag. A clamp that satisfies the floor without reversing the gesture
+   * dispatches the clamped value; a clamp that would move the edge opposite
+   * the gesture (the neighbour already occupies the target zone) is impossible
+   * to honour → command-reject BLOCKS_OVERLAP, store untouched (the reducer's
+   * own doctrine, reported at dispatch instead of through an accepted breach).
+   */
+  function reClampToFinalGeometry(session: DragSession, block: CaptionBlock): { start: Seconds; end: Seconds } | CommandReject {
+    const overlapReject: CommandReject = { code: 'BLOCKS_OVERLAP', token: session.blockId }
+    const { prev, next } = neighbours(session.blockId)
+    const startFloor = prev !== null ? prev.end + ADJACENCY_MIN_GAP_SEC : 0
+    let { start, end } = session
+    if (session.edge === 'body') {
+      const span = end - start
+      const endCap = next !== null ? next.start - ADJACENCY_MIN_GAP_SEC : duration()
+      if (start < startFloor) {
+        if (startFloor > block.start) return overlapReject // neighbour sits inside the block's own span
+        start = startFloor
+      }
+      if (start + span > endCap) {
+        const capped = endCap - span
+        if (capped < block.start) return overlapReject
+        start = capped
+      }
+      return { start, end: start + span }
+    }
+    if (session.edge === 'start') {
+      if (start < startFloor) {
+        if (startFloor > block.start) return overlapReject
+        start = startFloor
+      }
+      return { start, end }
+    }
+    const endCeiling = next !== null ? next.start - ADJACENCY_MIN_GAP_SEC : duration()
+    if (end > endCeiling) {
+      if (endCeiling < block.end) return overlapReject
+      end = endCeiling
+    }
+    return { start, end }
+  }
+
   function endDrag(): CommandReject | null {
     const session = drag
     drag = null
     if (session === null || !session.moved) return null
     const block = findBlock(session.blockId)
     if (block === null) return { code: 'DANGLING_BLOCK_REF', token: session.blockId }
-    if (session.start === block.start && session.end === block.end) return null // unchanged → nothing dispatched
+    const clamped = reClampToFinalGeometry(session, block)
+    if ('code' in clamped) return clamped // impossible clamp → command-reject, nothing dispatched
+    const { start, end } = clamped
+    if (start === block.start && end === block.end) return null // unchanged → nothing dispatched
     const payload: BlockRetimePayload = { blockId: session.blockId }
-    if (session.start !== block.start) payload.start = session.start
-    if (session.end !== block.end) payload.end = session.end
+    if (start !== block.start) payload.start = start
+    if (end !== block.end) payload.end = end
     return app.dispatch('block-retime', payload) // EXACTLY ONE command per gesture
   }
 
