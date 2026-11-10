@@ -194,6 +194,7 @@ interface Word {
   text: string
   start: number
   end: number
+  speaker?: string
 }
 
 interface Synthesized {
@@ -203,7 +204,22 @@ interface Synthesized {
   transcript: string
 }
 
-function synthesizeSentence(words: string[], seed: number, f0Base: number, seconds: number): Synthesized {
+/**
+ * Voice characterisation for the harmonic formant synthesizer: per-harmonic
+ * amplitude gains (spectral tilt) + formant scaling. The DEFAULT profile
+ * reproduces the original synthesis formula exactly (bit-for-bit), so every
+ * fixture predating the unit-06 two-speaker work regenerates byte-identical;
+ * only `speech-2spk-2min` selects the alternate voices.
+ */
+interface VoiceProfile {
+  gains: [number, number, number]
+  f1Scale: number
+  f2Scale: number
+}
+
+const DEFAULT_VOICE: VoiceProfile = { gains: [0.55, 0.3, 0.18], f1Scale: 1, f2Scale: 1 }
+
+function synthesizeSentence(words: string[], seed: number, f0Base: number, seconds: number, voice: VoiceProfile = DEFAULT_VOICE): Synthesized {
   const sampleRate = 16000
   const total = Math.round(seconds * sampleRate)
   const out = new Float64Array(total)
@@ -220,13 +236,14 @@ function synthesizeSentence(words: string[], seed: number, f0Base: number, secon
     const letters = text.replace(/[^aeiou]/g, '')
     for (let s = 0; s < sylCount; s++) {
       const vowel = VOWELS[letters[s % Math.max(1, letters.length)] ?? 'a'] ?? VOWELS['a']!
-      const [f1, f2] = vowel
+      const f1 = vowel[0] * voice.f1Scale
+      const f2 = vowel[1] * voice.f2Scale
       const onset = Math.round((t + (s === 0 ? sylDur * 0.18 : sylDur * 0.1)) * sampleRate)
       const offset = Math.round((t + sylDur * 0.95) * sampleRate)
       const f0 = f0Base * (1 + 0.04 * Math.sin((2 * Math.PI * (t + s * sylDur)) / seconds))
       for (let i = onset; i < Math.min(offset, total); i++) {
         const phase = (i / sampleRate) * 2 * Math.PI * f0
-        const voiced = 0.55 * Math.sin(phase) + 0.3 * Math.sin(2 * phase) * (f1 / 1200) + 0.18 * Math.sin(3 * phase) * (f2 / 2400)
+        const voiced = voice.gains[0] * Math.sin(phase) + voice.gains[1] * Math.sin(2 * phase) * (f1 / 1200) + voice.gains[2] * Math.sin(3 * phase) * (f2 / 2400)
         const env = Math.min(1, (i - onset) / (0.012 * sampleRate)) * Math.min(1, (offset - i) / (0.03 * sampleRate))
         out[i] = (out[i] ?? 0) + voiced * env * 0.55
       }
@@ -732,6 +749,15 @@ interface VideoSpec {
    * per seam, so a 19-loop file decodes ~2.1 s short of its declared
    * duration and cannot satisfy CC-04.1's covered ± 1.5 s gate. */
   continuous?: boolean
+  /** Two-speaker fixture (unit-06 US-1.3.1): voice for the second contiguous
+   * run — distinct f0, formant scale and spectral tilt (podcast two-humans
+   * separation, not a trivial f0 shift of the same voice). */
+  voiceB?: { f0: number; seed: number; voice: VoiceProfile }
+  /** Global word index where the speaker handover happens; MUST be a whole
+   * copy boundary (= natural sentence gap) so the ground truth carries
+   * exactly two contiguous `speaker` runs (frozen CC-06.1 prerequisite
+   * assertion in e2e/diarization/accuracy-2spk.spec.ts). */
+  speakerSplit?: number
 }
 
 function encodeVideoBase(spec: VideoSpec, audioFile: string, color: string, totalSeconds = spec.seconds): string {
@@ -784,9 +810,20 @@ async function synthVideos(): Promise<void> {
       name: 'speech-2spk-2min',
       words: [...EN_CLEAN, ...EN_CLEAN_B, ...EN_ACCENTED, ...FR_CLEAN],
       seed: 0x2002,
-      f0: SPEAKER_B,
+      // Two distinctly different voices (podcast two-humans): voice A ≈ 110 Hz
+      // with the default formant set/tilt, voice B ≈ 210 Hz with scaled
+      // formants and a brighter tilt — clearly separable, not the same voice.
+      f0: 110,
+      voiceB: { f0: 210, seed: 0x2013, voice: { gains: [0.5, 0.24, 0.26], f1Scale: 1.14, f2Scale: 1.18 } },
+      // Handover at the copy-2 boundary (= global word 68 of 136, the natural
+      // sentence gap between the FR_CLEAN close and the EN_CLEAN restart).
+      speakerSplit: 68,
+      // Continuous single encode ([A, A, B, B] tiles): a stream-copy loop
+      // would repeat one 30 s segment four times and make the two contiguous
+      // speaker runs acoustically impossible (every copy identical).
       seconds: 30,
       loops: 3,
+      continuous: true,
       language: 'en',
       category: 'en-clean',
       kind: 'speech-2spk',
@@ -808,7 +845,31 @@ async function synthVideos(): Promise<void> {
     writeWav(wav, synthesized.samples, 16000, 1)
     let sourceWav = wav
     let baseSeconds = spec.seconds
-    if (spec.continuous) {
+    if (spec.continuous && spec.voiceB && spec.speakerSplit !== undefined) {
+      // Two-speaker fixture (unit-06 US-1.3.1): two distinctly different
+      // voices over the SAME word list/timings/segment duration, tiled as
+      // [A × k, B × (loops+1−k)] with k = speakerSplit / words-per-copy and
+      // encoded in ONE continuous pass (a stream-copy loop would repeat one
+      // identical segment — no acoustic speaker change would exist).
+      const voiceB = synthesizeSentence(spec.words, spec.voiceB.seed, spec.voiceB.f0, spec.seconds, spec.voiceB.voice)
+      if (voiceB.samples.length !== synthesized.samples.length) throw new Error(`${spec.name}: voice segments differ in length`)
+      if (voiceB.words.length !== synthesized.words.length || !voiceB.words.every((w, i) => w.start === synthesized.words[i]!.start && w.end === synthesized.words[i]!.end)) {
+        throw new Error(`${spec.name}: voice B word timings diverged from voice A`)
+      }
+      const perCopy = synthesized.words.length
+      if (spec.speakerSplit % perCopy !== 0 || spec.speakerSplit <= 0 || spec.speakerSplit >= (spec.loops + 1) * perCopy) {
+        throw new Error(`${spec.name}: speakerSplit ${spec.speakerSplit} is not a strict whole-copy boundary of ${(spec.loops + 1) * perCopy} words`)
+      }
+      const copies = spec.loops + 1
+      const firstRunCopies = spec.speakerSplit / perCopy
+      const tiled = new Float64Array(synthesized.samples.length * copies)
+      for (let index = 0; index < copies; index++) {
+        tiled.set(index < firstRunCopies ? synthesized.samples : voiceB.samples, index * synthesized.samples.length)
+      }
+      sourceWav = join(WORK, `${spec.name}.tiled.wav`)
+      writeWav(sourceWav, tiled, 16000, 1)
+      baseSeconds = spec.seconds * copies
+    } else if (spec.continuous) {
       // Tile the synthesized segment and encode the whole timeline in one
       // pass (audio-120min doctrine): no copy-loop seams → declared duration
       // tracks decoded coverage inside CC-04.1's ± 1.5 s gate.
@@ -828,8 +889,19 @@ async function synthVideos(): Promise<void> {
     const words = Array.from({ length: (spec.loops + 1) * synthesized.words.length }, (_, idx) => {
       const w = synthesized.words[idx % synthesized.words.length]!
       const offset = Math.floor(idx / synthesized.words.length) * spec.seconds
-      return { text: w.text, start: Number((w.start + offset).toFixed(3)), end: Number((w.end + offset).toFixed(3)) }
+      const base = { text: w.text, start: Number((w.start + offset).toFixed(3)), end: Number((w.end + offset).toFixed(3)) }
+      // Ground-truth `speaker` labels match the A/B acoustic reality above:
+      // exactly two contiguous runs, split at the natural copy-boundary gap.
+      return spec.speakerSplit !== undefined ? { ...base, speaker: idx < spec.speakerSplit ? 'speaker-1' : 'speaker-2' } : base
     })
+    if (spec.speakerSplit !== undefined) {
+      const runs: string[] = []
+      for (const w of words) {
+        const last = runs[runs.length - 1]
+        if (w.speaker !== last) runs.push(w.speaker as string)
+      }
+      if (runs.length !== 2) throw new Error(`${spec.name}: ground truth must carry exactly two contiguous speaker runs, got ${runs.length}`)
+    }
     const transcript = Array(spec.loops + 1)
       .fill(synthesized.transcript)
       .join(' ')
