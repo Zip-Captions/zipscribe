@@ -152,17 +152,23 @@ describe('ADVERSE CH (unit-102 adversary): command/history hostile probes', () =
     const t = createTestApp()
     const before = structuredClone(projectOf(t.app))
     const edgeCodes: string[] = []
-    for (const at of [0.5, 2.5, 0.5001, 2.4999, 0.7, 1.0]) {
-      const rejection = t.app.dispatch('block-split', { blockId: 'blk_a', at })
-      expect(rejection, `split at ${String(at)} must reject`).not.toBeNull()
+    // blk_b@3.05: the straddler goes WHOLE to the nearer-midpoint RIGHT part
+    // (US-2.2.2, ledger adjudication (8)) leaving the LEFT part wordless —
+    // the genuine empty-part attack under the current rule.
+    for (const [blockId, at] of [['blk_a', 0.5], ['blk_a', 2.5], ['blk_a', 0.5001], ['blk_a', 2.4999], ['blk_b', 3.05]] as const) {
+      const rejection = t.app.dispatch('block-split', { blockId, at })
+      expect(rejection, `split ${blockId} at ${String(at)} must reject`).not.toBeNull()
       edgeCodes.push(rejection?.code ?? '')
     }
     expect(edgeCodes.every((c) => c === 'INVALID_PAYLOAD' || c === 'SPLIT_EMPTY_PART'), 'edge attacks reject as edge/empty-part codes').toBe(true)
     expect(projectOf(t.app), 'zero mutation across every rejected edge split').toEqual(before)
     expect(t.app.history.undoCount()).toBe(0)
 
-    // word-boundary and inter-word-gap splits are legitimate: two valid halves
-    for (const at of [1.2, 1.95]) {
+    // word-boundary and inter-word-gap splits are legitimate; splits inside
+    // the FIRST word (0.7/1.0) too — the straddler alpha goes WHOLE to the
+    // nearer-midpoint LEFT part (US-2.2.2; they rejected only under the
+    // retired all-straddlers-right choice, ledger adjudication (8c)):
+    for (const at of [0.7, 1.0, 1.2, 1.95]) {
       const tt = createTestApp()
       expect(tt.app.dispatch('block-split', { blockId: 'blk_a', at })).toBeNull()
       const blocks = projectOf(tt.app).blocks

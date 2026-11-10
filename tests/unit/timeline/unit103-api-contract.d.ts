@@ -69,8 +69,12 @@
 // controller uses): a word straddling `at` goes WHOLE into the part whose
 // MIDPOINT is nearer the word's own midpoint (ties → first part); a word is
 // never split; both parts keep ≥ 1 word (unit-102 frozen reject otherwise).
-// The existing unit-102 straddler fixtures stay green under this rule (all
-// committed cases land on the same side) — CC-103.2 pins the diverging case.
+// NOT every unit-102 committed case lands on the same side: blk_a `at:0.6`
+// (straddler alpha mid 0.85 vs part mids 0.55/1.55) is the DIVERGING case —
+// nearer-midpoint sends alpha LEFT (right keeps beta+gamma) — so the unit-102
+// commands-reducer/CH.6 empty-part cases were re-anchored to blk_b `at:3.05`
+// per ledger adjudication (8c); blk_a `at:1.5` lands on the same side (beta
+// mid 1.6 nearer the right part). CC-103.2 pins the diverging case.
 //
 // MERGE RULE (US-2.2.3): text joined with a SINGLE space, words concatenated
 // (unit-102 `block-merge` reducer frozen behavior — asserted here through the

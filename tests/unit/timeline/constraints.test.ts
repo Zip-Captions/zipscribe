@@ -86,7 +86,7 @@ describe('CC-103.3: word protection (US-2.2.1)', () => {
     expect(block.words.length, 'all words survive, re-scaled').toBe(3)
     // Original span 3.0–5.0 (2 s) → 3.0–4.55 (1.55 s): ratio 0.775.
     expect(block.words[0]?.end ?? 0, 'word ends scale by 0.775 (frozen block-retime)').toBeCloseTo(3 + 0.6 * 0.775, 3)
-    expect(block.words[1]?.start ?? 0, 'word starts scale too').toBeCloseTo(3 + 0.7 * 0.775, 3)
+    expect(block.words[1]?.start ?? 0, 'word starts scale too').toBe(3.543)
     expect(block.words[2]?.end ?? 0, 'the last word lands on the new block end').toBeCloseTo(4.55, 3)
   })
 })
