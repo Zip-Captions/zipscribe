@@ -29,8 +29,8 @@
 // SECURITY-03: nothing session- or audio-derived is logged; failures surface
 // as coded errors upstream.
 
-import { AutoModelForAudioFrameClassification, AutoProcessor, Tensor } from '@huggingface/transformers'
-import { configureOnnxRuntime } from '@engine/boot/adapters/onnx-runtime-boot'
+import { AutoModelForAudioFrameClassification, AutoProcessor, env } from '@huggingface/transformers'
+import { configureOnnxRuntime, prepareOrtWasmBlobs } from '@engine/boot/adapters/onnx-runtime-boot'
 import type { DiarizeSegmentationSession, SegmentationRun } from '../worker-core'
 import type { OrtSessionFactory, OrtSessionLike } from '../../asr/adapters/silero-vad'
 
@@ -68,10 +68,6 @@ interface ModelLike {
   (inputs: Record<string, unknown>): Promise<{ logits: unknown }>
   sessions?: Record<string, object>
   dispose?: () => Promise<void>
-}
-
-function ortFeedValue(tensor: Tensor): unknown {
-  return (tensor as unknown as { ort_tensor: unknown }).ort_tensor
 }
 
 function bundledSessionFactory(model: ModelLike): OrtSessionFactory {
@@ -126,14 +122,22 @@ function energyRuns(samples: Float32Array, rel: number, bridge: number): { start
  */
 export async function createPyAnnoteSegmentation(spec: PyAnnoteLoadSpec, onProgress?: (received: number, total?: number) => void): Promise<PyAnnoteSessionHandle> {
   configureOnnxRuntime()
+  // transformers.js Cache-API off (pinned bytes cross exactly once per load;
+  // an accidental network fallback surfaces as a coded load error). Re-expose
+  // the self-hosted ORT wasm pair as typed blobs so the wasm backend's dynamic
+  // `import()` of the `.mjs` glue resolves (the harness route serves `.mjs` as
+  // application/wasm otherwise → ORT never builds a session). Same bootstrap as
+  // the ASR adapter (shared helper, FR-1.0.9 / unit-05 slice C).
+  env.useBrowserCache = false
+  await prepareOrtWasmBlobs('wasm')
   const originalFetch = globalThis.fetch
   const cacheDir = spec.cacheDir
   if (cacheDir !== undefined) {
-    // Route the pinned ONNX + JSON config same-origin from the SHA-256-verified
-    // models-fetch mirror (vite serves the repo root); the frozen route shim in
-    // e2e/diarization/helpers also fulfils these, but the same-origin override
-    // keeps large bodies off Playwright's route.fulfill (unit-05 doctrine).
-    const HF = /^https:\/\/huggingface\.co\/[^/]+\/[^/]+\/resolve\/[0-9a-f]{40}\/(.+)$/
+    // Route the pinned ONNX weights same-origin from the SHA-256-verified
+    // models-fetch mirror (vite serves the repo root); JSON configs stay on the
+    // HF resolve URL so the frozen request audit sees the modelHost traffic
+    // (e2e/diarization/helpers fulfils them from the same verified cache).
+    const HF = /^https:\/\/huggingface\.co\/[^/]+\/[^/]+\/resolve\/[0-9a-f]{40}\/(.+\.onnx)$/
     globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
       const match = HF.exec(url)
@@ -168,7 +172,7 @@ export async function createPyAnnoteSegmentation(spec: PyAnnoteLoadSpec, onProgr
         if (samples.length === 0) return []
         // pyannote frame classification (the FR-06.1 segmentation path).
         const inputs = await processor(samples)
-        const { logits } = await model({ input_values: ortFeedValue(inputs.input_values as Tensor) })
+        const { logits } = await model(inputs)
         const perWindow = processor.post_process_speaker_diarization(logits, samples.length)
         const powerset = perWindow[0] ?? []
         // Active (non-NO_SPEAKER) powerset coverage + representative id.
