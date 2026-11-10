@@ -4,14 +4,14 @@ Status: complete — test-author RED (b782a2b) → builder slices A–D → adju
 
 ## Completion criteria (verify:unit --from-branch, final tree; paste of reports/criteria/unit-103-timeline.md)
 
-| ID       | level                                   | tests | result                                         |
-| -------- | --------------------------------------- | ----- | ---------------------------------------------- |
-| CC-103.1 | untagged (golden + hit-test parity)     | 23    | pass                                           |
-| CC-103.2 | untagged (L1 + L5, one-undo-step)       | 16    | pass                                           |
-| CC-103.3 | untagged (L1 constraints/snap)          | 11    | pass                                           |
-| CC-103.4 | untagged (L5 chromium p95 sampler)      | 2     | pass                                           |
-| CC-103.5 | untagged (L5 keyboard-only walkthrough) | 5     | pass                                           |
-| CC-103.6 | `[MANUAL]` gate meta-criterion          | —     | NOT marked done — awaiting owner (see below)   |
+| ID       | level                                   | tests | result                                       |
+| -------- | --------------------------------------- | ----- | -------------------------------------------- |
+| CC-103.1 | untagged (golden + hit-test parity)     | 23    | pass                                         |
+| CC-103.2 | untagged (L1 + L5, one-undo-step)       | 16    | pass                                         |
+| CC-103.3 | untagged (L1 constraints/snap)          | 11    | pass                                         |
+| CC-103.4 | untagged (L5 chromium p95 sampler)      | 2     | pass                                         |
+| CC-103.5 | untagged (L5 keyboard-only walkthrough) | 5     | pass                                         |
+| CC-103.6 | `[MANUAL]` gate meta-criterion          | —     | NOT marked done — awaiting owner (see below) |
 
 - `[RQ]` / `[DEPLOY]` criteria: none declared in the unit file.
 - `[MANUAL]` items: **CC-103.6** “All gates green” — gate meta-criterion tagged `` `[MANUAL]` `` per CC-102.7/CC-101.6 precedent (gates-spawning-gates circularity; orchestrator spec-line edit, anchored in the unit file at BUILD_VERIFIED 1c1d793). **Awaiting owner** (per run-config, [MANUAL] items are NOT marked done): owner / merge-review date / chromium 143-tier reference machine / result — checklist = confirm the verbatim gate tails below.
