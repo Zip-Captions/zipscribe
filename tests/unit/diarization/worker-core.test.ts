@@ -147,7 +147,7 @@ function gatedSuite(name: string, body: () => void): void {
   })
 }
 
-gatedSuite('FR-06.6 worker-core: load / unload lifecycle', () => {
+gatedSuite('CC-06.6: FR-06.6 worker-core — load / unload lifecycle', () => {
   test('CC-06.5 CC-06.1: loadModels emits model:ready once per injected session', async () => {
     const { core, events, fakes } = await harness()
     await core.post({ t: 'loadModels' })
@@ -177,7 +177,7 @@ gatedSuite('FR-06.6 worker-core: load / unload lifecycle', () => {
   })
 })
 
-gatedSuite('FR-06.6 worker-core: diarize job event sequence', () => {
+gatedSuite('CC-06.1 CC-06.6: FR-06.6 worker-core — diarize job event sequence', () => {
   test('CC-06.1: progress batches → exactly one diar:frames → job:done, frames structurally valid', async () => {
     const { core, events } = await harness()
     await core.post({ t: 'loadModels' })
@@ -275,7 +275,7 @@ gatedSuite('FR-06.6 worker-core: diarize job event sequence', () => {
   })
 })
 
-gatedSuite('FR-06.6 worker-core: cancel, failure taxonomy, stream source', () => {
+gatedSuite('CC-06.6: FR-06.6 worker-core — cancel, failure taxonomy, stream source', () => {
   test('CC-06.5: cooperative cancel ends the job with a CANCELLED terminal and stops issuing session calls', async () => {
     const { core, events, fakes } = await harness({ hangFromCall: 1 })
     await core.post({ t: 'loadModels' })

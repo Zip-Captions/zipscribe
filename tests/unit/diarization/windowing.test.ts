@@ -62,7 +62,7 @@ function assertCovered(windows: { start: number; end: number }[], segment: VadSe
   expect(coveredTo, 'the union covers the segment').toBeGreaterThanOrEqual(segment.end - 0.001)
 }
 
-gated('FR-06.2 embeddingWindows: min/max/hop geometry', () => {
+gated('CC-06.1 CC-06.5 CC-06.6: FR-06.2 embeddingWindows — min/max/hop geometry (deterministic tiling)', () => {
   test('CC-06.1: the FR-06.2 constants are 0.5 s min, 3 s max, 50 % hop', async () => {
     const { EMBED_WINDOW_MIN_SEC, EMBED_WINDOW_MAX_SEC, EMBED_WINDOW_HOP_RATIO } = await loadWindowing()
     expect(EMBED_WINDOW_MIN_SEC).toBe(0.5)
@@ -140,7 +140,7 @@ gated('FR-06.2 embeddingWindows: min/max/hop geometry', () => {
   })
 })
 
-gated('FR-06.2 resolveEmbeddingWindows: forwarded vad reuse vs own Silero pass', () => {
+gated('CC-06.1 CC-06.6: FR-06.2 resolveEmbeddingWindows — forwarded vad reuse vs own Silero pass', () => {
   test('CC-06.1: a forwarded `vad` is reused and the scorer is never touched', async () => {
     const { resolveEmbeddingWindows } = await loadWindowing()
     const scorer = scriptedScorer([[0, 10]])

@@ -64,7 +64,7 @@ function checkInvariants1to3(blocks: CaptionBlock[]): void {
   }
 }
 
-gated('FR-06.3 assignSpeakers: word-time majority, hysteresis, boundary-snapped splits', () => {
+gated('CC-06.1 CC-06.4 CC-06.6: FR-06.3 assignSpeakers — word-time majority, hysteresis, boundary-snapped splits', () => {
   test('CC-06.1 CC-06.4 CC-06.6: a two-run block splits at the word boundary, never mid-word (golden)', async () => {
     const { assignSpeakers } = await loadAssign()
     const input = golden<{ blocks: CaptionBlock[]; frames: DiarFrames }>('assign-speakers.in.json')
@@ -138,7 +138,7 @@ gated('FR-06.3 assignSpeakers: word-time majority, hysteresis, boundary-snapped 
   })
 })
 
-gated('FR-06.3 deps.ts seam: majoritySpeakerId / reassignWords (frozen semantics)', () => {
+gated('CC-06.1 CC-06.4 CC-06.6: FR-06.3 deps.ts seam — majoritySpeakerId / reassignWords (frozen semantics)', () => {
   function w(text: string, speakerId?: string): WordToken {
     return { text, start: 0, end: 1, ...(speakerId === undefined ? {} : { speakerId }) }
   }
@@ -177,7 +177,7 @@ gated('FR-06.3 deps.ts seam: majoritySpeakerId / reassignWords (frozen semantics
   })
 })
 
-gated('US-1.3.2 pure mutation APIs (CC-06.4 golden-tested, CC-06.6 pure coverage)', () => {
+gated('CC-06.4 CC-06.6: US-1.3.2 pure mutation APIs — golden-tested (pure coverage)', () => {
   test('CC-06.4: renameSpeaker updates the label everywhere — ids untouched (golden)', async () => {
     const { renameSpeaker } = await loadAssign()
     const input = golden<{ project: Project; args: { speakerId: string; label: string } }>('rename-speaker.in.json')
@@ -253,7 +253,7 @@ gated('US-1.3.2 pure mutation APIs (CC-06.4 golden-tested, CC-06.6 pure coverage
   })
 })
 
-gated('FR-06.5 palette + speaker materialization', () => {
+gated('CC-06.6: FR-06.5 palette + speaker materialization', () => {
   test('CC-06.4 CC-06.6: 8 deterministic distinct palette colors; labels are "Speaker N" (no hex hardcoded in this test)', async () => {
     const { SPEAKER_PALETTE, speakersFromClusters } = await loadAssign()
     expect(SPEAKER_PALETTE).toHaveLength(8)

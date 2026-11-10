@@ -40,7 +40,7 @@ function distinctLabels(labels: number[]): number[] {
   return [...new Set(labels)].sort((a, b) => a - b)
 }
 
-gated('FR-06.1 clustering: well-separated sets', () => {
+gated('CC-06.1 CC-06.2 CC-06.6: FR-06.1 clustering — well-separated sets', () => {
   test('CC-06.1: k well-separated embedding sets collapse to exactly k labels', async () => {
     for (const k of [2, 3, 5]) {
       const labels = await cluster(orthonormal(k), { threshold: 0.5 })
@@ -83,7 +83,7 @@ gated('FR-06.1 clustering: well-separated sets', () => {
   })
 })
 
-gated('FR-06.1 clustering: threshold + maxSpeakers stops', () => {
+gated('CC-06.1 CC-06.2 CC-06.6: FR-06.1 clustering — threshold + maxSpeakers stops', () => {
   test('CC-06.1: the distance threshold stops merging', async () => {
     // Chain: near-duplicate pair + orthogonal singleton. Intra-pair distance
     // ≈ 0.02, pair→singleton distance ≈ 1.
@@ -120,7 +120,7 @@ gated('FR-06.1 clustering: threshold + maxSpeakers stops', () => {
   })
 })
 
-gated('FR-06.1 clustering: edges, canonicity, determinism (CC-06.6 pure coverage)', () => {
+gated('CC-06.1 CC-06.5 CC-06.6: FR-06.1 clustering — edges, canonicity, determinism (pure coverage)', () => {
   test('CC-06.1 CC-06.6: single input → [0]; empty input → []', async () => {
     expect(await cluster([vec(1, 2, 3)], { threshold: 0.5 })).toEqual([0])
     expect(await cluster([], { threshold: 0.5 })).toEqual([])
