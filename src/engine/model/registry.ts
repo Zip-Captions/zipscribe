@@ -4,10 +4,15 @@
 // - Provenance (repo, 40-hex revision, per-file path/sha256/bytes) is the
 //   verbatim content of `models/eval-registry.json` (written by
 //   `tools/eval/pin-models.mjs`, verified by `scripts/models-fetch.ts`) for the
-//   five shipped rows. Tests assert an exact match against that file — if the
-//   pins rotate, regenerate these constants from it (runtime JSON import is
+//   five shipped ASR rows. Tests assert an exact match against that file — if
+//   the pins rotate, regenerate these constants from it (runtime JSON import is
 //   excluded here on purpose: `tsconfig.json` carries no `resolveJsonModule`
-//   and the engine must not read files/network; AGENTS.md § Network).
+//   and the engine must not read files/network; AGENTS.md § Network). The two
+//   non-ASR diarization rows (unit-06 FR-06.6) follow the same doctrine: the
+//   `DIAR_MODEL_REGISTRY` below is verbatim from the same file's
+//   `pyannote-segmentation-3-0` / `eres2net-base-3dspeaker` rows and mirrored
+//   into `models/ci-registry.json` for `pnpm models:fetch` — the silero-vad
+//   non-ASR precedent (fetched tier, not an ASR-selector candidate).
 // - Enrichment (languages, punctuation, confidence, languageDetect,
 //   timestampMode, license, deviceHint, tierHint) comes from
 //   `docs/spikes/model-eval-report.json` `rows[]` + `recommendation`
@@ -224,6 +229,81 @@ export const MODEL_REGISTRY: Record<string, ModelSpec> = {
   },
 }
 
+/**
+ * Unit-06 diarization model rows (FR-06.6: "Diarization models go through the
+ * unit-03 registry — pinned revision, SHA-256, offline-cacheable via
+ * `ensureOffline`"). Deliberately a SEPARATE map from `MODEL_REGISTRY`: these
+ * are not ASR selectable, so they never reach `tierSelector`, the model
+ * picker (`state/jobs.ts`) or the CC-03.1 ASR-row suite — the silero-vad
+ * non-ASR precedent (a fetched, pinned cache tier rather than a selector
+ * candidate). The `diarize.worker.ts` (slice C) injects this map into the
+ * unit-03 `createModelCache`/`createModelManager` (`deps.registry`) so
+ * `ensureOffline` fetches + SHA-256-verifies these files and double-caches the
+ * same self-hosted ORT wasm (`/wasm`, `scripts/copy-wasm.ts`) the transformers
+ * rows use. `engine: 'transformers-whisper'` names the transformers.js/ORT
+ * stack both models run on (segmentation via
+ * `AutoModelForAudioFrameClassification`, embeddings via the bundled ORT
+ * instance — no second ORT copy, FR-06.1); diarization never dispatches
+ * through the ASR adapter factory.
+ *
+ * Cache-directory names `pyannote-segmentation-3-0` / `eres2net-base-3dspeaker`
+ * are the frozen e2e contract (DIAR_MODEL_CACHE_DIRS + the REPO_FRAGMENT_TO_
+ * CACHE_DIR route mapping in e2e/diarization/helpers/diarization.ts) and equal
+ * the `models/ci-registry.json` keys `scripts/models-fetch.ts` materializes
+ * under `.cache/models/`.
+ */
+export const DIAR_MODEL_REGISTRY: Record<string, ModelSpec> = {
+  'pyannote-segmentation-3-0@733a93b6': {
+    id: 'pyannote-segmentation-3-0@733a93b6',
+    engine: 'transformers-whisper',
+    repo: 'onnx-community/pyannote-segmentation-3.0',
+    revision: '733a93b6473d019a773298e08cefa686894b1854',
+    files: [
+      { path: 'config.json', sha256: '5a4c6bb4f49f1b47c9bd398aac78b8cd4a9f30a0ff91b5c2dc68d05e13e160cf', bytes: 408 },
+      { path: 'preprocessor_config.json', sha256: 'dfc7d35a3895f8997eb94521e28b1921c03480a34fa9bcbb6bef1f1934f81480', bytes: 158 },
+      { path: 'onnx/model.onnx', sha256: '057ee564753071c0b09b5b611648b50ac188d50846bff5f01e9f7bbf1591ea25', bytes: 5_986_908 },
+    ],
+    approxBytes: 6_000_000,
+    languages: ['*'], // speaker turns are language-agnostic
+    punctuation: false,
+    confidence: false,
+    languageDetect: false,
+    timestampMode: 'segment', // post-processed active-speaker runs (worker-core DiarRun)
+    license: 'MIT', // HF cardData license:mit — re-verified 2026-11-10 via /api/models
+    attribution: 'pyannote community pyannote/segmentation-3.0 (MIT), ONNX export by onnx-community',
+    tierHint: 'T2', // wasm fp32 tier — WebGPU unsupported for this model (microsoft/onnxruntime#21386)
+    runtimeWasm: ORT_RUNTIME_WASM,
+    enOnly: false,
+    deviceHint: 'wasm',
+  },
+  'eres2net-base-3dspeaker@e63c3752': {
+    id: 'eres2net-base-3dspeaker@e63c3752',
+    engine: 'transformers-whisper',
+    repo: 'onemira/eres2net-base-3dspeaker-onnx',
+    revision: 'e63c37526aa23092d9de764d323d769337f2b2a8',
+    files: [{ path: '3dspeaker_speech_eres2net_base_sv_zh-cn_3dspeaker_16k.onnx', sha256: '1a331345f04805badbb495c775a6ddffcdd1a732567d5ec8b3d5749e3c7a5e4b', bytes: 39_593_761 }],
+    approxBytes: 39_600_000,
+    languages: ['*'], // speaker embeddings are language-agnostic
+    punctuation: false,
+    confidence: false,
+    languageDetect: false,
+    timestampMode: 'none', // fixed-length utterance embeddings
+    license: 'Apache-2.0',
+    // Self-tagged HF mirror — tied to the k2-fsa release artifact: mirror file
+    // and https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/…
+    // hash to the identical SHA-256 (39,593,761 B, both hashed 2026-11-10);
+    // in-repo LICENSE/LICENSE.sherpa-onnx/NOTICE match the mirror's declared
+    // legal-file digests (Apache-2.0 texts). Chain: onemira mirror → k2-fsa
+    // sherpa-onnx release (ONNX export) → ModelScope iic ERes2Net-base
+    // (3D-Speaker team). Full evidence: docs/spikes/diar-model-provenance.md.
+    attribution: '3D-Speaker ERes2Net-base speaker embeddings (ModelScope iic, Apache-2.0); ONNX export/distribution k2-fsa/sherpa-onnx (Apache-2.0)',
+    tierHint: 'T2', // runs on the bundled ORT wasm instance (FR-06.1)
+    runtimeWasm: ORT_RUNTIME_WASM,
+    enOnly: false,
+    deviceHint: 'wasm',
+  },
+}
+
 /** Spike recommendation (unit-02 CC-02.11): T1 whisper-base, T2 sherpa-zipformer, T3 whistle. */
 export const TIER_DEFAULT_MODEL: Record<'T1' | 'T2' | 'T3', string> = {
   T1: 'whisper-base_timestamped@608c49e6',
@@ -233,6 +313,11 @@ export const TIER_DEFAULT_MODEL: Record<'T1' | 'T2' | 'T3', string> = {
 
 export function getModel(id: string): ModelSpec | undefined {
   return MODEL_REGISTRY[id]
+}
+
+/** Diarization row lookup (unit-06 FR-06.6); keys of `DIAR_MODEL_REGISTRY` only. */
+export function getDiarModel(id: string): ModelSpec | undefined {
+  return DIAR_MODEL_REGISTRY[id]
 }
 
 /** `https://huggingface.co/<repo>/resolve/<revision>/<path>` — never `resolve/main/` (FR-03.6). */

@@ -268,6 +268,40 @@
         }
       ]
     },
+    "pyannote-segmentation-3-0": {
+      "repo": "onnx-community/pyannote-segmentation-3.0",
+      "revision": "733a93b6473d019a773298e08cefa686894b1854",
+      "description": "Unit-06 diarization segmentation row (FR-06.1/FR-06.6): pyannote-segmentation-3.0 fp32 on the wasm tier (WebGPU unsupported, microsoft/onnxruntime#21386). MIT per HF cardData (re-verified 2026-11-10 via /api/models). Non-ASR row: exposed through DIAR_MODEL_REGISTRY in src/engine/model/registry.ts, never the ASR selector.",
+      "files": [
+        {
+          "path": "config.json",
+          "sha256": "5a4c6bb4f49f1b47c9bd398aac78b8cd4a9f30a0ff91b5c2dc68d05e13e160cf",
+          "sizeBytes": 408
+        },
+        {
+          "path": "preprocessor_config.json",
+          "sha256": "dfc7d35a3895f8997eb94521e28b1921c03480a34fa9bcbb6bef1f1934f81480",
+          "sizeBytes": 158
+        },
+        {
+          "path": "onnx/model.onnx",
+          "sha256": "057ee564753071c0b09b5b611648b50ac188d50846bff5f01e9f7bbf1591ea25",
+          "sizeBytes": 5986908
+        }
+      ]
+    },
+    "eres2net-base-3dspeaker": {
+      "repo": "onemira/eres2net-base-3dspeaker-onnx",
+      "revision": "e63c37526aa23092d9de764d323d769337f2b2a8",
+      "description": "Unit-06 diarization embedding row (FR-06.1/FR-06.6): 3D-Speaker ERes2Net-base ONNX (apache-2.0). Self-tagged HF mirror — provenance TIED to the k2-fsa/sherpa-onnx GitHub release speaker-recongition-models artifact (identical SHA-256 1a331345f04805badbb495c775a6ddffcdd1a732567d5ec8b3d5749e3c7a5e4b, 39,593,761 B, hashed both copies 2026-11-10) and to the sherpa-onnx speaker-diarization docs page documenting that asset; full chain in docs/spikes/diar-model-provenance.md. Non-ASR row: exposed through DIAR_MODEL_REGISTRY in src/engine/model/registry.ts.",
+      "files": [
+        {
+          "path": "3dspeaker_speech_eres2net_base_sv_zh-cn_3dspeaker_16k.onnx",
+          "sha256": "1a331345f04805badbb495c775a6ddffcdd1a732567d5ec8b3d5749e3c7a5e4b",
+          "sizeBytes": 39593761
+        }
+      ]
+    },
     "sherpa-wasm-vad-asr": {
       "repo": "spaces/k2-fsa/web-assembly-vad-asr-sherpa-onnx-zh-zipformer-ctc",
       "revision": "9d5fc71d88ab1222ed1af2274fb194592af48455",
