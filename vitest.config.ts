@@ -201,7 +201,15 @@ export default defineConfig({
         // exercised by child-excluded RED suites (contract scan slice D,
         // transport-bar UI slice C). The parent `pnpm test --coverage` (CI)
         // keeps measuring everything perFile.
-        ...(process.env.ZIPSCRIBE_CHILD === '1' ? ['src/state/commands/deps.ts', 'src/state/commands/index.ts', 'src/state/editor.ts', 'src/state/history.ts'] : []),
+        // unit-06 (same child-only precedent): the frozen unit-06 suites
+        // (tests/unit/diarization/*) self-skip under ZIPSCRIBE_CHILD=1 (their
+        // own headers, unit-04/05/07 RED precedent), so `src/engine/diarize/*`
+        // would measure 0 % inside the gate-spawning child and fail the
+        // perFile thresholds with no way to cover it there. The parent
+        // `pnpm test --coverage` (CI) and `verify:unit` keep measuring them
+        // perFile (CC-06.6). Builder-owned config (suite headers:
+        // "vitest.config.ts is builder-owned").
+        ...(process.env.ZIPSCRIBE_CHILD === '1' ? ['src/engine/diarize/**/*.ts', 'src/state/commands/deps.ts', 'src/state/commands/index.ts', 'src/state/editor.ts', 'src/state/history.ts'] : []),
       ],
       thresholds: {
         // Every reported file must clear the gate (a below-threshold file fails
