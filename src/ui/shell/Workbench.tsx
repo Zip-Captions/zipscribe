@@ -25,20 +25,23 @@ import type { SettingsStore, WorkbenchSettings } from '../../state/settings'
 import type { ProjectStore } from '../../state/project'
 import type { ImportReport, IntakeService } from '../../state/services/intake'
 import type { EditorApp } from '../../state/history'
+import type { RafDriver } from '../../state/services/playback/arbitrator'
 import type { StageController } from '../../app/stage'
 import type { OverlayRenderer } from '../canvas/overlay'
 import { useCommands } from '../commands/useCommands'
 import { useTransportCommands } from '../commands/useTransportCommands'
 import { formatTimecode } from '../format'
+import { Timeline } from '../timeline/Timeline'
 import { StageMedia } from './StageMedia'
 import { TranscribePopover } from './TranscribePopover'
 import './workbench.css'
 
-/** Slice C editor wiring (EXTENDS the frozen 101 WorkbenchProps — optional, so every frozen 101 mount path is untouched). */
+/** Slice C editor wiring (EXTENDS the frozen 101 WorkbenchProps — optional, so every frozen 101 mount path is untouched). Unit-103 adds `rafs`: the Timeline panel's repaint driver (the app's ONE rAF loop). */
 export interface WorkbenchTransport {
   app: EditorApp
   stage: StageController
   overlayRenderer?: OverlayRenderer
+  rafs?: RafDriver
 }
 
 export interface WorkbenchProps {
@@ -582,8 +585,13 @@ export function Workbench(props: WorkbenchProps): ReactNode {
                   settings.setPanelSize('timeline', px)
                 }}
               />
+              {/* Unit-103: the canvas timeline mounts INSIDE the unit-101 section (the d.ts-sanctioned region-nesting pattern — timeline-root carries its own data-region="timeline" + tabindex=0). The section itself stays present always (101 frozen); the panel needs the editor app + the rAF driver + a project, else the reserved placeholder renders. */}
               <section data-region="timeline" data-testid="panel-timeline" tabIndex={-1} role="region" aria-label="Timeline" className="ws-timeline" style={{ height: settingsState.panels.timelinePx }}>
-                <p className="ws-empty">Timeline arrives with unit-103.</p>
+                {transport !== undefined && transport.rafs !== undefined && currentProject !== null ? (
+                  <Timeline app={transport.app} rafs={transport.rafs} dpr={typeof window === 'undefined' ? 1 : (window.devicePixelRatio || 1)} />
+                ) : (
+                  <p className="ws-empty">Timeline arrives with unit-103.</p>
+                )}
               </section>
             </>
           )}

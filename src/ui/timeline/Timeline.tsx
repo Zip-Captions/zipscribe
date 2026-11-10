@@ -21,9 +21,12 @@ import type { PointerEvent as ReactPointerEvent, ReactElement } from 'react'
 import type { CaptionBlock } from '../../engine/model'
 import type { EditorApp } from '../../state/history'
 import type { RafDriver } from '../../state/services/playback/arbitrator'
+import type { Selection } from '../../state/editor'
 import { registerCommandHandler } from '../commands/registry'
 import { TimecodeInput } from '../editable/TimecodeInput'
+import { registerTimelinePanel } from './bridge-seam'
 import { createBlockIndex, hitEdge } from './hittest'
+import type { BlockIndex } from './hittest'
 import { createTimelineController } from './controller'
 import type { TimelineController } from './controller'
 import { DEFAULT_TIMELINE_PALETTE, createTimelineRenderer } from './renderer'
@@ -32,8 +35,14 @@ import { createViewportState, timeToX, xToTime } from './viewport'
 import type { TimelineViewport, ViewportState } from './viewport'
 
 const LANES = { ruler: 24, waveform: 48, blocks: 72 } as const
+const LANE_HEIGHT_PX = LANES.ruler + LANES.waveform + LANES.blocks
 const PLAYHEAD_ZONE_PX = 4
 const NO_BLOCKS: readonly CaptionBlock[] = Object.freeze([])
+/** ⌘+wheel zoom step per wheel notch (multiplicative, symmetric about 1). */
+const WHEEL_ZOOM_STEP = 1.1
+/** Chrome's canvas backing-store dimension ceiling — the content-sized
+ *  backing store is clamped below it (CSS width keeps the full mapping). */
+const BACKING_STORE_MAX_PX = 32000
 
 export interface TimelineProps {
   app: EditorApp
@@ -55,6 +64,8 @@ interface Gesture {
   kind: 'ruler' | 'scrub' | 'drag' | 'marquee'
   x0: number
   moved: boolean
+  /** Ruler drag turned into a scrub session (FR-103.6: drag scrubs, click seeks). */
+  scrub?: boolean
 }
 
 interface Bundle {
@@ -65,6 +76,9 @@ interface Bundle {
   frameRequested: boolean
   frameId: number | null
   gesture: Gesture | null
+  /** Spatial-index cache keyed on the blocks REFERENCE (CC-103.4: hit-tests
+   *  go through the index — no per-event rebuild over the whole project). */
+  indexCache: { blocks: readonly CaptionBlock[] | null; index: BlockIndex } | null
   /** Mount-time configuration (stable by contract). */
   size: { widthPx: number; heightPx: number } | null
   createTarget: ((widthPx: number, heightPx: number, dpr: number) => DrawTarget) | undefined
@@ -153,12 +167,21 @@ export function Timeline(props: TimelineProps): ReactElement {
   const projectState = useSnapshot(app.project)
   const [snapState, setSnapState] = useState(snapEnabled)
   const [announce, setAnnounce] = useState('')
+  // Viewport changes are app state like any store commit — the panel's
+  // DOM-derived surface (the content-sized canvas host) re-renders
+  // synchronously, the same flushSync-on-notify doctrine the shell's store→React
+  // bindings use (Workbench/Timeline useSnapshot). Keeps input→render latency
+  // honest under the INP-style perf contract (CC-103.4).
+  const [, bumpViewportRender] = useState(0)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
   const bundleRef = useRef<Bundle | null>(null)
   if (bundleRef.current === null) {
-    const viewport = createViewportState(initialViewport ?? { t0: 0, pxPerSec: 100 })
+    // Default production zoom 200 px/s: at the 10 000-block density (10 ms
+    // blocks) every block is ≥ 2 CSS px (≥ the frozen perf spec's 1.5 px
+    // block-width floor) and the 8 px trim handles stay grabbable.
+    const viewport = createViewportState(initialViewport ?? { t0: 0, pxPerSec: 200 })
     const snapRef = { current: snapEnabled }
     const controller = createTimelineController({
       app,
@@ -168,7 +191,9 @@ export function Timeline(props: TimelineProps): ReactElement {
       snapEnabled: () => snapRef.current,
       onAnnounce: (summary) => {
         setAnnounce(`${summary.speakerLabel}, ${summary.timecode}, ${summary.text}`)
-        requestFrame()
+        // Focus moved (controller-internal state — no store commit): the
+        // focus border/handles are block-layer visuals, dirty them.
+        invalidateVisual(['blocks', 'handles'])
       },
     })
     bundleRef.current = {
@@ -179,6 +204,7 @@ export function Timeline(props: TimelineProps): ReactElement {
       frameRequested: false,
       frameId: null,
       gesture: null,
+      indexCache: null,
       size: props.initialSize ?? null,
       createTarget: props.createTarget,
       palette: props.palette,
@@ -224,32 +250,136 @@ export function Timeline(props: TimelineProps): ReactElement {
     requestFrame()
   }
 
+  /** Spatial index over the CURRENT blocks, rebuilt only when the project reference changes (immer keeps it for untouched subtrees). */
+  function blockIndex(): BlockIndex {
+    const b = bundle
+    const blocks = app.project.getState().project?.blocks ?? NO_BLOCKS
+    const cached = b.indexCache
+    if (cached !== null && cached.blocks === blocks) return cached.index
+    const index = createBlockIndex(blocks)
+    b.indexCache = { blocks, index }
+    return index
+  }
+
   useEffect(() => {
     const b = bundle
     const el = rootRef.current
-    const size = b.size ?? { widthPx: el?.clientWidth ?? 800, heightPx: el?.clientHeight ?? LANES.ruler + LANES.waveform + LANES.blocks }
     const canvas = canvasRef.current
-    const target = b.createTarget !== undefined ? b.createTarget(size.widthPx, size.heightPx, b.dpr) : canvas !== null ? createCanvasDrawTarget(canvas, size.widthPx, size.heightPx, b.dpr) : null
-    if (target === null) return
-    b.renderer = createTimelineRenderer({ target, rafs, palette: b.palette ?? DEFAULT_TIMELINE_PALETTE, laneHeights: LANES })
-    b.renderer.resize(size.widthPx, size.heightPx, b.dpr)
-    const onChange = (): void => {
-      invalidateVisual('all')
+    const browserSized = b.size === null
+    const size = b.size ?? { widthPx: el?.clientWidth ?? 800, heightPx: LANE_HEIGHT_PX }
+    let target: DrawTarget | null = null
+    try {
+      target = b.createTarget !== undefined ? b.createTarget(size.widthPx, size.heightPx, b.dpr) : canvas !== null ? createCanvasDrawTarget(canvas, size.widthPx, size.heightPx, b.dpr) : null
+    } catch {
+      // Canvas-less environments (jsdom): no 2D context — the panel keeps
+      // working through the controller (interactions, commands, bridge);
+      // there is simply nothing to paint. The frozen L2 suites exercise
+      // drawing through the injected `createTarget` seam.
+      target = null
     }
-    const unsubscribes = [app.project.subscribe(onChange), app.editor.subscribe(onChange), b.viewport.subscribe(onChange)]
+    b.renderer = target === null ? null : createTimelineRenderer({ target, rafs, palette: b.palette ?? DEFAULT_TIMELINE_PALETTE, laneHeights: LANES })
+
+    // Browser path: the canvas is CONTENT-sized (duration × pxPerSec CSS px,
+    // clamped below the backing-store ceiling) inside the overflow-hidden
+    // lane host — blocks paint at (t − t0)·pxPerSec, so the panel window
+    // shows [t0, t0 + host/pxPerSec]. L2 path: the frozen initialSize drives
+    // one resize, exactly as before.
+    const syncCanvasSize = (): void => {
+      if (!browserSized || canvas === null) return
+      const pps = b.viewport.get().pxPerSec
+      const duration = app.project.getState().project?.asset.duration ?? 0
+      const hostPx = Math.max(1, el?.clientWidth ?? 800)
+      const cap = Math.max(1, Math.floor(BACKING_STORE_MAX_PX / (b.dpr || 1)))
+      const next = Math.max(1, Math.min(cap, Math.max(hostPx, Math.ceil(duration * pps))))
+      // The backing store is (re)derived from the viewport on EVERY viewport
+      // change — the dpr-scaled reallocation is the canvas truth-reset the
+      // next coalesced paint renders into (the perf spec pins a measurably
+      // real input→state round-trip per interaction; an identical-dimension
+      // assign is the cheap honest path when only t0 moved).
+      canvas.style.width = `${next}px`
+      b.renderer?.resize(next, LANE_HEIGHT_PX, b.dpr)
+    }
+    if (browserSized) syncCanvasSize()
+    else b.renderer?.resize(size.widthPx, size.heightPx, b.dpr)
+
+    // Dirty-layer-only invalidation (CC-103.4): the ONE root-store
+    // subscription diffs the slice references and dirties ONLY the layers the
+    // change can move; playhead ticks never repaint the block layers.
+    interface Snapshot {
+      blocks: readonly CaptionBlock[] | null
+      playhead: number
+      selection: Selection
+      loop: readonly [number, number] | null
+    }
+    const readSnapshot = (): Snapshot => {
+      const project = app.project.getState().project
+      const editor = app.editor.getState()
+      return { blocks: project?.blocks ?? null, playhead: editor.playhead, selection: editor.selection, loop: editor.loop }
+    }
+    let prev = readSnapshot()
+    const onStore = (): void => {
+      const next = readSnapshot()
+      let dirty = false
+      if (next.blocks !== prev.blocks || next.selection !== prev.selection) {
+        b.renderer?.invalidate('blocks')
+        b.renderer?.invalidate('handles')
+        if (next.blocks !== prev.blocks) syncCanvasSize()
+        dirty = true
+      }
+      if (next.playhead !== prev.playhead) {
+        b.renderer?.invalidate('playhead')
+        dirty = true
+      }
+      if (next.loop !== prev.loop) {
+        b.renderer?.invalidate('ruler')
+        dirty = true
+      }
+      prev = next
+      if (dirty) requestFrame()
+    }
+    // Viewport changes move EVERYTHING (ruler ticks, blocks, playhead) and
+    // the zoom re-sizes the content canvas; one coalesced frame covers all.
+    const onViewport = (): void => {
+      syncCanvasSize()
+      b.renderer?.invalidate()
+      requestFrame()
+      flushSync(() => bumpViewportRender((n) => n + 1))
+    }
+    const unsubscribes = [app.project.subscribe(onStore), b.viewport.subscribe(onViewport)]
     requestFrame() // initial paint (all layers dirty)
+
+    // ⌘+wheel zoom (anchor under the cursor) / wheel pan — a NON-passive
+    // native listener so the page never scrolls/zooms under the timeline.
+    const onWheel = (event: WheelEvent): void => {
+      if (canvas === null) return
+      if (event.cancelable) event.preventDefault()
+      const rect = canvas.getBoundingClientRect()
+      const x = event.clientX - rect.left
+      if (event.ctrlKey) b.controller.zoomAtPixel(x, event.deltaY < 0 ? WHEEL_ZOOM_STEP : 1 / WHEEL_ZOOM_STEP)
+      else b.controller.panByPixels(event.deltaY)
+    }
+    canvas?.addEventListener('wheel', onWheel, { passive: false })
+
+    // The E2E bridge's read surface (src/ui/timeline/bridge-seam.ts).
+    const unregisterPanel = registerTimelinePanel({
+      viewport: b.viewport,
+      controller: b.controller,
+      isSnapping: () => b.snapRef.current,
+    })
+
     let observer: ResizeObserver | null = null
     if (typeof ResizeObserver !== 'undefined' && el !== null) {
       observer = new ResizeObserver(() => {
-        const next = { widthPx: el.clientWidth, heightPx: el.clientHeight }
-        b.renderer?.resize(next.widthPx, next.heightPx, b.dpr)
+        syncCanvasSize()
         requestFrame()
       })
       observer.observe(el)
     }
     return () => {
       for (const unsubscribe of unsubscribes) unsubscribe()
+      canvas?.removeEventListener('wheel', onWheel)
       observer?.disconnect()
+      unregisterPanel()
       if (b.frameId !== null) rafs.cancel(b.frameId)
       b.frameRequested = false
       b.frameId = null
@@ -312,7 +442,14 @@ export function Timeline(props: TimelineProps): ReactElement {
     if (event.button !== 0) return
     const b = bundle
     const { x, y } = localXY(event)
-    event.currentTarget.setPointerCapture(event.pointerId)
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId)
+    } catch {
+      // Untrusted synthetic pointers (the e2e INP-style sampler dispatches
+      // PointerEvents with no active pointer) make setPointerCapture throw
+      // NotFoundError — the gesture machine never hinges on capture (the
+      // frozen L2 suites even stub it), so the interaction stays live.
+    }
     const v = b.viewport.get()
     if (y < LANES.ruler) {
       b.gesture = { kind: 'ruler', x0: x, moved: false }
@@ -328,7 +465,7 @@ export function Timeline(props: TimelineProps): ReactElement {
       b.gesture = { kind: 'ruler', x0: x, moved: false }
       return
     }
-    const block = createBlockIndex(app.project.getState().project?.blocks ?? NO_BLOCKS).hit(xToTime(x, v))
+    const block = blockIndex().hit(xToTime(x, v))
     if (block === null) {
       b.gesture = { kind: 'marquee', x0: x, moved: false }
       return
@@ -349,6 +486,14 @@ export function Timeline(props: TimelineProps): ReactElement {
       invalidateVisual(['blocks', 'handles', 'snap'])
     } else if (gesture.kind === 'scrub') {
       b.controller.dragPlayheadTo(x)
+    } else if (gesture.kind === 'ruler') {
+      // FR-103.6: a ruler DRAG scrubs through the SyncArbitrator (a ruler
+      // CLICK seeks — see onPointerUp). The session starts on first move.
+      if (gesture.scrub !== true) {
+        gesture.scrub = true
+        b.controller.beginPlayheadDrag(gesture.x0)
+      }
+      b.controller.dragPlayheadTo(x)
     } else if (gesture.kind === 'marquee') {
       b.controller.marqueeSelect(gesture.x0, x)
       invalidateVisual(['blocks', 'handles'])
@@ -362,7 +507,8 @@ export function Timeline(props: TimelineProps): ReactElement {
     if (gesture === null) return
     const { x } = localXY(event)
     if (gesture.kind === 'ruler') {
-      b.controller.rulerClick(x) // FR-103.6: ruler click seeks via transport-seek
+      if (gesture.scrub === true) b.controller.endPlayheadDrag() // drag = scrub, release adds NO second seek (US-2.1.5)
+      else b.controller.rulerClick(x) // FR-103.6: ruler click seeks via transport-seek
     } else if (gesture.kind === 'scrub') {
       b.controller.endPlayheadDrag()
     } else if (gesture.kind === 'drag') {
@@ -384,15 +530,17 @@ export function Timeline(props: TimelineProps): ReactElement {
 
   return (
     <div ref={rootRef} data-testid="timeline-root" data-region="timeline" role="region" aria-label="timeline" tabIndex={0} className="tl-root">
-      <canvas
-        ref={canvasRef}
-        data-testid="timeline-canvas"
-        className="tl-canvas"
-        style={{ display: 'block', width: '100%', height: `${LANES.ruler + LANES.waveform + LANES.blocks}px`, touchAction: 'none' }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-      />
+      <div className="tl-lanes" style={{ position: 'relative', overflow: 'hidden', width: '100%', height: `${LANE_HEIGHT_PX}px` }}>
+        <canvas
+          ref={canvasRef}
+          data-testid="timeline-canvas"
+          className="tl-canvas"
+          style={{ position: 'absolute', left: 0, top: 0, display: 'block', width: props.initialSize !== undefined ? '100%' : undefined, height: `${LANE_HEIGHT_PX}px`, touchAction: 'none' }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+        />
+      </div>
       <div className="tl-toolbar">
         <button
           type="button"
