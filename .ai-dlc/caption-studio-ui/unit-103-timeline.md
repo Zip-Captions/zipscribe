@@ -1,5 +1,5 @@
 ---
-status: in_progress
+status: done   # merged (PR #13 → aa014aa); reviewer rounds: R1/R2 CHANGES_REQUESTED (all findings fixed), R3 APPROVE; gates green at head 9babf47; CC-103.6 [MANUAL] awaiting owner
 phase: mvp
 discipline: frontend
 depends_on: [unit-102-editor-core-playback, local-transcribe-engine/unit-04-media-ingest]

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done   # merged (PR #9 — "Phase 07: Caption import, QC & align-to-audio"); board sync during unit-103 run (precedent unit-04)
 phase: mvp
 discipline: dev
 depends_on: [unit-01-scaffold-quality-gates, unit-05-transcription-pipeline]

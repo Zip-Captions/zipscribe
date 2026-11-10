@@ -1,6 +1,6 @@
 # Unit report: unit-103-timeline
 
-Status: complete — test-author RED (b782a2b) → builder slices A–D → adjudications (1)–(9) → BUILD_VERIFIED (orchestrator re-ran every gate twice: at 1c1d793 and post-fix 968765c) → adversary round A (3 genuine findings, 39 survived) → single in-build fix cycle → AUDIT_CLEAN. All evidence in docs/overnight-ledger.md (entries 2026-11-09T21:15Z → 2026-11-10T01:20Z).
+Status: MERGED — PR #13 squash-merged to develop as `aa014aa` (2026-11-10T09:07Z); CI green (run 42780534613). Test-author RED (b782a2b) → builder slices A–D → adjudications (1)–(11) → BUILD_VERIFIED (orchestrator re-ran every gate at 1c1d793, 968765c, 8bba3ab, head) → adversary round A (3 genuine findings, 39 survived) → single in-build fix cycle → AUDIT_CLEAN → reviewer cap-3 rounds (R1/R2 CHANGES_REQUESTED, all findings fixed; R3 fresh-context APPROVE) → merge. All evidence in docs/overnight-ledger.md (entries 2026-11-09T21:15Z → merge).
 
 ## Completion criteria (verify:unit --from-branch, final tree; paste of reports/criteria/unit-103-timeline.md)
 
@@ -143,3 +143,32 @@ Post-R2 battery (orch, a41e599): lint 0 · typecheck 0 · prettier 0 · test
 regenerates the identical record via the unit-02 qualify-runner contract
 test; record↔tree validity additionally carried by the 4 model-eval tests
 in every full run) → `qualification-check` ACCEPT.
+
+### Round 3 (9babf47 — APPROVE, final of cap 3)
+
+Fresh-context reviewer, full authoritative re-run at head: lint/typecheck/
+prettier 0 · test 1334/1/1 · coverage 95.64/89.78/97.7/98.83 exit 0 ·
+build 112.9 KB · qualification-check ACCEPT + independent 172-file
+contentHash recompute == record · verify:unit all untagged ✓ · NEW-1
+kill-check independently red on `'Ctrl+='` deletion (load-bearing) ·
+NEW-2 comment-only confirmed line-by-line · integrity diff vs b782a2b =
+adjudicated edits + adversary additions-only, e2e/fixtures frozen · full
+chromium sweep reproduced 102/21 at head · model-eval record↔tree harness
+verified genuine. No new findings. Per-criterion: .1–.5 SATISFIED (fresh
+citations), .6 [MANUAL] not self-marked. Comment:
+PR #13 #issuecomment-6763382776.
+
+## Merge + post-merge
+
+- Intermediate CI red at 5b8eae9 = expected transient (src changed with
+  stale qualify record until re-sign a41e599); head run 42780534613 green.
+- Squash-merged by orchestrator (unit mode AHOTL, no owner gate) as
+  `aa014aa` — "Phase 2: Timeline — canvas ruler/waveform/blocks,
+  trim+snap+zoom (unit-103)". Branch kept per repo precedent.
+- Post-merge board sync (develop chore, unit-04 precedent): unit-103
+  `status: done`; unit-05 (PR #8) and unit-07 (PR #9) flipped `pending →
+done` — factual board correction their runs left behind; next-run
+  readiness: **106/107 READY** (deps 102+04 merged), **104 BLOCKED** on
+  unit-06 (not started), **105 BLOCKED** behind 104.
+- Owner checklist (CC-103.6): confirm the verbatim gate tails (report §
+  Gates + round-3 reviewer reproduction); sign-off pending.

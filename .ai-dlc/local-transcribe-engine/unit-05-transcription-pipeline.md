@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done   # merged (PR #8 — "Phase 05: Transcription pipeline"); board sync during unit-103 run (precedent unit-04)
 phase: mvp
 discipline: dev
 depends_on: [unit-03-model-manager, unit-04-media-ingest]
