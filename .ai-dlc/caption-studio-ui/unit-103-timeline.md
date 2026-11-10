@@ -1,5 +1,5 @@
 ---
-status: pending
+status: in_progress
 phase: mvp
 discipline: frontend
 depends_on: [unit-102-editor-core-playback, local-transcribe-engine/unit-04-media-ingest]
@@ -48,7 +48,7 @@ Canvas timeline: ruler with zoom/scroll, waveform from `PeaksData`, caption-bloc
 - [ ] **CC-103.3** Snap + constraint tests (adjacency clamp, no word-split without Alt)
 - [ ] **CC-103.4** 10k-block perf: input latency p95 < 16 ms; dirty-region redraw (no full-canvas repaint per frame)
 - [ ] **CC-103.5** Keyboard walkthrough spec passes (no mouse) on focused timeline
-- [ ] **CC-103.6** All gates green
+- [ ] **CC-103.6** `[MANUAL]` All gates green <!-- gate-derived criterion per unit-101 CC-101.6 / unit-102 CC-102.7 precedent (gates-spawning-gates circularity); evidence: orchestrator BUILD_VERIFIED 2026-11-10 at 1c1d793 — lint/typecheck/format:check exit 0, test 163 files 1292 passed/1 skipped/1 todo, test --coverage 95.64/89.78 thresholds met exit 0, build+check-bundle 112.7 KB ≤ 350, chromium e2e phase 102 passed/21 skipped (both timeline specs incl. p95 gate), verify:unit pass, qualification-check ACCEPT (record re-signed LAST at final chore commit). Checklist (awaiting owner per run-config): owner confirms gate tails in docs/overnight-reports/unit-103.md § Gates at merge review. -->
 
 ## Risks
 

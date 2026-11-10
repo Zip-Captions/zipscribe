@@ -22,6 +22,7 @@ import { createEditorApp } from '../state/history'
 import type { EditorApp } from '../state/history'
 import { createDeferredMediaClock } from '../state/services/playback/media-clock'
 import type { DeferredMediaClock } from '../state/services/playback/media-clock'
+import type { RafDriver } from '../state/services/playback/arbitrator'
 import { createStageController } from './stage'
 import type { StageController } from './stage'
 import { createBrowserRafDriver } from './browser-rafs'
@@ -40,6 +41,8 @@ export interface AppContext {
   stage: StageController
   /** Slice C: the stage element's clock (diagnostics: seekCount/clockTime via the bridge). */
   mediaClock: DeferredMediaClock
+  /** Unit-103: the app's ONE rAF loop (the Timeline panel's repaint driver — the same driver the arbitrator runs on). */
+  rafs: RafDriver
   /** Ziptest bridge: replaces the caption import service; null restores the default. */
   setCaptionImportOverride(result: CaptionImportResult | null): void
 }
@@ -70,9 +73,10 @@ async function buildAppContext(): Promise<AppContext> {
   // wall-clock for the merge-window, and the browser rAF driver (the app's
   // ONE rAF loop).
   const mediaClock = createDeferredMediaClock()
+  const rafs = createBrowserRafDriver()
   const editorApp = createEditorApp({
     clock: { now: () => Date.now() },
-    rafs: createBrowserRafDriver(),
+    rafs,
     mediaClock,
   })
   const stage = createStageController({ onAttachElement: (element) => mediaClock.attach(element) })
@@ -128,6 +132,7 @@ async function buildAppContext(): Promise<AppContext> {
     editorApp,
     stage,
     mediaClock,
+    rafs,
     setCaptionImportOverride(result: CaptionImportResult | null): void {
       importService = result === null ? createPendingUnit07ImportService() : overrideService(result)
     },

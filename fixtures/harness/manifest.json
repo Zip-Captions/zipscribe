@@ -972,6 +972,20 @@
       "channels": null,
       "expectedPath": null
     },
+    "golden/timeline/viewport-mapping.json": {
+      "sha256": "7ac5209ac6f2623adfe9d7677dfef5996d14b618b48630730ea6660ab617e659",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo golden)",
+      "codec": null,
+      "sampleRate": null,
+      "channels": null,
+      "expectedPath": null
+    },
     "golden/project-canonical-v1.json": {
       "sha256": "f2a3728ed3393dc74a6b81aad409ebf69e0ff6553a08c9446e1ae12d7ef6dc2b",
       "duration": null,

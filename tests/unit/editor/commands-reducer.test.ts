@@ -104,9 +104,12 @@ describe('CC-102.3: block command validation', () => {
 
   test('CC-102.3: split at a point that empties one part is rejected', () => {
     const { app } = createTestApp()
-    // blk_a spans 0.5–2.5, first word starts at 0.5 → any `at` before the
-    // first word's end leaves the LEFT part wordless (invariant 3 forbids it).
-    const reject = app.dispatch('block-split', { blockId: 'blk_a', at: 0.6 })
+    // blk_b spans 3.0–5.0 with words [3.0,4.1]+[4.2,5.0]: at 3.05 the
+    // straddler's own midpoint (3.55) is nearer the RIGHT part midpoint
+    // (4.025 vs 3.025) → it goes WHOLE RIGHT (US-2.2.2 nearer-midpoint,
+    // ledger adjudication (8)) and the LEFT part is wordless — a genuine
+    // empty part (invariant 3 forbids it) under the current rule.
+    const reject = app.dispatch('block-split', { blockId: 'blk_b', at: 3.05 })
     expect(reject?.code).toBe('SPLIT_EMPTY_PART')
   })
 

@@ -16,9 +16,14 @@ export function App(): ReactNode {
         // the initial bundle and production users (who never set the flag)
         // never load them. No bridge module self-installs on import.
         if (new URLSearchParams(window.location.search).get('ziptest') === '1') {
-          const [{ installWorkbenchBridge }, { installEditorBridge }] = await Promise.all([import('./ui/testing/workbench-bridge'), import('./ui/testing/editor-bridge')])
+          const [{ installWorkbenchBridge }, { installEditorBridge }, { installTimelineBridge }] = await Promise.all([
+            import('./ui/testing/workbench-bridge'),
+            import('./ui/testing/editor-bridge'),
+            import('./ui/testing/timeline-bridge'),
+          ])
           installWorkbenchBridge()
           installEditorBridge()
+          installTimelineBridge()
         }
         if (mounted) setContext(created)
       })
@@ -32,5 +37,5 @@ export function App(): ReactNode {
   }, [])
 
   if (context === null) return null
-  return <Workbench jobs={context.jobs} settings={context.settings} project={context.project} intake={context.intake} transport={{ app: context.editorApp, stage: context.stage }} />
+  return <Workbench jobs={context.jobs} settings={context.settings} project={context.project} intake={context.intake} transport={{ app: context.editorApp, stage: context.stage, rafs: context.rafs }} />
 }

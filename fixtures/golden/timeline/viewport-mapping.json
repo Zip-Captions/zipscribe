@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "note": "Unit-103 test-author goldens (CC-103.1): viewport→pixel mapping. Synthetic numbers only (SECURITY-03). Rules: timeToX(t, v) = (t - t0) * pxPerSec; xToTime(x, v) = x / pxPerSec + t0; anchorZoom(v, a, f) keeps the media time under the same pixel: pxPerSec' = pxPerSec * f, t0' = a - (a - t0) / f. toTime cases are the exact inverses of the toPixel cases. anchorZoom.cursorX is the pixel of anchorTime BEFORE the zoom; the golden pins that timeAtCursor AFTER the zoom equals anchorTime within tolerancePx.",
+  "toPixel": [
+    { "viewport": { "t0": 0, "pxPerSec": 100 }, "time": 2.5, "x": 250 },
+    { "viewport": { "t0": 2, "pxPerSec": 50 }, "time": 3.4, "x": 70 },
+    { "viewport": { "t0": 0.5, "pxPerSec": 12.5 }, "time": 4.7, "x": 52.5 },
+    { "viewport": { "t0": 10, "pxPerSec": 400 }, "time": 10.123, "x": 49.2 },
+    { "viewport": { "t0": 7.777, "pxPerSec": 0.8 }, "time": 9, "x": 0.9784 },
+    { "viewport": { "t0": 0, "pxPerSec": 1 }, "time": 121.44, "x": 121.44 }
+  ],
+  "toTime": [
+    { "viewport": { "t0": 0, "pxPerSec": 100 }, "x": 250, "time": 2.5 },
+    { "viewport": { "t0": 2, "pxPerSec": 50 }, "x": 70, "time": 3.4 },
+    { "viewport": { "t0": 0.5, "pxPerSec": 12.5 }, "x": 52.5, "time": 4.7 },
+    { "viewport": { "t0": 10, "pxPerSec": 400 }, "x": 49.2, "time": 10.123 },
+    { "viewport": { "t0": 7.777, "pxPerSec": 0.8 }, "x": 0.9784, "time": 9 },
+    { "viewport": { "t0": 0, "pxPerSec": 1 }, "x": 121.44, "time": 121.44 }
+  ],
+  "anchorZoom": [
+    {
+      "viewport": { "t0": 3.2, "pxPerSec": 60 },
+      "anchorTime": 4.1,
+      "factor": 1.25,
+      "expected": { "t0": 3.38, "pxPerSec": 75 },
+      "cursorX": 54,
+      "tolerancePx": 0.01
+    },
+    {
+      "viewport": { "t0": 0, "pxPerSec": 20 },
+      "anchorTime": 17.3,
+      "factor": 0.5,
+      "expected": { "t0": -17.3, "pxPerSec": 10 },
+      "cursorX": 346,
+      "tolerancePx": 0.01
+    },
+    {
+      "viewport": { "t0": 2.5, "pxPerSec": 240 },
+      "anchorTime": 2.5,
+      "factor": 2,
+      "expected": { "t0": 2.5, "pxPerSec": 480 },
+      "cursorX": 0,
+      "tolerancePx": 0.01
+    },
+    {
+      "viewport": { "t0": -1.25, "pxPerSec": 3.75 },
+      "anchorTime": 5,
+      "factor": 4,
+      "expected": { "t0": 3.4375, "pxPerSec": 15 },
+      "cursorX": 23.4375,
+      "tolerancePx": 0.01
+    }
+  ]
+}
