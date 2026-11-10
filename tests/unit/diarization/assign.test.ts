@@ -65,7 +65,7 @@ function checkInvariants1to3(blocks: CaptionBlock[]): void {
 }
 
 gated('FR-06.3 assignSpeakers: word-time majority, hysteresis, boundary-snapped splits', () => {
-  test('CC-06.4 CC-06.6: a two-run block splits at the word boundary, never mid-word (golden)', async () => {
+  test('CC-06.1 CC-06.4 CC-06.6: a two-run block splits at the word boundary, never mid-word (golden)', async () => {
     const { assignSpeakers } = await loadAssign()
     const input = golden<{ blocks: CaptionBlock[]; frames: DiarFrames }>('assign-speakers.in.json')
     const expected = golden<CaptionBlock[]>('assign-speakers.out.json')
@@ -79,7 +79,7 @@ gated('FR-06.3 assignSpeakers: word-time majority, hysteresis, boundary-snapped 
     expect(out[0]!.end, 'boundary snapped between words (part1 ends before the first part-2 word starts)').toBeLessThanOrEqual(out[1]!.words[0]!.start)
   })
 
-  test('CC-06.4 CC-06.6: an untouched block passes through with its id preserved (golden)', async () => {
+  test('CC-06.1 CC-06.4 CC-06.6: an untouched block passes through with its id preserved (golden)', async () => {
     const { assignSpeakers } = await loadAssign()
     const input = golden<{ blocks: CaptionBlock[]; frames: DiarFrames }>('assign-no-split.in.json')
     const expected = golden<CaptionBlock[]>('assign-no-split.out.json')
@@ -89,7 +89,7 @@ gated('FR-06.3 assignSpeakers: word-time majority, hysteresis, boundary-snapped 
     checkInvariants1to3(out)
   })
 
-  test('CC-06.4: 0.25 s hysteresis suppresses a boundary flap (golden)', async () => {
+  test('CC-06.1 CC-06.4: 0.25 s hysteresis suppresses a boundary flap (golden)', async () => {
     const { assignSpeakers, DIAR_HYSTERESIS_SEC } = await loadAssign()
     expect(DIAR_HYSTERESIS_SEC, 'FR-06.3 hysteresis constant').toBe(0.25)
     const input = golden<{ blocks: CaptionBlock[]; frames: DiarFrames }>('assign-hysteresis.in.json')
@@ -100,7 +100,7 @@ gated('FR-06.3 assignSpeakers: word-time majority, hysteresis, boundary-snapped 
     checkInvariants1to3(out)
   })
 
-  test('CC-06.4: word without frame overlap keeps its existing speakerId; block majority uses frozen semantics', async () => {
+  test('CC-06.1 CC-06.4: word without frame overlap keeps its existing speakerId; block majority uses frozen semantics', async () => {
     const { assignSpeakers } = await loadAssign()
     const words: WordToken[] = [
       { text: 'aa', start: 0.5, end: 1.0, speakerId: 'SPK_2' },
@@ -117,7 +117,7 @@ gated('FR-06.3 assignSpeakers: word-time majority, hysteresis, boundary-snapped 
     expect(out[0]!.id).toBe('blk_x')
   })
 
-  test('CC-06.4 CC-06.6: assignSpeakers is pure and synchronous (project/blocks never mutated)', async () => {
+  test('CC-06.1 CC-06.4 CC-06.6: assignSpeakers is pure and synchronous (project/blocks never mutated)', async () => {
     const { assignSpeakers } = await loadAssign()
     const input = golden<{ blocks: CaptionBlock[]; frames: DiarFrames }>('assign-speakers.in.json')
     const frozen = deepFreeze(structuredClone(input))
@@ -128,7 +128,7 @@ gated('FR-06.3 assignSpeakers: word-time majority, hysteresis, boundary-snapped 
     expect(Array.isArray(out)).toBe(true)
   })
 
-  test('CC-06.4 CC-06.6: frame cluster ids map onto durable SPK_<n> word ids', async () => {
+  test('CC-06.1 CC-06.4 CC-06.6: frame cluster ids map onto durable SPK_<n> word ids', async () => {
     const { assignSpeakers } = await loadAssign()
     const words: WordToken[] = [{ text: 'go', start: 0.2, end: 0.8 }]
     const blocks: CaptionBlock[] = [{ id: 'blk_c', start: 0.2, end: 0.8, text: 'go', words, speakerId: '' }]
@@ -143,20 +143,20 @@ gated('FR-06.3 deps.ts seam: majoritySpeakerId / reassignWords (frozen semantics
     return { text, start: 0, end: 1, ...(speakerId === undefined ? {} : { speakerId }) }
   }
 
-  test('CC-06.4: majority counts occurrences — most wins, ties go earliest-in-word-order, undefined skipped', async () => {
+  test('CC-06.1 CC-06.4: majority counts occurrences — most wins, ties go earliest-in-word-order, undefined skipped', async () => {
     const { majoritySpeakerId } = await loadAssign()
     expect(majoritySpeakerId([w('a', 'SPK_2'), w('b', 'SPK_2'), w('c', 'SPK_1')], 'SPK_9')).toBe('SPK_2')
     expect(majoritySpeakerId([w('a', 'SPK_2'), w('b', 'SPK_1')], 'SPK_9'), 'tie → earliest in word order').toBe('SPK_2')
     expect(majoritySpeakerId([w('a'), w('b', 'SPK_1'), w('c')], 'SPK_9'), 'speakerId === undefined words are skipped').toBe('SPK_1')
   })
 
-  test('CC-06.4: none at all (or empty input) → fallback', async () => {
+  test('CC-06.1 CC-06.4: none at all (or empty input) → fallback', async () => {
     const { majoritySpeakerId } = await loadAssign()
     expect(majoritySpeakerId([], 'SPK_7')).toBe('SPK_7')
     expect(majoritySpeakerId([w('a'), w('b')], 'SPK_7')).toBe('SPK_7')
   })
 
-  test('CC-06.4 CC-06.6: reassignWords moves only from→to, is pure, and preserves everything else', async () => {
+  test('CC-06.1 CC-06.4 CC-06.6: reassignWords moves only from→to, is pure, and preserves everything else', async () => {
     const { reassignWords } = await loadAssign()
     const words: WordToken[] = [
       { text: 'a', start: 0, end: 1, speakerId: 'SPK_1', probability: 0.5 },
