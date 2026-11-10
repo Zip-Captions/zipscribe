@@ -42,7 +42,7 @@ test('CC-103.1: half-open containment — block.start hits, block.end does not',
   const m = await load()
   const index = m.createBlockIndex(timelineBlocks())
   expect(index.hit(0.5)?.id, 'start <= t hits').toBe('blk_v1')
-  expect(index.hit(2.5)?.id, 'end is exclusive → falls in the gap, not the next block').toBeNull()
+  expect(index.hit(2.5), 'end is exclusive → falls in the gap, not the next block').toBeNull()
   expect(index.hit(2.499)?.id).toBe('blk_v1')
   expect(index.hit(14.0), 'past the last block end').toBeNull()
 })
