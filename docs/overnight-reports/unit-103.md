@@ -16,9 +16,9 @@ Status: complete — test-author RED (b782a2b) → builder slices A–D → adju
 - `[RQ]` / `[DEPLOY]` criteria: none declared in the unit file.
 - `[MANUAL]` items: **CC-103.6** “All gates green” — gate meta-criterion tagged `` `[MANUAL]` `` per CC-102.7/CC-101.6 precedent (gates-spawning-gates circularity; orchestrator spec-line edit, anchored in the unit file at BUILD_VERIFIED 1c1d793). **Awaiting owner** (per run-config, [MANUAL] items are NOT marked done): owner / merge-review date / chromium 143-tier reference machine / result — checklist = confirm the verbatim gate tails below.
 
-## Gates — orchestrator BUILD_VERIFIED battery, re-run by me (not builder claims) at final tree 968765c
+## Gates — orchestrator BUILD_VERIFIED battery, re-run by me (not builder claims)
 
-Rounds: battery #1 at 1c1d793 (pre-adversary), battery #2 at 968765c (post-fix-cycle, authoritative).
+Rounds: battery #1 at 1c1d793 (pre-adversary), #2 at 968765c (post-fix-cycle), #3 at 8bba3ab/post-R2 a41e599 (head) — tails below verbatim from #2 (112.8 KB); head battery (ledger 2026-11-10T02:55Z + post-R2) reproduces identically at 112.9 KB (registry Ctrl rows +0.1 KB). Reviewer rounds 1–2 reproduced all gates independently at their heads.
 
 - `corepack pnpm lint` → exit 0 (`eslint .` silent)
 - `corepack pnpm typecheck` → exit 0 (tsconfig + .node + .eval)
@@ -120,4 +120,26 @@ defect re-introduction. Findings and dispositions:
 
 Reviewer verified the six frozen-file edits real (adjudications 7–10), the
 re-anchored unit-102 pins load-bearing, and the AUDIT_CLEAN fixes
-implementation-side. Round 2 (delta-only re-review) follows.
+implementation-side.
+
+### Round 2 (d85d91b — CHANGES_REQUESTED → fixed)
+
+F1/F3/F4/F5 confirmed FIXED; F2 PARTIAL — new findings, both closed:
+
+- **NEW-1 (MED)**: the frozen table-test (`keyboard-live-region.test.tsx`
+  `expected[]`, which declares the d.ts EXTENDS table as its source) had not
+  tracked the adjudication-10 re-freeze — deleting any Ctrl zoom row kept all
+  gates green. Orchestrator adjudication 11 (mechanical consequence of 10),
+  test-author executed `e2432d8`: three rows added; kill-check now red on
+  `'Ctrl+='` deletion (`binding timeline.zoom-in Ctrl+=: expected undefined
+to be defined`) — load-bearing, matching Meta control.
+- **NEW-2 (LOW)**: `Timeline.tsx:41/:351` comments still said "⌘+wheel" —
+  comment-only rename to Ctrl+wheel/pinch `5b8eae9` (zero code lines;
+  frozen perf-spec titles left as name-only artifacts per reviewer).
+
+Post-R2 battery (orch, a41e599): lint 0 · typecheck 0 · prettier 0 · test
+1334/1/1 · build 112.9 KB/350 · verify:unit ✓ · re-sign `a41e599`
+(contentHash `f9525b43bc20…`, deterministic startedAt per tree — `pnpm test`
+regenerates the identical record via the unit-02 qualify-runner contract
+test; record↔tree validity additionally carried by the 4 model-eval tests
+in every full run) → `qualification-check` ACCEPT.
