@@ -886,10 +886,10 @@ async function synthVideos(): Promise<void> {
     } else {
       ffmpeg([...BASE, '-i', base, '-c', 'copy', '-movflags', '+faststart', out])
     }
-    const words = Array.from({ length: (spec.loops + 1) * synthesized.words.length }, (_, idx) => {
+    const words: Word[] = Array.from({ length: (spec.loops + 1) * synthesized.words.length }, (_, idx) => {
       const w = synthesized.words[idx % synthesized.words.length]!
       const offset = Math.floor(idx / synthesized.words.length) * spec.seconds
-      const base = { text: w.text, start: Number((w.start + offset).toFixed(3)), end: Number((w.end + offset).toFixed(3)) }
+      const base: Word = { text: w.text, start: Number((w.start + offset).toFixed(3)), end: Number((w.end + offset).toFixed(3)) }
       // Ground-truth `speaker` labels match the A/B acoustic reality above:
       // exactly two contiguous runs, split at the natural copy-boundary gap.
       return spec.speakerSplit !== undefined ? { ...base, speaker: idx < spec.speakerSplit ? 'speaker-1' : 'speaker-2' } : base
