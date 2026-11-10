@@ -1,8 +1,8 @@
 # Unit report: unit-103-timeline
 
-Status: partial — builder slices A–D complete (all four e2e/interaction/perf surfaces green at slice-D tree); awaiting orchestrator BUILD_VERIFIED battery + CC-103.6 anchor + adversary. First full draft; earlier slices reported in ledger.
+Status: complete — test-author RED (b782a2b) → builder slices A–D → adjudications (1)–(9) → BUILD_VERIFIED (orchestrator re-ran every gate twice: at 1c1d793 and post-fix 968765c) → adversary round A (3 genuine findings, 39 survived) → single in-build fix cycle → AUDIT_CLEAN. All evidence in docs/overnight-ledger.md (entries 2026-11-09T21:15Z → 2026-11-10T01:20Z).
 
-## Completion criteria (verify:unit --from-branch, slice-D tree — see reports/criteria/unit-103-timeline.md)
+## Completion criteria (verify:unit --from-branch, final tree; paste of reports/criteria/unit-103-timeline.md)
 
 | ID       | level                                   | tests | result                                         |
 | -------- | --------------------------------------- | ----- | ---------------------------------------------- |
@@ -11,14 +11,25 @@ Status: partial — builder slices A–D complete (all four e2e/interaction/perf
 | CC-103.3 | untagged (L1 constraints/snap)          | 11    | pass                                           |
 | CC-103.4 | untagged (L5 chromium p95 sampler)      | 2     | pass                                           |
 | CC-103.5 | untagged (L5 keyboard-only walkthrough) | 5     | pass                                           |
-| CC-103.6 | gate-derived (no test cites it)         | —     | pending orchestrator `[MANUAL]` anchor (below) |
+| CC-103.6 | `[MANUAL]` gate meta-criterion          | —     | NOT marked done — awaiting owner (see below)   |
 
 - `[RQ]` / `[DEPLOY]` criteria: none declared in the unit file.
-- `[MANUAL]` items: **CC-103.6** “All gates green” — gate meta-criterion, spec-only per CC-102.7/CC-101.6 precedent (gates-spawning-gates circularity); no test authored. **Proposed orchestrator edit:** tag the CC-103.6 line `` `[MANUAL]` `` with an evidence anchor to this report + BUILD_VERIFIED (`.ai-dlc/**` is orchestrator-owned — builder did not edit).
+- `[MANUAL]` items: **CC-103.6** “All gates green” — gate meta-criterion tagged `` `[MANUAL]` `` per CC-102.7/CC-101.6 precedent (gates-spawning-gates circularity; orchestrator spec-line edit, anchored in the unit file at BUILD_VERIFIED 1c1d793). **Awaiting owner** (per run-config, [MANUAL] items are NOT marked done): owner / merge-review date / chromium 143-tier reference machine / result — checklist = confirm the verbatim gate tails below.
 
-## Gates (at slice-D tree; re-run as BUILD_VERIFIED battery by orchestrator)
+## Gates — orchestrator BUILD_VERIFIED battery, re-run by me (not builder claims) at final tree 968765c
 
-lint ✓ · typecheck ✓ (3 tsconfigs) · format:check — builder-owned files green at HEAD; 3 pre-existing reds untouched by slice D (frozen `src/state/CONTRACT.md`, slice A/B `timeline/controller.ts` + `timeline/renderer.ts` — orchestrator cleanup candidate, not a listed gate) · test ✓ 163 files, **1285 passed \| 1 skipped \| 1 todo** — the only 5 reds in that run are the pending qualification re-sign (4× `model-eval` contentHash + `model-coverage` whose inner scoped run includes them; green at the chore(qualify) re-sign commit, verified individually) — 2 further reds in that run were `scaffold/gates` + `retry-detection` port contention against a leftover `vite preview` on :4310 from builder iteration; both **9/9 green individually on a free port** (CC-01.5 runs the full chromium Playwright suite inside) · build+check-bundle ✓ **112.7 KB initial gzip / 350 KB** (1 chunk) · test:e2e ✓ `e2e/timeline` **7/7 chromium** (keyboard-only 5 + perf-10k-latency 2 incl. ⌘+wheel anchor-drift acceptance; 30.6 s) · verify:unit ✓ for CC-103.1–.5 (CC-103.6 anchor pending) · qualify: re-sign committed as final `chore(qualify)`; `scripts/qualification-check.ts` ACCEPT + deep-compare (contentHash+startedAt only) verified in BUILD_VERIFIED.
+Rounds: battery #1 at 1c1d793 (pre-adversary), battery #2 at 968765c (post-fix-cycle, authoritative).
+
+- `corepack pnpm lint` → exit 0 (`eslint .` silent)
+- `corepack pnpm typecheck` → exit 0 (tsconfig + .node + .eval)
+- `corepack pnpm exec prettier --check .` → exit 0 (L0 CI step; 3 reds found at slice-D and fixed by orchestrator in 1c1d793 — formatting-only, word-diff proven: `src/state/CONTRACT.md` table reflow, `controller.ts`/`renderer.ts` chain wraps)
+- `corepack pnpm test` → `Test Files 168 passed (168)` / `Tests 1334 passed | 1 skipped | 1 todo (1336)` exit 0 (163 pre-existing + timeline suites + adversary additions; `1 skipped`/`1 todo` are pre-existing baseline)
+- `corepack pnpm test --coverage` (CI-authoritative) → `Statements 95.64% (3668/3835) · Branches 89.78% (2012/2241) · Functions 97.7% (639/654) · Lines 98.83% (3210/3248)` exit 0, zero "does not meet" lines (engine 85/75, state 80 thresholds enforced)
+- `corepack pnpm build && corepack pnpm check-bundle` → `assets/index-….js 112.8 KB gzip` / `check-bundle: initial JS 112.8 KB gzip / budget 350 KB (1 chunks)` exit 0 (Timeline mount = +8.4 KB over pre-unit 104.4 KB; bridge behind lazy ?ziptest=1)
+- `corepack pnpm exec playwright test --project=chromium` → `102 passed · 21 skipped (2.6m)` exit 0 — CI-authoritative e2e phase (memory project = reference-hardware qualify per owner ruling ledger 2026-11-09T17:05Z; webkit = view tier, not in CI — same gate practice as unit-101/102). Includes e2e/timeline 7/7.
+- `corepack pnpm verify:unit --from-branch` → all 5 untagged criteria covered, exit 0 (table above)
+- Qualification: record re-signed LAST (nested gates re-signed post-format commit; fixer re-signed at a92ce9b post-fix) → `node scripts/qualification-check.ts` → `ACCEPT — qualification/0.0.0-spike.json valid for contentHash 1231fa0a2897…`; deep JSON-diff vs HEAD = `['contentHash','startedAt']` only (both re-signs).
+- Test integrity: `git diff b782a2b..HEAD -- tests/unit/timeline e2e/timeline fixtures/golden/timeline` = the 3 orchestrator-adjudicated edits ONLY (hittest:45 `?.id` drop — adjudication 7; constraints:89 → `toBe(3.543)` — adjudication 9; d.ts split-rule header correction — adjudication 8c) + adversary NEW files (additions-only, `tests/unit/timeline/adversarial/**`). Zero builder test edits; zero builder-authored suites (ratification pass N/A, recorded).
 
 ## Device (chromium headless, production `vite preview`, 1280×720)
 
@@ -35,7 +46,10 @@ Keyboard-only walkthrough (CC-103.5, OBSERVED via spec): Alt+3 focuses the timel
 
 ## Contract changes
 
-None to architecture.md. No frozen-file edits. Proposed `.ai-dlc` edit (orchestrator): `[MANUAL]` tag + evidence anchor on CC-103.6.
+- `src/state/CONTRACT.md` `block-split` row EXPANDED (orchestrator edit b116938, adjudication 8a): the straddler side (nearer-midpoint, ties→first, clamped, `SPLIT_EMPTY_PART` retained) is now EXPLICIT. The row was previously silent on the side — this PINS, not changes, the frozen shape; unit-102's spec never mentioned straddlers (grep-verified), the retired all-straddlers-right behavior was an impl choice pinned by two unit-102 tests (re-anchored intent-preservingly via test-author adjudication execution, ledger 23:05Z with evidence). Downstream (104/105) read the rule from the row + generated types unchanged.
+- No `architecture.md` edits needed (no contract TYPE touched; `parseTimecode` ms option is additive in `src/ui/format.ts`, frozen tenths default intact — adjudication 1).
+- Frozen-file edits this unit — ALL via orchestrator spec-line adjudication, executed by the TEST-AUTHOR session, ledger-recorded (exceptions #7–#12 territory; precedents on record): `tests/unit/timeline/hittest.test.ts:45` (assertion-mechanism defect), `tests/unit/timeline/constraints.test.ts:89` (tolerance-boundary defect → exact deterministic write), `tests/unit/timeline/unit103-api-contract.d.ts` (header claim corrected), `tests/unit/editor/commands-reducer.test.ts` + `tests/unit/editor/adversarial/command-history-adversarial.test.ts` (block-split reject cases re-anchored to a genuinely-emptying split `blk_b@3.05`; CH.6 0.7/1.0 → legitimate accepts w/ invariant checks + reject coverage preserved via 3.05).
+- `.ai-dlc/caption-studio-ui/unit-103-timeline.md`: status flip (orchestrator-owned) + CC-103.6 `[MANUAL]` tag (precedent CC-101.6/CC-102.7).
 
 ## Dependencies
 
@@ -43,8 +57,9 @@ None added.
 
 ## Measurements
 
-- Input→state latency, 10k blocks (probe, production build, chromium — same sampling as the frozen spec): wheelPan p50 ≈ 0.2 ms / p95 < 1.0 ms; zoom-key p50 ≈ 1.6 / p95 ≈ 2.5 ms; ⌘+wheel-zoom p50 ≈ 1.2 / p95 ≈ 1.3 ms; ruler-click, block-click, playhead-scrub: spec-asserted (all counted samples > 0, p95 < 16 ms). Clock caveat above.
-- Initial JS **112.7 KB gzip** (budget 350 KB); full-suite wall 279 s; e2e/timeline 30.6 s.
+- Input→state latency, 10k blocks (probe, production build, chromium — same sampling as the frozen spec): wheelPan p50 ≈ 0.2 ms / p95 < 1.0 ms; zoom-key p50 ≈ 1.6 / p95 ≈ 2.5 ms; ⌘+wheel-zoom p50 ≈ 1.2 / p95 ≈ 1.3 ms; ruler-click, block-click, playhead-scrub: spec-asserted (all counted samples > 0, p95 < 16 ms). Clock caveat above. Gate: every action class p95 < 16 ms with ≥ 6× headroom.
+- Initial JS **112.8 KB gzip** final (budget 350 KB; +8.4 KB over pre-unit 104.4 KB); full-suite wall 274.7 s; coverage 95.64 % stmt / 89.78 % branch (enforced); chromium e2e phase 102 passed / 21 skipped in 2.6 m.
+- Hit-test index: O(log n + k) query verified at 10k with duplicate starts + reversed insertion (adversary TL.13).
 
 ## Follow-ups
 
