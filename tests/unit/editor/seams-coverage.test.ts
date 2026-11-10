@@ -13,6 +13,7 @@ import { createFakeClock } from '../../../src/test-support/fake-clock'
 import { createFakeRafs } from './helpers/fake-rafs'
 import { SAMPLE_ASSET, SAMPLE_SPEAKERS, sampleBlocks, word } from './helpers/fixture-project'
 import { DEFAULT_BLOCKIZER, DEFAULT_COMMAND_DEPS, NOT_IMPLEMENTED_SPEAKER_ENGINE, getCommand, getEditorCommands } from '../../../src/state/commands'
+import { isChildRun } from '../../helpers/repo'
 import { DEFAULT_EDITOR_STATE, createEditorStore } from '../../../src/state/editor'
 import type { WordToken } from '@engine/model@102'
 
@@ -173,7 +174,7 @@ describe('FR-102.1 / index.ts: default command registry + production deps', () =
     expect(getCommand('nope.not-a-command' as CommandId), 'map miss is undefined, not a throw').toBeUndefined()
   })
 
-  test('FR-102.1: DEFAULT_COMMAND_DEPS wires the frozen production seams (wall clock, blk_ ids, not-implemented engine)', () => {
+  test('FR-102.1: DEFAULT_COMMAND_DEPS wires the frozen production seams (wall clock, blk_ ids, engine-06 re-point)', async () => {
     const id1 = DEFAULT_COMMAND_DEPS.newBlockId()
     const id2 = DEFAULT_COMMAND_DEPS.newBlockId()
     expect(id1.startsWith('blk_'), 'store-generated block ids carry the blk_ prefix').toBe(true)
@@ -181,7 +182,17 @@ describe('FR-102.1 / index.ts: default command registry + production deps', () =
     const now = DEFAULT_COMMAND_DEPS.clock.now()
     expect(typeof now).toBe('number')
     expect(Math.abs(now - Date.now()), 'production default clock is the wall clock').toBeLessThan(5_000)
-    expect(DEFAULT_COMMAND_DEPS.speakerEngine, 'production speaker default is the typed-not-implemented engine').toBe(NOT_IMPLEMENTED_SPEAKER_ENGINE)
+    if (isChildRun()) return
+    // CONTRACT.md § speaker-* family (frozen re-point clause): "When unit-06
+    // merges, src/engine/diarize/assign.ts exports them verbatim and the
+    // production default re-points." RED until unit-06 lands — the dynamic
+    // import below fails at runtime (unit-05 precedent); the child run stops
+    // above so the gate-spawning child stays green. The
+    // NOT_IMPLEMENTED_SPEAKER_ENGINE constant itself stays contract-pinned
+    // above (dispatch-without-engine CODE path is independent of the default).
+    const real = (await import('@engine/diarize/assign')) as typeof import('@engine/diarize/assign')
+    expect(DEFAULT_COMMAND_DEPS.speakerEngine.majoritySpeakerId, 'default seam re-points to the production engine (CONTRACT.md)').toBe(real.majoritySpeakerId)
+    expect(DEFAULT_COMMAND_DEPS.speakerEngine.reassignWords, '…verbatim, not a wrapper').toBe(real.reassignWords)
     expect(DEFAULT_COMMAND_DEPS.blockizer).toBe(DEFAULT_BLOCKIZER)
   })
 })

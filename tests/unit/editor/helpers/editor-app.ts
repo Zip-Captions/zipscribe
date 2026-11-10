@@ -16,6 +16,7 @@ import type { RecordingTranslationRules } from './fake-translation-rules'
 import { sampleProject } from './fixture-project'
 import { createEditorApp } from '@state/history'
 import type { EditorApp } from '@state/history'
+import type { SpeakerEngine } from '../../../../src/state/commands/deps'
 import type { CaptionBlock, Project, WordToken } from '@engine/model@102'
 import type { MediaClock } from '@state/services/playback/media-clock'
 import type { FakeRafs } from './fake-rafs'
@@ -26,6 +27,13 @@ export interface TestAppOptions {
   mediaDuration?: number
   /** Seed blocks through the same `captions-import` command path. */
   blocks?: CaptionBlock[]
+  /**
+   * Override the frozen `SpeakerEngine` seam (unit-06 CC-06.4 history
+   * integration runs the REAL `@engine/diarize/assign` functions through it).
+   * When set, `TestApp.speakerEngine` stays the (inert) fake — assertions go
+   * against the resulting project state, not call records.
+   */
+  speakerEngine?: SpeakerEngine
 }
 
 export interface TestApp {
@@ -70,7 +78,7 @@ export function createTestApp(options: TestAppOptions = {}): TestApp {
     clock,
     rafs,
     mediaClock: mediaClock ?? undefined,
-    speakerEngine,
+    speakerEngine: options.speakerEngine ?? speakerEngine,
     translationRules,
     blockizer: pairBlockizer,
     initialProject: options.project ?? sampleProject(),

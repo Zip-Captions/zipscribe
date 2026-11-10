@@ -1,0 +1,135 @@
+{
+  "description": "rename SPK_2 -> 'Alex': label updates everywhere, ids untouched, manual flip, updatedAt untouched",
+  "project": {
+    "id": "proj_diar_golden",
+    "name": "Diarization golden project",
+    "schemaVersion": 1,
+    "asset": {
+      "id": "ASSET_DIAR",
+      "name": "speech-2min.mp4",
+      "kind": "video",
+      "container": "mp4",
+      "audioCodec": "aac",
+      "videoCodec": "avc1",
+      "duration": 121.44,
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "fingerprint": {
+        "name": "speech-2min.mp4",
+        "size": 627251,
+        "durationMs": 121440,
+        "sampleHashes": [
+          "h1",
+          "h2",
+          "h3"
+        ]
+      }
+    },
+    "blocks": [
+      {
+        "id": "blk_a",
+        "start": 0.5,
+        "end": 1.7,
+        "text": "alpha beta",
+        "words": [
+          {
+            "text": "alpha",
+            "start": 0.5,
+            "end": 1.0,
+            "speakerId": "SPK_1"
+          },
+          {
+            "text": "beta",
+            "start": 1.2,
+            "end": 1.7,
+            "speakerId": "SPK_1"
+          }
+        ],
+        "speakerId": "SPK_1"
+      },
+      {
+        "id": "blk_b",
+        "start": 3.0,
+        "end": 4.4,
+        "text": "gamma delta",
+        "words": [
+          {
+            "text": "gamma",
+            "start": 3.0,
+            "end": 3.6,
+            "speakerId": "SPK_2"
+          },
+          {
+            "text": "delta",
+            "start": 3.8,
+            "end": 4.4,
+            "speakerId": "SPK_2"
+          }
+        ],
+        "speakerId": "SPK_2"
+      },
+      {
+        "id": "blk_c",
+        "start": 6.0,
+        "end": 6.7,
+        "text": "epsilon",
+        "words": [
+          {
+            "text": "epsilon",
+            "start": 6.0,
+            "end": 6.7,
+            "speakerId": "SPK_3"
+          }
+        ],
+        "speakerId": "SPK_3"
+      }
+    ],
+    "captionOrigin": "transcribed",
+    "translations": [],
+    "speakers": [
+      {
+        "id": "SPK_1",
+        "label": "Speaker 1",
+        "color": "#111111"
+      },
+      {
+        "id": "SPK_2",
+        "label": "Speaker 2",
+        "color": "#222222"
+      },
+      {
+        "id": "SPK_3",
+        "label": "Speaker 3",
+        "color": "#333333"
+      }
+    ],
+    "speakerSource": "auto-beta",
+    "language": "en",
+    "modelId": "whisper-base_timestamped@608c49e6",
+    "style": {
+      "fontFamily": "Inter",
+      "fontWeight": 400,
+      "fontSizePct": 8,
+      "textTransform": "none",
+      "color": "#e8eaed",
+      "highlightColor": "#4c8dff",
+      "outlineColor": "#0d0f12",
+      "outlineWidth": 2,
+      "backgroundOpacity": 0,
+      "position": "bottom",
+      "marginVPct": 6,
+      "alignment": "center",
+      "maxLinesPerBlock": 2,
+      "highlightMode": "none",
+      "showSpeakerBar": false
+    },
+    "outputAspect": "source",
+    "transcription": "complete",
+    "updatedAt": 1730000000000
+  },
+  "args": {
+    "speakerId": "SPK_2",
+    "label": "Alex"
+  }
+}
