@@ -38,9 +38,13 @@
 //   timeline.merge-ctrl   'Ctrl+Shift+M'       (when: not-editing)
 //   timeline.trim-start   'Z+ArrowLeft' / 'Z+ArrowRight'      (two bindings, one id)
 //   timeline.trim-end     'C+ArrowLeft' / 'C+ArrowRight'      (two bindings, one id)
-//   timeline.zoom-in      'Meta+='             (when: not-editing)
-//   timeline.zoom-out     'Meta+-'             (when: not-editing)
-//   timeline.zoom-fit     'Meta+0'             (when: not-editing)
+//   timeline.zoom-in      'Meta+=' / 'Ctrl+='  (when: not-editing)
+//   timeline.zoom-out     'Meta+-' / 'Ctrl+-'  (when: not-editing)
+//   timeline.zoom-fit     'Meta+0' / 'Ctrl+0'  (when: not-editing)
+//        ('Ctrl' spellings per design.md § Keyboard shortcuts platform rule —
+//         "⌘ on macOS, Ctrl elsewhere" — plus the frozen merge precedent
+//         registering both Meta+Shift+M and Ctrl+Shift+M; ledger adjudication
+//         (10), PR #13 F2. Same ids, "two bindings, one id" as the trims.)
 //   timeline.focus-next   'ArrowRight'         (when: timeline-focused)
 //   timeline.focus-prev   'ArrowLeft'          (when: timeline-focused)
 //   timeline.select       'Enter'              (when: timeline-focused)
