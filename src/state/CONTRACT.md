@@ -102,7 +102,7 @@ Payload types (frozen shapes; all exported from the generated file):
 
 | id                       | payload                                                                                                                                   |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `block-split`            | `BlockSplitPayload { blockId, at }` — `at` strictly inside the block, both parts keep ≥ 1 word                                            |
+| `block-split`            | `BlockSplitPayload { blockId, at }` — `at` strictly inside the block, both parts keep ≥ 1 word (else `SPLIT_EMPTY_PART`); a word straddling `at` goes WHOLE to the part whose MIDPOINT is nearer the word's own midpoint (ties → first part), its edge clamped to `at` — unit-103 US-2.2.2 (ledger 2026-11-09T23:05Z; side was never spec-pinned in unit-102: spec + this row were silent) |
 | `block-merge`            | `BlockMergePayload { blockIds: readonly [string, string] }` — exactly two ADJACENT blocks in timeline order                               |
 | `block-retime`           | `BlockRetimePayload { blockId, start?, end? }` — word times scale proportionally into the new span                                        |
 | `block-edit-text`        | `BlockEditTextPayload { blockId, text }` — `''` deletes (invariant 3); words re-derived over the [start,end] envelope by character weight |
