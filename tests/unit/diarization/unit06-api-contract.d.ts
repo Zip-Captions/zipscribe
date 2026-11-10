@@ -35,9 +35,13 @@
 // implements them as declared here; they are the contract the CC-06.x suites
 // drive):
 //  - `agglomerativeCluster` — agglomerative AVERAGE-LINKAGE on cosine distance
-//    (`1 − u·v / (‖u‖·‖v‖)`). Merge condition: linkage ≤ `threshold`. Stops
-//    when the minimum inter-cluster linkage exceeds `threshold` (FR-06.1) or
-//    when the cluster count reaches `maxSpeakers` (default **6**, FR-06.1).
+//    (`1 − u·v / (‖u‖·‖v‖)`). Merge condition: linkage ≤ `threshold`. The
+//    threshold is the STOP RULE for normal merging (FR-06.1): stop when the
+//    minimum inter-cluster linkage exceeds it. `maxSpeakers` (default **6**,
+//    FR-06.1) is an UPPER BOUND, never a floor: after the threshold stops
+//    merging, if the count still exceeds the cap, continue merging closest
+//    pairs until the count EQUALS the cap; when the threshold-driven count is
+//    at or below the cap — including 1 — the cap is INERT.
 //    Labels are canonical: integers `0 … k−1`, every label used, the FIRST
 //    embed's cluster is `0`, and output is deterministic for identical input
 //    (CC-06.5 determinism + L4 label canonicalization depend on it). A
