@@ -3,15 +3,17 @@
 // randomness. The exported surface is the frozen unit-06 contract
 // (`tests/unit/diarization/unit06-api-contract.d.ts`).
 //
-// Semantics (frozen): pairwise cosine distance `1 − u·v/(‖u‖·‖v‖)`; a
-// zero-norm embedding has distance `Infinity` to everything and therefore
-// never merges. Merging picks the minimum average linkage (cluster-linkage =
-// member-size-weighted mean of pairwise distances) and stops when that
-// minimum exceeds `threshold` (FR-06.1 distance stop), or — when the input
-// had more clusters than `maxSpeakers` — when the cluster count first
-// reaches the cap (FR-06.1 over-clustering guard: "stops AT the cap, not
-// below it"). A cap at or above the input count is inert: the threshold cut
-// then governs and may legitimately land below the cap.
+// Semantics (frozen, adjudicated FR-06.1 — cap is an UPPER BOUND, not a
+// floor): pairwise cosine distance `1 − u·v/(‖u‖·‖v‖)`; a zero-norm embedding
+// has distance `Infinity` to everything and therefore never merges under the
+// threshold. Phase 1 merges the minimum average linkage (cluster-linkage =
+// member-size-weighted mean of pairwise distances) and STOPS when that minimum
+// exceeds `threshold` (FR-06.1 distance stop) — the natural count. Phase 2
+// applies `maxSpeakers` as an UPPER BOUND only: if the natural count is at or
+// below the cap it is FINAL (the cap is inert, including at 1 — a single voice
+// stays ONE speaker, CC-06.2 satisfiability); only when the natural count
+// EXCEEDS the cap do forced closest-pair merges (beyond the threshold) run
+// until the count EQUALS the cap ("down TO the cap, never below it").
 //
 // Labels are canonical: integers `0 … k−1`, every label used, the FIRST
 // embed's cluster is `0` (clusters relabel in first-member order), and the
@@ -37,7 +39,18 @@ export interface SpeakerCrossCheck {
   eigengap: number
 }
 
-/** FR-06.1 default cosine-distance stop threshold (fixture-tuned working value). */
+/**
+ * FR-06.1 default cosine-distance STOP threshold, tuned on the unit-06
+ * fixtures. Measured ERes2Net window-embedding distance distributions over the
+ * diarization windows (`speech-2spk-2min.mp4`, GT-labelled): mean within-
+ * speaker (same voice across windows) ≈ 0.12, mean between-speaker ≈ 0.64.
+ * 0.5 sits in the valley between the two populations — comfortably above the
+ * within-speaker spread (a single voice's windows stop at ONE cluster, the
+ * CC-06.2 guard) and safely below the between-speaker floor (two voices stay
+ * separate, CC-06.1 confusion ≈ 0). Over-clustering beyond 6 speakers is still
+ * clamped by `maxSpeakers` as an upper bound (phase 2), so this value only
+ * governs the natural cut, never the ceiling.
+ */
 export const DEFAULT_CLUSTER_THRESHOLD = 0.5
 /** FR-06.1 default speaker cap. */
 export const DEFAULT_MAX_SPEAKERS = 6
@@ -88,31 +101,49 @@ export function agglomerativeCluster(embeds: Float32Array[], opts: ClusterOption
   for (let i = 0; i < n; i++) parent[i] = i
   let count = n
 
+  // Phase 1 — FR-06.1 distance STOP: repeatedly agglomerate the minimum
+  // average-linkage pair while that minimum stays within `threshold`; stop as
+  // soon as the closest inter-cluster linkage exceeds it. This yields the
+  // NATURAL cluster count the geometry supports.
   while (count > 1) {
-    // Minimum inter-cluster linkage over the active cluster slots.
+    const closest = findClosestPair()
+    if (closest.linkage > threshold) break
+    merge(closest.i, closest.j)
+  }
+
+  // Phase 2 — FR-06.1 cap as an UPPER BOUND (CC-06.2): a threshold-driven
+  // count already at or below the cap is FINAL — the cap never floors the
+  // count back up, so a single voice stays ONE speaker (the CC-06.2
+  // satisfiability rule). Only when the natural count EXCEEDS the cap do we
+  // force the closest-pair merges, beyond the threshold, until the count
+  // EQUALS the cap ("down TO the cap, never below it").
+  while (count > cap) {
+    const closest = findClosestPair()
+    merge(closest.i, closest.j)
+  }
+
+  /**
+   * Minimum inter-cluster linkage over the active cluster slots (deterministic
+   * left-to-right scan). A zero-norm cluster's linkage is Infinity, so it is
+   * only ever the chosen pair once nothing finite remains (phase-2 cap forcing).
+   */
+  function findClosestPair(): { i: number; j: number; linkage: number } {
     let bi = -1
     let bj = -1
-    let bestLinkage = Number.POSITIVE_INFINITY
+    let best = Number.POSITIVE_INFINITY
     for (let i = 0; i < n; i++) {
       if (!active[i]) continue
       for (let j = i + 1; j < n; j++) {
         if (!active[j]) continue
         const d = dist[i * n + j]!
-        if (d <= bestLinkage) {
-          bestLinkage = d
+        if (d < best) {
+          best = d
           bi = i
           bj = j
         }
       }
     }
-    if (count > cap) {
-      // Cap forcing: above the cap we agglomerate regardless of threshold.
-      merge(bi, bj)
-      continue
-    }
-    if (n > cap && count === cap) break
-    if (bestLinkage > threshold) break
-    merge(bi, bj)
+    return { i: bi, j: bj, linkage: best }
   }
 
   function merge(i: number, j: number): void {
