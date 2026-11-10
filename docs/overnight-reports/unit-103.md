@@ -4,21 +4,21 @@ Status: partial — builder slices A–D complete (all four e2e/interaction/perf
 
 ## Completion criteria (verify:unit --from-branch, slice-D tree — see reports/criteria/unit-103-timeline.md)
 
-| ID       | level                                | tests | result                                            |
-| -------- | ------------------------------------ | ----- | ------------------------------------------------- |
-| CC-103.1 | untagged (golden + hit-test parity)  | 23    | pass                                              |
-| CC-103.2 | untagged (L1 + L5, one-undo-step)    | 16    | pass                                              |
-| CC-103.3 | untagged (L1 constraints/snap)       | 11    | pass                                              |
-| CC-103.4 | untagged (L5 chromium p95 sampler)   | 2     | pass                                              |
-| CC-103.5 | untagged (L5 keyboard-only walkthrough) | 5  | pass                                              |
-| CC-103.6 | gate-derived (no test cites it)      | —     | pending orchestrator `[MANUAL]` anchor (below)    |
+| ID       | level                                   | tests | result                                         |
+| -------- | --------------------------------------- | ----- | ---------------------------------------------- |
+| CC-103.1 | untagged (golden + hit-test parity)     | 23    | pass                                           |
+| CC-103.2 | untagged (L1 + L5, one-undo-step)       | 16    | pass                                           |
+| CC-103.3 | untagged (L1 constraints/snap)          | 11    | pass                                           |
+| CC-103.4 | untagged (L5 chromium p95 sampler)      | 2     | pass                                           |
+| CC-103.5 | untagged (L5 keyboard-only walkthrough) | 5     | pass                                           |
+| CC-103.6 | gate-derived (no test cites it)         | —     | pending orchestrator `[MANUAL]` anchor (below) |
 
 - `[RQ]` / `[DEPLOY]` criteria: none declared in the unit file.
 - `[MANUAL]` items: **CC-103.6** “All gates green” — gate meta-criterion, spec-only per CC-102.7/CC-101.6 precedent (gates-spawning-gates circularity); no test authored. **Proposed orchestrator edit:** tag the CC-103.6 line `` `[MANUAL]` `` with an evidence anchor to this report + BUILD_VERIFIED (`.ai-dlc/**` is orchestrator-owned — builder did not edit).
 
 ## Gates (at slice-D tree; re-run as BUILD_VERIFIED battery by orchestrator)
 
-lint ✓ · typecheck ✓ (3 tsconfigs) · test ✓ 163 files, **1285 passed \| 1 skipped \| 1 todo** — the only 5 reds in that run are the pending qualification re-sign (4× `model-eval` contentHash + `model-coverage` whose inner scoped run includes them; green at the chore(qualify) re-sign commit, verified individually) — 2 further reds in that run were `scaffold/gates` + `retry-detection` port contention against a leftover `vite preview` on :4310 from builder iteration; both **9/9 green individually on a free port** (CC-01.5 runs the full chromium Playwright suite inside) · build+check-bundle ✓ **112.7 KB initial gzip / 350 KB** (1 chunk) · test:e2e ✓ `e2e/timeline` **7/7 chromium** (keyboard-only 5 + perf-10k-latency 2 incl. ⌘+wheel anchor-drift acceptance; 30.6 s) · verify:unit ✓ for CC-103.1–.5 (CC-103.6 anchor pending) · qualify: re-sign committed as final `chore(qualify)`; `scripts/qualification-check.ts` ACCEPT + deep-compare (contentHash+startedAt only) verified in BUILD_VERIFIED.
+lint ✓ · typecheck ✓ (3 tsconfigs) · format:check — builder-owned files green at HEAD; 3 pre-existing reds untouched by slice D (frozen `src/state/CONTRACT.md`, slice A/B `timeline/controller.ts` + `timeline/renderer.ts` — orchestrator cleanup candidate, not a listed gate) · test ✓ 163 files, **1285 passed \| 1 skipped \| 1 todo** — the only 5 reds in that run are the pending qualification re-sign (4× `model-eval` contentHash + `model-coverage` whose inner scoped run includes them; green at the chore(qualify) re-sign commit, verified individually) — 2 further reds in that run were `scaffold/gates` + `retry-detection` port contention against a leftover `vite preview` on :4310 from builder iteration; both **9/9 green individually on a free port** (CC-01.5 runs the full chromium Playwright suite inside) · build+check-bundle ✓ **112.7 KB initial gzip / 350 KB** (1 chunk) · test:e2e ✓ `e2e/timeline` **7/7 chromium** (keyboard-only 5 + perf-10k-latency 2 incl. ⌘+wheel anchor-drift acceptance; 30.6 s) · verify:unit ✓ for CC-103.1–.5 (CC-103.6 anchor pending) · qualify: re-sign committed as final `chore(qualify)`; `scripts/qualification-check.ts` ACCEPT + deep-compare (contentHash+startedAt only) verified in BUILD_VERIFIED.
 
 ## Device (chromium headless, production `vite preview`, 1280×720)
 

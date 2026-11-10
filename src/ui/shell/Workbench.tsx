@@ -588,7 +588,7 @@ export function Workbench(props: WorkbenchProps): ReactNode {
               {/* Unit-103: the canvas timeline mounts INSIDE the unit-101 section (the d.ts-sanctioned region-nesting pattern — timeline-root carries its own data-region="timeline" + tabindex=0). The section itself stays present always (101 frozen); the panel needs the editor app + the rAF driver + a project, else the reserved placeholder renders. */}
               <section data-region="timeline" data-testid="panel-timeline" tabIndex={-1} role="region" aria-label="Timeline" className="ws-timeline" style={{ height: settingsState.panels.timelinePx }}>
                 {transport !== undefined && transport.rafs !== undefined && currentProject !== null ? (
-                  <Timeline app={transport.app} rafs={transport.rafs} dpr={typeof window === 'undefined' ? 1 : (window.devicePixelRatio || 1)} />
+                  <Timeline app={transport.app} rafs={transport.rafs} dpr={typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1} />
                 ) : (
                   <p className="ws-empty">Timeline arrives with unit-103.</p>
                 )}

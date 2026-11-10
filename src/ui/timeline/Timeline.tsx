@@ -507,7 +507,8 @@ export function Timeline(props: TimelineProps): ReactElement {
     if (gesture === null) return
     const { x } = localXY(event)
     if (gesture.kind === 'ruler') {
-      if (gesture.scrub === true) b.controller.endPlayheadDrag() // drag = scrub, release adds NO second seek (US-2.1.5)
+      if (gesture.scrub === true)
+        b.controller.endPlayheadDrag() // drag = scrub, release adds NO second seek (US-2.1.5)
       else b.controller.rulerClick(x) // FR-103.6: ruler click seeks via transport-seek
     } else if (gesture.kind === 'scrub') {
       b.controller.endPlayheadDrag()
