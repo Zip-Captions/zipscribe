@@ -98,6 +98,13 @@ export function useCommands(settings: SettingsStore): void {
       }
       const binding = resolveBinding(chordOf(event, heldLetters))
       if (binding === undefined) return
+      // design.md § Keyboard shortcuts: timeline bindings are NEVER bound while
+      // a text-editing path has focus (save/undo/overlay are not timeline.* —
+      // they keep flowing through the registry `when` gates). The doctrine is
+      // enforced HERE, at the dispatch layer, so the frozen binding table keeps
+      // its exact when-fields; the key (and its caret/typing default) is left
+      // to the editing surface.
+      if (isEditing() && binding.id.startsWith('timeline.')) return
       // Table bindings own their chord (design.md: override browser defaults
       // via preventDefault while focus is inside the workbench).
       event.preventDefault()
