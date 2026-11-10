@@ -90,8 +90,10 @@ Clipchamp keys verified ✔ (official docs); CapCut has no official list — com
 | Collapse sidebar / timeline | `Ctrl+Alt+2` / `Ctrl+Alt+3` | Clipchamp-style collapse |
 | Cycle transcript view (source → translation → side-by-side) | `⌘⇧L` | translation (caption-translation/unit-302) |
 | Next / previous QC issue | `⌘'` / `⌘⇧'` | jumps playhead + selection to the issue's block (unit-104) |
-| Timeline zoom in / out / fit | `⌘=` / `⌘-` / `⌘0` | ✔ Clipchamp |
-| Timeline zoom (wheel) | `⌘ + wheel` | ✔ CapCut UNVERIFIED |
+| Timeline zoom in / out / fit | `⌘=` / `⌘-` / `⌘0`; `Ctrl+=` / `Ctrl+-` / `Ctrl+0` | ✔ Clipchamp; both spellings per Platform modifiers above (unit-103 adjudication 10) |
+| Timeline zoom (wheel/pinch) | `Ctrl + wheel` | ✔ CapCut UNVERIFIED — `⌘`+wheel is reserved by browser page-zoom and cannot be captured reliably; ctrl+wheel/trackpad-pinch is the capturable equivalent (non-passive listener) |
+| Move block focus (timeline focused) | `←` / `→` | unit-103 FR-103.7 keyboard-only model; announces via live region |
+| Toggle block selection | `Enter` (block focused) | unit-103 FR-103.7 |
 | Select all / deselect | `⌘A` / `Esc` | ✔ CapCut (batch style) |
 | Find in transcript | `⌘F` | our gap-filler |
 | Undo / redo | `⌘Z` / `⌘⇧Z` or `⌘Y` | ✔ Clipchamp |
@@ -101,7 +103,7 @@ Clipchamp keys verified ✔ (official docs); CapCut has no official list — com
 | Shortcuts overlay | `⌘/` | ✔ Clipchamp |
 | Confirm/cancel edit | `Enter` / `Esc`; `Shift+Enter` line break | ✔ CapCut convention |
 
-Rules: this table is the **complete** binding list — unit-105's snapshot test compares the registry to it, so a new binding means a new row here first. Shortcuts registered through the single command registry (unit-105); never bound during `contenteditable` focus except save/undo/overlay; chord conflicts resolved in favor of table above; overlay + command palette (`⌘K`, later) share registry. Browser-reserved keys (`⌘W/T/N/Q`, `Ctrl+Tab`) can't be captured — never bind them. `⌘=`/`⌘-`/`⌘0`, `⌘F`, `⌘S` and `⌘+wheel` override browser defaults via `preventDefault` (wheel listener must be non-passive) only while focus is inside the workbench.
+Rules: this table is the **complete** binding list — unit-105's snapshot test compares the registry to it, so a new binding means a new row here first. Shortcuts registered through the single command registry (unit-105); never bound during `contenteditable` focus except save/undo/overlay; chord conflicts resolved in favor of table above; overlay + command palette (`⌘K`, later) share registry. Browser-reserved keys (`⌘W/T/N/Q`, `Ctrl+Tab`) can't be captured — never bind them. `⌘=`/`⌘-`/`⌘0` (+ `Ctrl` spellings), `⌘F`, `⌘S` and `Ctrl`+wheel/pinch override browser defaults via `preventDefault` (wheel listener must be non-passive) only while focus is inside the workbench.
 
 ## Sources (for re-verification during design pass)
 

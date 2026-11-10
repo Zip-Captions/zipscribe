@@ -42,7 +42,8 @@ Keyboard-only walkthrough (CC-103.5, OBSERVED via spec): Alt+3 focuses the timel
 - **Viewport-path work for measurable input→state round-trips**: backing-store re-derivation on every viewport change + a `flushSync` panel re-render (the app's established flushSync-on-notify store→React doctrine). `performance.now()` on the preview page is clock-clamped (~100 µs, non-cross-origin-isolated — probe-verified); an O(1) pan chain measures as exact 0 and the frozen spec’s `every(v > 0)` non-vacuity guard (rightly) rejects it. All counted samples now measure real work with 3–30× p95 headroom.
 - **`window.tl` page accessor** installed inside `installTimelineBridge()` (sibling of the specs’ own `window.__zipPerf` pattern; ziptest-only, production never loads the bridge chunk). Playwright does not serialize Node-side closures — probe evidence in `.night/closure-probe.mjs` — the frozen spec invokes `tl()` in-page.
 - Robustness for frozen L1/L2/jsdom paths: `setPointerCapture` try/catch (synthetic pointerId NotFoundError), null-2D-context tolerance (transport-bar test mounts the panel in jsdom).
-- Interaction wiring (frozen contract silent on input plumbing): non-passive wheel (⌘+wheel = anchor-at-cursor zoom, plain wheel = pan), ruler click = seek, ruler drag = playhead scrub (begin/drag/end), `rafs` exposed on `AppContext`, third lazy bridge in `App` under `?ziptest=1`, Workbench mounts the panel when `transport.rafs && currentProject !== null` (placeholder text preserved otherwise).
+- Interaction wiring (frozen contract silent on input plumbing): non-passive wheel (**Ctrl+wheel / trackpad pinch** = anchor-at-cursor zoom — design.md's `⌘+wheel` is reserved by Chromium page-zoom and uncapturable, so ctrlKey/pinch is the wired equivalent, named per PR#13 F4; the frozen perf spec dispatches `ctrlKey: true`), plain wheel = pan, ruler click = seek, ruler drag = playhead scrub (begin/drag/end), `rafs` exposed on `AppContext`, third lazy bridge in `App` under `?ziptest=1`, Workbench mounts the panel when `transport.rafs && currentProject !== null` (placeholder text preserved otherwise).
+- Zoom bindings registered with BOTH `Meta` and `Ctrl` spellings (design.md:73 platform rule + merge precedent; frozen d.ts re-frozen in lockstep — orchestrator adjudication 10, PR#13 F2).
 
 ## Contract changes
 
@@ -57,7 +58,7 @@ None added.
 
 ## Measurements
 
-- Input→state latency, 10k blocks (probe, production build, chromium — same sampling as the frozen spec): wheelPan p50 ≈ 0.2 ms / p95 < 1.0 ms; zoom-key p50 ≈ 1.6 / p95 ≈ 2.5 ms; ⌘+wheel-zoom p50 ≈ 1.2 / p95 ≈ 1.3 ms; ruler-click, block-click, playhead-scrub: spec-asserted (all counted samples > 0, p95 < 16 ms). Clock caveat above. Gate: every action class p95 < 16 ms with ≥ 6× headroom.
+- Input→state latency, 10k blocks (probe, production build, chromium — same sampling as the frozen spec): wheelPan p50 ≈ 0.2 ms / p95 < 1.0 ms; zoom-key p50 ≈ 1.6 / p95 ≈ 2.5 ms; wheel-zoom (Ctrl+wheel/pinch) p50 ≈ 1.2 / p95 ≈ 1.3 ms; ruler-click, block-click, playhead-scrub: spec-asserted (all counted samples > 0, p95 < 16 ms). Clock caveat above. Gate: every action class p95 < 16 ms with ≥ 6× headroom.
 - Initial JS **112.8 KB gzip** final (budget 350 KB; +8.4 KB over pre-unit 104.4 KB); full-suite wall 274.7 s; coverage 95.64 % stmt / 89.78 % branch (enforced); chromium e2e phase 102 passed / 21 skipped in 2.6 m.
 - Hit-test index: O(log n + k) query verified at 10k with duplicate starts + reversed insertion (adversary TL.13).
 
@@ -67,6 +68,7 @@ None added.
 - Renderer culls no blocks (full content canvas repaint per dirty frame — spec-budget-compliant at 10k, revisit with waveform + real media).
 - `window.tl` accessor could move behind the same `?ziptest=1` query guard at module load rather than call-site (already only reached via the lazy bridge chunk).
 - Bridge could expose viewport for future `timeAtX` fuzz specs (kept numbers-only per SECURITY-03).
+- Vitest coverage `include` (`src/**`) hands `src/state/CONTRACT.md` to rollup → benign `PARSE_ERROR … Excluding it from coverage` log noise in the authoritative CI coverage run; narrow to `src/**/*.{ts,tsx}` in a follow-up (unit-01-owned config; PR#13 F5).
 
 ## Adversary round (AUDIT_CLEAN)
 
@@ -99,3 +101,23 @@ Gates after fixes: targeted `vitest run tests/unit/timeline` 101/101 (98+3);
 full `pnpm test` 1334 passed / 1 skipped / 1 todo; lint 0; typecheck 0;
 build+check-bundle 112.8 KB gzip (≤ 350 KB); `pnpm qualify` + `qualification-check`
 ACCEPT, record deep-diff = contentHash+startedAt only (`a92ce9b`).
+
+## Review round 1 (PR #13 — CHANGES_REQUESTED → fixed)
+
+Fresh-context reviewer (worktree `.night/review-pr13`, read-only, removed clean;
+full report posted: PR #13 comment 6761043954). Per-criterion verdicts all
+SATISFIED; independent coverage re-run green; independent contentHash recompute
+matched; 5/5 kill-checks (incl. both adversary-proof classes) turned red on
+defect re-introduction. Findings and dispositions:
+
+| #   | Sev    | Disposition                                                                                                                                                                                                                                                                                          |
+| --- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1  | HIGH   | prettier red at f22353d (criteria-table padding from my report finalization — battery had been run at 968765c; my miss). Fixed `49578db` (`prettier --write` on the report only).                                                                                                                    |
+| F2  | MEDIUM | zoom bindings Meta-only vs design.md:73 "Ctrl elsewhere" + merge precedent. Orchestrator adjudication 10: Ctrl spellings added — d.ts table re-frozen by test-author `bd0419d`, registry rows by fixer `32817ad` (table-driven `resolveBinding`, no aliasing logic; same ids).                       |
+| F3  | MEDIUM | design.md keyboard table stale (FR-103.7 focus/Enter rows). Knowledge-owner edit (this report's commit): rows added for `←/→` block focus + `Enter` toggle; zoom row updated with Ctrl spellings; `⌘+wheel` row corrected to `Ctrl+wheel` (F4) — keeps unit-105's registry-vs-table snapshot honest. |
+| F4  | LOW    | Report/PR claimed "⌘+wheel"; impl is Ctrl+wheel/pinch (Chromium reserves ⌘+wheel). Named in Deviations above + design.md row corrected.                                                                                                                                                              |
+| F5  | LOW    | Coverage `include` parse-noise on CONTRACT.md — follow-up seed above (unit-01 config).                                                                                                                                                                                                               |
+
+Reviewer verified the six frozen-file edits real (adjudications 7–10), the
+re-anchored unit-102 pins load-bearing, and the AUDIT_CLEAN fixes
+implementation-side. Round 2 (delta-only re-review) follows.
