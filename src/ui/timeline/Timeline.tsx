@@ -38,7 +38,7 @@ const LANES = { ruler: 24, waveform: 48, blocks: 72 } as const
 const LANE_HEIGHT_PX = LANES.ruler + LANES.waveform + LANES.blocks
 const PLAYHEAD_ZONE_PX = 4
 const NO_BLOCKS: readonly CaptionBlock[] = Object.freeze([])
-/** ⌘+wheel zoom step per wheel notch (multiplicative, symmetric about 1). */
+/** Ctrl+wheel / trackpad-pinch zoom step per wheel notch (multiplicative, symmetric about 1). */
 const WHEEL_ZOOM_STEP = 1.1
 /** Chrome's canvas backing-store dimension ceiling — the content-sized
  *  backing store is clamped below it (CSS width keeps the full mapping). */
@@ -348,7 +348,7 @@ export function Timeline(props: TimelineProps): ReactElement {
     const unsubscribes = [app.project.subscribe(onStore), b.viewport.subscribe(onViewport)]
     requestFrame() // initial paint (all layers dirty)
 
-    // ⌘+wheel zoom (anchor under the cursor) / wheel pan — a NON-passive
+    // Ctrl+wheel / trackpad-pinch zoom (anchor under the cursor) / wheel pan — a NON-passive
     // native listener so the page never scrolls/zooms under the timeline.
     const onWheel = (event: WheelEvent): void => {
       if (canvas === null) return
