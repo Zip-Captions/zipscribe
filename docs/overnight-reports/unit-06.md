@@ -91,3 +91,36 @@ none outside `settings.yml` approved list (slice A is dependency-free pure TS).
 - Slice B: host wiring — `speakerSource:'auto-beta'` + `speakersFromClusters` population on diarize completion; `speaker-assign`-family command payloads over the pure fns (unit-104 UI).
 - Consider hoisting `roundSeconds` to a shared engine helper if slice B writes more times (currently local to `assign.ts`).
 - `unload()` does not await a running job's quiet exit (wake + dispose immediately) — acceptable for the frozen contract; slice C's worker teardown should serialize if the host requires it.
+
+---
+
+# Unit report: unit-06-speaker-diarization — slice B (model registry rows + two-speaker fixture)
+
+Status: **complete (slice B)** — head `fb8ef0f` on `ai-dlc/local-transcribe-engine/unit-06-speaker-diarization` (from `2c1eb2c`). Commits: `38c26c3` feat(models), `715e79a` build(fixtures), `7badab6` ci(qualify), `fb8ef0f` fix(fixtures) (typing-only follow-up to the generator edit).
+
+## Deliverables
+
+1. **Model rows (FR-06.6 / FR-03.1 doctrine).** Two pinned rows — repo + 40-hex revision + per-file SHA-256 — in `models/ci-registry.json` (drives `pnpm models:fetch` → `.cache/models/`, SHA-256-verified) and `models/eval-registry.json`, mirrored verbatim into `src/engine/model/registry.ts` as **`DIAR_MODEL_REGISTRY`** (+ `getDiarModel`), the silero-vad non-ASR precedent: a fetched, pinned cache tier that never enters `MODEL_REGISTRY` / `tierSelector` / the model picker. `ensureOffline`-cacheable: rows carry `runtimeWasm: ORT_RUNTIME_WASM` (the same self-hosted `/wasm` set the transformers rows double-cache); slice C injects this map into `createModelCache`/`createModelManager` (`deps.registry`). Cache dirs are the frozen e2e names `pyannote-segmentation-3-0` / `eres2net-base-3dspeaker`, file paths inside conform to `routeDiarNetwork`'s resolve-URL mapping (`onnx/model.onnx`; `3dspeaker_speech_eres2net_base_sv_zh-cn_3dspeaker_16k.onnx`). Frozen helper + specs unedited.
+2. **ERes2Net provenance tie-out (gated task).** VERDICT: **ACCEPTED** — `onemira/eres2net-base-3dspeaker-onnx@e63c3752…` is byte-identical (SHA-256 `1a331345f04805badbb495c775a6ddffcdd1a732567d5ec8b3d5749e3c7a5e4b`, 39,593,761 B) to the k2-fsa/sherpa-onnx GitHub release `speaker-recongition-models` artifact (the exact file the docs-mcp sherpa-onnx *Speaker Diarization* page prescribes), and the in-repo `LICENSE`/`LICENSE.sherpa-onnx`/`NOTICE` hashes match the mirror's declared upstream digests (both Apache-2.0 texts; chain mirror → k2-fsa release → ModelScope iic / 3D-Speaker team). pyannote row re-verified MIT via the HF API today. Full chain + auditor reproduction commands: `docs/spikes/diar-model-provenance.md`. No silent substitution; sherpa-onnx-WASM fallback not needed (would be an orchestrator decision regardless).
+3. **Two-voice `speech-2spk-2min` regeneration (US-1.3.1).** `scripts/make-fixtures.ts` synthesizes two distinctly different voices over the SAME word list/timings — voice A f0 ≈ 110 Hz default formants/tilt, voice B f0 ≈ 210 Hz with `f1Scale 1.14`/`f2Scale 1.18` + brighter harmonic tilt — tiled `[A, A, B, B]` in ONE continuous encode (the old 30 s stream-copy loop made 4 byte-identical copies: two contiguous acoustic runs were structurally impossible). Ground truth (generator-written; never hand-edited): all **136** words carry a non-empty `speaker` label, exactly **2** distinct labels (`speaker-1`/`speaker-2`), **2 contiguous runs**, single switch at word index **68** (whole-copy boundary = natural sentence gap at **60.12 s**; nominal duration 2 min, container-declared 120.00 s for mp4+m4a twins). Objective separation evidence (numbers only, SECURITY-03): median voiced fundamental-band **109.4 Hz (A) vs 218.8 Hz (B)**, 60–500 Hz centroids 241.7/254.7 Hz. Other fixtures **byte-unchanged** — git shows only the 4 expected files modified; `pnpm fixtures && pnpm fixtures:verify` green (106 checksummed); CC-01.2 scratch-tree regen green. Default `VoiceProfile` reproduces the pre-slice-B formula bit-for-bit.
+
+## Gates (slice B re-run at `fb8ef0f`)
+
+- lint ✓ 0 · typecheck ✓ 0 (3 tsconfigs)
+- `corepack pnpm test` ✓ — **Test Files 174 passed (174); Tests 1401 passed | 1 skipped | 1 todo (1403)** (pretest verify-fixtures green)
+- `corepack pnpm build && corepack pnpm check-bundle` ✓ — **initial JS 112.9 KB gzip / budget 350 KB (1 chunk)**
+- `node scripts/qualification-check.ts` → **`qualification-check: ACCEPT — qualification/0.0.0-spike.json valid for contentHash 6edeb885b852…`** (slice-A precedent; re-signed via `corepack pnpm qualify`, 8/8 RQ pass)
+- Targeted single-spec run `playwright test e2e/diarization/accuracy-2spk.spec.ts` (cache-gate confidence, per brief): ground-truth contiguity prerequisite **PASSED**; the accuracy test fails exactly at the sanctioned slice-C RED — `no model:ready pair from diarize.worker within 120000 ms (is the protocol stub still in place?)` — i.e. past the model-cache gate (`assertDiarModelCachePresent` + route mapping satisfied from `.cache/models/`). Full `test:e2e` not expected green until slice C.
+- `models:fetch` setup: 4 files fetched (25 already cached), 5/5 models ready — `models:fetch: 5 model(s) ready — 4 fetched, 25 already cached → .cache/models/`. pyannote dir 5,987,474 B across 3 files (408 + 158 + 5,986,908); eres2net 39,593,761 B (38 MiB); cache re-hash of all four pins OK.
+
+## Assumptions
+
+- "Mirror exactly how silero-vad is represented" was implemented as ci-registry/eval-registry rows + a dedicated `DIAR_MODEL_REGISTRY` surface (silero itself has no `registry.ts` surface; putting non-ASR rows into `MODEL_REGISTRY` would leak them into the ASR picker/selector and the CC-03.1 row suite's engine-kind contract). If the orchestrator wants the rows inside `MODEL_REGISTRY` instead, the eval-registry rows already satisfy the pin-match test — one-line move.
+- `engine: 'transformers-whisper'` on both diar rows names the transformers.js/ORT stack (ENGINE_KINDS is frozen to the three spike engines; FR-06.1 runs both models on the bundled ORT instance).
+- Ground-truth label spelling `speaker-1`/`speaker-2`: the frozen spec asserts non-empty string, exactly 2 distinct, 2 contiguous runs — values are otherwise free; the metrics helper treats labels opaquely (optimal 1:1 mapping to system speaker ids).
+- ModelScope model-card SHA (mirror metadata) not re-hashed: modelscope.cn is outside the network allowlist; recorded as declared metadata in the spike doc.
+- k2-fsa GitHub download was a one-time sanctioned provenance hash (unit brief), never a runtime/test origin; scripts/models-fetch.ts allowlist untouched (hf.co only).
+
+## Blockers
+
+none new. CC-06.1/06.2/06.5 remain the sanctioned e2e RED awaiting slice C (diarize.worker implementation); slice B removed the ground-truth + model-cache prerequisites that gated them.
