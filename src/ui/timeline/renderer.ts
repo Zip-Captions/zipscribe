@@ -157,10 +157,7 @@ function ellipsize(text: string, measure: (text: string) => number, availPx: num
  * (tests pin 0.2 = low, 0.95/absent = not). `ellipsizedText` ends with the
  * U+2026 ellipsis iff `truncated`.
  */
-export function blockVisuals(
-  block: CaptionBlock,
-  opts: { viewport: TimelineViewport; selected: boolean; focused: boolean; ghosted: boolean; speakerColor: string; measure?: (text: string) => number },
-): BlockVisual {
+export function blockVisuals(block: CaptionBlock, opts: { viewport: TimelineViewport; selected: boolean; focused: boolean; ghosted: boolean; speakerColor: string; measure?: (text: string) => number }): BlockVisual {
   const measure = opts.measure ?? defaultMeasure
   const x = timeToX(block.start, opts.viewport)
   const width = (block.end - block.start) * opts.viewport.pxPerSec

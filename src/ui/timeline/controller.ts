@@ -152,7 +152,11 @@ export function createTimelineController(deps: {
     return app.project.getState().project?.asset.duration ?? 0
   }
   function findBlock(id: string): CaptionBlock | null {
-    return index().all().find((block) => block.id === id) ?? null
+    return (
+      index()
+        .all()
+        .find((block) => block.id === id) ?? null
+    )
   }
   function neighbours(id: string): { prev: CaptionBlock | null; next: CaptionBlock | null } {
     const all = index().all()
