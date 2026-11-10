@@ -6,15 +6,23 @@
 // binding guards text editing (conventions § UI conventions: shortcuts never
 // fire while a text-editing path — the project-name input — has focus).
 //
-// Components never bind keys themselves (ui/commands/useCommands.ts, unit-105,
-// is the only consumer of `dispatchCommand` from the DOM side).
+// unit-103 EXTENDS (frozen in tests/unit/timeline/unit103-api-contract.d.ts §
+// Registry EXTENDS): the timeline bindings with their exact frozen ids/chords,
+// plus the `when: 'timeline-focused'` gate — the frozen EXTENSION of the
+// `when?: 'not-editing'` field, checked BEFORE the global transport arrows so
+// FR-103.7's focus model wins while the timeline region has focus. Handlers
+// are owned by the mounted Timeline panel (unit-102 MAJOR-5 /
+// useTransportCommands precedent); unit-105 owns the full-table snapshot.
+//
+// Components never bind keys themselves (ui/commands/useCommands.ts is the
+// only consumer of `dispatchCommand` from the DOM side).
 
 export interface CommandBinding {
   id: string
-  /** Normalized chord, e.g. 'Alt+1', 'Ctrl+Alt+2' (design.md shortcut table format). */
+  /** Normalized chord, e.g. 'Alt+1', 'Ctrl+Alt+2', 'Z+ArrowLeft' (design.md shortcut table format). */
   keys: string
-  /** Never fire while a text-editing path (project-name input) has focus. */
-  when?: 'not-editing'
+  /** Gate: never fire while a text-editing path (project-name input) has focus; or (unit-103) only while the timeline region has DOM focus. */
+  when?: 'not-editing' | 'timeline-focused'
 }
 
 // design.md § Keyboard shortcuts (v1 map) — the complete shell subset
@@ -43,12 +51,36 @@ const SHELL_BINDINGS: readonly CommandBinding[] = [
   { id: 'transport.loop-out', keys: 'O', when: 'not-editing' },
 ]
 
+// unit-103 frozen EXTENDS table (ids/chords byte-exact per
+// unit103-api-contract.d.ts; design.md § Keyboard shortcuts — the Z/C held-
+// letter chords are Clipchamp-verified and useCommands tracks the held
+// prefix). trim-start/trim-end carry NO gate (frozen rows list none); the
+// focus model rows gate on the timeline region having DOM focus and are
+// resolved BEFORE the transport arrows (useCommands priority + this gate).
+const TIMELINE_BINDINGS: readonly CommandBinding[] = [
+  { id: 'timeline.split', keys: 'S', when: 'not-editing' },
+  { id: 'timeline.merge', keys: 'Meta+Shift+M', when: 'not-editing' },
+  { id: 'timeline.merge-ctrl', keys: 'Ctrl+Shift+M', when: 'not-editing' },
+  { id: 'timeline.trim-start', keys: 'Z+ArrowLeft' },
+  { id: 'timeline.trim-start', keys: 'Z+ArrowRight' },
+  { id: 'timeline.trim-end', keys: 'C+ArrowLeft' },
+  { id: 'timeline.trim-end', keys: 'C+ArrowRight' },
+  { id: 'timeline.zoom-in', keys: 'Meta+=', when: 'not-editing' },
+  { id: 'timeline.zoom-out', keys: 'Meta+-', when: 'not-editing' },
+  { id: 'timeline.zoom-fit', keys: 'Meta+0', when: 'not-editing' },
+  { id: 'timeline.focus-next', keys: 'ArrowRight', when: 'timeline-focused' },
+  { id: 'timeline.focus-prev', keys: 'ArrowLeft', when: 'timeline-focused' },
+  { id: 'timeline.select', keys: 'Enter', when: 'timeline-focused' },
+]
+
+const ALL_BINDINGS: readonly CommandBinding[] = [...SHELL_BINDINGS, ...TIMELINE_BINDINGS]
+
 type CommandHandler = () => void
 
 const handlers = new Map<string, CommandHandler>()
 
 export function getCommandBindings(): readonly CommandBinding[] {
-  return SHELL_BINDINGS
+  return ALL_BINDINGS
 }
 
 /**
@@ -63,8 +95,8 @@ export function registerCommandHandler(id: string, handler: CommandHandler): () 
   }
 }
 
-function isEditing(): boolean {
-  // Node (L1) has no DOM — bindings are never "editing" there.
+/** Node (L1) has no DOM — no editing, no focused region there. */
+export function isEditing(): boolean {
   if (typeof document === 'undefined') return false
   const active = document.activeElement
   if (active === null) return false
@@ -72,12 +104,21 @@ function isEditing(): boolean {
   return element.isContentEditable || element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.tagName === 'SELECT'
 }
 
-/** No-op-safe: unknown ids throw; `when: 'not-editing'` bindings are skipped while editing. */
+/** The unit-103 gate: DOM focus is inside a `data-region="timeline"` element (the timeline panel root or anything it nests). */
+export function isTimelineFocused(): boolean {
+  if (typeof document === 'undefined') return false
+  const active = document.activeElement
+  if (active === null) return false
+  return active.closest('[data-region="timeline"]') !== null
+}
+
+/** No-op-safe: unknown ids throw; gated bindings are skipped while their gate is closed. */
 export function dispatchCommand(id: string): void {
-  const binding = SHELL_BINDINGS.find((candidate) => candidate.id === id)
+  const binding = ALL_BINDINGS.find((candidate) => candidate.id === id)
   if (binding === undefined) {
     throw new Error(`unknown command id: ${id}`)
   }
   if (binding.when === 'not-editing' && isEditing()) return
+  if (binding.when === 'timeline-focused' && !isTimelineFocused()) return
   handlers.get(id)?.()
 }

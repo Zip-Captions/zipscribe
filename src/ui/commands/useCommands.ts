@@ -2,23 +2,58 @@
 // ONE place a window keydown is consumed and translated into a
 // `dispatchCommand` call. Components never bind keys themselves (conventions
 // § UI conventions); the shell installs this once at the app level, so every
-// guard (the `not-editing` suppression in registry.ts) applies uniformly.
+// guard (the `not-editing` / `timeline-focused` suppression in registry.ts)
+// applies uniformly.
+//
+// unit-103 EXTENDS (frozen in tests/unit/timeline/unit103-api-contract.d.ts):
+//  * held-letter chords — Z/C are tracked on keydown/keyup and prefix the
+//    arrow keys into 'Z+ArrowLeft'-style chords (design.md: "held-letter
+//    chord; registry must support it" — Clipchamp trim keys);
+//  * `when: 'timeline-focused'` bindings are resolved BEFORE the global
+//    transport arrows while the timeline region has DOM focus (FR-103.7);
+//  * modifier order normalized to `Meta+Ctrl+Alt+Shift+…` — the design.md /
+//    frozen-binding spelling ('Meta+Shift+M', 'Ctrl+Shift+M', 'Ctrl+Alt+2').
 
 import { useEffect } from 'react'
-import { dispatchCommand, getCommandBindings, registerCommandHandler } from './registry'
+import { dispatchCommand, getCommandBindings, isEditing, isTimelineFocused, registerCommandHandler } from './registry'
+import type { CommandBinding } from './registry'
 import type { SettingsStore } from '../../state/settings'
 
-function chordOf(event: KeyboardEvent): string {
-  const modifiers: string[] = []
-  if (event.ctrlKey) modifiers.push('Ctrl')
-  if (event.altKey) modifiers.push('Alt')
-  if (event.shiftKey) modifiers.push('Shift')
-  if (event.metaKey) modifiers.push('Meta')
+/** The letters that prefix arrow-key chords while held (design.md Z/C trim). */
+const HELD_LETTERS: ReadonlySet<string> = new Set(['Z', 'C'])
+
+function keyNameOf(event: KeyboardEvent): string {
   // design.md writes the play/pause chord as `Space` (DOM key ' ') and letter
   // keys canonically uppercase (`J`, `Y` — DOM key is the typed case); named
   // keys (`ArrowLeft`) keep their DOM spelling.
-  const key = event.key === ' ' ? 'Space' : event.key.length === 1 ? event.key.toUpperCase() : event.key
-  return [...modifiers, key].join('+')
+  return event.key === ' ' ? 'Space' : event.key.length === 1 ? event.key.toUpperCase() : event.key
+}
+
+function chordOf(event: KeyboardEvent, heldLetters: ReadonlySet<string>): string {
+  const key = keyNameOf(event)
+  // Held-letter prefix only for the arrow keys, Z winning over C.
+  let base = key
+  if (event.key.startsWith('Arrow')) {
+    const letter = heldLetters.has('Z') ? 'Z' : heldLetters.has('C') ? 'C' : null
+    if (letter !== null) base = `${letter}+${key}`
+  }
+  const modifiers: string[] = []
+  if (event.metaKey) modifiers.push('Meta')
+  if (event.ctrlKey) modifiers.push('Ctrl')
+  if (event.altKey) modifiers.push('Alt')
+  if (event.shiftKey) modifiers.push('Shift')
+  return [...modifiers, base].join('+')
+}
+
+/** Frozen-chord spelling is Meta,Ctrl,Alt,Shift — gate rows win over globals ONLY while their gate is open. */
+function resolveBinding(chord: string): CommandBinding | undefined {
+  const candidates = getCommandBindings().filter((candidate) => candidate.keys === chord)
+  const gateActive = isTimelineFocused()
+  if (gateActive) {
+    const gated = candidates.find((candidate) => candidate.when === 'timeline-focused')
+    if (gated !== undefined) return gated
+  }
+  return candidates.find((candidate) => candidate.when !== 'timeline-focused')
 }
 
 function focusRegion(region: 'sidebar' | 'stage' | 'timeline'): void {
@@ -28,7 +63,7 @@ function focusRegion(region: 'sidebar' | 'stage' | 'timeline'): void {
 /**
  * Binds the side effects for the unit-101 shell commands (registry ids from
  * the frozen contract) and routes window keydowns through
- * `dispatchCommand`, so the `when: 'not-editing'` guard governs every chord.
+ * `dispatchCommand`, so the `when` gates govern every chord.
  */
 export function useCommands(settings: SettingsStore): void {
   useEffect(() => {
@@ -50,10 +85,18 @@ export function useCommands(settings: SettingsStore): void {
       }),
     ]
 
+    const heldLetters = new Set<string>()
+
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.defaultPrevented || event.repeat) return
-      const chord = chordOf(event)
-      const binding = getCommandBindings().find((candidate) => candidate.keys === chord)
+      const letter = event.key.length === 1 && /^[a-z]$/i.test(event.key) ? event.key.toUpperCase() : null
+      // Typing a letter INTO a text-editing path never arms a chord prefix
+      // (conventions § UI conventions: shortcuts never bind while editing).
+      if (letter !== null && !isEditing()) {
+        if (HELD_LETTERS.has(letter)) heldLetters.add(letter)
+        else heldLetters.delete(letter)
+      }
+      const binding = resolveBinding(chordOf(event, heldLetters))
       if (binding === undefined) return
       // Table bindings own their chord (design.md: override browser defaults
       // via preventDefault while focus is inside the workbench).
@@ -61,9 +104,21 @@ export function useCommands(settings: SettingsStore): void {
       dispatchCommand(binding.id)
     }
 
+    const onKeyUp = (event: KeyboardEvent): void => {
+      if (event.key.length === 1) heldLetters.delete(event.key.toUpperCase())
+    }
+
+    const onBlur = (): void => {
+      heldLetters.clear()
+    }
+
     window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('blur', onBlur)
     return () => {
       window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('blur', onBlur)
       for (const unsubscribe of unsubscribes) unsubscribe()
     }
   }, [settings])
