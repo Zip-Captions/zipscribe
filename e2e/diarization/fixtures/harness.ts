@@ -34,7 +34,7 @@ export interface DiarRunSummary {
   error?: { code: string; retryable: boolean }
   frames: DiarFrameSummary[]
   speakers: number
-  eventSummary: { t: string; code?: string }[]
+  eventSummary: { t: string; code?: string; device?: string }[]
   runWallMs: number
 }
 
@@ -198,7 +198,7 @@ async function runDiarizeOn(pcm: Extract<DiarizeRequest, { t: 'diarize' }>['pcm'
     ...(terminal?.t === 'job:error' ? { error: { code: terminal.error.code, retryable: terminal.error.retryable } } : {}),
     frames: frames.frames,
     speakers: frames.speakers,
-    eventSummary: events.map((e) => ({ t: e.t, ...(e.t === 'job:error' ? { code: e.error.code } : {}) })),
+    eventSummary: events.map((e) => ({ t: e.t, ...(e.t === 'job:error' ? { code: e.error.code } : {}), ...(e.t === 'model:ready' ? { device: e.device } : {}) })),
     runWallMs: Date.now() - started,
   }
 }
