@@ -10,9 +10,16 @@
 // there exactly like the unit-04/05/07 RED-phase precedent — vitest.config.ts
 // is builder-owned, so the guard is in-file (gates.test.ts:31 pattern).
 //
-// Semantics pinned by ./unit06-api-contract.d.ts: average linkage over cosine
-// distance `1 − u·v/(‖u‖·‖v‖)`; merge while linkage ≤ threshold; canonical
-// labels `0..k−1`, first embed's cluster is 0; zero-norm vectors never merge.
+// Semantics pinned by ./unit06-api-contract.d.ts + the unit-06 FR-06.1 spec
+// line ("stopped by a distance threshold (tuned on fixtures), capped by
+// maxSpeakers (default 6)"): average linkage over cosine distance
+// `1 − u·v/(‖u‖·‖v‖)`; the THRESHOLD is the stop rule — merge while linkage ≤
+// threshold. `maxSpeakers` is an UPPER BOUND, never a floor: when the
+// threshold leaves the count above the cap, merges continue (beyond the
+// threshold) until the count equals the cap; when the threshold already
+// leaves the count at or below the cap (including 1), the cap is inert.
+// Canonical labels `0..k−1`, first embed's cluster is 0; zero-norm vectors
+// never merge.
 import { describe, expect, test } from 'vitest'
 import { isChildRun } from '../../helpers/repo'
 
@@ -83,7 +90,7 @@ gated('CC-06.1 CC-06.2 CC-06.6: FR-06.1 clustering — well-separated sets', () 
   })
 })
 
-gated('CC-06.1 CC-06.2 CC-06.6: FR-06.1 clustering — threshold + maxSpeakers stops', () => {
+gated('CC-06.1 CC-06.2 CC-06.6: FR-06.1 clustering — threshold stop + cap-as-upper-bound', () => {
   test('CC-06.1: the distance threshold stops merging', async () => {
     // Chain: near-duplicate pair + orthogonal singleton. Intra-pair distance
     // ≈ 0.02, pair→singleton distance ≈ 1.
@@ -101,17 +108,34 @@ gated('CC-06.1 CC-06.2 CC-06.6: FR-06.1 clustering — threshold + maxSpeakers s
     expect(distinctLabels(labels)).toEqual([0, 1, 2, 3])
   })
 
-  test('CC-06.2: maxSpeakers caps the cluster count (over-clustering guard, FR-06.1)', async () => {
+  test('CC-06.2: the cap is an upper bound — count above the cap merges down TO it, not below (FR-06.1)', async () => {
+    // Orthonormal(8): every pairwise/average linkage distance is 1, so the
+    // tight threshold leaves the NATURAL count at 8 — ABOVE the cap. FR-06.1:
+    // maxSpeakers is an upper bound, so merges continue beyond the threshold
+    // until the count EQUALS the cap — exactly 3, not 2, not 8.
     const embeds = orthonormal(8)
-    const capped = await cluster(embeds, { threshold: 1.5, maxSpeakers: 3 })
+    const capped = await cluster(embeds, { threshold: 0.3, maxSpeakers: 3 })
     expect(capped).toHaveLength(8)
-    expect(distinctLabels(capped), 'agglomeration stops AT the cap, not below it').toEqual([0, 1, 2])
+    expect(distinctLabels(capped), 'cap forces merges down to exactly the cap — never below').toEqual([0, 1, 2])
   })
 
-  test('CC-06.2: default cap is 6 speakers (FR-06.1 default maxSpeakers)', async () => {
+  test('CC-06.2: the default cap is an upper bound of 6 speakers (FR-06.1 default maxSpeakers)', async () => {
+    // Same shape as the explicit-cap test with the DEFAULT options: the
+    // permissive threshold is irrelevant here — the tight threshold leaves 8
+    // natural clusters above the default cap of 6 → exactly 6 labels.
     const embeds = orthonormal(8)
-    const labels = await cluster(embeds, { threshold: 1.5 })
-    expect(distinctLabels(labels), 'unbounded threshold still respects the default cap of 6').toEqual([0, 1, 2, 3, 4, 5])
+    const labels = await cluster(embeds, { threshold: 0.3 })
+    expect(distinctLabels(labels), 'count above the default cap merges down to exactly 6').toEqual([0, 1, 2, 3, 4, 5])
+  })
+
+  test('CC-06.2: the cap is INERT when the threshold already collapses the count below it', async () => {
+    // The satisfiability pin for CC-06.2 (US-1.3.1: a single voice must emit
+    // ONE speaker with NO maxSpeakers in the request): a permissive threshold
+    // collapses orthonormal(8) to ONE cluster; an explicit cap of 3 must not
+    // floor it back up to 3.
+    const embeds = orthonormal(8)
+    const labels = await cluster(embeds, { threshold: 1.5, maxSpeakers: 3 })
+    expect(distinctLabels(labels), 'threshold stop at 1; the cap never floors above the natural count').toEqual([0])
   })
 
   test('CC-06.2: a cap above the natural cluster count is inert', async () => {
