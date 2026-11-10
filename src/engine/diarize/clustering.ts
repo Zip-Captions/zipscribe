@@ -49,7 +49,7 @@ const NORM_EPS = 1e-12
 function normOf(vector: Float32Array): number {
   let sum = 0
   for (let i = 0; i < vector.length; i++) {
-    const v = vector[i] ?? 0
+    const v = vector[i]!
     sum += v * v
   }
   return Math.sqrt(sum)
@@ -70,12 +70,12 @@ export function agglomerativeCluster(embeds: Float32Array[], opts: ClusterOption
   // Pairwise cosine-distance matrix; zero-norm rows/columns are Infinity
   // (distance 1 is what "direction undefined" resolves to — Infinity makes
   // "never merges" total even against permissive thresholds).
-  const norms = embeds.map(normOf)
+  const norms = new Float64Array(embeds.map(normOf))
   const dist = new Float64Array(n * n)
   for (let i = 0; i < n; i++) {
     for (let j = i + 1; j < n; j++) {
-      const ni = norms[i] ?? 0
-      const nj = norms[j] ?? 0
+      const ni = norms[i]!
+      const nj = norms[j]!
       const d = ni === 0 || nj === 0 ? Number.POSITIVE_INFINITY : Math.max(0, 1 - dot(embeds[i]!, embeds[j]!) / (ni * nj))
       dist[i * n + j] = d
       dist[j * n + i] = d
@@ -83,8 +83,8 @@ export function agglomerativeCluster(embeds: Float32Array[], opts: ClusterOption
   }
 
   const active = new Array<boolean>(n).fill(true)
-  const sizes = new Array<number>(n).fill(1)
-  const parent = new Array<number>(n)
+  const sizes = new Int32Array(n).fill(1)
+  const parent = new Int32Array(n)
   for (let i = 0; i < n; i++) parent[i] = i
   let count = n
 
@@ -97,7 +97,7 @@ export function agglomerativeCluster(embeds: Float32Array[], opts: ClusterOption
       if (!active[i]) continue
       for (let j = i + 1; j < n; j++) {
         if (!active[j]) continue
-        const d = dist[i * n + j] ?? Number.POSITIVE_INFINITY
+        const d = dist[i * n + j]!
         if (d <= bestLinkage) {
           bestLinkage = d
           bi = i
@@ -116,11 +116,11 @@ export function agglomerativeCluster(embeds: Float32Array[], opts: ClusterOption
   }
 
   function merge(i: number, j: number): void {
-    const sizeI = sizes[i] ?? 1
-    const sizeJ = sizes[j] ?? 1
+    const sizeI = sizes[i]!
+    const sizeJ = sizes[j]!
     for (let k = 0; k < n; k++) {
       if (!active[k] || k === i || k === j) continue
-      const avg = ((dist[i * n + k] ?? Number.POSITIVE_INFINITY) * sizeI + (dist[j * n + k] ?? Number.POSITIVE_INFINITY) * sizeJ) / (sizeI + sizeJ)
+      const avg = (dist[i * n + k]! * sizeI + dist[j * n + k]! * sizeJ) / (sizeI + sizeJ)
       dist[i * n + k] = avg
       dist[k * n + i] = avg
     }
@@ -149,10 +149,10 @@ export function agglomerativeCluster(embeds: Float32Array[], opts: ClusterOption
 
   function find(x: number): number {
     let root = x
-    while (parent[root] !== root) root = parent[root] ?? root
+    while (parent[root] !== root) root = parent[root]!
     let walk = x
     while (parent[walk] !== root) {
-      const nextWalk = parent[walk] ?? walk
+      const nextWalk = parent[walk]!
       parent[walk] = root
       walk = nextWalk
     }
@@ -163,7 +163,7 @@ export function agglomerativeCluster(embeds: Float32Array[], opts: ClusterOption
 function dot(a: Float32Array, b: Float32Array): number {
   const len = Math.min(a.length, b.length)
   let sum = 0
-  for (let i = 0; i < len; i++) sum += (a[i] ?? 0) * (b[i] ?? 0)
+  for (let i = 0; i < len; i++) sum += a[i]! * b[i]!
   return sum
 }
 
@@ -180,16 +180,16 @@ export function estimateSpeakerCount(embeds: Float32Array[]): SpeakerCrossCheck 
   if (n === 0) return { speakers: 0, eigengap: 0 }
   const k = Math.min(MAX_EIGEN_COUNT, n)
 
-  const norms = embeds.map(normOf)
+  const norms = new Float64Array(embeds.map(normOf))
   const aff = new Float64Array(n * n)
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
-      const denom = (norms[i] ?? 0) * (norms[j] ?? 0) + NORM_EPS
+      const denom = norms[i]! * norms[j]! + NORM_EPS
       aff[i * n + j] = dot(embeds[i]!, embeds[j]!) / denom
     }
   }
 
-  const eigens: number[] = []
+  const eigens = new Float64Array(k)
   for (let e = 0; e < k; e++) {
     const v = new Float64Array(n)
     const seed = 1 / Math.sqrt(n)
@@ -197,26 +197,26 @@ export function estimateSpeakerCount(embeds: Float32Array[]): SpeakerCrossCheck 
     for (let iteration = 0; iteration < POWER_ITERATIONS; iteration++) {
       const bv = matVec(aff, v, n)
       let norm = 0
-      for (let i = 0; i < n; i++) norm += (bv[i] ?? 0) * (bv[i] ?? 0)
+      for (let i = 0; i < n; i++) norm += bv[i]! * bv[i]!
       const inv = 1 / (Math.sqrt(norm) + NORM_EPS)
-      for (let i = 0; i < n; i++) v[i] = (bv[i] ?? 0) * inv
+      for (let i = 0; i < n; i++) v[i] = bv[i]! * inv
     }
     const bv = matVec(aff, v, n)
     let lambda = 0
-    for (let i = 0; i < n; i++) lambda += (v[i] ?? 0) * (bv[i] ?? 0)
-    eigens.push(lambda)
+    for (let i = 0; i < n; i++) lambda += v[i]! * bv[i]!
+    eigens[e] = lambda
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < n; j++) {
-        aff[i * n + j] = (aff[i * n + j] ?? 0) - lambda * (v[i] ?? 0) * (v[j] ?? 0)
+        aff[i * n + j] = aff[i * n + j]! - lambda * v[i]! * v[j]!
       }
     }
   }
 
-  eigens.sort((a, b) => b - a)
+  eigens.sort((a, b) => a - b)
   let bestGap = 0
   let bestAt = 0
   for (let g = 1; g < k; g++) {
-    const gap = (eigens[g - 1] ?? 0) - (eigens[g] ?? 0)
+    const gap = eigens[k - g]! - eigens[k - g - 1]!
     if (gap > bestGap) {
       bestGap = gap
       bestAt = g
@@ -229,7 +229,7 @@ function matVec(mat: Float64Array, v: Float64Array, n: number): Float64Array {
   const out = new Float64Array(n)
   for (let i = 0; i < n; i++) {
     let sum = 0
-    for (let j = 0; j < n; j++) sum += (mat[i * n + j] ?? 0) * (v[j] ?? 0)
+    for (let j = 0; j < n; j++) sum += mat[i * n + j]! * v[j]!
     out[i] = sum
   }
   return out

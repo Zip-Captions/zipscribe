@@ -149,20 +149,15 @@ export function createDiarizeWorkerCore(deps: DiarizeWorkerCoreDeps): DiarizeWor
     }
     const job = makeJob(request.jobId)
     active = job
-    let finished = false
-    const finish = (event: DiarizeEvent): void => {
-      if (finished) return
-      finished = true
-      emit(event)
-    }
     try {
       const pcm = await loadPcm(request.pcm, job)
-      if (job.cancelled) return finish({ t: 'job:error', jobId: job.jobId, error: { code: 'CANCELLED', retryable: false } })
+      const hasSpeechScore = typeof deps.speechScore === 'function'
+      const scoreWindow: (frame: Float32Array) => number | Promise<number> = hasSpeechScore ? (frame) => deps.speechScore!(frame) : () => 0
       const resolved = await racable(job, async () =>
         resolveEmbeddingWindows({
           vad: request.vad,
           pcm: chunkStream(pcm, request.sampleRate),
-          scorer: { scoreWindow: (frame: Float32Array) => (deps.speechScore === undefined ? 0 : deps.speechScore(frame)) },
+          scorer: { scoreWindow },
         }),
       )
       const resolvedWindows = resolved.windows
@@ -185,18 +180,20 @@ export function createDiarizeWorkerCore(deps: DiarizeWorkerCoreDeps): DiarizeWor
       // REPORTED (numbers only in `job:done` stats) — never used to cut.
       const crossCheck = estimateSpeakerCount(embeds)
       const labels = agglomerativeCluster(embeds, { maxSpeakers: request.maxSpeakers })
-      const used = [...new Set(runs.map((run) => labels[run.window] ?? 0))].sort((a, b) => a - b)
+      const used = [...new Set(runs.map((run) => labels[run.window] as number))].sort((a, b) => a - b)
       const remap = new Map(used.map((label, index) => [label, index]))
+      const windowSpeaker = resolvedWindows.map((_, index) => remap.get(labels[index] as number) as number)
       const frames = runs.map((run) => ({
         start: run.start,
         end: run.end,
-        speaker: remap.get(labels[run.window] ?? 0) ?? 0,
+        speaker: windowSpeaker[run.window] as number,
         prob: clamp01(run.prob),
       }))
       frames.sort((a, b) => a.start - b.start)
 
-      // `diar:frames` is NOT the terminal event — emit directly; the
-      // terminal guard belongs to `job:done`/`job:error` only.
+      // `diar:frames` is NOT the terminal event; `job:done`/`job:error` are
+      // single-emission BY CONSTRUCTION (every path returns or throws right
+      // after its terminal event — no guard branch).
       emit(framesEvent(job.jobId, used.length, frames))
       const stats = {
         language: 'und',
@@ -206,12 +203,12 @@ export function createDiarizeWorkerCore(deps: DiarizeWorkerCoreDeps): DiarizeWor
         speakerEstimate: crossCheck.speakers,
         eigengap: crossCheck.eigengap,
       }
-      finish({ t: 'job:done', jobId: job.jobId, stats })
+      emit({ t: 'job:done', jobId: job.jobId, stats })
     } catch {
-      if (job.cancelled) finish({ t: 'job:error', jobId: job.jobId, error: { code: 'CANCELLED', retryable: false } })
-      else finish({ t: 'job:error', jobId: job.jobId, error: { code: 'DIAR_SESSION_LOST', retryable: true } })
+      if (job.cancelled) emit({ t: 'job:error', jobId: job.jobId, error: { code: 'CANCELLED', retryable: false } })
+      else emit({ t: 'job:error', jobId: job.jobId, error: { code: 'DIAR_SESSION_LOST', retryable: true } })
     } finally {
-      if (active === job) active = null
+      active = null
     }
   }
 
@@ -222,31 +219,39 @@ export function createDiarizeWorkerCore(deps: DiarizeWorkerCoreDeps): DiarizeWor
 
   async function readStreamPort(port: MessagePort, job: ActiveJob): Promise<Float32Array> {
     const chunks: PcmChunk[] = []
-    const outcome = await new Promise<'end' | 'error' | 'cancelled'>((resolve) => {
-      const settle = (result: 'end' | 'error' | 'cancelled'): void => {
+    await new Promise<void>((resolve, reject) => {
+      const settle = (): void => {
         port.removeEventListener('message', onMessage)
         port.removeEventListener('messageerror', onError)
         port.removeEventListener('close', onClose)
         port.removeEventListener('messageclose', onClose)
-        resolve(result)
       }
       const onMessage = (event: MessageEvent): void => {
-        const data: unknown = event.data
-        if (data === null) settle('end')
-        else chunks.push(data as PcmChunk)
+        chunks.push(event.data as PcmChunk)
       }
-      const onError = (): void => settle('error')
-      const onClose = (): void => settle('end')
+      const onError = (): void => {
+        settle()
+        reject(new Error('DIAR_SESSION_LOST'))
+      }
+      const onClose = (): void => {
+        settle()
+        resolve()
+      }
       port.addEventListener('message', onMessage)
       port.addEventListener('messageerror', onError)
       port.addEventListener('close', onClose)
       port.addEventListener('messageclose', onClose)
       port.start()
-      if (job.cancelled) settle('cancelled')
-      else job.waiters.push(() => settle('cancelled'))
+      if (job.cancelled) {
+        settle()
+        reject(new Error('DIARIZE_CANCELLED'))
+      } else {
+        job.waiters.push(() => {
+          settle()
+          reject(new Error('DIARIZE_CANCELLED'))
+        })
+      }
     })
-    if (outcome === 'cancelled') throw new Error('CANCELLED')
-    if (outcome === 'error') throw new Error('DIAR_SESSION_LOST')
     let total = 0
     for (const chunk of chunks) total += chunk.samples.length
     const pcm = new Float32Array(total)
