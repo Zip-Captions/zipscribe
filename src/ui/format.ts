@@ -41,8 +41,16 @@ function isTimeField(value: number): boolean {
   return Number.isFinite(value) && value >= 0
 }
 
-/** `formatTimecode`'s inverse; unparseable → null (no silent clamp). */
-export function parseTimecode(text: string, options: { fps?: number } = {}): Seconds | null {
+const MS_PER_SECOND = 1000
+
+/**
+ * `formatTimecode`'s inverse; unparseable → null (no silent clamp).
+ * Default: tenths rounding (frozen unit-102 behavior for existing callers).
+ * `{ ms: true }` (unit-103 US-2.2.5, orch adjudication 1 — additive): keeps
+ * millisecond precision for the inspector strip ('00:12.350' → 12.35); the
+ * default path and its rounding are untouched.
+ */
+export function parseTimecode(text: string, options: { fps?: number; ms?: boolean } = {}): Seconds | null {
   const parts = text.trim().split(':')
   if (parts.length < 2 || parts.length > 4) return null
   const numbers = parts.map((part) => Number(part))
@@ -70,5 +78,6 @@ export function parseTimecode(text: string, options: { fps?: number } = {}): Sec
   const seconds = numbers[offset + 1] as number
   if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return null
   if (parts.some((part) => part === '')) return null
-  return Math.round((hours * SECONDS_PER_HOUR + minutes * SECONDS_PER_MINUTE + seconds) * TENTHS_PER_SECOND) / TENTHS_PER_SECOND
+  const scale = options.ms === true ? MS_PER_SECOND : TENTHS_PER_SECOND
+  return Math.round((hours * SECONDS_PER_HOUR + minutes * SECONDS_PER_MINUTE + seconds) * scale) / scale
 }
