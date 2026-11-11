@@ -1,5 +1,5 @@
 {
-  "description": "Margin discriminator (kill-check MAJOR-2): 'bb' overlaps previous-speaker 0.10 s / new-speaker 0.35 s -> margin EXACTLY 0.25 s, NOT < 0.25 -> plain winner switches (SPK_2). 'cc' overlaps SPK_2 0.15 s / SPK_1 0.25 s -> margin 0.10 s < 0.25 -> CARRIES previous speaker SPK_2 although the duration-weighted winner is SPK_1 (disabling the hysteresis branch turns 'cc' into SPK_1 and changes the block split). 'dd' switches cleanly (0.40 s margin).",
+  "description": "Margin discriminator (kill-check MAJOR-2, dyadic fix): all times k/2^n so the float margin is BIT-EXACT. 'bb' [0.875,1.375] over the 1.0 s boundary: cluster0 overlap 1-0.875 = 0.125, cluster1 overlap 1.375-1 = 0.375 (both exact dyadic) -> plain winner SPK_2 with margin 0.375-0.125 === 0.25 EXACTLY: '< DIAR_HYSTERESIS_SEC' is false -> the switch happens (widening the rule to '<=' would carry SPK_1 and go red). 'cc' [1.45,1.85] over the 1.6 s boundary: winner SPK_1 margin ~0.10 (< 0.25 with ulp noise BELOW the threshold, so both '<' and '<=' carry) -> CARRIES previous speaker SPK_2 although the duration-weighted winner is SPK_1. 'dd' switches cleanly (margin ~0.4).",
   "blocks": [
     {
       "id": "blk_hm",
@@ -14,8 +14,8 @@
         },
         {
           "text": "bb",
-          "start": 0.9,
-          "end": 1.35
+          "start": 0.875,
+          "end": 1.375
         },
         {
           "text": "cc",

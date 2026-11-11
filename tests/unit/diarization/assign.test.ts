@@ -100,19 +100,21 @@ gated('CC-06.1 CC-06.4 CC-06.6: FR-06.3 assignSpeakers — word-time majority, h
     checkInvariants1to3(out)
   })
 
-  test('CC-06.4: margin of exactly 0.25 s switches while a 0.10 s margin carries the previous speaker (golden)', async () => {
-    // Kill-mutation discriminator for the hysteresis branch (assign.ts
-    // margin < DIAR_HYSTERESIS_SEC): 'bb' has plain winner SPK_2 with margin
-    // EXACTLY 0.25 (not <) → the switch happens; 'cc' has plain winner SPK_1
-    // with margin 0.10 (< 0.25) → carries previous SPK_2. Disabling the
-    // branch (or widening it to <=) turns 'cc' (resp. 'bb') into its plain
-    // winner and changes the golden block split.
+  test('CC-06.4: bit-exact 0.25 s margin switches (strict <) while a ~0.10 s margin carries the previous speaker (golden)', async () => {
+    // Kill-mutation discriminators for the hysteresis branch (assign.ts
+    // margin < DIAR_HYSTERESIS_SEC): 'bb' [0.875,1.375] has cluster overlaps
+    // 0.125 / 0.375 — all times dyadic so the margin is BIT-EXACT 0.25
+    // (0.375 − 0.125 === 0.25 strictly), which is NOT < 0.25 → the switch
+    // happens; widening the rule to <= would carry SPK_1 and go red here.
+    // 'cc' has plain winner SPK_1 with margin ~0.10 (< 0.25 under both < and
+    // <=) → carries previous SPK_2; removing the branch turns 'cc' into its
+    // plain winner and changes the golden block split.
     const { assignSpeakers } = await loadAssign()
     const input = golden<{ blocks: CaptionBlock[]; frames: DiarFrames }>('assign-hysteresis-margin.in.json')
     const expected = golden<CaptionBlock[]>('assign-hysteresis-margin.out.json')
     const out = assignSpeakers(deepFreeze(structuredClone(input)).blocks, structuredClone(input.frames))
     expect(normalizeBlockIds(out)).toEqual(expected)
-    expect(out[1]!.words[0]!.speakerId, 'margin == 0.25 s is NOT below the hysteresis constant — switch happens').toBe('SPK_2')
+    expect(out[1]!.words[0]!.speakerId, 'bit-exact margin 0.25 s is NOT below the hysteresis constant — switch happens').toBe('SPK_2')
     expect(out[1]!.words[1]!.speakerId, 'margin 0.10 s < 0.25 s carries the previous speaker over the duration-weighted winner SPK_1').toBe('SPK_2')
     expect(out[2]!.words[0]!.speakerId, 'a clear 0.40 s margin switches cleanly').toBe('SPK_1')
     checkInvariants1to3(out)

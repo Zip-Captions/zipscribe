@@ -2,7 +2,7 @@
   {
     "id": "ID#0",
     "start": 0.35,
-    "end": 0.875,
+    "end": 0.863,
     "text": "aa",
     "words": [
       {
@@ -16,14 +16,14 @@
   },
   {
     "id": "ID#1",
-    "start": 0.875,
+    "start": 0.863,
     "end": 1.9,
     "text": "bb cc",
     "words": [
       {
         "text": "bb",
-        "start": 0.9,
-        "end": 1.35,
+        "start": 0.875,
+        "end": 1.375,
         "speakerId": "SPK_2"
       },
       {

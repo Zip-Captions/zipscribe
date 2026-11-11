@@ -939,7 +939,7 @@
       "expectedPath": null
     },
     "golden/diarization/assign-hysteresis-margin.in.json": {
-      "sha256": "c883745597ac36a274c9c29f6c8b728cf2d371418dc1559bf041d6f4e0d979e0",
+      "sha256": "3656af4ad216d2f94fba2bdefff37380e6ba256d027104c3b892403da007bc6f",
       "duration": null,
       "kind": "golden",
       "language": null,
@@ -953,7 +953,7 @@
       "expectedPath": null
     },
     "golden/diarization/assign-hysteresis-margin.out.json": {
-      "sha256": "964571bec9dcfb007658cc110b699a515a018f3b118360fc1368da200a8407aa",
+      "sha256": "8ef88ced786fea470765c3a17e6bb1c9805829602a19d0f125303075d7ab16b9",
       "duration": null,
       "kind": "golden",
       "language": null,
