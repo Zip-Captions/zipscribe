@@ -26,12 +26,31 @@ export default defineConfig({
     baseURL: 'http://127.0.0.1:4310',
     trace: 'off',
   },
-  webServer: {
-    command: 'corepack pnpm run build && corepack pnpm run preview -- --port 4310 --strictPort',
-    url: 'http://127.0.0.1:4310',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  // Builder extension (unit-06 closeout): 4315 is shared by FOUR spec files
+  // (e2e/diarization ×3 + e2e/captions/align-mae.spec.ts). The unit-03
+  // per-file-worker doctrine does not help cross-file port ownership: when a
+  // sibling worker's strictPort spawn dies with EADDRINUSE, the next
+  // startHarnessServer probe is answered by the FIRST spec's vite — and that
+  // spec's afterAll then kills the server under the still-running sibling
+  // (observed as `media worker error: undefined`, i.e. a dead Worker-script
+  // fetch). A single persistent harness vite, owned by the runner for the
+  // whole session, makes every spec-spawn a no-op (child exits EADDRINUSE,
+  // probe answers from the live server, stopHarnessServer returns early on the
+  // dead child) and removes the kill race without touching any frozen spec.
+  webServer: [
+    {
+      command: 'corepack pnpm run build && corepack pnpm run preview -- --port 4310 --strictPort',
+      url: 'http://127.0.0.1:4310',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      command: 'corepack pnpm exec vite --config e2e/diarization/fixtures/vite.harness.config.ts --port 4315 --strictPort',
+      url: 'http://127.0.0.1:4315/e2e/diarization/fixtures/harness.html',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+  ],
   projects: [
     {
       name: 'chromium',
