@@ -278,3 +278,7 @@ None outside `settings.yml` approved dependencies (slice D touched no dependency
 - `speaker-merge`/`speaker-split` command ids → unit-104 (UI command dispatch over the pure fns).
 - `speakerSource: 'auto-beta'` host wiring + `speakersFromClusters` population on completion (slice-B follow-up; state tier, not engine).
 - CC-06.3 T1 leg needs the webgpu device exposure the perf-gate helper flags (release-hardware run).
+
+## Merge record (orchestrator)
+
+Status: **MERGED** — PR #14 squash-merged to develop as `bea3058` (2026-11-11T05:08Z); CI green (run 42961256611: quality 21m39s ✓, fixtures-verify ✓, preview-deploy ✓). Test-author RED (694c84c/fde338f/6948770) → builder slices A–D → adjudications (1)–(10) → BUILD_VERIFIED (orchestrator re-ran every gate at 5cfad8e and 6b829ee) → reviewer cap-3 fresh-context rounds (R1 CHANGES_REQUESTED: linkage+hysteresis kill-check survivals; R2 CHANGES_REQUESTED: 1-ulp boundary fixture; R3 APPROVE — widening mutant killed, bit-exactness independently recomputed) → merge. Gates at head: lint ✓ · typecheck ✓ · format:check ✓ (adopted after CI L0) · vitest 174/1405 ✓ w/ coverage · build+check-bundle 112.9/350 KB ✓ · chromium 106/21-skip ✓ · verify:unit all untagged ✓ · qualification-check ACCEPT (hash d161e29b…). Follow-ups: whole-file concat memory (with unit-101 chunking), perf-gate T1 device classification (pre-release), model:'' on loadModels error, fixtures-pipeline CC-01.2 30 s flake (pre-existing). All evidence in docs/overnight-ledger.md.

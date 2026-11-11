@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done   # merged (PR #14 → bea3058, 2026-11-11T05:08Z); reviewer R1/R2 CHANGES_REQUESTED (kill-check survivals fixed by test-author), R3 APPROVE; gates green at head 6b829ee; CC-06.3 [RQ] awaits release qualification
 phase: mvp
 discipline: dev
 depends_on: [unit-05-transcription-pipeline]
