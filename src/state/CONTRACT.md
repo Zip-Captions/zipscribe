@@ -142,6 +142,46 @@ today the FR-102.1 NO-OP stub (`NO_OP_TRANSLATION_RULES`: delete/split/merge/
 retime hooks leave tracks byte-identical); unit-301 swaps the implementation at
 the composition root, no command edits.
 
+## Commands — unit-104 EXTENDS (4 commands; orchestrator adjudication 2026-11-11)
+
+The 26-command table above stays FROZEN and UNCHANGED. unit-104 appends four
+registry entries through this document's extension path (preamble; precedents:
+unit-103 registry EXTENDS, and unit-06 adjudication (3), which explicitly
+deferred the `speaker-merge`/`speaker-split` command ids to unit-104;
+`replace-text` and `captions-align-apply` are named by unit-104's own spec —
+US-2.1.6 "one `replace-text` command = one undo step" and CC-104.7 "each step
+one undo" for align). `pnpm gen:contract` re-derives the generated surface and
+compile-checks the new count (26 + 4 = 30); the frozen acceptance shape
+(`tests/unit/editor/unit102-api-contract.d.ts`) gains an `@104 EXTENDS`
+section, test-author owned.
+
+| id                     | payload                                                                                                                                                                                                                                                                                                                                                   |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `speaker-merge`        | `SpeakerMergePayload { from, into }` — unit-06 `mergeSpeakers` semantics (reassign sequence: every `from` word — explicit `speakerId` or block-inherited — moves to `into`; `from` is removed from `speakers`; block majorities re-materialized). Rejects `from === into` (`SPEAKER_MERGE_SELF`) and unknown ids (`DANGLING_SPEAKER_REF`). ONE undo step. |
+| `speaker-split`        | `SpeakerSplitPayload { speakerId, at, color? }` — unit-06 `splitSpeaker` semantics (`speakerId`'s words with `start ≥ at` move to a new appended `SPK_<n>`; `color` from the palette when omitted). Rejects unknown id (`DANGLING_SPEAKER_REF`). ONE undo step.                                                                                           |
+| `replace-text`         | `ReplaceTextPayload { query, replacement, caseSensitive?, wholeWord? }` — one find-and-replace pass over every block's text = ONE undo step (US-2.1.6). Word TIMINGS unchanged (edit-preserves-timing: re-derivation over the [start,end] envelope exactly as `block-edit-text`). Zero matches → no mutation, no history entry.                           |
+| `captions-align-apply` | `CaptionsAlignApplyPayload { asrWords: readonly AsrWordInput[] }` — applies engine-07 `alignCaptionsToWords` (`AsrWordInput` from `src/engine/captions/align.ts`): matched word timings ← ASR words, `timing: 'aligned'`; unmatched stay `'estimated'`; text NEVER changes. ONE undo step (CC-104.7). Payload carries protocol objects only.              |
+
+`speaker-merge`/`speaker-split` wrap the unit-06 PURE functions through the
+injected `SpeakerEngine` seam, EXTENDED additively (backward-compatible) with
+`mergeSpeakers(project, from, into): Project` and
+`splitSpeaker(project, speakerId, at, newColor): Project`; the production
+default re-points at `src/engine/diarize/assign.ts` (merged unit-06 exports
+them verbatim) alongside `majoritySpeakerId`/`reassignWords`; un-injected
+dispatch keeps failing with the CODE `SPEAKER_ENGINE_UNAVAILABLE`. The
+`replace-text`/`captions-align-apply` reducers are pure over (state, payload)
+with the same `CommandReject`/SECURITY-03 rules (codes + entity ids/numbers,
+never user content). Speaker mutations flip `speakerSource → 'manual'`
+(invariant 5, carried by the engine-06 pure functions); `replace-text` touches
+no speaker data and never flips the badge.
+
+The keyboard→command BINDING EXTENSION for the transcript
+(`transcript.search-open`, `search.next`, `search.previous`, `qc.next-issue`,
+`qc.previous-issue` — chords per `knowledge/design.md` § Keyboard shortcuts:
+⌘F/Ctrl+F, F3 + ⌘G, Shift+F3 + ⌘⇧G, ⌘', ⌘⇧') is frozen in the unit-104
+acceptance shape; registry `when` gates extend additively as unit-103 did.
+`Shift+Delete` (close-gap delete) stays with unit-105 (FR-104.7).
+
 Transport semantics (Space, J/L, arrows, Y, I/O, rate) are pinned HERE at the
 command/arbitrator level. The keyboard→command BINDING table is **unit-105**
 (conventions § UI conventions: components never bind keys; the only allowed
