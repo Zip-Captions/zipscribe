@@ -66,6 +66,36 @@
         }
       ]
     },
+    "pyannote-segmentation-3-0": {
+      "repo": "onnx-community/pyannote-segmentation-3.0",
+      "revision": "733a93b6473d019a773298e08cefa686894b1854",
+      "description": "Diarization segmentation (unit-06 FR-06.1): pyannote-segmentation-3.0 fp32, wasm tier (WebGPU unsupported for this model, microsoft/onnxruntime#21386). MIT (HF cardData license:mit, re-verified 2026-11-10). Cache dir is the frozen e2e name `pyannote-segmentation-3-0` (e2e/diarization/helpers/diarization.ts DIAR_MODEL_CACHE_DIRS)",
+      "files": [
+        {
+          "path": "config.json",
+          "sha256": "5a4c6bb4f49f1b47c9bd398aac78b8cd4a9f30a0ff91b5c2dc68d05e13e160cf"
+        },
+        {
+          "path": "preprocessor_config.json",
+          "sha256": "dfc7d35a3895f8997eb94521e28b1921c03480a34fa9bcbb6bef1f1934f81480"
+        },
+        {
+          "path": "onnx/model.onnx",
+          "sha256": "057ee564753071c0b09b5b611648b50ac188d50846bff5f01e9f7bbf1591ea25"
+        }
+      ]
+    },
+    "eres2net-base-3dspeaker": {
+      "repo": "onemira/eres2net-base-3dspeaker-onnx",
+      "revision": "e63c37526aa23092d9de764d323d769337f2b2a8",
+      "description": "Diarization embeddings (unit-06 FR-06.1): 3D-Speaker ERes2Net-base ONNX (apache-2.0). Self-tagged HF mirror — TIED to the k2-fsa/sherpa-onnx GitHub release `speaker-recongition-models` artifact: both hash to SHA-256 1a331345f04805badbb495c775a6ddffcdd1a732567d5ec8b3d5749e3c7a5e4b (39,593,761 B, verified 2026-11-10, docs/spikes/diar-model-provenance.md). Cache dir is the frozen e2e name `eres2net-base-3dspeaker`",
+      "files": [
+        {
+          "path": "3dspeaker_speech_eres2net_base_sv_zh-cn_3dspeaker_16k.onnx",
+          "sha256": "1a331345f04805badbb495c775a6ddffcdd1a732567d5ec8b3d5749e3c7a5e4b"
+        }
+      ]
+    },
     "whisper-tiny-timestamped": {
       "repo": "onnx-community/whisper-tiny_timestamped",
       "revision": "517244293732ee2d58139af5814231b7e6830a0d",

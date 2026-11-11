@@ -4,12 +4,13 @@
 // injected via `CommandDeps` (`buildEditorCommands`, used by
 // `createEditorApp`). The module-level `getEditorCommands()`/`getCommand()`
 // expose the PRODUCTION default table (NO-OP translation rules until
-// unit-301, unit-05 blockizer, engine-06 seam typed-not-implemented until
-// unit-06 merges).
+// unit-301, unit-05 blockizer, unit-06 `src/engine/diarize/assign` speaker
+// functions per the frozen CONTRACT.md re-point).
 
 import { newUuid } from '../ids'
 import { NO_OP_TRANSLATION_RULES } from '../../engine/translate/track'
-import { DEFAULT_BLOCKIZER, NOT_IMPLEMENTED_SPEAKER_ENGINE, type CommandDeps } from './deps'
+import { majoritySpeakerId, reassignWords } from '../../engine/diarize/assign'
+import { DEFAULT_BLOCKIZER, type CommandDeps } from './deps'
 import type { CommandId, EditorCommand } from './types'
 
 import { createBlockSplitCommand } from './block-split'
@@ -77,7 +78,11 @@ export function buildEditorCommands(deps: CommandDeps): readonly EditorCommand[]
 
 export const DEFAULT_COMMAND_DEPS: CommandDeps = {
   clock: { now: () => Date.now() },
-  speakerEngine: NOT_IMPLEMENTED_SPEAKER_ENGINE,
+  // CONTRACT.md § speaker-* family (frozen re-point clause, unit-06 merged):
+  // the VERBATIM pure engine functions from `src/engine/diarize/assign.ts`.
+  // `NOT_IMPLEMENTED_SPEAKER_ENGINE` stays exported (typed-not-implemented
+  // seam for dispatch-without-engine contract coverage).
+  speakerEngine: { majoritySpeakerId, reassignWords },
   translationRules: NO_OP_TRANSLATION_RULES,
   blockizer: DEFAULT_BLOCKIZER,
   newBlockId: () => newUuid('blk'),

@@ -1,0 +1,73 @@
+{
+  "description": "two speaker runs -> boundary-snapped split at the word boundary between 'three' and 'four' (blockize padding 0.05 clamped in the 0.3 s gap)",
+  "blocks": [
+    {
+      "id": "blk_a2",
+      "start": 0.0,
+      "end": 4.0,
+      "text": "one two three four five six",
+      "words": [
+        {
+          "text": "one",
+          "start": 0.1,
+          "end": 0.6
+        },
+        {
+          "text": "two",
+          "start": 0.7,
+          "end": 1.2
+        },
+        {
+          "text": "three",
+          "start": 1.3,
+          "end": 1.8
+        },
+        {
+          "text": "four",
+          "start": 2.1,
+          "end": 2.6
+        },
+        {
+          "text": "five",
+          "start": 2.7,
+          "end": 3.2
+        },
+        {
+          "text": "six",
+          "start": 3.3,
+          "end": 3.8
+        }
+      ],
+      "speakerId": ""
+    }
+  ],
+  "frames": {
+    "speakers": 2,
+    "frames": [
+      {
+        "start": 0,
+        "end": 1,
+        "speaker": 0,
+        "prob": 0.9
+      },
+      {
+        "start": 1,
+        "end": 2,
+        "speaker": 0,
+        "prob": 0.9
+      },
+      {
+        "start": 2,
+        "end": 3,
+        "speaker": 1,
+        "prob": 0.9
+      },
+      {
+        "start": 3,
+        "end": 4,
+        "speaker": 1,
+        "prob": 0.9
+      }
+    ]
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "id": "proj_diar_golden",
+  "name": "Diarization golden project",
+  "schemaVersion": 1,
+  "asset": {
+    "id": "ASSET_DIAR",
+    "name": "speech-2min.mp4",
+    "kind": "video",
+    "container": "mp4",
+    "audioCodec": "aac",
+    "videoCodec": "avc1",
+    "duration": 121.44,
+    "width": 1280,
+    "height": 720,
+    "fps": 25,
+    "fingerprint": {
+      "name": "speech-2min.mp4",
+      "size": 627251,
+      "durationMs": 121440,
+      "sampleHashes": [
+        "h1",
+        "h2",
+        "h3"
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "id": "blk_r",
+      "start": 0.5,
+      "end": 3.2,
+      "text": "one two three four",
+      "words": [
+        {
+          "text": "one",
+          "start": 0.5,
+          "end": 1.0,
+          "speakerId": "SPK_1"
+        },
+        {
+          "text": "two",
+          "start": 1.2,
+          "end": 1.7,
+          "speakerId": "SPK_1"
+        },
+        {
+          "text": "three",
+          "start": 2.0,
+          "end": 2.5,
+          "speakerId": "SPK_1"
+        },
+        {
+          "text": "four",
+          "start": 2.7,
+          "end": 3.2,
+          "speakerId": "SPK_1"
+        }
+      ],
+      "speakerId": "SPK_1"
+    }
+  ],
+  "captionOrigin": "transcribed",
+  "translations": [],
+  "speakers": [
+    {
+      "id": "SPK_1",
+      "label": "Speaker 1",
+      "color": "#111111"
+    },
+    {
+      "id": "SPK_2",
+      "label": "Speaker 2",
+      "color": "#222222"
+    }
+  ],
+  "speakerSource": "manual",
+  "language": "en",
+  "modelId": "whisper-base_timestamped@608c49e6",
+  "style": {
+    "fontFamily": "Inter",
+    "fontWeight": 400,
+    "fontSizePct": 8,
+    "textTransform": "none",
+    "color": "#e8eaed",
+    "highlightColor": "#4c8dff",
+    "outlineColor": "#0d0f12",
+    "outlineWidth": 2,
+    "backgroundOpacity": 0,
+    "position": "bottom",
+    "marginVPct": 6,
+    "alignment": "center",
+    "maxLinesPerBlock": 2,
+    "highlightMode": "none",
+    "showSpeakerBar": false
+  },
+  "outputAspect": "source",
+  "transcription": "complete",
+  "updatedAt": 1730000000000
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "ID#0",
+    "start": 0.05,
+    "end": 1.55,
+    "text": "aa bb",
+    "words": [
+      {
+        "text": "aa",
+        "start": 0.1,
+        "end": 0.6,
+        "speakerId": "SPK_1"
+      },
+      {
+        "text": "bb",
+        "start": 1.2,
+        "end": 1.5,
+        "speakerId": "SPK_1"
+      }
+    ],
+    "speakerId": "SPK_1"
+  },
+  {
+    "id": "ID#1",
+    "start": 1.55,
+    "end": 2.45,
+    "text": "cc",
+    "words": [
+      {
+        "text": "cc",
+        "start": 1.6,
+        "end": 2.4,
+        "speakerId": "SPK_2"
+      }
+    ],
+    "speakerId": "SPK_2"
+  }
+]

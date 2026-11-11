@@ -1,0 +1,57 @@
+{
+  "description": "Margin discriminator (kill-check MAJOR-2, dyadic fix): all times k/2^n so the float margin is BIT-EXACT. 'bb' [0.875,1.375] over the 1.0 s boundary: cluster0 overlap 1-0.875 = 0.125, cluster1 overlap 1.375-1 = 0.375 (both exact dyadic) -> plain winner SPK_2 with margin 0.375-0.125 === 0.25 EXACTLY: '< DIAR_HYSTERESIS_SEC' is false -> the switch happens (widening the rule to '<=' would carry SPK_1 and go red). 'cc' [1.45,1.85] over the 1.6 s boundary: winner SPK_1 margin ~0.10 (< 0.25 with ulp noise BELOW the threshold, so both '<' and '<=' carry) -> CARRIES previous speaker SPK_2 although the duration-weighted winner is SPK_1. 'dd' switches cleanly (margin ~0.4).",
+  "blocks": [
+    {
+      "id": "blk_hm",
+      "start": 0.35,
+      "end": 2.4,
+      "text": "aa bb cc dd",
+      "words": [
+        {
+          "text": "aa",
+          "start": 0.4,
+          "end": 0.85
+        },
+        {
+          "text": "bb",
+          "start": 0.875,
+          "end": 1.375
+        },
+        {
+          "text": "cc",
+          "start": 1.45,
+          "end": 1.85
+        },
+        {
+          "text": "dd",
+          "start": 1.95,
+          "end": 2.35
+        }
+      ],
+      "speakerId": ""
+    }
+  ],
+  "frames": {
+    "speakers": 2,
+    "frames": [
+      {
+        "start": 0,
+        "end": 1,
+        "speaker": 0,
+        "prob": 0.9
+      },
+      {
+        "start": 1,
+        "end": 1.6,
+        "speaker": 1,
+        "prob": 0.9
+      },
+      {
+        "start": 1.6,
+        "end": 3,
+        "speaker": 0,
+        "prob": 0.9
+      }
+    ]
+  }
+}

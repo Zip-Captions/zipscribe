@@ -67,3 +67,25 @@ function of the committed bytes and the pinned decoder build, so
 determinism holds without vendoring another payload; a drift in either fails
 the row loudly. A genuine speech AMR payload stays a corpus-vendoring owner
 flag (sine-formant interim-corpus precedent).
+
+## `fixtures/golden/diarization/` — unit-06 speaker-diarization goldens (CC-06.4)
+
+Pure in/out pairs for the `src/engine/diarize/assign.ts` acceptance contract
+(`tests/unit/diarization/unit06-api-contract.d.ts` — majority vote with 0.25 s
+hysteresis, boundary-snapped split via unit-05 `blockize` reuse, the four pure
+mutation APIs). Authored by hand from the frozen semantics; word texts are
+synthetic placeholders (no media-derived content). Split cases use
+position-normalized ids (`ID#0`, `ID#1`) because `blockize` mints
+`crypto.randomUUID()` ids for split parts by contract (non-deterministic);
+unsplit blocks pin id stability. Regeneration: `.night/gen-diar-goldens.py`
+(provenance record — reruns produce byte-identical files).
+
+| File pair | Pins |
+|---|---|
+| `assign-speakers.{in,out}.json` | two speaker runs → split at the word boundary between `three`/`four`; blockize padding 0.05 s into a 0.3 s gap |
+| `assign-no-split.{in,out}.json` | one run → pass-through: only speaker fields rewritten, start/end/text/id preserved |
+| `assign-hysteresis.{in,out}.json` | boundary-flap word (0.1 s vs 0.1 s margin < 0.25 s) carries the previous speaker |
+| `rename-speaker.{in,out}.json` | label everywhere, ids untouched, `speakerSource → manual`, `updatedAt` untouched |
+| `reassign.{in,out}.json` | inclusive `[fromIndex,toIndex]` word range only + derived block majority |
+| `merge-speakers.{in,out}.json` | all of `b`'s words → `a`, `b` removed, third speaker untouched |
+| `split-speaker.{in,out}.json` | words with `start ≥ cutTime` move to a new appended `SPK_3`/`Speaker 3` with the caller color |

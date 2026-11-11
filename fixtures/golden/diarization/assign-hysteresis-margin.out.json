@@ -1,0 +1,53 @@
+[
+  {
+    "id": "ID#0",
+    "start": 0.35,
+    "end": 0.863,
+    "text": "aa",
+    "words": [
+      {
+        "text": "aa",
+        "start": 0.4,
+        "end": 0.85,
+        "speakerId": "SPK_1"
+      }
+    ],
+    "speakerId": "SPK_1"
+  },
+  {
+    "id": "ID#1",
+    "start": 0.863,
+    "end": 1.9,
+    "text": "bb cc",
+    "words": [
+      {
+        "text": "bb",
+        "start": 0.875,
+        "end": 1.375,
+        "speakerId": "SPK_2"
+      },
+      {
+        "text": "cc",
+        "start": 1.45,
+        "end": 1.85,
+        "speakerId": "SPK_2"
+      }
+    ],
+    "speakerId": "SPK_2"
+  },
+  {
+    "id": "ID#2",
+    "start": 1.9,
+    "end": 2.4,
+    "text": "dd",
+    "words": [
+      {
+        "text": "dd",
+        "start": 1.95,
+        "end": 2.35,
+        "speakerId": "SPK_1"
+      }
+    ],
+    "speakerId": "SPK_1"
+  }
+]

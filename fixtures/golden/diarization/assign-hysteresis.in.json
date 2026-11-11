@@ -1,0 +1,46 @@
+{
+  "description": "'bb' straddles the speaker boundary with a 0.1 s vs 0.1 s margin (< 0.25 s hysteresis) -> carries 'aa' speaker; 'cc' switches (0.8 s margin). Split between 'bb' and 'cc'.",
+  "blocks": [
+    {
+      "id": "blk_h",
+      "start": 0.1,
+      "end": 2.4,
+      "text": "aa bb cc",
+      "words": [
+        {
+          "text": "aa",
+          "start": 0.1,
+          "end": 0.6
+        },
+        {
+          "text": "bb",
+          "start": 1.2,
+          "end": 1.5
+        },
+        {
+          "text": "cc",
+          "start": 1.6,
+          "end": 2.4
+        }
+      ],
+      "speakerId": ""
+    }
+  ],
+  "frames": {
+    "speakers": 2,
+    "frames": [
+      {
+        "start": 0,
+        "end": 1.4,
+        "speaker": 0,
+        "prob": 0.9
+      },
+      {
+        "start": 1.4,
+        "end": 3.0,
+        "speaker": 1,
+        "prob": 0.9
+      }
+    ]
+  }
+}

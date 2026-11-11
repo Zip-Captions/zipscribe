@@ -1,0 +1,23 @@
+[
+  {
+    "id": "blk_b2",
+    "start": 0.5,
+    "end": 1.9,
+    "text": "hello world",
+    "words": [
+      {
+        "text": "hello",
+        "start": 0.5,
+        "end": 1.1,
+        "speakerId": "SPK_1"
+      },
+      {
+        "text": "world",
+        "start": 1.3,
+        "end": 1.9,
+        "speakerId": "SPK_1"
+      }
+    ],
+    "speakerId": "SPK_1"
+  }
+]
