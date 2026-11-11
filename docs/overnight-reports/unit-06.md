@@ -124,3 +124,70 @@ Status: **complete (slice B)** — head `fb8ef0f` on `ai-dlc/local-transcribe-en
 ## Blockers
 
 none new. CC-06.1/06.2/06.5 remain the sanctioned e2e RED awaiting slice C (diarize.worker implementation); slice B removed the ground-truth + model-cache prerequisites that gated them.
+
+---
+
+# Unit report: unit-06-speaker-diarization — slice C (real adapters + diarize.worker; CC-06.1/06.2 GREEN)
+
+Status: **complete (slice C)** — head `f676f46` on `ai-dlc/local-transcribe-engine/unit-06-speaker-diarization` (from `d124faa`). Commits: `83bbd39` feat(engine/diarize) adapters + worker, `969dc29` fix(engine/diarize) cap-as-upper-bound (FR-06.1), `be213e3` fix(engine/diarize) self-hosted ORT wasm load, `f676f46` ci(qualify) re-sign. Frozen tree untouched (`git diff d124faa..HEAD -- tests/ e2e/ fixtures/ qualify/` empty; `qualification/0.0.0-spike.json` touched by the sanctioned re-sign commit only).
+
+## Deliverables
+
+1. **Segmentation adapter** `src/engine/diarize/adapters/segmentation.ts` (SDK glue under `adapters/`, engine-purity). transformers.js ~3.8.1 `AutoModelForAudioFrameClassification` + `AutoProcessor` on `onnx-community/pyannote-segmentation-3.0` (the MIT `pyannote-segmentation-3-0@733a93b6` row); post-processing via `processor.post_process_speaker_diarization(logits, numSamples)` (powerset runs; id 0 = NO_SPEAKER dropped). Runtime: self-hosted ORT wasm fp32 (WebGPU-unsupported, microsoft/onnxruntime#21386). Boundary refinement (the FR-06.1 "tuned on fixtures" preprocessing knob): pyannote is the primary frame classifier; a 10 ms RMS energy gate (rel 0.1 of the window p95 peak, 0.1 s bridge) trims inter-word/leading silence so silence does not score as a DER false-alarm; when the gate finds nothing but pyannote is confident, the model run is trusted (FR-06.2 windows come from Silero speech).
+2. **Embedding adapter** `src/engine/diarize/adapters/embeddings.ts` + **fbank** `adapters/fbank.ts`. 3D-Speaker ERes2Net-base (`eres2net-base-3dspeaker@e63c3752`, 39,593,761 B, byte-tied to k2-fsa) run through the onnxruntime-web `InferenceSession` factory HARVESTED from the pyannote session — one ORT copy, three independent sessions (segmentation + ERes2Net + Silero; FR-06.4). Kaldi 80-dim log-Mel frontend (25 ms/10 ms, 512-FFT, pre-emphasis 0.97, povey, HTK mel, global-mean norm per `feature_normalize_type=global-mean`); graph contract read from the ONNX `metadata_props` (`x` [N,T,80] → `embedding` [N,512]), not guessed.
+3. **`diarize.worker.ts`** (replaces the unit-01 stub). Thin protocol glue over the frozen DI seam `worker-core.ts`: injects the two adapter sessions + the own-pass Silero `speechScore` (FR-06.2, used when `vad` is absent — the frozen harness sends none); streams `model:progress` (FR-06.6) from the pyannote download; re-materializes `diar:frames` `t`/`jobId` enumerably across `postMessage` (slice-A non-enumerable wire form preserved; structuredClone copies own-enumerables only).
+4. **ORT bootstrap shared** — added `prepareOrtWasmBlobs()` to `src/engine/boot/adapters/onnx-runtime-boot.ts` (device-matched plain-threaded build for wasm fp32; re-exposes the `/wasm/` glue+wasm pair as typed blobs) — same bootstrap the ASR adapter uses, so the harness route (which answers `/wasm/**` incl. the `.mjs` glue as `application/wasm`) no longer breaks ORT's dynamic `import()`.
+5. **Cap-as-upper-bound** in `clustering.ts` — per the adjudicated FR-06.1 frozen in `clustering.test.ts` (6b18f69) + `unit06-api-contract.d.ts` (d124faa): phase 1 = distance STOP (merge while min average linkage ≤ threshold → natural count); phase 2 = `maxSpeakers` as an UPPER BOUND (force closest-pair merges while count > cap; cap inert when the threshold already collapses the count, incl. at 1). `clustering.test.ts` 15/15.
+
+## FR-06.1 threshold rationale
+
+`DEFAULT_CLUSTER_THRESHOLD = 0.5` (clustering.ts). Measured ERes2Net window-embedding cosine-distance distributions over the diarization windows of the two fixtures (GT-labelled, `onnxruntime-node`, same math as the browser wasm): mean **within-speaker ≈ 0.12**, mean **between-speaker ≈ 0.64**. 0.5 sits in the valley — above the within-speaker spread (a single voice's ~61 windows STOP at one cluster → the CC-06.2 guard) and below the between-speaker floor (two voices stay separate → CC-06.1 confusion ≈ 0). The cap stays a hard upper bound (phase 2) for pathological many-speaker media, so 0.5 governs only the natural cut, never the ceiling. Determinism (CC-06.5): identical per-run results across all 3 runs of both specs (see Measurements).
+
+## Measurements (authoritative L4, real worker in chromium, 3-run medians; numbers only — SECURITY-03)
+
+`e2e/diarization/accuracy-2spk.spec.ts` (CC-06.1) — `speech-2spk-2min.mp4`, thresholds acc ≥ 0.85 / DER ≤ 0.20:
+
+| run | word acc | DER | miss | conf | fa | speakers | frames |
+|----:|---------:|----:|-----:|-----:|---:|---------:|-------:|
+| 1 | 98.53 % | 14.81 % | 14.2 | 0.5 | 0.1 | 2 | 242 |
+| 2 | 98.53 % | 14.81 % | 14.2 | 0.5 | 0.1 | 2 | 242 |
+| 3 | 98.53 % | 14.81 % | 14.2 | 0.5 | 0.1 | 2 | 242 |
+| **median** | **98.53 %** | **14.81 %** | — | — | — | — | — |
+
+Per-spec wall time ≈ 55 s (3 runs + per-run model load). `e2e/diarization/guard-single-speaker.spec.ts` (CC-06.2) — `speech-2min.mp4`, guard ≥ 0.9 dominant share, single speaker:
+
+| run | speakers | dominant share | frames |
+|----:|---------:|---------------:|-------:|
+| 1 | 1 | 100.00 % | 148 |
+| 2 | 1 | 100.00 % | 148 |
+| 3 | 1 | 100.00 % | 148 |
+
+Per-spec wall time ≈ 50 s. Determinism witness: byte-identical frames across the 3 runs of each spec. `estimateSpeakerCount` (eigengap cross-check) is computed per `job:done` and reported in `stats` (numbers, SECURITY-03) but never used to cut (FR-06.1). The residual ~14 % DER is miss (energy-gate trims pyannote's blurred silence edges — the same knob that keeps fa ≈ 0.1); accuracy is unaffected (conf ≈ 0 → both voices assigned correctly).
+
+## Gates (slice C, final tree `f676f46`)
+
+- `corepack pnpm lint` ✓ 0
+- `corepack pnpm typecheck` ✓ 0 (tsconfig + tsconfig.node + tsconfig.eval)
+- `corepack pnpm test` ✓ — **Test Files 174 passed (174); Tests 1402 passed | 1 skipped | 1 todo (1404)** (the model-coverage/qualify-runner cluster that was red pre-re-sign clears once the spike contentHash matches the slice-C `src/**` tree; `clustering.test.ts` 15/15; diarize unit suite 68)
+- `corepack pnpm build && corepack pnpm check-bundle` ✓ — **initial JS 112.9 KB gzip / budget 350 KB (1 chunk)** (diarize/asr/media workers are lazy chunks, excluded from the initial budget)
+- `corepack pnpm qualify` → **wrote qualification/0.0.0-spike.json (8/8 RQ pass)**; `node scripts/qualification-check.ts` → **`ACCEPT … contentHash 7dba7132c83a…`**
+- `corepack pnpm exec playwright test e2e/diarization/accuracy-2spk.spec.ts e2e/diarization/guard-single-speaker.spec.ts` ✓ **3 passed** (CC-06.1 prerequisite + median; CC-06.2 guard), on their own computed medians — no cherry-picking, no threshold loosening.
+
+## Deviations from spec
+
+1. **Slice-A Deviation 1 (re-materialize `t`/`jobId`)** — honored in the worker `core.onEvent` boundary.
+2. **transformers.js frame-classification forward** takes the processor output object directly (`model(inputs)`), NOT `model({input_values: ort_tensor})`. The raw `ort_tensor` is dropped by the forward's HF-style input mapping → "Missing the following inputs: input_values". Confirmed against the pinned-version API (transformers.js v3.8.1 `AutoModelForAudioFrameClassification` example — `const { logits } = await model(inputs)`).
+3. **ORT wasm glue must be blob-re-exposed** — the frozen `routeDiarNetwork` serves every `/wasm/**` (incl. the `.mjs` glue) as `application/wasm`; the browser refuses to `import()` a module served so → ORT never builds a session ("no available backend"). Same constraint + same fix the unit-05 ASR adapter documents; hoisted to `prepareOrtWasmBlobs()` and shared.
+4. **Same-origin cache override restricted to `*.onnx`** (was all files) — JSON configs flow through the frozen HF-resolve route (from `.cache`), so the request audit still sees `modelHost` traffic; only large ONNX bodies use the vite-served `/.cache` mirror (matches the ASR adapter).
+
+## Assumptions + doc URLs
+
+- ORT wasm selection (plain threaded vs jsep) — https://onnxruntime.ai/docs/api/js/interfaces/Env.WebAssemblyEnv.Interface.html (wasmPaths `{ mjs, wasm }`).
+- transformers.js pyannote usage — https://huggingface.co/docs/transformers.js/v3.8.1/en/api/models (`AutoModelForAudioFrameClassification` + `AutoProcessor.post_process_speaker_diarization`; the `model(inputs)` form).
+- ERes2Net graph contract (`x`[N,T,80]→`embedding`[N,512], `feature_normalize_type=global-mean`, output_dim 512, sample_rate 16000) read from the cached ONNX `metadata_props`, not the HF model card.
+- `device: 'wasm'` fp32 for both diar models (WebGPU-unsupported for these — microsoft/onnxruntime#21386; unit-02 discovery). `env.useBrowserCache = false` (pinned bytes cross once; a network miss surfaces as a coded error).
+
+## Follow-ups
+
+- The ~14 % DER miss is dominated by pyannote's blurred speech-edge silence vs the energy gate; a per-window adaptive gate (currently fixed rel 0.1) could trim miss without touching acc if a future DER tightening needs headroom.
+- `estimateSpeakerCount` is reported but unused; if the orchestrator wants an eigengap-driven default cut (option C in the adjudication) it can replace the fixed threshold behind the same frozen call.
