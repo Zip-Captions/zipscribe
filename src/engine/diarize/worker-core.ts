@@ -226,8 +226,20 @@ export function createDiarizeWorkerCore(deps: DiarizeWorkerCoreDeps): DiarizeWor
         port.removeEventListener('close', onClose)
         port.removeEventListener('messageclose', onClose)
       }
+      // Mirror PcmChunkStream (src/engine/audio/decode.ts) end-of-stream
+      // semantics: the production tee posts every MediaEvent — including the
+      // terminal `{t:'job:done'}` — to every tee port, and Chromium never
+      // fires 'close'/'messageclose' there, so the sentinel is the primary
+      // drain signal (close/messageclose stay as the additional path).
       const onMessage = (event: MessageEvent): void => {
-        chunks.push(event.data as PcmChunk)
+        const data = event.data as { t?: unknown; startSec?: unknown; samples?: unknown } | null
+        if (data === null || typeof data !== 'object') return
+        if (data.t === 'job:done' || data.t === 'end') {
+          settle()
+          resolve()
+        } else if (data.t === undefined && typeof data.startSec === 'number' && data.samples instanceof Float32Array) {
+          chunks.push({ startSec: data.startSec, samples: data.samples })
+        }
       }
       const onError = (): void => {
         settle()
