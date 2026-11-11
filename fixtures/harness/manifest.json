@@ -938,6 +938,34 @@
       "channels": null,
       "expectedPath": null
     },
+    "golden/diarization/assign-hysteresis-margin.in.json": {
+      "sha256": "c883745597ac36a274c9c29f6c8b728cf2d371418dc1559bf041d6f4e0d979e0",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo golden)",
+      "codec": null,
+      "sampleRate": null,
+      "channels": null,
+      "expectedPath": null
+    },
+    "golden/diarization/assign-hysteresis-margin.out.json": {
+      "sha256": "964571bec9dcfb007658cc110b699a515a018f3b118360fc1368da200a8407aa",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo golden)",
+      "codec": null,
+      "sampleRate": null,
+      "channels": null,
+      "expectedPath": null
+    },
     "golden/diarization/assign-no-split.in.json": {
       "sha256": "659efcedb62e4dac09121e6a17cedaf74030c55bf4db1d054eaf64c97eaefc0e",
       "duration": null,

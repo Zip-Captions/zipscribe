@@ -332,4 +332,30 @@ gatedSuite('CC-06.6: FR-06.6 worker-core — cancel, failure taxonomy, stream so
     expect(frameEvents(events).length, 'frames came from the streamed pcm').toBe(1)
     channel.port1.close()
   })
+
+  test('CC-06.6: the tee sentinel {t:job:done} drains the stream without close/messageclose (FR-06.4)', async () => {
+    // Chromium never fires 'close'/'messageclose' on the worker-side tee port
+    // (see PcmChunkStream, src/engine/audio/decode.ts) — the production media
+    // worker posts every MediaEvent, including the terminal {t:'job:done'},
+    // to every tee port, so the sentinel alone must drain the stream.
+    // port2.close() is NEVER called here: only the sentinel path can settle
+    // this job (removing the sentinel branch leaves it hanging → red).
+    const { core, events } = await harness()
+    await core.post({ t: 'loadModels' })
+    events.length = 0
+    const channel = new MessageChannel()
+    const port = channel.port1 as unknown as MessagePort
+    const running = core.post(request({ pcm: { kind: 'stream', port }, vad: segs(2) }))
+    const pcm = new Float32Array(pcmWith(segs(2)))
+    for (let s = 0; s < 2; s++) {
+      const chunk: PcmChunk = { startSec: s, samples: pcm.slice(s * SR, (s + 1) * SR) }
+      channel.port2.postMessage(chunk)
+    }
+    channel.port2.postMessage({ t: 'job:done' })
+    await running
+    expect(terminal(events)?.t, 'the sentinel settles the job — no close needed').toBe('job:done')
+    expect(frameEvents(events).length, 'exactly one diar:frames precedes the terminal').toBe(1)
+    channel.port2.close()
+    channel.port1.close()
+  })
 })

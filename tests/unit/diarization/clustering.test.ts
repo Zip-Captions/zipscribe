@@ -108,6 +108,25 @@ gated('CC-06.1 CC-06.2 CC-06.6: FR-06.1 clustering — threshold stop + cap-as-u
     expect(distinctLabels(labels)).toEqual([0, 1, 2, 3])
   })
 
+  test('CC-06.1: average linkage does NOT chain where single linkage would (mean-of-pairwise discriminator)', async () => {
+    // Three unit vectors on the unit circle at 0°/30°/61° (planar, exactly
+    // realizable — the reviewer's 0/60/120° + d 0.2/0.2/1.5 triple violates
+    // the Gram PSD constraint for unit vectors):
+    //   d(a,b) = 1 − cos 30° ≈ 0.134  (unique global minimum → first merge)
+    //   d(b,c) = 1 − cos 31° ≈ 0.144  (also under the threshold)
+    //   d(a,c) = 1 − cos 61° ≈ 0.515
+    // After merging (a,b), AVERAGE linkage reports
+    // d({a,b},c) = (0.515 + 0.144)/2 ≈ 0.330 > threshold 0.25 → STOP at two
+    // clusters. SINGLE linkage (mutating merge() to Math.min) would report
+    // min(0.515, 0.144) = 0.144 ≤ 0.25 and chain a-b-c into ONE cluster — this
+    // geometry is the kill-mutation discriminator (FR-06.1 average linkage).
+    const at = (deg: number): Float32Array => vec(Math.cos((deg * Math.PI) / 180), Math.sin((deg * Math.PI) / 180))
+    const embeds = [at(0), at(30), at(61)]
+    const labels = await cluster(embeds, { threshold: 0.25 })
+    expect(labels, 'a stays merged with b; c is not chained in').toEqual([0, 0, 1])
+    expect(distinctLabels(labels), 'average linkage stops at two clusters, single linkage would give one').toEqual([0, 1])
+  })
+
   test('CC-06.2: the cap is an upper bound — count above the cap merges down TO it, not below (FR-06.1)', async () => {
     // Orthonormal(8): every pairwise/average linkage distance is 1, so the
     // tight threshold leaves the NATURAL count at 8 — ABOVE the cap. FR-06.1:
