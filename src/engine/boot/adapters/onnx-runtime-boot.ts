@@ -98,4 +98,3 @@ export async function prepareOrtWasmBlobs(device: 'webgpu' | 'wasm' = 'wasm'): P
   const wasm = (onnx.wasm ??= {})
   wasm.wasmPaths = { mjs: glueUrl, wasm: wasmUrl }
 }
-

@@ -21,14 +21,14 @@ Branch `ai-dlc/local-transcribe-engine/unit-06-speaker-diarization` from `91e89d
 
 ## Completion criteria (reports/criteria/unit-06.md)
 
-| ID | level | passing tests | result |
-|---|---|---|---|
-| CC-06.1 | untagged | 0 | FAIL — e2e-backed, see Blockers |
-| CC-06.2 | untagged | 0 | FAIL — e2e-backed, see Blockers |
-| CC-06.3 | RQ | 0 | RQ (outside PR pipeline) — qualify/diarization perf-gate runs at release |
-| CC-06.4 | untagged | 6 | pass |
-| CC-06.5 | untagged | 0 | FAIL — e2e-backed, see Blockers |
-| CC-06.6 | untagged | 0 | FAIL — frozen title-shape defect, see Blockers |
+| ID      | level    | passing tests | result                                                                   |
+| ------- | -------- | ------------- | ------------------------------------------------------------------------ |
+| CC-06.1 | untagged | 0             | FAIL — e2e-backed, see Blockers                                          |
+| CC-06.2 | untagged | 0             | FAIL — e2e-backed, see Blockers                                          |
+| CC-06.3 | RQ       | 0             | RQ (outside PR pipeline) — qualify/diarization perf-gate runs at release |
+| CC-06.4 | untagged | 6             | pass                                                                     |
+| CC-06.5 | untagged | 0             | FAIL — e2e-backed, see Blockers                                          |
+| CC-06.6 | untagged | 0             | FAIL — frozen title-shape defect, see Blockers                           |
 
 Substantive evidence the tool cannot credit (see Blockers): all **77 frozen unit-06
 tests + the seams re-point assertion pass** — 57 previously-RED (5 suites) + 1 frozen
@@ -103,7 +103,7 @@ Status: **complete (slice B)** — head `fb8ef0f` on `ai-dlc/local-transcribe-en
 ## Deliverables
 
 1. **Model rows (FR-06.6 / FR-03.1 doctrine).** Two pinned rows — repo + 40-hex revision + per-file SHA-256 — in `models/ci-registry.json` (drives `pnpm models:fetch` → `.cache/models/`, SHA-256-verified) and `models/eval-registry.json`, mirrored verbatim into `src/engine/model/registry.ts` as **`DIAR_MODEL_REGISTRY`** (+ `getDiarModel`), the silero-vad non-ASR precedent: a fetched, pinned cache tier that never enters `MODEL_REGISTRY` / `tierSelector` / the model picker. `ensureOffline`-cacheable: rows carry `runtimeWasm: ORT_RUNTIME_WASM` (the same self-hosted `/wasm` set the transformers rows double-cache); slice C injects this map into `createModelCache`/`createModelManager` (`deps.registry`). Cache dirs are the frozen e2e names `pyannote-segmentation-3-0` / `eres2net-base-3dspeaker`, file paths inside conform to `routeDiarNetwork`'s resolve-URL mapping (`onnx/model.onnx`; `3dspeaker_speech_eres2net_base_sv_zh-cn_3dspeaker_16k.onnx`). Frozen helper + specs unedited.
-2. **ERes2Net provenance tie-out (gated task).** VERDICT: **ACCEPTED** — `onemira/eres2net-base-3dspeaker-onnx@e63c3752…` is byte-identical (SHA-256 `1a331345f04805badbb495c775a6ddffcdd1a732567d5ec8b3d5749e3c7a5e4b`, 39,593,761 B) to the k2-fsa/sherpa-onnx GitHub release `speaker-recongition-models` artifact (the exact file the docs-mcp sherpa-onnx *Speaker Diarization* page prescribes), and the in-repo `LICENSE`/`LICENSE.sherpa-onnx`/`NOTICE` hashes match the mirror's declared upstream digests (both Apache-2.0 texts; chain mirror → k2-fsa release → ModelScope iic / 3D-Speaker team). pyannote row re-verified MIT via the HF API today. Full chain + auditor reproduction commands: `docs/spikes/diar-model-provenance.md`. No silent substitution; sherpa-onnx-WASM fallback not needed (would be an orchestrator decision regardless).
+2. **ERes2Net provenance tie-out (gated task).** VERDICT: **ACCEPTED** — `onemira/eres2net-base-3dspeaker-onnx@e63c3752…` is byte-identical (SHA-256 `1a331345f04805badbb495c775a6ddffcdd1a732567d5ec8b3d5749e3c7a5e4b`, 39,593,761 B) to the k2-fsa/sherpa-onnx GitHub release `speaker-recongition-models` artifact (the exact file the docs-mcp sherpa-onnx _Speaker Diarization_ page prescribes), and the in-repo `LICENSE`/`LICENSE.sherpa-onnx`/`NOTICE` hashes match the mirror's declared upstream digests (both Apache-2.0 texts; chain mirror → k2-fsa release → ModelScope iic / 3D-Speaker team). pyannote row re-verified MIT via the HF API today. Full chain + auditor reproduction commands: `docs/spikes/diar-model-provenance.md`. No silent substitution; sherpa-onnx-WASM fallback not needed (would be an orchestrator decision regardless).
 3. **Two-voice `speech-2spk-2min` regeneration (US-1.3.1).** `scripts/make-fixtures.ts` synthesizes two distinctly different voices over the SAME word list/timings — voice A f0 ≈ 110 Hz default formants/tilt, voice B f0 ≈ 210 Hz with `f1Scale 1.14`/`f2Scale 1.18` + brighter harmonic tilt — tiled `[A, A, B, B]` in ONE continuous encode (the old 30 s stream-copy loop made 4 byte-identical copies: two contiguous acoustic runs were structurally impossible). Ground truth (generator-written; never hand-edited): all **136** words carry a non-empty `speaker` label, exactly **2** distinct labels (`speaker-1`/`speaker-2`), **2 contiguous runs**, single switch at word index **68** (whole-copy boundary = natural sentence gap at **60.12 s**; nominal duration 2 min, container-declared 120.00 s for mp4+m4a twins). Objective separation evidence (numbers only, SECURITY-03): median voiced fundamental-band **109.4 Hz (A) vs 218.8 Hz (B)**, 60–500 Hz centroids 241.7/254.7 Hz. Other fixtures **byte-unchanged** — git shows only the 4 expected files modified; `pnpm fixtures && pnpm fixtures:verify` green (106 checksummed); CC-01.2 scratch-tree regen green. Default `VoiceProfile` reproduces the pre-slice-B formula bit-for-bit.
 
 ## Gates (slice B re-run at `fb8ef0f`)
@@ -149,20 +149,20 @@ Status: **complete (slice C)** — head `f676f46` on `ai-dlc/local-transcribe-en
 
 `e2e/diarization/accuracy-2spk.spec.ts` (CC-06.1) — `speech-2spk-2min.mp4`, thresholds acc ≥ 0.85 / DER ≤ 0.20:
 
-| run | word acc | DER | miss | conf | fa | speakers | frames |
-|----:|---------:|----:|-----:|-----:|---:|---------:|-------:|
-| 1 | 98.53 % | 14.81 % | 14.2 | 0.5 | 0.1 | 2 | 242 |
-| 2 | 98.53 % | 14.81 % | 14.2 | 0.5 | 0.1 | 2 | 242 |
-| 3 | 98.53 % | 14.81 % | 14.2 | 0.5 | 0.1 | 2 | 242 |
-| **median** | **98.53 %** | **14.81 %** | — | — | — | — | — |
+|        run |    word acc |         DER | miss | conf |  fa | speakers | frames |
+| ---------: | ----------: | ----------: | ---: | ---: | --: | -------: | -----: |
+|          1 |     98.53 % |     14.81 % | 14.2 |  0.5 | 0.1 |        2 |    242 |
+|          2 |     98.53 % |     14.81 % | 14.2 |  0.5 | 0.1 |        2 |    242 |
+|          3 |     98.53 % |     14.81 % | 14.2 |  0.5 | 0.1 |        2 |    242 |
+| **median** | **98.53 %** | **14.81 %** |    — |    — |   — |        — |      — |
 
 Per-spec wall time ≈ 55 s (3 runs + per-run model load). `e2e/diarization/guard-single-speaker.spec.ts` (CC-06.2) — `speech-2min.mp4`, guard ≥ 0.9 dominant share, single speaker:
 
 | run | speakers | dominant share | frames |
-|----:|---------:|---------------:|-------:|
-| 1 | 1 | 100.00 % | 148 |
-| 2 | 1 | 100.00 % | 148 |
-| 3 | 1 | 100.00 % | 148 |
+| --: | -------: | -------------: | -----: |
+|   1 |        1 |       100.00 % |    148 |
+|   2 |        1 |       100.00 % |    148 |
+|   3 |        1 |       100.00 % |    148 |
 
 Per-spec wall time ≈ 50 s. Determinism witness: byte-identical frames across the 3 runs of each spec. `estimateSpeakerCount` (eigengap cross-check) is computed per `job:done` and reported in `stats` (numbers, SECURITY-03) but never used to cut (FR-06.1). The residual ~14 % DER is miss (energy-gate trims pyannote's blurred silence edges — the same knob that keeps fa ≈ 0.1); accuracy is unaffected (conf ≈ 0 → both voices assigned correctly).
 
@@ -209,14 +209,14 @@ Status: **complete (slice D) — complete candidate for the orchestrator** — h
 
 ## Completion criteria (reports/criteria/unit-06-speaker-diarization.md, verbatim)
 
-| ID | level | passing tests | result |
-|---|---|---|---|
-| CC-06.1 | untagged | 2 | pass |
-| CC-06.2 | untagged | 1 | pass |
-| CC-06.3 | RQ | 0 | RQ (outside PR pipeline) |
-| CC-06.4 | untagged | 21 | pass |
-| CC-06.5 | untagged | 1 | pass |
-| CC-06.6 | untagged | 50 | pass |
+| ID      | level    | passing tests | result                   |
+| ------- | -------- | ------------- | ------------------------ |
+| CC-06.1 | untagged | 2             | pass                     |
+| CC-06.2 | untagged | 1             | pass                     |
+| CC-06.3 | RQ       | 0             | RQ (outside PR pipeline) |
+| CC-06.4 | untagged | 21            | pass                     |
+| CC-06.5 | untagged | 1             | pass                     |
+| CC-06.6 | untagged | 50            | pass                     |
 
 - `[RQ]` CC-06.3: `qualify/diarization/perf-gate.test.ts` (measurement-mode-only; T1 webgpu ≤ 90 s gated, T2 wasm recorded) executes at the next release on reference hardware; the webgpu device exposure it flags (slice-C helper) is a release-hardware leg.
 - `[MANUAL]` items: none in this unit.
@@ -238,20 +238,20 @@ Re-measured with a scratch `.night/` driver over the SAME frozen harness + the r
 
 CC-06.1 — `speech-2spk-2min.mp4` (acc ≥ 0.85 / DER ≤ 0.20):
 
-| run | word acc | DER | miss | conf | fa | speakers | frames | run wall |
-|----:|---------:|----:|-----:|-----:|---:|---------:|-------:|---------:|
-| 1 | 98.53 % | 14.81 % | 14.2 | 0.5 | 0.1 | 2 | 242 | 17.45 s |
-| 2 | 98.53 % | 14.81 % | 14.2 | 0.5 | 0.1 | 2 | 242 | 17.33 s |
-| 3 | 98.53 % | 14.81 % | 14.2 | 0.5 | 0.1 | 2 | 242 | 17.33 s |
-| **median** | **98.53 %** | **14.81 %** | — | — | — | — | — | — |
+|        run |    word acc |         DER | miss | conf |  fa | speakers | frames | run wall |
+| ---------: | ----------: | ----------: | ---: | ---: | --: | -------: | -----: | -------: |
+|          1 |     98.53 % |     14.81 % | 14.2 |  0.5 | 0.1 |        2 |    242 |  17.45 s |
+|          2 |     98.53 % |     14.81 % | 14.2 |  0.5 | 0.1 |        2 |    242 |  17.33 s |
+|          3 |     98.53 % |     14.81 % | 14.2 |  0.5 | 0.1 |        2 |    242 |  17.33 s |
+| **median** | **98.53 %** | **14.81 %** |    — |    — |   — |        — |      — |        — |
 
 CC-06.2 — `speech-2min.mp4` guard (≥ 0.90 dominant share, single speaker):
 
 | run | speakers | dominant share | frames | run wall |
-|----:|---------:|---------------:|-------:|---------:|
-| 1 | 1 | 100.00 % | 148 | 15.10 s |
-| 2 | 1 | 100.00 % | 148 | 15.10 s |
-| 3 | 1 | 100.00 % | 148 | 15.10 s |
+| --: | -------: | -------------: | -----: | -------: |
+|   1 |        1 |       100.00 % |    148 |  15.10 s |
+|   2 |        1 |       100.00 % |    148 |  15.10 s |
+|   3 |        1 |       100.00 % |    148 |  15.10 s |
 
 **Determinism (CC-06.5):** `deterministicFrames: true` — the serialized frame list is byte-identical across the 3 runs of BOTH specs, and `determinism-concurrent.spec.ts` proves the concurrent-tee (production media worker, dual-port) run equals both sequential runs (frames AND ASR words). **Spec wall times (final sweep):** accuracy-2spk main test ≈ 58 s, guard ≈ 50–53 s, determinism-concurrent 55.2 s; per-`runDiarize` ≈ 17.3 s (2spk, incl. per-run model load) / ≈ 15.1 s (guard). Network audit: `blocked: []` in every leg.
 
