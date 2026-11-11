@@ -173,7 +173,12 @@ async function runDiarizeOn(pcm: Extract<DiarizeRequest, { t: 'diarize' }>['pcm'
       'model:ready',
     )
     const jobId = `diar-${fixtureTag}-${Math.random().toString(36).slice(2)}`
-    worker.postMessage({ t: 'diarize', jobId, pcm, sampleRate: 16_000, ...(maxSpeakers === undefined ? {} : { maxSpeakers }) } satisfies DiarizeRequest)
+    // A MessagePort is cloneable ONLY when transferred (DataCloneError
+    // otherwise) and a port can be transferred exactly once — diarChannel
+    // hands its port1 to this worker and nowhere else; the transfer-buffer
+    // copies are likewise handed over once (callers pass fresh copies).
+    const transfer: Transferable[] = pcm.kind === 'stream' ? [pcm.port as unknown as Transferable] : [pcm.buffer]
+    worker.postMessage({ t: 'diarize', jobId, pcm, sampleRate: 16_000, ...(maxSpeakers === undefined ? {} : { maxSpeakers }) } satisfies DiarizeRequest, transfer)
     await withTimeout(
       new Promise<void>((resolve, reject) => {
         const poll = setInterval(() => {
