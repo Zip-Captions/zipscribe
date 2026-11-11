@@ -1,7 +1,9 @@
-# Unit report: unit-06-speaker-diarization — slice A (pure engine core)
+# Unit report: unit-06-speaker-diarization
 
-Status: **complete (slice A)** — slices B–D (host wiring, worker glue + ORT/Silero
-adapters, tee-concurrency + qualify perf) pending, per the orchestrator's slice plan.
+Status: **complete** — slices A→D all landed (pure core → models/fixture →
+adapters+worker → integration/closeout); cumulative per-slice sections below,
+slice-D closeout is the authoritative final state (criteria table, gates,
+measurements). Orchestrator BUILD_VERIFIED re-ran every gate at `5cfad8e`.
 
 Branch `ai-dlc/local-transcribe-engine/unit-06-speaker-diarization` from `91e89dc`.
 
