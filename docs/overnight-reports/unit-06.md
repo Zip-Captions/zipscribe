@@ -191,3 +191,88 @@ Per-spec wall time ≈ 50 s. Determinism witness: byte-identical frames across t
 
 - The ~14 % DER miss is dominated by pyannote's blurred speech-edge silence vs the energy gate; a per-window adaptive gate (currently fixed rel 0.1) could trim miss without touching acc if a future DER tightening needs headroom.
 - `estimateSpeakerCount` is reported but unused; if the orchestrator wants an eigengap-driven default cut (option C in the adjudication) it can replace the fixed threshold behind the same frozen call.
+
+---
+
+# Unit report: unit-06-speaker-diarization — slice D (final integration + closeout)
+
+Status: **complete (slice D) — complete candidate for the orchestrator** — head at the final `ci(qualify)` re-sign on `ai-dlc/local-transcribe-engine/unit-06-speaker-diarization` (from `14d827d`). Commits: `5391520` fix(engine/diarize) sentinel-drain tee stream port, `1450a2b` fix(e2e) runner-owned persistent 4315 harness server, docs(unit-06) report, `ci(qualify)` final re-sign. Frozen tree untouched by slice D: `git diff 14d827d..HEAD -- tests/ e2e/ fixtures/` **empty** (qualification record touched by the sanctioned re-sign commit only).
+
+## Deliverables
+
+1. **`readStreamPort` sentinel fix** (`src/engine/diarize/worker-core.ts`, closes the ledger `2026-11-11T01:27Z` BLOCKED-ON-SRC): the stream source now mirrors `PcmChunkStream` (src/engine/audio/decode.ts:634-652) end-of-stream semantics — `{t:'job:done'}`/`{t:'end'}` settle+resolve (never accumulated), a chunk is exactly `t === undefined && typeof startSec === 'number' && samples instanceof Float32Array` (identical predicate), every other posted MediaEvent is ignored, and the existing `close`/`messageclose` path stays as the additional termination. Chromium reality (test-author measurement, reproduced): `close`/`messageclose` never fire on the worker-side tee port — the production tee posts every event incl. `job:done` (decode.ts `send()` :239-242, terminal :442) to every tee port. Frozen-test check first: the frozen stream test (`worker-core.test.ts:317-334`) drives `port2.close()` and asserts only chunk-shape consumption + terminal `job:done` + exactly-one `diar:frames` — **no frozen assertion forbids the sentinel path**; the suite stays green (10/10) and `determinism-concurrent.spec.ts` passes (55.2 s).
+2. **Full regression sweep + e2e closeout** — green (below). One new non-frozen change was required: `playwright.config.ts` `webServer` is now an **array** adding a runner-owned persistent harness vite on **4315**. Root cause of `guard-single-speaker` failing 2/2 full sweeps while green solo: FOUR spec files own port 4315 (e2e/diarization ×3 + e2e/captions/align-mae.spec.ts). `startHarnessServer` probes with an HTTP fetch, so when a later sibling's `strictPort` child dies (EADDRINUSE) its probe is answered by the FIRST spec's live vite; that first spec's `afterAll` then kills the server under the still-running sibling → the sibling's next `new Worker('/src/workers/media.worker.ts')` script-fetch fails → `onerror` with `message: undefined`. A single persistent server (identical vite config — all four specs use `isolated: false` and the two harness configs are functionally identical) turns every spec-spawn into an immediate EADDRINUSE death, every probe into a hit on the live server, and every `stopHarnessServer` into an early return on the dead child — removing the kill race with zero frozen-file edits (unit-03 fixed-port doctrine extension; memory-project precedent).
+3. **Criteria** → `corepack pnpm verify:unit --from-branch` all untagged pass, CC-06.3 RQ row (below).
+4. **Final re-sign** (LAST commit): `corepack pnpm qualify` → contentHash `60a18907d708…`; `node scripts/qualification-check.ts` → ACCEPT; deep JSON diff vs the previous committed record = **contentHash + startedAt ONLY** (no other delta — no defect). **CC-06.3 stays `[RQ]`: `scripts/qualification-check.ts` `expectedRqIds` does NOT include CC-06.3, so no `expectedRqIds`/qualify-measurement rows were added and the `ZIPSCRIBE_QUALIFY_MEASURE=1` leg was NOT run tonight (perf-gate doctrine: never fabricate; unmeasured rows are not recorded).**
+
+## Completion criteria (reports/criteria/unit-06-speaker-diarization.md, verbatim)
+
+| ID | level | passing tests | result |
+|---|---|---|---|
+| CC-06.1 | untagged | 2 | pass |
+| CC-06.2 | untagged | 1 | pass |
+| CC-06.3 | RQ | 0 | RQ (outside PR pipeline) |
+| CC-06.4 | untagged | 21 | pass |
+| CC-06.5 | untagged | 1 | pass |
+| CC-06.6 | untagged | 50 | pass |
+
+- `[RQ]` CC-06.3: `qualify/diarization/perf-gate.test.ts` (measurement-mode-only; T1 webgpu ≤ 90 s gated, T2 wasm recorded) executes at the next release on reference hardware; the webgpu device exposure it flags (slice-C helper) is a release-hardware leg.
+- `[MANUAL]` items: none in this unit.
+
+## Gates (verbatim tails, final tree)
+
+- `corepack pnpm test` ✓ — `Test Files  174 passed (174)` / `Tests  1402 passed | 1 skipped | 1 todo (1404)` (worker-core unit suite 10/10 incl. the frozen stream test).
+- `corepack pnpm lint` ✓ exit 0 (no findings).
+- `corepack pnpm typecheck` ✓ exit 0 (tsconfig + tsconfig.node + tsconfig.eval).
+- `corepack pnpm build && corepack pnpm check-bundle` ✓ — `check-bundle: initial JS 112.9 KB gzip / budget 350 KB (1 chunks)`.
+- `corepack pnpm exec playwright test --project=chromium` (retries=0) ✓ — `21 skipped` / `106 passed (2.7m)`; zero ASR/media regressions (asr longtask 2.5 m, tee-scaling, adversarial-fabrication 53.5 s all green; slice-C `prepareOrtWasmBlobs` shared-boot change caused no ASR regression).
+- `corepack pnpm verify:unit --from-branch` ✓ — `verify — all untagged criteria of unit-06-speaker-diarization.md covered (6 total).` (table above).
+- `node scripts/qualification-check.ts` ✓ — `qualification-check: ACCEPT — qualification/0.0.0-spike.json valid for contentHash 60a18907d708…`.
+- Frozen containment ✓ — `git diff 14d827d..HEAD -- tests/ e2e/ fixtures/` empty.
+
+## Measurements (slice-D final tree; numbers only — SECURITY-03)
+
+Re-measured with a scratch `.night/` driver over the SAME frozen harness + the reviewed test-owned calculator (`tests/unit/diarization/helpers/metrics.ts`); the frozen specs remain the gate of record.
+
+CC-06.1 — `speech-2spk-2min.mp4` (acc ≥ 0.85 / DER ≤ 0.20):
+
+| run | word acc | DER | miss | conf | fa | speakers | frames | run wall |
+|----:|---------:|----:|-----:|-----:|---:|---------:|-------:|---------:|
+| 1 | 98.53 % | 14.81 % | 14.2 | 0.5 | 0.1 | 2 | 242 | 17.45 s |
+| 2 | 98.53 % | 14.81 % | 14.2 | 0.5 | 0.1 | 2 | 242 | 17.33 s |
+| 3 | 98.53 % | 14.81 % | 14.2 | 0.5 | 0.1 | 2 | 242 | 17.33 s |
+| **median** | **98.53 %** | **14.81 %** | — | — | — | — | — | — |
+
+CC-06.2 — `speech-2min.mp4` guard (≥ 0.90 dominant share, single speaker):
+
+| run | speakers | dominant share | frames | run wall |
+|----:|---------:|---------------:|-------:|---------:|
+| 1 | 1 | 100.00 % | 148 | 15.10 s |
+| 2 | 1 | 100.00 % | 148 | 15.10 s |
+| 3 | 1 | 100.00 % | 148 | 15.10 s |
+
+**Determinism (CC-06.5):** `deterministicFrames: true` — the serialized frame list is byte-identical across the 3 runs of BOTH specs, and `determinism-concurrent.spec.ts` proves the concurrent-tee (production media worker, dual-port) run equals both sequential runs (frames AND ASR words). **Spec wall times (final sweep):** accuracy-2spk main test ≈ 58 s, guard ≈ 50–53 s, determinism-concurrent 55.2 s; per-`runDiarize` ≈ 17.3 s (2spk, incl. per-run model load) / ≈ 15.1 s (guard). Network audit: `blocked: []` in every leg.
+
+**Threshold rationale (0.5, per slice C — carried, unchanged):** measured ERes2Net window-embedding cosine distances — mean within-speaker ≈ 0.12, mean between-speaker ≈ 0.64; 0.5 sits in the valley: above the within-speaker spread (single voice stops at one cluster → guard) and below the between-speaker floor (two voices stay separate → conf 0.5 %). The `maxSpeakers` cap remains a phase-2 hard UPPER bound (FR-06.1, 969dc29), so 0.5 governs only the natural cut. Residual DER is miss-dominated (energy-gate trims pyannote's blurred silence edges; fa ≈ 0.1 keeps it DER-cheap); accuracy unaffected (conf ≈ 0).
+
+## Deviations from spec
+
+1. **`diart` → `diarize` path + engine reuse** — the unit lives under `src/engine/diarize/**` (not a `diart/` tree); the ORT stack is REUSED, not duplicated: `prepareOrtWasmBlobs()` hoisted into the shared boot adapter `src/engine/boot/adapters/onnx-runtime-boot.ts` (same bootstrap as ASR) and the ERes2Net/Silero `InferenceSession` factory harvested from the pyannote session — one ORT copy, three sessions (FR-06.4).
+2. **ORT blob exposure (slice C, carried):** the frozen harness route answers every `/wasm/**` — incl. the `.mjs` glue — as `application/wasm`; the browser refuses to `import()` that, so the device-matched plain-threaded glue+wasm pair is re-exposed as correctly-typed blob URLs.
+3. **Sentinel-stream fix (slice D, above):** `readStreamPort` terminates on the tee's `{t:'job:done'}`/`{t:'end'}` messages exactly like `PcmChunkStream`, keeping `close`/`messageclose` as the additional path.
+4. **`playwright.config.ts` persistent 4315 webServer (slice D):** the only change needed for the CI-authoritative sweep to go green; no frozen file edited (config is builder-owned; unit-03 per-file-port doctrine + memory-project single-owner precedent). The guard spec is NOT flaky on its merits — solo green 3/3 every time; the two sweep reds were the cross-file port kill race.
+
+## Contract changes
+
+**None to `architecture.md`** (protocol/model contract types imported verbatim throughout). Frozen-test adjudications were orchestrator/test-author-owned and are ledger-cited: cap-as-upper-bound (`6b18f69`/`d124faa`), CC-06.6 leading-citation titles-only exception + 12-describe-header fix (ledger adjudication + execution entries, `tests/unit/diarization` titles only), harness `postMessage` transfer fix (`14d827d`).
+
+## Dependencies
+
+None outside `settings.yml` approved dependencies (slice D touched no dependency surface).
+
+## Follow-ups
+
+- `jobs.ts` placeholder PCM wiring → deferred to unit-101 (host job plumbing).
+- `speaker-merge`/`speaker-split` command ids → unit-104 (UI command dispatch over the pure fns).
+- `speakerSource: 'auto-beta'` host wiring + `speakersFromClusters` population on completion (slice-B follow-up; state tier, not engine).
+- CC-06.3 T1 leg needs the webgpu device exposure the perf-gate helper flags (release-hardware run).
