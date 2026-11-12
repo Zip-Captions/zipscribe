@@ -45,6 +45,8 @@ interface MountedEditor {
 
 async function mountEditor(): Promise<MountedEditor> {
   const t = createTestApp({ withMediaClock: true, project: sampleProject(), blocks: [EXTRA_BLOCK] })
+  // Baseline normalization (orchestrator adjudication, builder slice B): seeding dispatches undoable `captions-import` (editor-app.ts:87-90) — setup, not an action under test; assertions stay absolute.
+  t.app.history.clear()
   const { useEditorCommands: hook } = await loadSeamModule<typeof import('@ui/commands/useEditorCommands')>('@ui/commands/useEditorCommands')
   const { storage } = createFakeSettingsStorage()
   const settings = await createSettingsStore({ storage })
