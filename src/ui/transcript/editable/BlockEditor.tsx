@@ -50,7 +50,10 @@ export function BlockEditor({ initialText, onSubmit, onCancel }: BlockEditorProp
   }, [initialText])
 
   function draftText(): string {
-    return ref.current?.textContent ?? ''
+    // Chromium's contenteditable types U+00A0 where the user pressed Space;
+    // the frozen tokenizer splits on ' ' only, so a raw NBSP draft would
+    // re-derive as ONE giant word. Canonicalize before commit.
+    return (ref.current?.textContent ?? '').replace(/\u00a0/g, ' ')
   }
 
   function commit(): void {

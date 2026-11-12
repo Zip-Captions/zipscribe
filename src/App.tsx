@@ -39,5 +39,13 @@ export function App(): ReactNode {
   }, [])
 
   if (context === null) return null
-  return <Workbench jobs={context.jobs} settings={context.settings} project={context.project} intake={context.intake} transport={{ app: context.editorApp, stage: context.stage, rafs: context.rafs }} />
+  return (
+    <Workbench
+      jobs={context.jobs}
+      settings={context.settings}
+      project={context.project}
+      intake={context.intake}
+      transport={{ app: context.editorApp, stage: context.stage, rafs: context.rafs, captionImport: context.captionImport }}
+    />
+  )
 }

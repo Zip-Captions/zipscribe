@@ -37,16 +37,22 @@ import type { MouseEvent as ReactMouseEvent, ReactElement, ReactNode } from 'rea
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { ReactVirtualizerOptions } from '@tanstack/react-virtual'
 import type { CaptionBlock, Seconds, Speaker } from '../../engine/model'
+import { checkCaptions } from '../../engine/captions/qc'
+import type { QcIssue, QcIssueCode } from '../../engine/captions/qc'
 import type { EditorApp } from '../../state/history'
 import type { JobsStore, JobsState } from '../../state/jobs'
+import { defaultModelForTier } from '../../state/jobs'
+import type { SettingsStore } from '../../state/settings'
 import type { RafDriver } from '../../state/services/playback/arbitrator'
 import { formatTimecode } from '../format'
 import { TimecodeInput } from '../editable/TimecodeInput'
 import { registerCommandHandler, registerSearchOpenReader } from '../commands/registry'
 import { registerTranscriptPanel } from './bridge-seam'
+import { registerQcIssueCursor } from './qc-cursor-seam'
 import { BlockEditor } from './editable/BlockEditor'
 import { findMatches, groupMatches } from './match-index'
 import { getQcIssueCursor } from './qc-cursor-seam'
+import { RetimeDialog } from './RetimeDialog'
 import { SpeakerPopover } from './SpeakerPopover'
 import { speakerPalette } from './palette'
 import './transcript.css'
@@ -60,6 +66,8 @@ export interface TranscriptProps {
   heightPx?: number
   /** View-only speaker filter (CC-104.5): blocks whose `speakerId` is listed are absent from the rendered rows. NEVER mutates the project, never creates a history step. */
   hiddenSpeakerIds?: readonly string[]
+  /** FR-104.8 align: remembered transcribe prefs (language/model) for `startTranscribe({ mode:'align' })`; defaults to the tier model. */
+  settings?: SettingsStore
 }
 
 const ROW_ESTIMATE_PX = 40
@@ -74,6 +82,7 @@ const SEARCH_DEBOUNCE_MS = 120
 
 const NO_BLOCKS: readonly CaptionBlock[] = Object.freeze([])
 const NO_SPEAKERS: readonly Speaker[] = Object.freeze([])
+const EMPTY_ISSUES: readonly QcIssue[] = Object.freeze([])
 const EMPTY_SEGMENTS: JobsState['segments'] = []
 const IDLE_JOBS_STATE: JobsState = {
   capability: null,
@@ -87,6 +96,24 @@ const IDLE_JOBS_STATE: JobsState = {
   pendingConfirmDownload: null,
 }
 const IDLE_JOBS: Readable<JobsState> = { getState: () => IDLE_JOBS_STATE, subscribe: () => () => undefined }
+
+/** FR-104.8 issue-list display order (design.md § QC panel, grouped by code). */
+const QC_CODE_ORDER: readonly QcIssueCode[] = ['CPS_HIGH', 'LINE_TOO_LONG', 'TOO_MANY_LINES', 'DURATION_SHORT', 'DURATION_LONG', 'GAP_TINY', 'OUT_OF_MEDIA', 'TRANSLATION_STALE', 'TRANSLATION_MISSING']
+/** Plain-language labels — the UI owns copy, the engine code rides in data-code (design.md: "Too fast to read — 24 chars/sec"). */
+const QC_COPY: Record<QcIssueCode, (issue: QcIssue) => string> = {
+  CPS_HIGH: (issue) => `Too fast to read — ${String(issue.value)} chars/sec`,
+  LINE_TOO_LONG: (issue) => `Line too long — ${String(issue.value)} characters`,
+  TOO_MANY_LINES: (issue) => `Too many lines — ${String(issue.value)}`,
+  DURATION_SHORT: (issue) => `Shown too briefly — ${String(issue.value)} s`,
+  DURATION_LONG: (issue) => `Shown too long — ${String(issue.value)} s`,
+  GAP_TINY: (issue) => `Gap too small — ${String(issue.value)} s`,
+  OUT_OF_MEDIA: (issue) => `Runs past the media end — ${String(issue.value)} s`,
+  TRANSLATION_STALE: (issue) => `Translation out of date (${issue.track})`,
+  TRANSLATION_MISSING: (issue) => `Translation missing (${issue.track})`,
+}
+/** DOM bound for the issue list (the chip shows the TRUE count; a 10k-issue
+ *  list must never flood the DOM — the perf row-count budget philosophy). */
+const MAX_ISSUE_ITEMS = 50
 
 interface Readable<T> {
   getState(): T
@@ -159,17 +186,26 @@ function activeIndexAt(blocks: readonly CaptionBlock[], playhead: Seconds): numb
 }
 
 export function Transcript(props: TranscriptProps): ReactElement {
-  const { app, rafs, jobs, heightPx = DEFAULT_VIEWPORT_PX, hiddenSpeakerIds } = props
+  const { app, rafs, jobs, heightPx = DEFAULT_VIEWPORT_PX, hiddenSpeakerIds, settings } = props
   const jobsStore = jobs ?? IDLE_JOBS
 
   const project = useStoreValue(app.project, (state) => state.project)
   const selection = useStoreValue(app.editor, (state) => state.selection)
   const running = useStoreValue(jobsStore, (state) => state.running)
+  const progress = useStoreValue(jobsStore, (state) => state.progress)
   const segments = useStoreValue(jobsStore, (state) => state.segments)
 
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null)
   const [popoverBlockId, setPopoverBlockId] = useState<string | null>(null)
   const [hiddenLocal, setHiddenLocal] = useState<readonly string[]>([])
+  // FR-104.8 (slice D): the Issues (n) filter toggle, the retime dialog and
+  // the align affordance state (progress / coded toast).
+  const [issueFilterOn, setIssueFilterOn] = useState(false)
+  const [retimeOpen, setRetimeOpen] = useState(false)
+  const [alignToast, setAlignToast] = useState<string | null>(null)
+  const [qcAnnounce, setQcAnnounce] = useState('')
+  const alignJobRef = useRef<{ jobId: string; cancelled: boolean } | null>(null)
+  const qcCursorIndexRef = useRef(-1)
 
   // ── Search + replace (US-2.1.6 / FR-104.5) ────────────────────────────────
   // The panel renders while `editor.searchOpen` (the frozen editor-slice
@@ -211,7 +247,44 @@ export function Transcript(props: TranscriptProps): ReactElement {
   const hidden = useMemo(() => new Set<string>([...(hiddenSpeakerIds ?? []), ...hiddenLocal]), [hiddenSpeakerIds, hiddenLocal])
   const hiddenRef = useRef(hidden)
   hiddenRef.current = hidden
-  const visible = useMemo(() => (hidden.size === 0 ? blocks : blocks.filter((block) => !hidden.has(block.speakerId))), [blocks, hidden])
+
+  // ── QC (FR-104.8 first half) — DERIVED, never stored (domain glossary "QC
+  // issue", REVIEW item): engine `checkCaptions` memoized on the PROJECT
+  // REFERENCE only, so playhead ticks/selection/filtering never re-check.
+  const issues = useMemo<readonly QcIssue[]>(() => (project === null ? EMPTY_ISSUES : checkCaptions(project)), [project])
+  const issuesByBlock = useMemo(() => {
+    const map = new Map<string, QcIssue[]>()
+    for (const issue of issues) {
+      const list = map.get(issue.blockId)
+      if (list === undefined) map.set(issue.blockId, [issue])
+      else list.push(issue)
+    }
+    return map
+  }, [issues])
+  // Display/cursor order: grouped by code (frozen rule order), then block
+  // order, then track — ONE canonical order for the list AND ⌘' navigation.
+  const orderedIssues = useMemo(() => {
+    if (issues.length === 0) return EMPTY_ISSUES
+    const position = new Map((project?.blocks ?? NO_BLOCKS).map((block, index) => [block.id, index] as const))
+    return [...issues].sort((a, b) => {
+      const byCode = QC_CODE_ORDER.indexOf(a.code) - QC_CODE_ORDER.indexOf(b.code)
+      if (byCode !== 0) return byCode
+      const byBlock = (position.get(a.blockId) ?? 0) - (position.get(b.blockId) ?? 0)
+      if (byBlock !== 0) return byBlock
+      return a.track.localeCompare(b.track)
+    })
+  }, [issues, project])
+  const issuesRef = useRef(orderedIssues)
+  issuesRef.current = orderedIssues
+  const blocksRef = useRef(blocks)
+  blocksRef.current = blocks
+
+  // The "Issues (n)" filter narrows the rows to blocks that HAVE issues
+  // (view-only — the data and the derivation are untouched).
+  const visible = useMemo(() => {
+    const unfiltered = hidden.size === 0 ? blocks : blocks.filter((block) => !hidden.has(block.speakerId))
+    return issueFilterOn ? unfiltered.filter((block) => issuesByBlock.has(block.id)) : unfiltered
+  }, [blocks, hidden, issueFilterOn, issuesByBlock])
   const visibleRef = useRef(visible)
   visibleRef.current = visible
 
@@ -423,6 +496,99 @@ export function Transcript(props: TranscriptProps): ReactElement {
     }
   }, [virtualizer])
 
+  // ── QC jump + ⌘'/⌘⇧' cursor (FR-104.8) ────────────────────────────────────
+  /**
+   * Mirror of the US-2.1.2 click-seek path (seekTo): synchronous
+   * `transport-seek` (≤ 1 frame, same receiver the editor bridge drives) +
+   * block selection — UI-only, zero history steps. Lands MID-BLOCK so the
+   * playhead is genuinely on the issue's block (design.md "jumps playhead +
+   * selection to the issue's block"), then scrolls the row into view
+   * (scrollToIndex, never .focus()).
+   */
+  function jumpToIssue(index: number): void {
+    const list = issuesRef.current
+    if (list.length === 0) return
+    const wrapped = ((index % list.length) + list.length) % list.length
+    const issue = list[wrapped]
+    if (issue === undefined) return
+    const block = blocksRef.current.find((candidate) => candidate.id === issue.blockId)
+    if (block === undefined) return
+    qcCursorIndexRef.current = wrapped
+    app.dispatch('transport-seek', { time: (block.start + block.end) / 2 })
+    app.editor.setSelection({ anchorBlockId: block.id, focusBlockId: block.id })
+    const rowIndex = visibleRef.current.findIndex((candidate) => candidate.id === block.id)
+    if (rowIndex >= 0) virtualizerRef.current.scrollToIndex(rowIndex, { align: 'auto' })
+    // SECURITY-03: position numbers only, never block text or issue values.
+    setQcAnnounce(`Issue ${String(wrapped + 1)} of ${String(list.length)}`)
+  }
+
+  // The slice-C registry handlers (qc.next-issue/qc.previous-issue) drive
+  // this cursor while the panel is mounted; empty issue list = safe no-op.
+  useEffect(() => {
+    return registerQcIssueCursor({
+      nextIssue(): void {
+        const list = issuesRef.current
+        if (list.length === 0) return
+        jumpToIssue(qcCursorIndexRef.current < 0 ? 0 : qcCursorIndexRef.current + 1)
+      },
+      previousIssue(): void {
+        const list = issuesRef.current
+        if (list.length === 0) return
+        jumpToIssue(qcCursorIndexRef.current < 0 ? list.length - 1 : qcCursorIndexRef.current - 1)
+      },
+    })
+    // jumpToIssue reads refs + stable setters/app — stable by contract.
+  }, [app])
+
+  // ── Align to audio (FR-104.8 second half / CC-104.7) ──────────────────────
+  // Reuses the Transcribe job pipeline (domain Align lifecycle) with
+  // mode:'align' → the jobs slice shows kind 'align'. On the job's own
+  // done transition the accumulated `job:segments` words are applied through
+  // EXACTLY ONE `captions-align-apply` dispatch = one undo step; cancel or
+  // error NEVER applies. Content-free progress/toast (SECURITY-03).
+  function startAlign(): void {
+    if (jobs === undefined) return
+    setAlignToast(null)
+    const prefs = settings?.getState().transcribe
+    const state = jobsStore.getState()
+    const modelId = prefs?.modelId ?? state.modelOptions.find((option) => option.offlineReady)?.id ?? defaultModelForTier(state.capability?.tier)
+    jobs.startTranscribe({ language: prefs?.language ?? null, modelId, diarize: false, mode: 'align' })
+  }
+
+  function cancelAlign(): void {
+    if (jobs === undefined) return
+    if (alignJobRef.current !== null) alignJobRef.current.cancelled = true
+    jobs.cancel()
+  }
+
+  useEffect(() => {
+    return jobsStore.subscribe(() => {
+      const state = jobsStore.getState()
+      if (state.running !== null) {
+        if (state.running.kind === 'align') {
+          if (alignJobRef.current === null || alignJobRef.current.jobId !== state.running.jobId) alignJobRef.current = { jobId: state.running.jobId, cancelled: false }
+        } else {
+          // A non-align job displaced ours (its cancel was already posted by
+          // startTranscribe) — ours is dead, nothing to apply.
+          alignJobRef.current = null
+        }
+        return
+      }
+      const entry = alignJobRef.current
+      if (entry === null) return
+      alignJobRef.current = null
+      if (entry.cancelled || state.error !== null) return
+      const asrWords = state.segments.flatMap((segment) => segment.words.map((word) => ({ text: word.text, start: word.start, end: word.end })))
+      if (asrWords.length === 0) return
+      app.dispatch('captions-align-apply', { asrWords })
+      const allWords = (app.project.getState().project?.blocks ?? NO_BLOCKS).flatMap((block) => block.words)
+      if (allWords.length === 0) return
+      const aligned = allWords.filter((word) => word.timing === 'aligned').length
+      // Coded-count toast only (SECURITY-03): numbers, never words.
+      setAlignToast(`aligned ${String(aligned)}/${String(allWords.length)} words (${String(Math.round((aligned / allWords.length) * 100))}%)`)
+    })
+  }, [jobsStore, app])
+
   // The E2E bridge's read surface (src/ui/transcript/bridge-seam.ts — the
   // unit-103 timeline precedent). Reads flow through refs/store getters so the
   // handle is current without re-registering.
@@ -487,7 +653,45 @@ export function Transcript(props: TranscriptProps): ReactElement {
             Beta
           </span>
         )}
+        {issues.length > 0 && (
+          <button type="button" data-testid="transcript-issue-filter" className="ts-issue-filter" aria-pressed={issueFilterOn} onClick={() => setIssueFilterOn((on) => !on)}>
+            {`Issues (${String(issues.length)})`}
+          </button>
+        )}
+        {project !== null && (
+          <span className="ts-toolbar-actions">
+            <button type="button" data-testid="transcript-retime-tool" className="ts-toolbar-button" disabled={blocks.length === 0} onClick={() => setRetimeOpen(true)}>
+              Shift / stretch timing…
+            </button>
+            <button type="button" data-testid="transcript-align-audio" className="ts-toolbar-button" disabled={jobs === undefined || running !== null || blocks.length === 0} onClick={startAlign}>
+              Align to audio
+            </button>
+            {running !== null && running.kind === 'align' && (
+              <>
+                <span data-testid="transcript-align-progress" className="ts-align-progress" aria-label="Align progress">
+                  {progress !== null && progress.totalSec > 0 ? `${String(Math.round((progress.processedSec / progress.totalSec) * 100))}%` : '…'}
+                </span>
+                <button type="button" data-testid="transcript-align-cancel" className="ts-toolbar-button" onClick={cancelAlign}>
+                  Cancel
+                </button>
+              </>
+            )}
+            {alignToast !== null && (
+              <span data-testid="transcript-align-toast" role="status" className="ts-align-toast">
+                {alignToast}
+              </span>
+            )}
+          </span>
+        )}
       </div>
+      {retimeOpen && (
+        <RetimeDialog
+          app={app}
+          onClose={() => {
+            setRetimeOpen(false)
+          }}
+        />
+      )}
       {popoverBlock !== null && (
         <SpeakerPopover
           app={app}
@@ -561,6 +765,30 @@ export function Transcript(props: TranscriptProps): ReactElement {
           </button>
         </div>
       )}
+      {/* FR-104.8: grouped issue list (plain-language labels, code in
+          data-code; UI-owned copy). Rendered whenever issues exist — the
+          filter chip additionally narrows the ROWS. Bounded DOM (numbers
+          only, SECURITY-03). */}
+      {orderedIssues.length > 0 && (
+        <div className="ts-issues" data-testid="transcript-issues" aria-label="Caption quality issues">
+          {orderedIssues.slice(0, MAX_ISSUE_ITEMS).map((issue, index) => (
+            <button
+              key={`${issue.code}:${issue.track}:${issue.blockId}:${String(index)}`}
+              type="button"
+              data-testid="transcript-issue"
+              data-code={issue.code}
+              data-block-id={issue.blockId}
+              className="ts-issue-item"
+              onClick={() => jumpToIssue(index)}
+            >
+              {QC_COPY[issue.code](issue)}
+            </button>
+          ))}
+        </div>
+      )}
+      <div data-testid="transcript-qc-live" className="ts-live" aria-live="polite">
+        {qcAnnounce}
+      </div>
       <div
         ref={scrollRef}
         data-testid="transcript-root"
@@ -651,6 +879,7 @@ export function Transcript(props: TranscriptProps): ReactElement {
                     formatTimecode(block.start)
                   )}
                 </span>
+                {issuesByBlock.has(block.id) && <span data-testid="transcript-issue-dot" className="ts-issue-dot" aria-hidden="true" title="This block has quality-check issues" />}
                 {editing ? (
                   // FR-104.4 in-place editor — the slice-C editable-allowlist
                   // component (src/ui/transcript/editable/, conventions §

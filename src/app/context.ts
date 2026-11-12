@@ -16,6 +16,8 @@ import { createSettingsStore } from '../state/settings'
 import type { SettingsStore } from '../state/settings'
 import { createIntakeService } from '../state/services/intake'
 import type { CaptionImportResult, ImportCaptionsService, IntakeService } from '../state/services/intake'
+import { createEngineCaptionImportPort } from '../state/services/caption-import'
+import type { CaptionImportPort } from '../state/services/caption-import'
 import { createWorkerEnginePort } from '../state/services/engine-port'
 import type { WorkerEnginePort } from '../state/services/engine-port'
 import { createEditorApp } from '../state/history'
@@ -44,6 +46,13 @@ export interface AppContext {
   mediaClock: DeferredMediaClock
   /** Unit-103: the app's ONE rAF loop (the Timeline panel's repaint driver — the same driver the arbitrator runs on). */
   rafs: RafDriver
+  /**
+   * FR-104.9 (unit-104 slice D): the caption-import port the Workbench drop
+   * intercept feeds to the import dialog (report before confirm). Optional on
+   * the Workbench transport — frozen mounts without it keep the untouched
+   * intake path.
+   */
+  captionImport: CaptionImportPort
   /** Ziptest bridge: replaces the caption import service; null restores the default. */
   setCaptionImportOverride(result: CaptionImportResult | null): void
 }
@@ -140,6 +149,7 @@ async function buildAppContext(): Promise<AppContext> {
     stage,
     mediaClock,
     rafs,
+    captionImport: createEngineCaptionImportPort(),
     setCaptionImportOverride(result: CaptionImportResult | null): void {
       importService = result === null ? createPendingUnit07ImportService() : overrideService(result)
     },

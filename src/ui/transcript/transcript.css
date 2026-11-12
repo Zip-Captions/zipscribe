@@ -126,10 +126,48 @@
 
 .ts-timecode {
   flex: none;
+  /* FR-104.1 slot discipline: the selected row swaps the timecode text for
+     the TimecodeInput — the slot keeps a FIXED box and the input is laid out
+     ABSOLUTELY inside it, so selecting a row NEVER shifts the words under
+     the pointer (the second click of a dblclick must hit the same word —
+     US-2.1.3 / frozen CC-104.3 word-dblclick→editor). */
+  position: relative;
+  width: 64px;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
   color: var(--text-secondary);
   cursor: pointer;
+}
+
+.ts-timecode .tl-timecode {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* The "Start"/"End" caption stays for the AT (label wraps the input) but is
+   visually hidden — a 64 px slot cannot carry both label and input. */
+.ts-timecode .tl-timecode-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.ts-timecode .tl-timecode-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 2px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  background-color: var(--bg-raised);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-variant-numeric: inherit;
+  font-size: 11px;
 }
 
 .ts-timecode:focus-visible {
@@ -287,4 +325,218 @@
   .ts-skeleton::before {
     animation: none;
   }
+}
+
+/* ── Slice D: QC panel (FR-104.8) ─────────────────────────────────────── */
+
+.ts-issue-filter {
+  flex: none;
+  padding: 2px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background-color: var(--bg-raised);
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.ts-issue-filter[aria-pressed='true'] {
+  color: var(--text-primary);
+  border-color: var(--warning);
+}
+
+.ts-issue-filter:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+/* design.md § QC panel: issue dots render with the --warning token. */
+.ts-issue-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--warning);
+}
+
+.ts-issues {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--bg-panel);
+}
+
+.ts-issue-item {
+  text-align: left;
+  padding: 2px 6px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ts-issue-item:hover {
+  background-color: var(--accent-soft);
+}
+
+.ts-issue-item:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -1px;
+}
+
+.ts-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ── Slice D: toolbar actions + align (FR-104.8) ──────────────────────── */
+
+.ts-toolbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.ts-toolbar-button {
+  padding: 2px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background-color: var(--bg-raised);
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ts-toolbar-button:hover:not(:disabled) {
+  background-color: var(--accent-soft);
+}
+
+.ts-toolbar-button:disabled {
+  color: var(--text-disabled);
+  cursor: default;
+}
+
+.ts-toolbar-button:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+.ts-align-progress,
+.ts-align-toast {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+/* ── Slice D: import + retime dialogs (FR-104.8/104.9) ────────────────── */
+
+.ts-import-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.45);
+}
+
+.ts-import-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(420px, calc(100vw - 32px));
+  padding: 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background-color: var(--bg-panel);
+  color: var(--text-primary);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+.ts-import-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ts-import-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--danger);
+}
+
+.ts-import-report {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background-color: var(--bg-raised);
+  font-size: 12px;
+}
+
+.ts-import-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.ts-import-key {
+  min-width: 72px;
+  color: var(--text-secondary);
+}
+
+.ts-import-adjustment {
+  margin: 0;
+  color: var(--warning);
+  font-variant-numeric: tabular-nums;
+}
+
+.ts-import-language {
+  min-width: 0;
+  flex: 1 1 auto;
+  padding: 2px 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+}
+
+.ts-import-use,
+.ts-import-prefix {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.ts-import-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ts-retime-modes {
+  display: flex;
+  gap: 6px;
+}
+
+.ts-popover-primary {
+  border: 1px solid var(--accent-strong);
+  background-color: var(--accent);
+  color: var(--bg-app);
+  font-weight: 600;
 }
