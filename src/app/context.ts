@@ -16,10 +16,13 @@ import { createSettingsStore } from '../state/settings'
 import type { SettingsStore } from '../state/settings'
 import { createIntakeService } from '../state/services/intake'
 import type { CaptionImportResult, ImportCaptionsService, IntakeService } from '../state/services/intake'
+import { createEngineCaptionImportPort } from '../state/services/caption-import'
+import type { CaptionImportPort } from '../state/services/caption-import'
 import { createWorkerEnginePort } from '../state/services/engine-port'
 import type { WorkerEnginePort } from '../state/services/engine-port'
 import { createEditorApp } from '../state/history'
 import type { EditorApp } from '../state/history'
+import { DEFAULT_COMMAND_DEPS } from '../state/commands'
 import { createDeferredMediaClock } from '../state/services/playback/media-clock'
 import type { DeferredMediaClock } from '../state/services/playback/media-clock'
 import type { RafDriver } from '../state/services/playback/arbitrator'
@@ -43,6 +46,13 @@ export interface AppContext {
   mediaClock: DeferredMediaClock
   /** Unit-103: the app's ONE rAF loop (the Timeline panel's repaint driver — the same driver the arbitrator runs on). */
   rafs: RafDriver
+  /**
+   * FR-104.9 (unit-104 slice D): the caption-import port the Workbench drop
+   * intercept feeds to the import dialog (report before confirm). Optional on
+   * the Workbench transport — frozen mounts without it keep the untouched
+   * intake path.
+   */
+  captionImport: CaptionImportPort
   /** Ziptest bridge: replaces the caption import service; null restores the default. */
   setCaptionImportOverride(result: CaptionImportResult | null): void
 }
@@ -72,12 +82,18 @@ async function buildAppContext(): Promise<AppContext> {
   // clock (the stage attaches the `<video>` when a source lands), a
   // wall-clock for the merge-window, and the browser rAF driver (the app's
   // ONE rAF loop).
+  // @104 EXTENDS: the PRODUCTION speaker engine is the merged unit-06
+  // `src/engine/diarize/assign.ts` pure fns behind `DEFAULT_COMMAND_DEPS`
+  // (CONTRACT.md § speaker-* family re-point + § unit-104 EXTENDS — including
+  // the US-1.3.3 merge/split pair). `NOT_IMPLEMENTED_SPEAKER_ENGINE` stays the
+  // dispatch-without-engine seam default inside `createEditorApp`.
   const mediaClock = createDeferredMediaClock()
   const rafs = createBrowserRafDriver()
   const editorApp = createEditorApp({
     clock: { now: () => Date.now() },
     rafs,
     mediaClock,
+    speakerEngine: DEFAULT_COMMAND_DEPS.speakerEngine,
   })
   const stage = createStageController({ onAttachElement: (element) => mediaClock.attach(element) })
 
@@ -133,6 +149,7 @@ async function buildAppContext(): Promise<AppContext> {
     stage,
     mediaClock,
     rafs,
+    captionImport: createEngineCaptionImportPort(),
     setCaptionImportOverride(result: CaptionImportResult | null): void {
       importService = result === null ? createPendingUnit07ImportService() : overrideService(result)
     },

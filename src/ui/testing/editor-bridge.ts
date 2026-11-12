@@ -52,7 +52,22 @@ export function installEditorBridge(): void {
       stage.setMediaSource(srcUrl)
     },
     command(id: string, payload?: unknown): { code: string } | null {
-      const rejection = editorApp.dispatch(id as CommandId, payload as CommandPayloads[CommandId])
+      // `captions-import` convenience (perf-seed chunking): speaker ids the
+      // payload blocks reference but the payload never declares are
+      // registered alongside — exactly what `openProjectWithMedia`'s seed
+      // path does, keeping the strict production reducer (DANGLING_SPEAKER_REF
+      // on unknown ids, frozen CC-102.3) untouched.
+      let effective = payload as CommandPayloads[CommandId] | undefined
+      if (id === 'captions-import') {
+        const p = (payload ?? {}) as { blocks?: readonly CaptionBlock[]; speakers?: readonly { id: string }[]; replace?: boolean }
+        const declared = new Set((p.speakers ?? []).map((speaker) => speaker.id))
+        const missing = [...new Set((p.blocks ?? []).map((block) => block.speakerId))].filter((speakerId) => !declared.has(speakerId))
+        if (missing.length > 0) {
+          const extra = missing.map((speakerId, index) => ({ id: speakerId, label: `Speaker ${String(index + 1)}`, color: '#4c8dff' }))
+          effective = { ...(p as object), speakers: [...(p.speakers ?? []), ...extra] } as CommandPayloads[CommandId]
+        }
+      }
+      const rejection = editorApp.dispatch(id as CommandId, effective)
       return rejection === null ? null : { code: rejection.code }
     },
     getEditorState() {

@@ -44,6 +44,10 @@ export type {
   TransportStepSecondPayload,
   TransportLoopSetPayload,
   TransportRatePayload,
+  SpeakerMergePayload,
+  SpeakerSplitPayload,
+  ReplaceTextPayload,
+  CaptionsAlignApplyPayload,
 } from '../commands'
 export type { EditorUiState, EditorStore, Selection } from '../editor'
 export type { EditorHistoryApi, EditorApp, EditorAppDeps, Blockizer, SpeakerEngine } from '../history'
@@ -61,7 +65,8 @@ export type ZUNDO_LIMIT_TYPE_CONTRACT = ZundoLimitType
 type Assert<T extends true> = T
 type KeySetEquals<A, B> = [keyof A] extends [B] ? ([B] extends [keyof A] ? true : false) : false
 
-/** The payload table is exhaustive over the 26 frozen command ids (no extra, no missing). */
+/** The payload table is exhaustive over the command ids (no extra, no missing):
+ *  the frozen 26 (FR-102.1) + the 4 unit-104 EXTENDS (CONTRACT.md § unit-104 EXTENDS). */
 type _payloadDomain = Assert<KeySetEquals<CommandPayloads, CommandId>>
 
 /** FR-102.3: the arbitrator layer is the sanctioned clock reader — `clockTime()` is

@@ -24,6 +24,8 @@ import type { JobsState, JobsStore } from '../../state/jobs'
 import type { SettingsStore, WorkbenchSettings } from '../../state/settings'
 import type { ProjectStore } from '../../state/project'
 import type { ImportReport, IntakeService } from '../../state/services/intake'
+import { isCaptionFileName, isMediaFileName } from '../../state/services/intake'
+import type { CaptionImportPort } from '../../state/services/caption-import'
 import type { EditorApp } from '../../state/history'
 import type { RafDriver } from '../../state/services/playback/arbitrator'
 import type { StageController } from '../../app/stage'
@@ -32,16 +34,19 @@ import { useCommands } from '../commands/useCommands'
 import { useTransportCommands } from '../commands/useTransportCommands'
 import { formatTimecode } from '../format'
 import { Timeline } from '../timeline/Timeline'
+import { Transcript } from '../transcript/Transcript'
+import { CaptionImportDialog } from '../transcript/CaptionImportDialog'
 import { StageMedia } from './StageMedia'
 import { TranscribePopover } from './TranscribePopover'
 import './workbench.css'
 
-/** Slice C editor wiring (EXTENDS the frozen 101 WorkbenchProps — optional, so every frozen 101 mount path is untouched). Unit-103 adds `rafs`: the Timeline panel's repaint driver (the app's ONE rAF loop). */
+/** Slice C editor wiring (EXTENDS the frozen 101 WorkbenchProps — optional, so every frozen 101 mount path is untouched). Unit-103 adds `rafs`: the Timeline panel's repaint driver (the app's ONE rAF loop). Unit-104 slice D adds `captionImport`: the FR-104.9 dialog port (absent → caption drops keep the plain intake path). */
 export interface WorkbenchTransport {
   app: EditorApp
   stage: StageController
   overlayRenderer?: OverlayRenderer
   rafs?: RafDriver
+  captionImport?: CaptionImportPort
 }
 
 export interface WorkbenchProps {
@@ -422,6 +427,8 @@ export function Workbench(props: WorkbenchProps): ReactNode {
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [toastCodes, setToastCodes] = useState<readonly string[] | null>(null)
   const [importReport, setImportReport] = useState<ImportReport | null>(null)
+  // FR-104.9 (slice D): the caption file whose import dialog is open.
+  const [captionDrop, setCaptionDrop] = useState<File | null>(null)
   // The FR-102.6 overlay canvas mounts INSIDE the reserved canvas layer (the
   // host node stays unit-101's).
   const canvasHostRef = useRef<HTMLDivElement | null>(null)
@@ -450,10 +457,26 @@ export function Workbench(props: WorkbenchProps): ReactNode {
   // Always-on: the whole shell accepts drops (FR-2.0.3 Media-tab re-import
   // shares this intake); the first-run drop zone stops propagation so a drop
   // is never processed twice.
+  // FR-104.9 (unit-104 slice D): on an OPEN project a caption-only drop opens
+  // the import dialog instead of running intake (design.md § Bring-your-own
+  // captions). Media anywhere in the drop — or an empty project — keeps the
+  // unit-101 intake path byte-identically (media + captions together on an
+  // empty project create the project with the imported source track).
   const onShellDrop = (event: ReactDragEvent<HTMLDivElement>): void => {
     event.preventDefault()
     const files = Array.from(event.dataTransfer?.files ?? [])
-    if (files.length > 0) void runIntake(files)
+    if (files.length === 0) return
+    if (currentProject !== null && transport?.captionImport !== undefined) {
+      const hasMedia = files.some((file) => isMediaFileName(file.name) || file.type.startsWith('video/') || file.type.startsWith('audio/'))
+      if (!hasMedia) {
+        const captionFile = files.find((file) => isCaptionFileName(file.name))
+        if (captionFile !== undefined) {
+          setCaptionDrop(captionFile)
+          return
+        }
+      }
+    }
+    void runIntake(files)
   }
 
   const theme = resolveTheme(settingsState)
@@ -532,6 +555,8 @@ export function Workbench(props: WorkbenchProps): ReactNode {
               {tab === 'subtitles' && (
                 <div role="tabpanel" id="tabpanel-subtitles" aria-labelledby="tab-subtitles" className="ws-tabpanel">
                   <TranscriptPane segments={jobsState.segments} />
+                  {/* Unit-104 slice B: the transcript panel mounts ALONGSIDE the unit-101 streaming pane (the frozen streaming-segment-row contract stays mounted where the 101 suites pin it). Needs the editor app + the rAF driver, else the reserved streaming-only view renders. */}
+                  {transport !== undefined && transport.rafs !== undefined && <Transcript app={transport.app} rafs={transport.rafs} jobs={jobs} settings={settings} />}
                 </div>
               )}
               {tab === 'media' && (
@@ -599,6 +624,16 @@ export function Workbench(props: WorkbenchProps): ReactNode {
       </main>
       {toastCodes !== null && <Toast codes={toastCodes} />}
       <StatusBar jobsState={jobsState} />
+      {captionDrop !== null && transport !== undefined && transport.captionImport !== undefined && (
+        <CaptionImportDialog
+          file={captionDrop}
+          port={transport.captionImport}
+          app={transport.app}
+          onClose={() => {
+            setCaptionDrop(null)
+          }}
+        />
+      )}
     </div>
   )
 }

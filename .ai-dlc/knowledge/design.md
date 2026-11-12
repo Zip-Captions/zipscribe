@@ -86,7 +86,7 @@ Clipchamp keys verified ✔ (official docs); CapCut has no official list — com
 | Trim block start/end to playhead | `Z+←/→` / `C+←/→` | ✔ Clipchamp — held-letter chord; registry must support it |
 | Loop region on/off | `Y` | `L` is taken by seek |
 | Set in / out from playhead | `I` / `O`; clear `Shift+I` / `Shift+O` | editor convention |
-| Next / previous search match | `F3` / `Shift+F3` (also `⌘G` / `⌘⇧G`) | with search open |
+| Next / previous search match | `F3` / `Shift+F3` (also `⌘G` / `⌘⇧G`; `Ctrl+G` / `Ctrl+Shift+G`) | with search open; both spellings per Platform modifiers above (unit-104 adjudication, PR #15 review F1 — mirrors unit-103 adjudication 10 zoom precedent; frozen in unit-104 acceptance shape, unit-105 snapshot must match) |
 | Collapse sidebar / timeline | `Ctrl+Alt+2` / `Ctrl+Alt+3` | Clipchamp-style collapse |
 | Cycle transcript view (source → translation → side-by-side) | `⌘⇧L` | translation (caption-translation/unit-302) |
 | Next / previous QC issue | `⌘'` / `⌘⇧'` | jumps playhead + selection to the issue's block (unit-104) |

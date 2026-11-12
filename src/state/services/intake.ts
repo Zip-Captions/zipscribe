@@ -109,6 +109,22 @@ function isMediaFile(file: File): boolean {
   return file.type.startsWith('video/') || file.type.startsWith('audio/')
 }
 
+/**
+ * EXTENDS (unit-104 slice D, additive exports for the Workbench caption-drop
+ * intercept, FR-104.9): the SAME frozen classification sets `handleFiles`
+ * uses — the shell decides intake-vs-import-dialog with byte-identical rules
+ * (media anywhere in the drop → intake; caption-only onto an open project →
+ * import dialog).
+ */
+export function isCaptionFileName(name: string): boolean {
+  return CAPTION_EXTENSIONS.has(extensionOf(name))
+}
+
+/** EXTENDS (unit-104 slice D) — media by extension only (MIME is the caller's second check). */
+export function isMediaFileName(name: string): boolean {
+  return MEDIA_EXTENSIONS.has(extensionOf(name))
+}
+
 export function createIntakeService(deps: {
   engine: EnginePort
   jobs: JobsStore

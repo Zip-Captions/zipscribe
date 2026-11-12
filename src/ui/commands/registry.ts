@@ -14,6 +14,12 @@
 // are owned by the mounted Timeline panel (unit-102 MAJOR-5 /
 // useTransportCommands precedent); unit-105 owns the full-table snapshot.
 //
+// unit-104 EXTENDS (frozen in tests/unit/transcript/unit104-api-contract.d.ts
+// § Registry EXTENDS): the transcript search/QC bindings with the additive
+// `when: 'search-open'` gate (design.md: F3/⌘G fire "with search open").
+// Handlers are owned by the mounted Transcript panel (unit-103 Timeline /
+// useTransportCommands precedent).
+//
 // Components never bind keys themselves (ui/commands/useCommands.ts is the
 // only consumer of `dispatchCommand` from the DOM side).
 
@@ -21,8 +27,8 @@ export interface CommandBinding {
   id: string
   /** Normalized chord, e.g. 'Alt+1', 'Ctrl+Alt+2', 'Z+ArrowLeft' (design.md shortcut table format). */
   keys: string
-  /** Gate: never fire while a text-editing path (project-name input) has focus; or (unit-103) only while the timeline region has DOM focus. */
-  when?: 'not-editing' | 'timeline-focused'
+  /** Gate: never fire while a text-editing path (project-name input) has focus; (unit-103) only while the timeline region has DOM focus; (unit-104) only while the transcript search is open (design.md "with search open"). */
+  when?: 'not-editing' | 'timeline-focused' | 'search-open'
 }
 
 // design.md § Keyboard shortcuts (v1 map) — the complete shell subset
@@ -76,7 +82,27 @@ const TIMELINE_BINDINGS: readonly CommandBinding[] = [
   { id: 'timeline.select', keys: 'Enter', when: 'timeline-focused' },
 ]
 
-const ALL_BINDINGS: readonly CommandBinding[] = [...SHELL_BINDINGS, ...TIMELINE_BINDINGS]
+// unit-104 frozen EXTENDS table (ids/chords/gates byte-exact per
+// tests/unit/transcript/unit104-api-contract.d.ts § Registry EXTENDS;
+// src/state/CONTRACT.md § binding EXTENSION; design.md § Keyboard shortcuts
+// rows ⌘F, F3/⌘G/⌘⇧G "with search open", ⌘'/⌘⇧'). The quote chords carry
+// the KeyboardEvent.key token "'" written Meta+' / Meta+Shift+' (useCommands
+// passes single-char keys through uppercased, which is identity for "'").
+// `Shift+Delete` (close-gap delete) stays unit-105 (FR-104.7).
+const UNIT_104_BINDINGS: readonly CommandBinding[] = [
+  { id: 'transcript.search-open', keys: 'Meta+F', when: 'not-editing' },
+  { id: 'transcript.search-open', keys: 'Ctrl+F', when: 'not-editing' },
+  { id: 'search.next', keys: 'F3', when: 'search-open' },
+  { id: 'search.next', keys: 'Meta+G', when: 'search-open' },
+  { id: 'search.next', keys: 'Ctrl+G', when: 'search-open' },
+  { id: 'search.previous', keys: 'Shift+F3', when: 'search-open' },
+  { id: 'search.previous', keys: 'Meta+Shift+G', when: 'search-open' },
+  { id: 'search.previous', keys: 'Ctrl+Shift+G', when: 'search-open' },
+  { id: 'qc.next-issue', keys: "Meta+'", when: 'not-editing' },
+  { id: 'qc.previous-issue', keys: "Meta+Shift+'", when: 'not-editing' },
+]
+
+const ALL_BINDINGS: readonly CommandBinding[] = [...SHELL_BINDINGS, ...TIMELINE_BINDINGS, ...UNIT_104_BINDINGS]
 
 type CommandHandler = () => void
 
@@ -115,6 +141,26 @@ export function isTimelineFocused(): boolean {
   return active.closest('[data-region="timeline"]') !== null
 }
 
+// The unit-104 `search-open` gate: the truth is `editor.searchOpen`, which
+// lives in the app store the registry cannot see — the mounted Transcript
+// panel registers the reader here (registerCommandHandler precedent: an
+// extension beyond the frozen contract, unit-105 owns the final API). No
+// reader mounted ⇒ the gate is CLOSED (the F3/⌘G rows are inert without a
+// transcript panel, and no handler would exist anyway).
+let searchOpenReader: (() => boolean) | null = null
+
+export function registerSearchOpenReader(read: () => boolean): () => void {
+  const previous = searchOpenReader
+  searchOpenReader = read
+  return () => {
+    if (searchOpenReader === read) searchOpenReader = previous
+  }
+}
+
+export function isSearchOpen(): boolean {
+  return searchOpenReader !== null && searchOpenReader()
+}
+
 /** No-op-safe: unknown ids throw; gated bindings are skipped while their gate is closed. */
 export function dispatchCommand(id: string): void {
   const binding = ALL_BINDINGS.find((candidate) => candidate.id === id)
@@ -123,5 +169,6 @@ export function dispatchCommand(id: string): void {
   }
   if (binding.when === 'not-editing' && isEditing()) return
   if (binding.when === 'timeline-focused' && !isTimelineFocused()) return
+  if (binding.when === 'search-open' && !isSearchOpen()) return
   handlers.get(id)?.()
 }

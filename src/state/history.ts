@@ -31,7 +31,7 @@ import type { MediaClock } from './services/playback/media-clock'
 import type { RafDriver, SyncArbitrator } from './services/playback/arbitrator'
 import { createSyncArbitrator } from './services/playback/arbitrator'
 import { NO_OP_TRANSLATION_RULES } from '../engine/translate/track'
-import { buildEditorCommands, DEFAULT_BLOCKIZER, NOT_IMPLEMENTED_SPEAKER_ENGINE, type Blockizer, type CommandDeps, type SpeakerEngine } from './commands'
+import { buildEditorCommands, buildUnit104Commands, DEFAULT_BLOCKIZER, NOT_IMPLEMENTED_SPEAKER_ENGINE, type Blockizer, type CommandDeps, type SpeakerEngine } from './commands'
 import type { CommandId, CommandPayloads, CommandReject, EditorCommand, BlockEditTextPayload, TransportRatePayload } from './commands'
 import type { EditorStore, EditorUiStateInternal } from './editor'
 import { createInitialEditorState, makeEditorActions } from './editor'
@@ -101,7 +101,7 @@ export function createEditorApp(deps: EditorAppDeps): EditorApp {
     blockizer: deps.blockizer ?? DEFAULT_BLOCKIZER,
     newBlockId: () => newUuid('blk'),
   }
-  const commands = buildEditorCommands(commandDeps)
+  const commands: readonly EditorCommand[] = [...buildEditorCommands(commandDeps), ...buildUnit104Commands(commandDeps)]
   const commandsById = new Map<CommandId, EditorCommand>(commands.map((command) => [command.id, command]))
 
   let commitState: (next: EditorRootInternal) => void = () => undefined

@@ -251,6 +251,14 @@ declare module '@state/commands' {
     /** Uniform shift of the whole source track, clamped into [0, asset.duration];
      *  relative gaps preserved; media is never moved (invariant 9). */
     offsetSec: Seconds
+    /** @104 EXTENDS (CONTRACT.md captions-retime-all row, adjudicated
+     *  2026-11-12, FR-104.8): optional two-point-sync stretch via the frozen
+     *  engine `retimeAll` map `t → anchorSec + (t − anchorSec) × scale +
+     *  offsetSec`, clamped into [0, asset.duration]. Omitted → the frozen
+     *  offset-only semantics byte-identically (scale 1, anchor 0). */
+    scale?: number
+    /** @104 EXTENDS: stretch anchor (engine default 0). See `scale`. */
+    anchorSec?: number
   }
   export interface CaptionsReflowPayload {
     /** Policy knob handed to the injected `Blockizer`. */
@@ -735,5 +743,98 @@ interface Window {
      *  play state at the scrub position with NO additional clock seek. */
     scrubTo(time: number): void
     releaseScrub(): void
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// @104 EXTENDS — unit-104 (Transcript Editor) additive contract.
+// APPENDED by the unit-104 test author (2026-11-11) per
+// `src/state/CONTRACT.md` § Commands — unit-104 EXTENDS. Everything above this
+// line is unit-102 FROZEN and untouched; everything below is ADDITIVE
+// (module-merge augmentation only — new ids/payload keys/optional seam
+// members), so every pre-104 suite (101/102/103) stays green untouched.
+// ═══════════════════════════════════════════════════════════════════════════
+
+declare module '@state/commands' {
+  import type { AsrWordInput } from '@engine/captions/align'
+  import type { Seconds } from '@engine/model@102'
+
+  /** The four unit-104 command ids (CONTRACT.md § unit-104 EXTENDS). The
+   *  builder adds these to `CommandId`/`CommandPayloads` in
+   *  `src/state/commands/**`; unknown ids still throw on dispatch. */
+  export type CommandId104 = 'speaker-merge' | 'speaker-split' | 'replace-text' | 'captions-align-apply'
+
+  /** US-1.3.3 merge: ALL effective words of `from` move to `into`; `from` is
+   *  removed from `speakers`; block majorities materialize; one undo step.
+   *  Maps to the merged engine fn as `mergeSpeakers(project, into, from)`
+   *  (src/engine/diarize/assign.ts direction: b→a). Rejections: `from ===
+   *  into` → code `SPEAKER_MERGE_SELF` (the frozen alias is not widened —
+   *  compare via `String(reject.code)`); unknown speaker id →
+   *  `DANGLING_SPEAKER_REF`. Rejected = no state change, NO history step. */
+  export interface SpeakerMergePayload {
+    from: string
+    into: string
+  }
+  /** US-1.3.3 split: `speakerId`'s words with `start >= at` move to a NEW
+   *  APPENDED speaker (next free `SPK_<n>`, label `Speaker <n>`);
+   *  `color` omitted → command-supplied default from the engine palette. One
+   *  undo step. Unknown id → `DANGLING_SPEAKER_REF`. */
+  export interface SpeakerSplitPayload {
+    speakerId: string
+    at: Seconds
+    color?: string
+  }
+  /** US-2.1.6 find/replace over ALL block texts (source track): one dispatch
+   *  replaces EVERY match and produces EXACTLY ONE undo step (US-2.1.6).
+   *  Word times are re-derived by the frozen `block-edit-text` character-
+   *  weight rule per affected block; for same-length replacements of whole
+   *  words the per-word times stay byte-identical (the property-test
+   *  invariant). Zero matches → accepted as a NO-OP: state byte-identical and
+   *  NO history step. */
+  export interface ReplaceTextPayload {
+    query: string
+    replacement: string
+    caseSensitive?: boolean
+    wholeWord?: boolean
+  }
+  /** US-1.4 align-apply (CC-104.7): the scripted ASR word stream
+   *  (`jobs.startTranscribe({ mode: 'align' })` → `job:segments`) applied to
+   *  the source track via the merged `alignCaptionsToWords`
+   *  (src/engine/captions/align.ts): matched words → timing 'aligned',
+   *  unmatched keep 'estimated'. The WHOLE apply is ONE undo step — the
+   *  command mutates every affected block inside a single reduce. SECURITY-03:
+   *  the payload crosses test bridges as the protocol `AsrWordInput` array
+   *  only (synthetic fixture content), never logged. */
+  export interface CaptionsAlignApplyPayload {
+    asrWords: readonly AsrWordInput[]
+  }
+
+  export interface CommandPayloads {
+    'speaker-merge': SpeakerMergePayload
+    'speaker-split': SpeakerSplitPayload
+    'replace-text': ReplaceTextPayload
+    'captions-align-apply': CaptionsAlignApplyPayload
+  }
+}
+
+declare module '@state/history' {
+  import type { CommandId104, CommandPayloads, CommandReject } from '@state/commands'
+  import type { Project, Seconds } from '@engine/model@102'
+
+  export interface SpeakerEngine {
+    /** OPTIONAL (unit-06 is merged — the production default wires the REAL
+     *  `src/engine/diarize/assign.ts` exports; the unit-102
+     *  `FakeSpeakerEngine` omits these and stays valid). Optional so every
+     *  pre-104 fake/consumer typechecks unchanged (CC-06.4 runs through the
+     *  REAL functions wired into `createTestApp`). */
+    mergeSpeakers?(project: Project, from: string, into: string): Project
+    splitSpeaker?(project: Project, speakerId: string, at: Seconds, newColor: string): Project
+  }
+
+  export interface EditorApp {
+    /** EXTENDS: the four unit-104 ids dispatch through the SAME `dispatch`
+     *  (same reject/throw/undo-step semantics as above). Overload form so the
+     *  pre-104 `CommandId` generic is untouched. */
+    dispatch<Id extends CommandId104>(id: Id, payload: CommandPayloads[Id]): CommandReject | null
   }
 }

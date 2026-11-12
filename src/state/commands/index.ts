@@ -3,13 +3,17 @@
 // (clock, speaker engine, translation rules, blockizer, id source) is
 // injected via `CommandDeps` (`buildEditorCommands`, used by
 // `createEditorApp`). The module-level `getEditorCommands()`/`getCommand()`
-// expose the PRODUCTION default table (NO-OP translation rules until
+// expose the PRODUCTION default FROZEN table (NO-OP translation rules until
 // unit-301, unit-05 blockizer, unit-06 `src/engine/diarize/assign` speaker
-// functions per the frozen CONTRACT.md re-point).
+// functions per the frozen CONTRACT.md re-point). unit-104 EXTENDS
+// (CONTRACT.md § Commands — unit-104 EXTENDS): the frozen 26-command table
+// above stays FROZEN and UNCHANGED; the four new ids are built by
+// `buildUnit104Commands(deps)` and APPENDED by the composition
+// (`createEditorApp` dispatches 26 + 4 = 30).
 
 import { newUuid } from '../ids'
 import { NO_OP_TRANSLATION_RULES } from '../../engine/translate/track'
-import { majoritySpeakerId, reassignWords } from '../../engine/diarize/assign'
+import { majoritySpeakerId, reassignWords, mergeSpeakers, splitSpeaker } from '../../engine/diarize/assign'
 import { DEFAULT_BLOCKIZER, type CommandDeps } from './deps'
 import type { CommandId, EditorCommand } from './types'
 
@@ -39,6 +43,10 @@ import { createTransportLoopOutCommand } from './transport-loop-out'
 import { createTransportLoopClearCommand } from './transport-loop-clear'
 import { createTransportLoopToggleCommand } from './transport-loop-toggle'
 import { createTransportRateCommand } from './transport-rate'
+import { createSpeakerMergeCommand } from './speaker-merge'
+import { createSpeakerSplitCommand } from './speaker-split'
+import { createReplaceTextCommand } from './replace-text'
+import { createCaptionsAlignApplyCommand } from './captions-align-apply'
 
 export * from './types'
 export { deriveBlockText } from './derive-text'
@@ -76,13 +84,33 @@ export function buildEditorCommands(deps: CommandDeps): readonly EditorCommand[]
   ]
 }
 
+/**
+ * unit-104 EXTENDS (CONTRACT.md § Commands — unit-104 EXTENDS): the four
+ * registry entries appended to the frozen 26. `createEditorApp` composes
+ * `buildEditorCommands(deps)` + `buildUnit104Commands(deps)` (30 dispatchable
+ * ids); the frozen module-level table above stays 26 (seams-coverage
+ * FR-102.1 pins it).
+ */
+export function buildUnit104Commands(deps: CommandDeps): readonly EditorCommand[] {
+  return [createSpeakerMergeCommand(deps), createSpeakerSplitCommand(deps), createReplaceTextCommand(deps), createCaptionsAlignApplyCommand(deps)]
+}
+
 export const DEFAULT_COMMAND_DEPS: CommandDeps = {
   clock: { now: () => Date.now() },
   // CONTRACT.md § speaker-* family (frozen re-point clause, unit-06 merged):
   // the VERBATIM pure engine functions from `src/engine/diarize/assign.ts`.
   // `NOT_IMPLEMENTED_SPEAKER_ENGINE` stays exported (typed-not-implemented
   // seam for dispatch-without-engine contract coverage).
-  speakerEngine: { majoritySpeakerId, reassignWords },
+  // @104 EXTENDS: the unit-06 US-1.3.3 pair joins the re-point. The seam
+  // direction is (from, into) (CONTRACT.md); `assign.mergeSpeakers(project,
+  // a, b)` merges b→a, so merge is the engine fn behind a one-line direction
+  // adapter; `assign.splitSpeaker` matches the seam argument order VERBATIM.
+  speakerEngine: {
+    majoritySpeakerId,
+    reassignWords,
+    mergeSpeakers: (project, from, into) => mergeSpeakers(project, into, from),
+    splitSpeaker,
+  },
   translationRules: NO_OP_TRANSLATION_RULES,
   blockizer: DEFAULT_BLOCKIZER,
   newBlockId: () => newUuid('blk'),

@@ -4,7 +4,7 @@
 // the engine-06 speaker functions, the unit-301 translation rules and the
 // unit-05 blockizer.
 
-import type { WordToken } from '../../engine/model'
+import type { Project, Seconds, WordToken } from '../../engine/model'
 import type { TranslationRules } from '../../engine/translate/track'
 import { blockize } from '../../engine/asr/blockize'
 
@@ -22,6 +22,24 @@ export type Blockizer = (words: readonly WordToken[], opts: { maxCharsPerLine?: 
 export interface SpeakerEngine {
   majoritySpeakerId(words: readonly WordToken[], fallback: string): string
   reassignWords(words: readonly WordToken[], fromSpeakerId: string, toSpeakerId: string): WordToken[]
+  /**
+   * @104 EXTENDS (CONTRACT.md § Commands — unit-104 EXTENDS, additive so every
+   * pre-104 fake/consumer typechecks unchanged): unit-06 US-1.3.3 merge — ALL
+   * effective words of `from` (explicit `speakerId` or block-inherited) move
+   * to `into`; `from` leaves `speakers`; block majorities re-materialize;
+   * `speakerSource → 'manual'` (invariant 5) carried by the pure fn. Maps to
+   * the merged engine as `assign.mergeSpeakers(project, into, from)` (b→a).
+   * Optional: a command dispatching without it fails with the CODE
+   * `SPEAKER_ENGINE_UNAVAILABLE`.
+   */
+  mergeSpeakers?(project: Project, from: string, into: string): Project
+  /**
+   * @104 EXTENDS: unit-06 US-1.3.3 split — `speakerId`'s words with
+   * `start >= at` move to a NEW APPENDED speaker (next free `SPK_<n>`, label
+   * `Speaker <n>`, color `newColor`); block majorities re-materialize.
+   * VERBATIM the merged engine `assign.splitSpeaker` argument order.
+   */
+  splitSpeaker?(project: Project, speakerId: string, at: Seconds, newColor: string): Project
 }
 
 /**
@@ -35,6 +53,12 @@ export const NOT_IMPLEMENTED_SPEAKER_ENGINE: SpeakerEngine = {
     throw new Error('SPEAKER_ENGINE_UNAVAILABLE')
   },
   reassignWords(): WordToken[] {
+    throw new Error('SPEAKER_ENGINE_UNAVAILABLE')
+  },
+  mergeSpeakers(): Project {
+    throw new Error('SPEAKER_ENGINE_UNAVAILABLE')
+  },
+  splitSpeaker(): Project {
     throw new Error('SPEAKER_ENGINE_UNAVAILABLE')
   },
 }
