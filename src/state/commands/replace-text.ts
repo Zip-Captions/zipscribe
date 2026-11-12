@@ -11,15 +11,18 @@
 // [start,end] envelope (word-spans.ts `respanWords`). `block.text` is
 // re-derived through `deriveBlockText` (invariant 2); no speaker data is
 // touched, the Beta badge never flips (contract: replace-text is not a
-// speaker mutation). Zero matches → return null WITHOUT touching the draft,
-// so the store's project-reference equality yields NO history step.
-// SECURITY-03: rejections carry codes + field-name tokens only.
+// speaker mutation). A replacement that empties a block's TEXT deletes the
+// block (invariant 3 — the same path `block-edit-text` takes on '', including
+// the invariant-10 `TranslationRules.onBlockDelete` hook), still inside this
+// one dispatch = one undo step. Zero matches → return null WITHOUT touching
+// the draft, so the store's project-reference equality yields NO history
+// step. SECURITY-03: rejections carry codes + field-name tokens only.
 
 import type { Project } from '../../engine/model'
 import type { CommandDeps } from './deps'
 import type { CommandReject, EditorCommand, EditorRootState, ReplaceTextPayload } from './types'
 import { deriveBlockText } from './derive-text'
-import { reject } from './validators'
+import { findBlockIndex, reject, validateTranslationIntegrity } from './validators'
 
 /** Whole-word token core: case-fold + strip everything non-alphanumeric
  *  (the frozen normalizeToken family, align.ts, minus the kept whitespace —
@@ -68,6 +71,7 @@ export function createReplaceTextCommand(deps: CommandDeps): EditorCommand<'repl
       const caseSensitive = payload.caseSensitive === true
       const wholeWord = payload.wholeWord === true
       let matched = false
+      const emptied: string[] = []
       for (const block of project.blocks) {
         let blockChanged = false
         const words = block.words.map((w) => {
@@ -81,8 +85,25 @@ export function createReplaceTextCommand(deps: CommandDeps): EditorCommand<'repl
           // frozen); text is re-derived from the words (invariant 2).
           block.words = words
           block.text = deriveBlockText(words)
+          // Invariant 3 (adversary AUDIT): a replace that empties the block's
+          // text deletes it EXACTLY the way `block-edit-text` deletes on '' —
+          // the UI Replace field is freely emptyable (US-2.1.6), and no
+          // empty block may persist. Same invariant-10 bookkeeping path.
+          if (block.text === '') emptied.push(block.id)
           matched = true
         }
+      }
+      if (emptied.length > 0) {
+        // The same pre-check the frozen delete paths run BEFORE splicing; a
+        // rejection discards the whole draft (reject-sentinel), so a blocked
+        // deletion never half-applies the replace pass.
+        const integrity = validateTranslationIntegrity(project)
+        if (integrity !== null) return integrity
+        for (const id of emptied) {
+          const index = findBlockIndex(project.blocks, id)
+          if (index >= 0) project.blocks.splice(index, 1)
+        }
+        for (const id of emptied) deps.translationRules.onBlockDelete(project, id)
       }
       if (!matched) return null // zero matches: draft untouched → no history step
       project.updatedAt = deps.clock.now()
