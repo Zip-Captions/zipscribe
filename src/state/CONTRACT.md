@@ -178,7 +178,10 @@ no speaker data and never flips the badge.
 The keyboard→command BINDING EXTENSION for the transcript
 (`transcript.search-open`, `search.next`, `search.previous`, `qc.next-issue`,
 `qc.previous-issue` — chords per `knowledge/design.md` § Keyboard shortcuts:
-⌘F/Ctrl+F, F3 + ⌘G, Shift+F3 + ⌘⇧G, ⌘', ⌘⇧') is frozen in the unit-104
+⌘F/Ctrl+F, F3 + ⌘G/Ctrl+G, Shift+F3 + ⌘⇧G/Ctrl+Shift+G, ⌘', ⌘⇧' — Ctrl+G
+spellings ORCHESTRATOR-ADJUDICATED at PR #15 review F1 per design.md Platform
+modifiers doctrine (⌘ on macOS, Ctrl elsewhere; unit-103 adjudication 10 zoom
+precedent) and the frozen acceptance shape) is frozen in the unit-104
 acceptance shape; registry `when` gates extend additively as unit-103 did.
 `Shift+Delete` (close-gap delete) stays with unit-105 (FR-104.7).
 
