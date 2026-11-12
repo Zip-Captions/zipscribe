@@ -41,10 +41,19 @@ function carriedField(oldWords: readonly WordToken[], mid: number, pick: (w: Wor
   return undefined
 }
 
-/** Re-derive the block's words over [start,end] by character weight; speaker/probability carried from the old word covering the new token's midpoint. */
+/** Re-derive the block's words over [start,end] by character weight; speaker/probability carried from the old word covering the new token's midpoint.
+ *  unit-104 CC-104.3 EDIT-PRESERVES-TIMING: when the token list maps 1:1 onto
+ *  the old words with EQUAL text lengths (the "fixing spelling" case —
+ *  US-2.1.3, design.md "editing never changes timings"; the same invariant the
+ *  @104 EXTENDS `replace-text` contract row pins: "for same-length replacements
+ *  of whole words the per-word times stay byte-identical"), each word keeps
+ *  its own [start,end] BYTE-IDENTICALLY (the frozen
+ *  `edit-preserves-timing.words.json` golden). Any other edit (word count or
+ *  lengths changed) re-derives by character weight exactly as frozen. */
 export function respanWords(oldWords: readonly WordToken[], tokens: readonly Token[], start: Seconds, end: Seconds): WordToken[] {
   const totalChars = tokens.reduce((sum, t) => sum + t.text.length, 0)
   if (totalChars === 0 || tokens.length === 0) return []
+  const timingPreserved = tokens.length === oldWords.length && tokens.every((t, i) => oldWords[i]?.text.length === t.text.length)
   const span = end - start
   const words: WordToken[] = []
   let cursor = start
@@ -55,8 +64,9 @@ export function respanWords(oldWords: readonly WordToken[], tokens: readonly Tok
     consumed += token.text.length
     const isLast = i === tokens.length - 1
     const naturalEnd = start + (consumed / totalChars) * span
-    const wordStart = round3(cursor)
-    const wordEnd = round3(isLast ? end : naturalEnd)
+    const carried = timingPreserved ? oldWords[i] : undefined
+    const wordStart = carried !== undefined ? carried.start : round3(cursor)
+    const wordEnd = carried !== undefined ? carried.end : round3(isLast ? end : naturalEnd)
     const mid = (wordStart + wordEnd) / 2
     const word: WordToken = { text: token.text, start: wordStart, end: wordEnd }
     const speakerId = carriedField(oldWords, mid, (w) => w.speakerId)
