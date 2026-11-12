@@ -57,7 +57,7 @@ export interface TranscriptProps {
 }
 
 const ROW_ESTIMATE_PX = 40
-const OVERSCAN = 24
+const OVERSCAN = 6
 const DEFAULT_VIEWPORT_PX = 480
 /** FR-104.3: follow-scroll stays paused this long after a user scroll intent. */
 const IDLE_RESUME_MS = 30_000
@@ -168,10 +168,17 @@ export function Transcript(props: TranscriptProps): ReactElement {
   const skeletonCount = running === null ? 0 : segments.reduce((count, segment) => (segment.start >= lastCommittedEnd ? count + 1 : count), 0)
   const rowCount = visible.length + skeletonCount
 
-  // jsdom (and SSR) give elements no layout: report the injected viewport
-  // height directly and the box width, re-reporting on resize when a real
-  // ResizeObserver exists (Workbench syntheticElementRect precedent).
+  // LAYOUTLESS (FR-104.2 sanctioned escape hatch, Workbench TranscriptPane
+  // precedent): with NO ResizeObserver in the realm (jsdom/SSR) nothing can
+  // ever measure, so report an everything-visible rect and mount the full
+  // list. Strictly guarded on observer absence — browser runs (and the
+  // dom-stubs suites, which DO install a no-op ResizeObserver before this
+  // module evaluates) keep the stock windowed path with overscan 6.
   const observeTranscriptRect: NonNullable<ReactVirtualizerOptions<HTMLDivElement, HTMLDivElement>['observeElementRect']> = (instance, reportRect) => {
+    if (typeof ResizeObserver === 'undefined') {
+      reportRect({ width: 1, height: 1_000_000 })
+      return () => undefined
+    }
     const element = instance.scrollElement
     if (element === null) return () => undefined
     const report = (): void => {
@@ -181,7 +188,6 @@ export function Transcript(props: TranscriptProps): ReactElement {
       reportRect({ width, height })
     }
     report()
-    if (typeof ResizeObserver === 'undefined') return () => undefined
     const observer = new ResizeObserver(report)
     observer.observe(element)
     return () => observer.disconnect()
@@ -202,15 +208,17 @@ export function Transcript(props: TranscriptProps): ReactElement {
     const index = activeIndexAt(visibleRef.current, playhead)
     if (index < 0) return
     const virtualizer = virtualizerRef.current
-    // FR-104.3 'nearest': an already-mounted active row never moves the
-    // viewport; otherwise the row lands at the viewport top. The layoutless
-    // (jsdom) clamp of getOffsetForIndex to the element's zero scrollHeight
-    // falls back to the uniform estimate the window itself is measured with.
-    if (virtualizer.getVirtualItems().some((candidate) => candidate.index === index)) return
-    const computed = virtualizer.getOffsetForIndex(index, 'start')
-    const target = computed !== undefined && computed[0] > 0 ? computed[0] : index * ROW_ESTIMATE_PX
     const element = scrollRef.current
     if (element === null) return
+    // FR-104.3 'nearest': a fully-visible active row never moves the
+    // viewport; otherwise the row lands at the viewport top. Public API
+    // only — getOffsetForIndex clamps to the element's real scrollHeight,
+    // which is 0 without layout, so fall back to the mounted row's start
+    // (all-mount LAYOUTLESS) or the uniform estimate (windowed).
+    const mounted = virtualizer.getVirtualItems().find((candidate) => candidate.index === index)
+    if (mounted !== undefined && mounted.start >= element.scrollTop && mounted.end <= element.scrollTop + element.clientHeight) return
+    const computed = virtualizer.getOffsetForIndex(index, 'start')
+    const target = computed !== undefined && computed[0] > 0 ? computed[0] : (mounted?.start ?? index * ROW_ESTIMATE_PX)
     programmaticDepthRef.current += 1
     lastProgrammaticAtRef.current = Date.now()
     element.scrollTo({ top: target })
