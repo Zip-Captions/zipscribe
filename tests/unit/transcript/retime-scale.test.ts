@@ -130,17 +130,21 @@ describe('FR-104.8 / @104 EXTENDS: captions-retime-all scale+offset over the anc
     t.app.history.undo()
     expect(serializeProject(project(t)), 'undo restores byte-equal state').toBe(before)
 
-    // NON-ZERO ANCHOR: scale 1.2, offset 0.2 about anchor 1.0 → round3(1.2t + 0.2).
+    // NON-ZERO ANCHOR: scale 1.2, offset 0.2 about anchor 1.0 →
+    // round3(1.0 + (t − 1.0)·1.2 + 0.2), which algebraically is round3(1.2t)
+    // (orchestrator adjudication 2026-11-12 — engine retimeAll `mapTime`,
+    // src/engine/captions/retime.ts, is spec-of-record; the earlier table
+    // mis-specified the anchor=0 map 1.2t + 0.2 here).
     const a = mount()
     const aBefore = serializeProject(project(a))
     const aUndo = a.app.history.undoCount()
     const aOutcome = dispatch(a.app, 'captions-retime-all', { offsetSec: 0.2, scale: 1.2, anchorSec: 1.0 })
     expect(aOutcome.reject, 'anchor stretch accepted').toBeNull()
     expectStretch(a, 1.0, 1.2, 0.2)
-    expect(geometry(project(a)), 'anchor 1.0 map (1.2t + 0.2)').toEqual([
-      ['blk_a', 0.8, 3.2],
-      ['blk_b', 3.8, 6.2],
-      ['blk_c', 7.7, 9.5],
+    expect(geometry(project(a)), 'anchor 1.0 map round3(1.0 + (t − 1.0)·1.2 + 0.2) = round3(1.2t)').toEqual([
+      ['blk_a', 0.6, 3.0],
+      ['blk_b', 3.6, 6.0],
+      ['blk_c', 7.5, 9.3],
     ])
     expect(a.app.history.undoCount(), 'ONE undo step').toBe(aUndo + 1)
     a.app.history.undo()
