@@ -1,0 +1,240 @@
+/* Unit-104 slice B — transcript panel (design.md § Interaction specs,
+   tokens from workbench.css :root — no raw hex here). */
+
+.ts-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+}
+
+.ts-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 8px;
+}
+
+.ts-beta-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--bg-app);
+  background-color: var(--warning);
+  cursor: help;
+}
+
+.ts-root {
+  position: relative;
+  min-height: 0;
+  contain: paint;
+}
+
+.ts-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  box-sizing: border-box;
+  height: 20px;
+  padding: 0 8px;
+  font-size: 12px;
+  line-height: 19px;
+  color: var(--text-primary);
+  background-color: transparent;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: default;
+}
+
+.ts-row-selected {
+  background-color: var(--selection);
+}
+
+.ts-row:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+}
+
+.ts-chip {
+  flex: none;
+  padding: 1px 8px;
+  border: none;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bg-app);
+  background-color: var(--accent);
+  cursor: pointer;
+}
+
+.ts-chip:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+.ts-timecode {
+  flex: none;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.ts-timecode:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+.ts-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ts-word {
+  cursor: text;
+}
+
+.ts-word-estimated {
+  text-decoration: underline dotted var(--text-secondary);
+  text-underline-offset: 3px;
+}
+
+.ts-confidence-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background-color: var(--text-secondary);
+}
+
+.ts-editor {
+  flex: 1 1 auto;
+  min-width: 0;
+  outline: 1px solid var(--border-focus);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
+.ts-row-action {
+  flex: none;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.ts-row-action:hover {
+  color: var(--danger);
+}
+
+.ts-row-action:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+.ts-popover {
+  position: absolute;
+  z-index: 5;
+  top: 32px;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background-color: var(--bg-overlay);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.ts-popover-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ts-popover-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.ts-rename-input {
+  min-width: 140px;
+  padding: 2px 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background-color: var(--bg-raised);
+  color: var(--text-primary);
+}
+
+.ts-popover-action {
+  padding: 2px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background-color: var(--bg-raised);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.ts-popover-action:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+.ts-popover-action-secondary {
+  background-color: transparent;
+  color: var(--text-secondary);
+}
+
+.ts-swatch {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.ts-swatch:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+/* FR-104.6: streaming shimmer (design.md § Progressive transcription).
+   prefers-reduced-motion: the shimmer never animates. */
+.ts-skeleton {
+  padding: 4px 8px;
+}
+
+.ts-skeleton::before {
+  content: '';
+  display: block;
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--bg-raised), var(--bg-overlay), var(--bg-raised));
+  background-size: 200% 100%;
+  animation: ts-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes ts-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ts-skeleton::before {
+    animation: none;
+  }
+}

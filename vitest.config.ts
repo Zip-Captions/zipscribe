@@ -27,6 +27,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
+    setupFiles: ['src/test-support/matchers.ts'],
     // The gate-spawning scaffold re-enters the suite when it is itself the
     // spawned child (`ZIPSCRIBE_CHILD=1` — same guard as gates.test's own
     // `isChildRun()` check on its recursive test). gates.test invokes

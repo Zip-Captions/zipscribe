@@ -32,6 +32,7 @@ import { useCommands } from '../commands/useCommands'
 import { useTransportCommands } from '../commands/useTransportCommands'
 import { formatTimecode } from '../format'
 import { Timeline } from '../timeline/Timeline'
+import { Transcript } from '../transcript/Transcript'
 import { StageMedia } from './StageMedia'
 import { TranscribePopover } from './TranscribePopover'
 import './workbench.css'
@@ -532,6 +533,8 @@ export function Workbench(props: WorkbenchProps): ReactNode {
               {tab === 'subtitles' && (
                 <div role="tabpanel" id="tabpanel-subtitles" aria-labelledby="tab-subtitles" className="ws-tabpanel">
                   <TranscriptPane segments={jobsState.segments} />
+                  {/* Unit-104 slice B: the transcript panel mounts ALONGSIDE the unit-101 streaming pane (the frozen streaming-segment-row contract stays mounted where the 101 suites pin it). Needs the editor app + the rAF driver, else the reserved streaming-only view renders. */}
+                  {transport !== undefined && transport.rafs !== undefined && <Transcript app={transport.app} rafs={transport.rafs} jobs={jobs} />}
                 </div>
               )}
               {tab === 'media' && (
