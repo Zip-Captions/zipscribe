@@ -30,6 +30,8 @@ import type { EditorApp } from '../../state/history'
 import type { RafDriver } from '../../state/services/playback/arbitrator'
 import type { StageController } from '../../app/stage'
 import type { OverlayRenderer } from '../canvas/overlay'
+import { registerCommandHandler } from '../commands/registry'
+import { ShortcutsOverlay } from '../commands/ShortcutsOverlay'
 import { useCommands } from '../commands/useCommands'
 import { useEditorCommands } from '../commands/useEditorCommands'
 import { useTransportCommands } from '../commands/useTransportCommands'
@@ -427,6 +429,10 @@ export function Workbench(props: WorkbenchProps): ReactNode {
   const { project: currentProject } = useSnapshot(project)
   const [tab, setTab] = useState<SidebarTab>('subtitles')
   const [popoverOpen, setPopoverOpen] = useState(false)
+  // FR-105.4 (US-2.3.3): the ⌘/ shortcuts overlay is Workbench-owned (the
+  // frozen seam mounts it when view.shortcuts-overlay dispatches); Esc /
+  // backdrop close flows through ShortcutsOverlay's onClose.
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [toastCodes, setToastCodes] = useState<readonly string[] | null>(null)
   const [importReport, setImportReport] = useState<ImportReport | null>(null)
   // FR-104.9 (slice D): the caption file whose import dialog is open.
@@ -488,6 +494,10 @@ export function Workbench(props: WorkbenchProps): ReactNode {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
+
+  // FR-105.4: the always-live ⌘/ chord resolves through the registry
+  // (useCommands is the only keydown consumer); this handler owns the mount.
+  useEffect(() => registerCommandHandler('view.shortcuts-overlay', () => setShortcutsOpen(true)), [])
 
   if (jobsState.capability?.tier === 'T4') return <BlockedScreen reasons={jobsState.capability.reasons} />
 
@@ -626,6 +636,13 @@ export function Workbench(props: WorkbenchProps): ReactNode {
       </main>
       {toastCodes !== null && <Toast codes={toastCodes} />}
       <StatusBar jobsState={jobsState} />
+      {shortcutsOpen && (
+        <ShortcutsOverlay
+          onClose={() => {
+            setShortcutsOpen(false)
+          }}
+        />
+      )}
       {captionDrop !== null && transport !== undefined && transport.captionImport !== undefined && (
         <CaptionImportDialog
           file={captionDrop}

@@ -1,4 +1,4 @@
-// Vitest setup: the one jest-dom matcher the frozen UI suites use, without a
+// Vitest setup: the jest-dom matchers the frozen UI suites use, without a
 // new dependency (settings.yml approved_dependencies stays exact). Registered
 // via `test.setupFiles` so every test file sees it through `import { expect }
 // from 'vitest'`. Types follow the pinned 4.x contract (vitest.dev/guide/
@@ -12,11 +12,13 @@ declare module 'vitest' {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
   interface Matchers<T = any> {
     toBeInTheDocument: () => void
+    toHaveAttribute: (name: string, value?: string) => void
   }
 }
 
 interface MaybeElement {
   ownerDocument?: { contains?: (node: unknown) => boolean } & Node
+  getAttribute?: (name: string) => string | null
 }
 
 expect.extend({
@@ -27,6 +29,15 @@ expect.extend({
     return {
       pass,
       message: () => `expected element ${pass ? 'not ' : ''}to be present in the document`,
+    }
+  },
+  toHaveAttribute(received: unknown, name: string, value?: string): { pass: boolean; message: () => string } {
+    const element = received as MaybeElement | null | undefined
+    const actual = element != null && typeof element.getAttribute === 'function' ? element.getAttribute(name) : null
+    const pass = actual !== null && (value === undefined || actual === value)
+    return {
+      pass,
+      message: () => `expected element ${pass ? 'not ' : ''}to have attribute ${name}${value === undefined ? '' : ` with value ${value}, got ${String(actual)}`}`,
     }
   },
 })

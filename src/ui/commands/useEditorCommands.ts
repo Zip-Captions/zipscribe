@@ -7,10 +7,12 @@
 // Deliberately unregistered here:
 //  * translate.cycle-view — handler arrives with unit-302 (dispatch of an
 //    unhandled id is the registry's documented no-op, registry.ts);
-//  * view.captions-toggle and view.shortcuts-overlay — the frozen seam
-//    (unit105-api-contract.d.ts) injects no callback for captions-toggle and
-//    the overlay mount is the ShortcutsOverlay/Workbench owner; the chords
-//    resolve through the registry either way.
+//  * view.captions-toggle — caption overlay rendering/preview is Intent 3
+//    (the shell only reserves the canvas overlay layer), so the binding is
+//    the documented no-op until that intent lands;
+//  * view.shortcuts-overlay — the overlay mount is the ShortcutsOverlay/
+//    Workbench owner (frozen seam, unit105-api-contract.d.ts); the chord
+//    resolves through the registry either way.
 // `platform` is accepted for CmdOrCtrl-aware consumers (overlay glyphs);
 // chord resolution itself reads the event's modifier flags in useCommands,
 // so no handler here branches on it.
