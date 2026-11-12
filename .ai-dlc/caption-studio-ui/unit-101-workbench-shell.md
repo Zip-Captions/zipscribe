@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done   # merged (PR #10 → 4eb86e2 — "Phase 2: Workbench shell"); board sync during unit-104 run (precedent unit-103/68cdec6); gates + CC-101.6 [MANUAL] orchestrator evidence in docs/overnight-reports/unit-101.md (all green at d7794c4)
 phase: mvp
 discipline: frontend
 depends_on: [local-transcribe-engine/unit-01-scaffold-quality-gates]   # engine units (04/05/07) are consumed via mocked worker + contract types

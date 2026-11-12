@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done   # merged (PR #11 → 51cd791 — "Phase 2: Editor core (CONTRACT FREEZE)"); board sync during unit-104 run (precedent unit-103/68cdec6); gates + CC-102.7 [MANUAL] orchestrator evidence in docs/overnight-reports/unit-102.md (all green, coverage @ 0ec471f)
 phase: mvp
 discipline: frontend
 depends_on: [unit-101-workbench-shell]

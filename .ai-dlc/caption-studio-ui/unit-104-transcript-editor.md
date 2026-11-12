@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done   # merged (PR #15 → b54ee03, 2026-11-12T18:00Z); reviewer R1 CHANGES_REQUESTED (F1 binding drift adjudicated into design.md/CONTRACT.md; F2–F7 fixed; F8 test strengthened), R2 APPROVE; BUILD_VERIFIED gates green at bcab122 and d66b254 (tests-only head 5081c16 re-verified); adversary AUDIT found+fixed invariant-3 replace-to-empty; CC-104.9 gate-derived anchor
 phase: mvp
 discipline: frontend
 depends_on: [unit-102-editor-core-playback, unit-103-timeline, local-transcribe-engine/unit-06-speaker-diarization, local-transcribe-engine/unit-07-caption-import]
@@ -62,3 +62,7 @@ Subtitles tab: virtualized block list with speaker chips, timecodes, click-word-
 ## Docs to consult
 
 - docs-mcp `@tanstack/react-virtual` (dynamic sizes) · knowledge/design.md (interaction specs) · CapCut transcript-editing doc (design § Sources)
+
+## Merge record (orchestrator)
+
+Status: **MERGED** — PR #15 squash-merged to develop as `b54ee03` (2026-11-12T18:00Z); CI green (run 43271292708: quality 22m41s ✓, fixtures-verify ✓, preview-deploy ✓). Test-author RED (a22893d + amendments 99c7012/46455e3/5e96b70) → builder slices A–D → contract EXTENDS adjudications (close-gap midpoint, retime-all scale/anchor; four commands) → BUILD_VERIFIED (orchestrator re-ran every gate at bcab122 and d66b254; 1505→1508 tests green, coverage 95.54/90.34/96.99/98.42, bundle 125.1/350 KB, e2e 110/22/0, verify:unit 9/9) → adversary AUDIT (1 genuine violation: replace-to-empty persisted `text:''` — fixed 48977a4, invariant-3 delete path) → reviewer cap-3 fresh-context rounds (R1 CHANGES_REQUESTED: F1 Ctrl+G/Ctrl+Shift+G binding drift adjudicated into design.md/CONTRACT.md per Platform-modifiers doctrine + unit-103 adj.10 precedent, F2/F4/F5/F6/F7 fixer, F3 hidden-speaker→Timeline documented deviation, F8 zero-match `updatedAt` kill-check survival killed; R2 APPROVE — all six kill-check classes re-mutated red incl. perf non-vacuity OVERSCAN 305>bound) → merge. Gates at head d66b254: lint ✓ · typecheck ✓ · format:check ✓ · vitest 189/1508 ✓ w/ coverage · build+check-bundle 125.1/350 KB ✓ · chromium e2e 110/22-skip ✓ · verify:unit all untagged ✓ · qualification ACCEPT (record re-signed 28989fa). Follow-ups: word-range paint residual (OBSERVATION); RETIME_DEGENERATE dead branch; US-2.1.7 timeline-side speaker filter (seeded); align-error/close-button now test-covered (5081c16). All evidence in docs/overnight-ledger.md.
