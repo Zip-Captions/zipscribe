@@ -114,7 +114,7 @@ describe('CC-104.4 (L2): search bar — open · debounce · count · match spans
       act(() => {
         vi.advanceTimersByTime(60)
       })
-      expect(screen.getAllByTestId('transcript-search-match').length, 'not committed before the 120 ms debounce').toBe(0)
+      expect(screen.queryAllByTestId('transcript-search-match').length, 'not committed before the 120 ms debounce').toBe(0)
       act(() => {
         vi.advanceTimersByTime(60)
       })
@@ -196,7 +196,11 @@ describe('CC-104.4 (L2): search bar — open · debounce · count · match spans
       expect(app.history.undoCount(), 'Replace-all is EXACTLY ONE undo step').toBe(undoBefore + 1)
       expect(JSON.stringify(project(app).blocks.map((b) => b.text)), 'all four matches replaced').not.toBe(before)
       expect(project(app).blocks.find((b) => b.id === 'blk_s1')?.text).toBe('olpha Beta olpha')
-      expect(project(app).blocks.find((b) => b.id === 'blk_s2')?.text).toBe('olphabet OLPHA BETA')
+      // Verbatim replacement per the frozen L1 oracle (search-replace.property
+      // .test.ts replaceInsensitive: out += text.slice(at, found) + replacement
+      // — 'ALP' → 'olp' + untouched 'HA'), not case-preserving (orchestrator
+      // adjudication 2026-11-12 round 4; L1 replace-text semantics of record).
+      expect(project(app).blocks.find((b) => b.id === 'blk_s2')?.text).toBe('olphabet olpHA BETA')
       app.history.undo()
       expect(JSON.stringify(project(app).blocks.map((b) => b.text)), 'one undo restores everything').toBe(before)
       expect(redaction.settle().clean).toBe(true)

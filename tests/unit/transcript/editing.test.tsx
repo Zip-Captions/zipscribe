@@ -47,7 +47,7 @@ function project(app: EditorApp): Project {
 }
 
 async function openEditor(): Promise<HTMLElement> {
-  const wordEl = screen.getByTestId('transcript-word')
+  const wordEl = screen.getAllByTestId('transcript-word')[0]
   const target = screen.getAllByTestId('transcript-word')[1]!
   expect(wordEl, 'word spans render').toBeDefined()
   const user = userEvent.setup({ delay: null })
@@ -98,11 +98,18 @@ describe('CC-104.3 (L2): in-place editing — goldens, break, revert, blur, past
     try {
       const { app, dispose } = await mount()
       const editor = await openEditor()
-      await typeText(editor, 'alpha beta gamma')
+      await typeText(editor, 'alpha')
       const user = userEvent.setup({ delay: null })
-      await user.keyboard('{Shift>}{Enter}{/Shift}{Enter}')
+      // Break placed MID-TEXT (type the first word, break, then the rest):
+      // domain.md invariant 2 (text == words joined by ' ' / '\n' after
+      // breakAfter) makes a TRAILING breakAfter emit no character, so a
+      // trailing '\n' in text is impossible — mid-text breaks are the only
+      // observable form (orchestrator adjudication 2026-11-12).
+      await user.keyboard('{Shift>}{Enter}{/Shift}')
+      await user.type(editor, ' beta gamma')
+      await user.keyboard('{Enter}')
       const blk = project(app).blocks.find((b) => b.id === 'blk_a')!
-      expect(blk.text, 'Shift+Enter produced a manual break — text carries \\n').toContain('\n')
+      expect(blk.text, 'Shift+Enter produced a manual break — text carries an internal \\n').toContain('\n')
       expect(blk.words.some((w) => w.breakAfter === true), 'a word carries breakAfter').toBe(true)
       expect(redaction.settle().clean).toBe(true)
       dispose()
