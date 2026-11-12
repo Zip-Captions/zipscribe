@@ -33,7 +33,10 @@ describe('CC-105.3: platform variant resolution (CmdOrCtrl)', () => {
   test('CC-105.3: modifier order normalizes to Meta+Ctrl+Alt+Shift+<key> regardless of input order', async ({ skip }) => {
     skip(CHILD, CHILD_REASON)
     const { parseKeySpec } = await load()
-    expect(parseKeySpec('Shift+Ctrl+Meta+A', 'mac').keys).toBe('Meta+Shift+A')
+    // Amendment (CC-105.3, orchestrator adjudication): Ctrl is KEPT per the
+    // frozen order contract, unit105-api-contract.d.ts:104-106
+    // ('Meta+Ctrl+Alt+Shift+<key>'); a real ⌘⌃A keydown emits metaKey+ctrlKey.
+    expect(parseKeySpec('Shift+Ctrl+Meta+A', 'mac').keys).toBe('Meta+Ctrl+Shift+A')
     expect(parseKeySpec('Shift+Alt+Ctrl+Meta+2', 'mac').keys).toBe('Meta+Ctrl+Alt+Shift+2')
     expect(parseKeySpec('Shift+Alt+Ctrl+Meta+2', 'mac').modifiers).toEqual(['Meta', 'Ctrl', 'Alt', 'Shift'])
     expect(parseKeySpec('Shift+Alt+Ctrl+Meta+2', 'mac').base).toBe('2')
