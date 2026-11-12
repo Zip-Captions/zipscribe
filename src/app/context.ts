@@ -20,6 +20,7 @@ import { createWorkerEnginePort } from '../state/services/engine-port'
 import type { WorkerEnginePort } from '../state/services/engine-port'
 import { createEditorApp } from '../state/history'
 import type { EditorApp } from '../state/history'
+import { DEFAULT_COMMAND_DEPS } from '../state/commands'
 import { createDeferredMediaClock } from '../state/services/playback/media-clock'
 import type { DeferredMediaClock } from '../state/services/playback/media-clock'
 import type { RafDriver } from '../state/services/playback/arbitrator'
@@ -72,12 +73,18 @@ async function buildAppContext(): Promise<AppContext> {
   // clock (the stage attaches the `<video>` when a source lands), a
   // wall-clock for the merge-window, and the browser rAF driver (the app's
   // ONE rAF loop).
+  // @104 EXTENDS: the PRODUCTION speaker engine is the merged unit-06
+  // `src/engine/diarize/assign.ts` pure fns behind `DEFAULT_COMMAND_DEPS`
+  // (CONTRACT.md § speaker-* family re-point + § unit-104 EXTENDS — including
+  // the US-1.3.3 merge/split pair). `NOT_IMPLEMENTED_SPEAKER_ENGINE` stays the
+  // dispatch-without-engine seam default inside `createEditorApp`.
   const mediaClock = createDeferredMediaClock()
   const rafs = createBrowserRafDriver()
   const editorApp = createEditorApp({
     clock: { now: () => Date.now() },
     rafs,
     mediaClock,
+    speakerEngine: DEFAULT_COMMAND_DEPS.speakerEngine,
   })
   const stage = createStageController({ onAttachElement: (element) => mediaClock.attach(element) })
 

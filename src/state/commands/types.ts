@@ -4,6 +4,7 @@
 // (103/104/105/106, Intent 3) import them through `src/state/generated/contract-types.ts`.
 
 import type { CaptionBlock, Project, Seconds, Speaker } from '../../engine/model'
+import type { AsrWordInput } from '../../engine/captions/align'
 import type { EditorUiState } from '../editor'
 
 export type CommandId =
@@ -33,6 +34,12 @@ export type CommandId =
   | 'transport-loop-clear'
   | 'transport-loop-toggle'
   | 'transport-rate'
+  // unit-104 EXTENDS (CONTRACT.md § Commands — unit-104 EXTENDS, orchestrator
+  // adjudication 2026-11-11): the frozen 26 stay untouched; these four append.
+  | 'speaker-merge'
+  | 'speaker-split'
+  | 'replace-text'
+  | 'captions-align-apply'
 
 export interface BlockSplitPayload {
   blockId: string
@@ -62,6 +69,14 @@ export interface CaptionsRetimeAllPayload {
   /** Uniform shift of the whole source track, clamped into [0, asset.duration];
    * relative gaps preserved; media is never moved (invariant 9). */
   offsetSec: Seconds
+  /** @104 EXTENDS (CONTRACT.md captions-retime-all row, adjudicated
+   * 2026-11-12, FR-104.8 two-point sync): optional stretch via the frozen
+   * engine `retimeAll` map t → anchorSec + (t − anchorSec) × scale +
+   * offsetSec, clamped into [0, asset.duration]. Omitted → the frozen
+   * offset-only semantics byte-identically (scale 1, anchor 0). */
+  scale?: number
+  /** @104 EXTENDS: stretch anchor (engine default 0). See `scale`. */
+  anchorSec?: number
 }
 export interface CaptionsReflowPayload {
   /** Policy knob handed to the injected `Blockizer`. */
@@ -117,6 +132,47 @@ export interface TransportRatePayload {
   rate: number
 }
 
+// ── unit-104 EXTENDS payloads (CONTRACT.md § Commands — unit-104 EXTENDS) ───
+
+export interface SpeakerMergePayload {
+  /** US-1.3.3 merge: ALL effective words of `from` (explicit `speakerId` or
+   * block-inherited) move to `into`; `from` leaves `speakers`; block
+   * majorities re-materialize. `from === into` rejects
+   * (`SPEAKER_MERGE_SELF`); unknown id rejects (`DANGLING_SPEAKER_REF`).
+   * ONE undo step. */
+  from: string
+  into: string
+}
+export interface SpeakerSplitPayload {
+  /** US-1.3.3 split: `speakerId`'s words with `start >= at` move to a NEW
+   * APPENDED speaker (next free `SPK_<n>`, label `Speaker <n>`); `color`
+   * omitted → the engine palette. Unknown id rejects
+   * (`DANGLING_SPEAKER_REF`). ONE undo step. */
+  speakerId: string
+  at: Seconds
+  color?: string
+}
+export interface ReplaceTextPayload {
+  /** US-2.1.6 find/replace over ALL block texts (source track): ONE dispatch
+   * replaces EVERY match = EXACTLY ONE undo step. Word TIMINGS unchanged
+   * (edit-preserves-timing: per-token replacement keeps each word's span;
+   * equal-length replacements are byte-identical through the frozen
+   * `block-edit-text` character-weight rule). Zero matches → NO-OP: state
+   * byte-identical and NO history step. */
+  query: string
+  replacement: string
+  caseSensitive?: boolean
+  wholeWord?: boolean
+}
+export interface CaptionsAlignApplyPayload {
+  /** US-1.4 align-apply (CC-104.7): the merged engine-07
+   * `alignCaptionsToWords` applied to the source track — matched words copy
+   * the ASR times and get timing 'aligned'; unmatched re-interpolate and
+   * stay 'estimated'; text NEVER changes. The WHOLE apply is ONE undo step.
+   * SECURITY-03: protocol objects only, never logged. */
+  asrWords: readonly AsrWordInput[]
+}
+
 export interface CommandPayloads {
   'block-split': BlockSplitPayload
   'block-merge': BlockMergePayload
@@ -144,6 +200,11 @@ export interface CommandPayloads {
   'transport-loop-clear': undefined
   'transport-loop-toggle': undefined
   'transport-rate': TransportRatePayload
+  // unit-104 EXTENDS (additive; the frozen 26 rows above are untouched).
+  'speaker-merge': SpeakerMergePayload
+  'speaker-split': SpeakerSplitPayload
+  'replace-text': ReplaceTextPayload
+  'captions-align-apply': CaptionsAlignApplyPayload
 }
 
 /** SECURITY-03: code + structural token (an id or a number) only. */
@@ -163,6 +224,9 @@ export type CommandRejectCode =
   | 'MERGE_NOT_ADJACENT'
   | 'SPEAKER_ID_IMMUTABLE'
   | 'SPEAKER_LABEL_EMPTY'
+  /** unit-104 EXTENDS (CONTRACT.md § unit-104 EXTENDS): `speaker-merge` with
+   * `from === into` — the frozen alias is not widened (frozen d.ts @104). */
+  | 'SPEAKER_MERGE_SELF'
   | 'OUT_OF_MEDIA'
   | 'LOOP_RANGE_INVALID'
   | 'RATE_INVALID'

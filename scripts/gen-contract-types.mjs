@@ -53,6 +53,11 @@ const MODULES = [
       'TransportStepSecondPayload',
       'TransportLoopSetPayload',
       'TransportRatePayload',
+      // unit-104 EXTENDS (CONTRACT.md § Commands — unit-104 EXTENDS).
+      'SpeakerMergePayload',
+      'SpeakerSplitPayload',
+      'ReplaceTextPayload',
+      'CaptionsAlignApplyPayload',
     ],
   },
   { specifier: '../editor', names: ['EditorUiState', 'EditorStore', 'Selection'] },
@@ -133,7 +138,8 @@ lines.push('// reducer table and the frozen shape fails `pnpm typecheck`, silent
 lines.push('type Assert<T extends true> = T')
 lines.push('type KeySetEquals<A, B> = [keyof A] extends [B] ? ([B] extends [keyof A] ? true : false) : false')
 lines.push('')
-lines.push('/** The payload table is exhaustive over the 26 frozen command ids (no extra, no missing). */')
+lines.push('/** The payload table is exhaustive over the command ids (no extra, no missing):')
+lines.push(' *  the frozen 26 (FR-102.1) + the 4 unit-104 EXTENDS (CONTRACT.md § unit-104 EXTENDS). */')
 lines.push('type _payloadDomain = Assert<KeySetEquals<CommandPayloads, CommandId>>')
 lines.push('')
 lines.push('/** FR-102.3: the arbitrator layer is the sanctioned clock reader — `clockTime()` is')
