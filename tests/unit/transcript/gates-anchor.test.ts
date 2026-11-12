@@ -6,8 +6,14 @@
 // (gate command tails) — this test pins the WIRING so a gate cannot silently
 // disappear while the unit is in flight.
 // <!-- gate-derived criterion per CC-101.6/CC-102.7/CC-103.6 precedent;
-//      evidence: orchestrator BUILD_VERIFIED record pending (head + gate
-//      tails to be appended by orchestrator) -->
+//      evidence: orchestrator BUILD_VERIFIED 2026-11-12 at bcab122 —
+//      lint/typecheck/format:check exit 0 · pnpm test 188 files 1505
+//      passed/1 skipped/1 todo exit 0 · pnpm test --coverage exit 0
+//      (Statements 95.54% Branches 90.34% Functions 96.99% Lines 98.42%) ·
+//      build+check-bundle 124.9 KB ≤ 350 KB · pnpm test:e2e 110 passed/22
+//      skipped/0 failed (9.9 min, retry-pass reporter clean) · verify:unit
+//      9/9 untagged CC-104 rows pass
+//      (reports/criteria/unit-104-transcript-editor.md) -->
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, test } from 'vitest'
 
