@@ -144,6 +144,20 @@ declare module '@engine/model@104' {
   export type { CaptionBlock, MediaAsset, Project, Seconds, Speaker, WordToken } from '@engine/model'
 }
 
+// @104 EXTENDS (CONTRACT.md § Commands — captions-retime-all row, adjudicated
+// 2026-11-12; FR-104.8 two-point sync): the frozen offset-only payload is
+// widened ADDITIVELY with the frozen engine `retimeAll` stretch knobs.
+// Interface-merge re-declaration of the identical optional members — the
+// authoritative shape is `CaptionsRetimeAllPayload` in
+// unit102-api-contract.d.ts (frozen row as amended); omitted fields keep the
+// frozen uniform-shift semantics byte-identically.
+declare module '@state/commands' {
+  export interface CaptionsRetimeAllPayload {
+    scale?: number
+    anchorSec?: number
+  }
+}
+
 // ── L2 mount surface (jsdom): the transcript panel component ────────────────
 declare module '@ui/transcript/Transcript' {
   import type { EditorApp } from '@state/history'

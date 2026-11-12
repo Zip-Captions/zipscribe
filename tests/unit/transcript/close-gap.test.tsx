@@ -1,7 +1,7 @@
 // CC-104.8 (L1 + L2): close-gap deletion — deleting a block collapses the
 // gap to the MIDPOINT of the neighbours (frozen criterion: `previous.end =
-// next.start = round3((prevEnd + nextStart) / 2)` = 2.652 for
-// prev.end 2.101 / next.start 3.202), ONE undo step, everything after the
+// next.start = round3((prevEnd + nextStart) / 2)` = 3.551 for the surviving
+// neighbours prev.end 2.101 / next.start 5.0 — blk_g deleted), ONE undo step, everything after the
 // deletion byte-identical; and the row carries the frozen
 // `[data-testid=transcript-close-gap]` button affordance (the Shift+Delete
 // BINDING is unit-105, FR-104.7). Canary-bearing suite (blk_tail) — spy

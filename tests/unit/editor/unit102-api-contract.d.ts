@@ -251,6 +251,14 @@ declare module '@state/commands' {
     /** Uniform shift of the whole source track, clamped into [0, asset.duration];
      *  relative gaps preserved; media is never moved (invariant 9). */
     offsetSec: Seconds
+    /** @104 EXTENDS (CONTRACT.md captions-retime-all row, adjudicated
+     *  2026-11-12, FR-104.8): optional two-point-sync stretch via the frozen
+     *  engine `retimeAll` map `t → anchorSec + (t − anchorSec) × scale +
+     *  offsetSec`, clamped into [0, asset.duration]. Omitted → the frozen
+     *  offset-only semantics byte-identically (scale 1, anchor 0). */
+    scale?: number
+    /** @104 EXTENDS: stretch anchor (engine default 0). See `scale`. */
+    anchorSec?: number
   }
   export interface CaptionsReflowPayload {
     /** Policy knob handed to the injected `Blockizer`. */

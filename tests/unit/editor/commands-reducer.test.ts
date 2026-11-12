@@ -193,7 +193,26 @@ describe('CC-102.3: deletions never move media (invariant 9) and never orphan sp
     const blocks = projectOf(app).blocks
     expect(blocks.map((b) => b.id)).toEqual(['blk_a', 'blk_c'])
     expect(blocks[0]?.end, 'previous neighbour extends to the next start').toBe(blocks[1]?.start)
-    expect(blocks[1]?.start, 'the later block is NOT shifted (invariant 9)').toBe(6.25)
+    // ORCH AMENDMENT (FR-104.7 / CC-104.8 / CONTRACT.md block-delete-close-gap
+    // row, adjudicated 2026-11-12): the command "extends its neighbours to
+    // meet at the gap midpoint" — blk_c is the NEXT NEIGHBOUR (one of the two
+    // the command extends), so its start moves to round3((2.5 + 6.25) / 2).
+    // Invariant 9 ("never shifts later blocks") binds blocks BEYOND the two
+    // neighbours; blk_c is the LAST block (no later blocks exist), so the
+    // asset-unchanged assertion plus the neighbour word-bounds checks below
+    // (invariants 1/6) carry that intent.
+    const CLOSE_MIDPOINT = Math.round(((2.5 + 6.25) / 2) * 1000) / 1000
+    expect(blocks[1]?.start, 'the later neighbour extends to the gap MIDPOINT (FR-104.7)').toBe(CLOSE_MIDPOINT)
+    expect(CLOSE_MIDPOINT, 'midpoint oracle sanity (prev.end 2.5 / next.start 6.25)').toBe(4.375)
+    const meet = blocks[0]?.end ?? 0
+    for (const w of blocks[0]?.words ?? []) {
+      expect(w.start, 'blk_a words never move before the block start').toBeGreaterThanOrEqual(blocks[0]?.start ?? 0)
+      expect(w.end, 'blk_a words end at or before the meeting point (invariant 1)').toBeLessThanOrEqual(meet)
+    }
+    for (const w of blocks[1]?.words ?? []) {
+      expect(w.start, 'blk_c words start at or after the new (midpoint) start').toBeGreaterThanOrEqual(blocks[1]?.start ?? 0)
+      expect(w.end, 'blk_c words end at or before the block end (invariant 6)').toBeLessThanOrEqual(blocks[1]?.end ?? 0)
+    }
     expect(projectOf(app).asset, 'media metadata untouched').toEqual(assetBefore)
   })
 
