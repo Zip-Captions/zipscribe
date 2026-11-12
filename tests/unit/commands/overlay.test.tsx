@@ -118,7 +118,8 @@ describe('CC-105.4: the ⌘/ overlay — filter, grouping, glyphs, coverage', ()
     expect(byLabel.length, 'zoom commands match by label').toBeGreaterThanOrEqual(3)
     // No match → zero rows.
     fireEvent.change(filter, { target: { value: 'qqzz-no-such-command' } })
-    expect(screen.getAllByTestId('shortcuts-row').length, 'nonsense filter matches nothing').toBe(0)
+    // Orchestrator adjudication (CC-105.4, frozen-test defect amendment): RTL getAllBy* throws on an empty match set, so it can never assert a zero count; queryAllBy* is the zero-count spelling (same fix as the unit-104 getAllBy-empty amendment; precedent: search-ui.test.tsx, unit104-adversarial.test.tsx).
+    expect(screen.queryAllByTestId('shortcuts-row').length, 'nonsense filter matches nothing').toBe(0)
   })
 
   test('CC-105.4: rows are grouped under the five category headings', async ({ skip }) => {
