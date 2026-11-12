@@ -1,12 +1,14 @@
-// Unit-104 slice B — the Subtitles-tab transcript panel (FR-104.1/2/3/6,
-// US-2.1.1/2.1.2/2.1.7). Shape frozen by tests/unit/transcript/
+// Unit-104 slices B+C — the Subtitles-tab transcript panel (FR-104.1/2/3/4/5/6,
+// US-2.1.1/2.1.2/2.1.3/2.1.6/2.1.7). Shape frozen by tests/unit/transcript/
 // unit104-api-contract.d.ts § '@ui/transcript/Transcript'. Thin render layer
 // (conventions § UI conventions): every mutation goes through `app.dispatch`
 // (the frozen command system) — the component binds NO keys (the in-place
-// editor commit is the frozen slice-C editable-allowlist exception, not
-// mounted here), reads stores through selector subscriptions (zero store-wide
-// re-renders), and keeps all content on-screen only (SECURITY-03: nothing
-// content-bearing is ever logged).
+// editor is the frozen editable-allowlist exception under
+// src/ui/transcript/editable/; keyboard handling lives in the command
+// registry, whose transcript bindings this panel owns via
+// registerCommandHandler while mounted), reads stores through selector
+// subscriptions (zero store-wide re-renders), and keeps all content
+// on-screen only (SECURITY-03: nothing content-bearing is ever logged).
 //
 // Virtualization (FR-104.2): @tanstack/react-virtual v3 DYNAMIC-size mode —
 // the `measureElement` callback ref on every `data-index` row with an
@@ -31,7 +33,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
-import type { MouseEvent as ReactMouseEvent, ReactElement } from 'react'
+import type { MouseEvent as ReactMouseEvent, ReactElement, ReactNode } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { ReactVirtualizerOptions } from '@tanstack/react-virtual'
 import type { CaptionBlock, Seconds, Speaker } from '../../engine/model'
@@ -40,7 +42,11 @@ import type { JobsStore, JobsState } from '../../state/jobs'
 import type { RafDriver } from '../../state/services/playback/arbitrator'
 import { formatTimecode } from '../format'
 import { TimecodeInput } from '../editable/TimecodeInput'
+import { registerCommandHandler, registerSearchOpenReader } from '../commands/registry'
 import { registerTranscriptPanel } from './bridge-seam'
+import { BlockEditor } from './editable/BlockEditor'
+import { findMatches, groupMatches } from './match-index'
+import { getQcIssueCursor } from './qc-cursor-seam'
 import { SpeakerPopover } from './SpeakerPopover'
 import { speakerPalette } from './palette'
 import './transcript.css'
@@ -63,6 +69,8 @@ const DEFAULT_VIEWPORT_PX = 480
 const IDLE_RESUME_MS = 30_000
 /** Scroll events this close after a programmatic write are the browser's echo of our own move — never user intent. */
 const PROGRAMMATIC_IGNORE_MS = 150
+/** US-2.1.6: the query is committed 120 ms after the last keystroke. */
+const SEARCH_DEBOUNCE_MS = 120
 
 const NO_BLOCKS: readonly CaptionBlock[] = Object.freeze([])
 const NO_SPEAKERS: readonly Speaker[] = Object.freeze([])
@@ -111,6 +119,34 @@ function speakerLabel(speakers: readonly Speaker[], speakerId: string): string {
   return speakers.find((speaker) => speaker.id === speakerId)?.label ?? 'Unknown speaker'
 }
 
+/**
+ * FR-104.5 highlight rendering: per-occurrence TEXT-RANGE spans around plain
+ * text slices — never innerHTML, never markup inside a match span (frozen
+ * assertion: no b/i/span[style] descendants).
+ */
+function highlightWordParts(text: string, occurrences: readonly { start: number; end: number; index: number }[] | undefined, active: number): ReactNode[] {
+  if (occurrences === undefined || occurrences.length === 0) return [text]
+  const parts: ReactNode[] = []
+  let cursor = 0
+  for (const occurrence of occurrences) {
+    if (occurrence.start > cursor) parts.push(text.slice(cursor, occurrence.start))
+    parts.push(
+      <span
+        key={occurrence.index}
+        data-testid="transcript-search-match"
+        data-match-index={occurrence.index}
+        data-current-match={occurrence.index === active ? 'true' : undefined}
+        className={occurrence.index === active ? 'ts-match ts-match-current' : 'ts-match'}
+      >
+        {text.slice(occurrence.start, occurrence.end)}
+      </span>,
+    )
+    cursor = occurrence.end
+  }
+  if (cursor < text.length) parts.push(text.slice(cursor))
+  return parts
+}
+
 /** Last block whose start is at or before the playhead (the follow/active target). */
 function activeIndexAt(blocks: readonly CaptionBlock[], playhead: Seconds): number {
   let index = -1
@@ -134,6 +170,23 @@ export function Transcript(props: TranscriptProps): ReactElement {
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null)
   const [popoverBlockId, setPopoverBlockId] = useState<string | null>(null)
   const [hiddenLocal, setHiddenLocal] = useState<readonly string[]>([])
+
+  // ── Search + replace (US-2.1.6 / FR-104.5) ────────────────────────────────
+  // The panel renders while `editor.searchOpen` (the frozen editor-slice
+  // field, driven ONLY by the `transcript.search-open` registry command —
+  // components bind no keys). `queryDraft` follows the input; `query` is the
+  // DEBOUNCED (120 ms) committed value the index is built over. The index
+  // memo keys on the blocks REFERENCE + committed query + options: never
+  // rebuilt on unrelated store updates, never per keystroke.
+  const searchOpen = useStoreValue(app.editor, (state) => state.searchOpen)
+  const [queryDraft, setQueryDraft] = useState('')
+  const [query, setQuery] = useState('')
+  const [replacement, setReplacement] = useState('')
+  const [caseSensitive, setCaseSensitive] = useState(false)
+  const [wholeWord, setWholeWord] = useState(false)
+  const [currentMatch, setCurrentMatch] = useState(-1)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
 
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const heightRef = useRef(heightPx)
@@ -161,6 +214,94 @@ export function Transcript(props: TranscriptProps): ReactElement {
   const visible = useMemo(() => (hidden.size === 0 ? blocks : blocks.filter((block) => !hidden.has(block.speakerId))), [blocks, hidden])
   const visibleRef = useRef(visible)
   visibleRef.current = visible
+
+  // Matches span ALL blocks (US-2.1.6); the committed-query + blocks-reference
+  // keyed memo IS the "rebuild lazily on block-version bump" (FR-104.5) —
+  // playhead ticks, selection and speaker filtering never re-index. Closed
+  // search ⇒ empty index at zero cost.
+  const matches = useMemo(() => (searchOpen ? findMatches(blocks, query, { caseSensitive, wholeWord }) : []), [searchOpen, blocks, query, caseSensitive, wholeWord])
+  const matchesByBlock = useMemo(() => groupMatches(matches), [matches])
+  const matchesRef = useRef(matches)
+  matchesRef.current = matches
+  // Current match is clamped against the live index (a replace/undo shrink
+  // can invalidate the stored position; -1 = none).
+  const activeMatch = matches.length === 0 ? -1 : Math.min(Math.max(currentMatch, 0), matches.length - 1)
+  // Frozen bridge fields (slice-C values; the seam's read() reports REAL
+  // search state — never the slice-B placeholders).
+  matchCountRef.current = matches.length
+  currentMatchRef.current = activeMatch
+
+  /** F3/Shift+F3 cycle with wrap + viewport jump (scrollToIndex, never .focus()). */
+  function stepMatch(delta: number): void {
+    const list = matchesRef.current
+    if (list.length === 0) return
+    const from = currentMatchRef.current
+    const next = from < 0 ? (delta > 0 ? 0 : list.length - 1) : (from + delta + list.length) % list.length
+    setCurrentMatch(next)
+    const match = list[next]
+    if (match !== undefined) {
+      const rowIndex = visibleRef.current.findIndex((candidate) => candidate.id === match.blockId)
+      if (rowIndex >= 0) virtualizerRef.current.scrollToIndex(rowIndex, { align: 'auto' })
+    }
+  }
+
+  function onQueryChange(value: string): void {
+    setQueryDraft(value)
+    if (debounceRef.current !== null) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null
+      setQuery(value)
+      setCurrentMatch(0)
+    }, SEARCH_DEBOUNCE_MS)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current !== null) clearTimeout(debounceRef.current)
+    }
+  }, [])
+
+  // ⌘F focuses the query field (design.md § Layout — search bar in the
+  // sidebar); opening never .focus()es anything else (conventions § Focus).
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus()
+  }, [searchOpen])
+
+  /** Replace-all = EXACTLY ONE `replace-text` dispatch = one undo step (US-2.1.6). */
+  function onReplaceAll(): void {
+    if (query.length === 0) return
+    app.dispatch('replace-text', { query, replacement, caseSensitive, wholeWord })
+  }
+
+  // Registry handlers, owned by the mounted panel (unit-103 Timeline /
+  // useTransportCommands precedent): registered on mount, unregistered on
+  // unmount. `search-open` gate reads the editor store through the registry
+  // seam. The qc.* handlers drive the slice-D issue cursor through its seam —
+  // safe no-ops while no cursor is mounted.
+  useEffect(() => {
+    const unsubscribes = [
+      registerSearchOpenReader(() => app.editor.getState().searchOpen),
+      registerCommandHandler('transcript.search-open', () => {
+        app.editor.setSearchOpen(!app.editor.getState().searchOpen)
+      }),
+      registerCommandHandler('search.next', () => {
+        stepMatch(1)
+      }),
+      registerCommandHandler('search.previous', () => {
+        stepMatch(-1)
+      }),
+      registerCommandHandler('qc.next-issue', () => {
+        getQcIssueCursor()?.nextIssue()
+      }),
+      registerCommandHandler('qc.previous-issue', () => {
+        getQcIssueCursor()?.previousIssue()
+      }),
+    ]
+    return () => {
+      for (const unsubscribe of unsubscribes) unsubscribe()
+    }
+    // stepMatch reads only refs + stable setters — stable by contract.
+  }, [app])
 
   // FR-104.6 streaming frontier: accumulated `job:segments` beyond the last
   // committed block render as aria-hidden, textless skeleton rows.
@@ -364,6 +505,62 @@ export function Transcript(props: TranscriptProps): ReactElement {
           }}
         />
       )}
+      {searchOpen && (
+        <div className="ts-search" data-testid="transcript-search" role="search">
+          <input
+            ref={searchInputRef}
+            data-testid="transcript-search-input"
+            className="ts-search-input"
+            value={queryDraft}
+            placeholder="Find in transcript"
+            aria-label="Find in transcript"
+            onChange={(event) => {
+              onQueryChange(event.target.value)
+            }}
+          />
+          {/* SECURITY-03: the readout is a NUMBER — never the query, never block text. */}
+          <span data-testid="transcript-search-count" className="ts-search-count">
+            {String(matches.length)}
+          </span>
+          <label className="ts-search-option" title="Match case">
+            <input
+              type="checkbox"
+              data-testid="transcript-search-case"
+              checked={caseSensitive}
+              onChange={(event) => {
+                setCaseSensitive(event.target.checked)
+                setCurrentMatch(0)
+              }}
+            />
+            Aa
+          </label>
+          <label className="ts-search-option" title="Whole words">
+            <input
+              type="checkbox"
+              data-testid="transcript-search-word"
+              checked={wholeWord}
+              onChange={(event) => {
+                setWholeWord(event.target.checked)
+                setCurrentMatch(0)
+              }}
+            />
+            W
+          </label>
+          <input
+            data-testid="transcript-search-replace-input"
+            className="ts-search-input"
+            value={replacement}
+            placeholder="Replace"
+            aria-label="Replace with"
+            onChange={(event) => {
+              setReplacement(event.target.value)
+            }}
+          />
+          <button type="button" data-testid="transcript-replace-all" className="ts-popover-action" onClick={onReplaceAll}>
+            Replace all
+          </button>
+        </div>
+      )}
       <div
         ref={scrollRef}
         data-testid="transcript-root"
@@ -455,12 +652,20 @@ export function Transcript(props: TranscriptProps): ReactElement {
                   )}
                 </span>
                 {editing ? (
-                  // FR-104.4 in-place editor slot — the slice-C contenteditable
-                  // commit path (editable allowlist) owns key handling; the
-                  // affordance itself (double-click a word) is frozen here.
-                  <div data-testid="transcript-editor" className="ts-editor" contentEditable suppressContentEditableWarning>
-                    {block.text}
-                  </div>
+                  // FR-104.4 in-place editor — the slice-C editable-allowlist
+                  // component (src/ui/transcript/editable/, conventions §
+                  // onKeyDown allowlist) owns Enter/Shift+Enter/Esc/IME; the
+                  // commit dispatches ONLY `block-edit-text` here (FR-104.4).
+                  <BlockEditor
+                    initialText={block.text}
+                    onSubmit={(text) => {
+                      app.dispatch('block-edit-text', { blockId: block.id, text })
+                      setEditingBlockId(null)
+                    }}
+                    onCancel={() => {
+                      setEditingBlockId(null)
+                    }}
+                  />
                 ) : (
                   <span data-testid="transcript-row-text" className="ts-text">
                     {block.words.map((word, wordIndex) => (
@@ -478,7 +683,7 @@ export function Transcript(props: TranscriptProps): ReactElement {
                             setEditingBlockId(block.id)
                           }}
                         >
-                          {word.text}
+                          {highlightWordParts(word.text, matchesByBlock.get(block.id)?.get(wordIndex), activeMatch)}
                         </span>
                         {wordIndex < block.words.length - 1 ? ' ' : ''}
                       </Fragment>
