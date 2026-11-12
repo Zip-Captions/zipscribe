@@ -135,6 +135,17 @@ interface NavigatorWithKeyboardLayout extends Navigator {
   keyboard?: { getLayoutMap?: () => Promise<KeyboardLayoutMap> }
 }
 
+/** OS family the CmdOrCtrl token resolves for on this machine (US-2.3.1
+ *  default; tests inject the platform explicitly). Feature-detected: absent
+ *  navigator (node/jsdom) falls back to the Ctrl side, which windows and
+ *  linux share — 'linux' stays an injectable spelling. */
+export function detectPlatform(): CommandPlatform {
+  if (typeof navigator === 'undefined') return 'windows'
+  const userAgentData = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData
+  const platformName = userAgentData?.platform ?? navigator.platform ?? navigator.userAgent ?? ''
+  return /mac|iphone|ipad|ipod/i.test(platformName) ? 'mac' : 'windows'
+}
+
 export async function actualKeyLabel(codeToken: string): Promise<string> {
   if (typeof navigator !== 'undefined') {
     const getLayoutMap = (navigator as NavigatorWithKeyboardLayout).keyboard?.getLayoutMap

@@ -221,7 +221,11 @@ export function isEditing(): boolean {
   const active = document.activeElement
   if (active === null) return false
   const element = active as HTMLElement
-  return element.isContentEditable || element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.tagName === 'SELECT'
+  // jsdom never computes isContentEditable (browsers do) — the attribute is
+  // the environment-agnostic truth; isContentEditable stays OR-ed for
+  // inherited contenteditable and shadow-DOM hosts.
+  const editableAttribute = element.getAttribute('contenteditable')
+  return element.isContentEditable || (editableAttribute !== null && editableAttribute !== 'false') || element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.tagName === 'SELECT'
 }
 
 /** The unit-103 gate: DOM focus is inside a `data-region="timeline"` element (the timeline panel root or anything it nests). */

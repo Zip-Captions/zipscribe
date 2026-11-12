@@ -31,6 +31,7 @@ import type { RafDriver } from '../../state/services/playback/arbitrator'
 import type { StageController } from '../../app/stage'
 import type { OverlayRenderer } from '../canvas/overlay'
 import { useCommands } from '../commands/useCommands'
+import { useEditorCommands } from '../commands/useEditorCommands'
 import { useTransportCommands } from '../commands/useTransportCommands'
 import { formatTimecode } from '../format'
 import { Timeline } from '../timeline/Timeline'
@@ -420,6 +421,7 @@ export function Workbench(props: WorkbenchProps): ReactNode {
 
   useCommands(settings)
   useTransportCommands(transport?.app)
+  useEditorCommands(transport?.app)
   const jobsState = useSnapshot(jobs)
   const settingsState = useSnapshot(settings)
   const { project: currentProject } = useSnapshot(project)
