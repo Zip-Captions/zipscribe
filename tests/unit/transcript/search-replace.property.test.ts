@@ -200,13 +200,22 @@ describe('CC-104.4: replace-text properties (oracle · timing preservation · on
     const redaction = createRedactionSpy()
     try {
       const { t } = mount([['cat', 'dog'], ['scatter']])
-      const before = serializeProject(t.app.project.getState().project as Project)
+      const projectBefore = t.app.project.getState().project as Project
+      const before = serializeProject(projectBefore)
       const undoBefore = t.app.history.undoCount()
+      // Advance the fake clock BEFORE the dispatch (PR #15 review F8): with a
+      // constant clock a mutant writing `updatedAt = clock.now()` in the
+      // zero-match branch is elided by immer (equal-value write) and survives.
+      // A time that MOVED makes any such write observable as a serializeProject
+      // difference; the correct zero-match no-op leaves the draft untouched
+      // (reference-unchanged) and creates no history step.
+      t.clock.advance(60_000)
       const outcome = dispatchReplace(t.app, { query: 'zxq', replacement: 'zyq' })
       if (outcome.threw) throw new Error("replace-text is not registered in the command registry (expected id 'replace-text')")
       expect(outcome.reject).toBeNull()
-      expect(serializeProject(t.app.project.getState().project as Project)).toBe(before)
-      expect(t.app.history.undoCount()).toBe(undoBefore)
+      expect(serializeProject(t.app.project.getState().project as Project), 'zero matches — state byte-identical even though the clock advanced').toBe(before)
+      expect(t.app.project.getState().project, 'zero matches — project reference unchanged (no draft commit)').toBe(projectBefore)
+      expect(t.app.history.undoCount(), 'zero matches — NO history step').toBe(undoBefore)
       expect(redaction.settle().clean).toBe(true)
       t.app.dispose()
     } finally {

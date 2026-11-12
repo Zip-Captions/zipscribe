@@ -172,7 +172,11 @@ declare module '@ui/transcript/Transcript' {
      *  frontier read `jobs.getState().segments/running`. Optional so L2
      *  editing suites can mount without a jobs store. */
     jobs?: JobsStore
-    /** Viewport height for the virtualizer (jsdom has no layout; default 480). */
+    /** TEST-ONLY deterministic-height override for the virtualizer (jsdom has
+     *  no layout; 64b94c9): production does NOT pass this — it flex-fills the
+     *  pane and measures the viewport via ResizeObserver (absence-tolerated:
+     *  the component degrades to its initial estimate when the observer never
+     *  fires). */
     heightPx?: number
     /** View-only speaker filter (CC-104.5): blocks whose `speakerId` is listed
      *  are absent from the rendered rows. NEVER mutates the project and never
