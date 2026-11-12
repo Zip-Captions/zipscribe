@@ -1537,6 +1537,34 @@
       "channels": 1,
       "expectedPath": "webcodecs",
       "sha256": "e80b0d898525a72c67467e8be5a251e91cc6402ef301caa63ec214fca7ea545a"
+    },
+    "golden/transcript/speaker-ops-initial.json": {
+      "sha256": "7bff7893057c231e3c5886876c8e89c126de8864f57edbc44b87c974fa011bc0",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo golden)",
+      "codec": null,
+      "sampleRate": null,
+      "channels": null,
+      "expectedPath": null
+    },
+    "golden/transcript/edit-preserves-timing.words.json": {
+      "sha256": "0926f15984df478634791f7edbd2afc174d2e86948a44d3d43a941d4658c80f7",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo golden)",
+      "codec": null,
+      "sampleRate": null,
+      "channels": null,
+      "expectedPath": null
     }
   }
 }
