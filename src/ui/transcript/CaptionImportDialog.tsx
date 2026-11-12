@@ -166,8 +166,14 @@ export function CaptionImportDialog({ file, port, app, onClose }: CaptionImportD
             </p>
             <p className="ts-import-row">
               <span className="ts-import-key">Language</span>
-              {/* Editable (design.md); the report value is the detection default. */}
-              <input data-testid="caption-import-language" className="ts-import-language" value={language} aria-label="Caption language" placeholder="—" onChange={(event) => setLanguage(event.target.value)} />
+              {/* Review-r1 F4 (honest-UX): DISPLAY-ONLY — the report's
+                  detected language is shown as evidence, but the frozen
+                  `CaptionsImportPayload` carries NO language field, so an
+                  editable value would silently evaporate at confirm().
+                  Honestly disabled; the tooltip carries the stable code
+                  `CAPTION_IMPORT_LANGUAGE_UNBOUND` (no contract row invented —
+                  language intake rides with the translation-tracks intent). */}
+              <input data-testid="caption-import-language" className="ts-import-language" value={language} aria-label="Caption language" placeholder="—" disabled readOnly title="CAPTION_IMPORT_LANGUAGE_UNBOUND" />
             </p>
             {report.adjustments.map((adjustment) => (
               <p key={adjustment.code} className="ts-import-adjustment" data-testid="caption-import-report-adjustment" data-code={adjustment.code}>

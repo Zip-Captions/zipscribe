@@ -30,6 +30,14 @@
 // browsers: the true client box) plus the injected `heightPx` viewport. Real
 // browsers keep TRUE virtualization — the e2e renderedRows bound (slice D)
 // depends on it.
+//
+// Viewport sourcing (review-r1 F6): `heightPx` is a TEST-ONLY explicit
+// override (the frozen L2 suites pass it — the virtualizer needs a
+// deterministic height without layout). In production the prop is omitted and
+// the root flex-fills its tabpanel (`.ts-root-fill` in transcript.css, the
+// unit-103 Timeline ResizeObserver doctrine): the rect comes from the
+// element's real client box, kept fresh by ResizeObserver — which the code
+// tolerates being absent (jsdom/SSR ⇒ LAYOUTLESS everything-visible).
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
@@ -46,7 +54,7 @@ import type { SettingsStore } from '../../state/settings'
 import type { RafDriver } from '../../state/services/playback/arbitrator'
 import { formatTimecode } from '../format'
 import { TimecodeInput } from '../editable/TimecodeInput'
-import { registerCommandHandler, registerSearchOpenReader } from '../commands/registry'
+import { dispatchCommand, registerCommandHandler, registerSearchOpenReader } from '../commands/registry'
 import { registerTranscriptPanel } from './bridge-seam'
 import { registerQcIssueCursor } from './qc-cursor-seam'
 import { BlockEditor } from './editable/BlockEditor'
@@ -62,7 +70,7 @@ export interface TranscriptProps {
   rafs: RafDriver
   /** Streaming source (FR-104.6): skeleton rows beyond the committed frontier read `jobs.getState().segments/running`. */
   jobs?: JobsStore
-  /** Viewport height for the virtualizer (jsdom has no layout; default 480). */
+  /** TEST-ONLY virtualizer viewport (jsdom has no layout — the frozen L2 suites pin it). Omitted in production: the root flex-fills its pane and the height is MEASURED (review-r1 F6). */
   heightPx?: number
   /** View-only speaker filter (CC-104.5): blocks whose `speakerId` is listed are absent from the rendered rows. NEVER mutates the project, never creates a history step. */
   hiddenSpeakerIds?: readonly string[]
@@ -72,7 +80,6 @@ export interface TranscriptProps {
 
 const ROW_ESTIMATE_PX = 40
 const OVERSCAN = 6
-const DEFAULT_VIEWPORT_PX = 480
 /** FR-104.3: follow-scroll stays paused this long after a user scroll intent. */
 const IDLE_RESUME_MS = 30_000
 /** Scroll events this close after a programmatic write are the browser's echo of our own move — never user intent. */
@@ -186,7 +193,7 @@ function activeIndexAt(blocks: readonly CaptionBlock[], playhead: Seconds): numb
 }
 
 export function Transcript(props: TranscriptProps): ReactElement {
-  const { app, rafs, jobs, heightPx = DEFAULT_VIEWPORT_PX, hiddenSpeakerIds, settings } = props
+  const { app, rafs, jobs, heightPx, hiddenSpeakerIds, settings } = props
   const jobsStore = jobs ?? IDLE_JOBS
 
   const project = useStoreValue(app.project, (state) => state.project)
@@ -203,6 +210,10 @@ export function Transcript(props: TranscriptProps): ReactElement {
   const [issueFilterOn, setIssueFilterOn] = useState(false)
   const [retimeOpen, setRetimeOpen] = useState(false)
   const [alignToast, setAlignToast] = useState<string | null>(null)
+  // Review-r1 F2: a failed align job is announced in-panel with the stable
+  // error CODE (the jobs store keeps EngineError codes, never user text —
+  // SECURITY-03). Errored align still applies nothing and adds no undo step.
+  const [alignErrorCode, setAlignErrorCode] = useState<string | null>(null)
   const [qcAnnounce, setQcAnnounce] = useState('')
   const alignJobRef = useRef<{ jobId: string; cancelled: boolean } | null>(null)
   const qcCursorIndexRef = useRef(-1)
@@ -225,8 +236,8 @@ export function Transcript(props: TranscriptProps): ReactElement {
   const searchInputRef = useRef<HTMLInputElement | null>(null)
 
   const scrollRef = useRef<HTMLDivElement | null>(null)
-  const heightRef = useRef(heightPx)
-  heightRef.current = heightPx
+  const heightRef = useRef(heightPx ?? 0)
+  heightRef.current = heightPx ?? 0
   const editingRef = useRef<string | null>(editingBlockId)
   editingRef.current = editingBlockId
   const focusedRef = useRef<string | null>(null)
@@ -346,6 +357,20 @@ export function Transcript(props: TranscriptProps): ReactElement {
     app.dispatch('replace-text', { query, replacement, caseSensitive, wholeWord })
   }
 
+  /**
+   * Review-r1 F5: the search bar's close affordance. A CLICK handler (outside
+   * the keyboard allowlist) dispatching the registry `transcript.search-open`
+   * command — the toggle/close LOGIC stays registry-owned (the mounted
+   * handler flips `editor.searchOpen`; ⌘F/⌃F unfocused still toggles closed
+   * through the same path). The focused input is blurred FIRST because the
+   * registry's `not-editing` gate (keyboard doctrine) would otherwise
+   * correctly skip the dispatch while the query/replace field holds focus.
+   */
+  function closeSearch(): void {
+    if (typeof document !== 'undefined') (document.activeElement as HTMLElement | null)?.blur?.()
+    dispatchCommand('transcript.search-open')
+  }
+
   // Registry handlers, owned by the mounted panel (unit-103 Timeline /
   // useTransportCommands precedent): registered on mount, unregistered on
   // unmount. `search-open` gate reads the editor store through the registry
@@ -398,6 +423,9 @@ export function Transcript(props: TranscriptProps): ReactElement {
     const report = (): void => {
       const box = element.getBoundingClientRect()
       const width = Math.max(1, Math.round(box.width) || 1)
+      // Test override wins when injected (deterministic jsdom window);
+      // otherwise the REAL measured client box drives the window (review-r1
+      // F6 — production flex-fills the pane, ResizeObserver keeps this fresh).
       const height = heightRef.current > 0 ? heightRef.current : Math.max(1, Math.round(box.height) || 1)
       reportRect({ width, height })
     }
@@ -549,6 +577,7 @@ export function Transcript(props: TranscriptProps): ReactElement {
   function startAlign(): void {
     if (jobs === undefined) return
     setAlignToast(null)
+    setAlignErrorCode(null)
     const prefs = settings?.getState().transcribe
     const state = jobsStore.getState()
     const modelId = prefs?.modelId ?? state.modelOptions.find((option) => option.offlineReady)?.id ?? defaultModelForTier(state.capability?.tier)
@@ -577,7 +606,15 @@ export function Transcript(props: TranscriptProps): ReactElement {
       const entry = alignJobRef.current
       if (entry === null) return
       alignJobRef.current = null
-      if (entry.cancelled || state.error !== null) return
+      if (entry.cancelled) return
+      if (state.error !== null) {
+        // Review-r1 F2 (silent-failure fix): announce the coded failure — the
+        // StatusBar renders only percent/model/tier/cache, nothing else in
+        // ui/** surfaced jobs.error. Code only, never EngineError.detail
+        // (SECURITY-03). Frozen semantics kept: nothing applied, no undo step.
+        setAlignErrorCode(state.error.code)
+        return
+      }
       const asrWords = state.segments.flatMap((segment) => segment.words.map((word) => ({ text: word.text, start: word.start, end: word.end })))
       if (asrWords.length === 0) return
       app.dispatch('captions-align-apply', { asrWords })
@@ -602,7 +639,9 @@ export function Transcript(props: TranscriptProps): ReactElement {
           renderedRows: element?.querySelectorAll('[data-testid="transcript-row"]').length ?? 0,
           scrollTop: element?.scrollTop ?? 0,
           scrollHeight: virtualizerRef.current.getTotalSize(),
-          viewportHeightPx: heightRef.current,
+          // Test override when injected; otherwise the real client box (the
+          // production pane is flex-filled — review-r1 F6).
+          viewportHeightPx: heightRef.current > 0 ? heightRef.current : (element?.clientHeight ?? 0),
           searchOpen: app.editor.getState().searchOpen,
           matchCount: matchCountRef.current,
           currentMatchIndex: currentMatchRef.current,
@@ -619,10 +658,13 @@ export function Transcript(props: TranscriptProps): ReactElement {
     })
   }, [app])
 
-  // Scroll-intent accounting (FR-104.3): wheel/pointerdown and any scroll
-  // event that is not our own programmatic echo pause the follow for the idle
-  // window; the next seek after a user scroll lands without moving the
-  // viewport (CC-104.2, frozen).
+  // Scroll-intent accounting (FR-104.3): a WHEEL gesture and any scroll event
+  // that is not our own programmatic echo (scrollbar drag included — it fires
+  // plain `scroll`) pause the follow for the idle window; the next seek after
+  // a user scroll lands without moving the viewport (CC-104.2, frozen).
+  // Review-r1 F7: pointer-down over rows is NOT a scroll intent — the
+  // primary word-click seek must not freeze follow for 30 s (edit-time pin
+  // is covered separately by the editing guard).
   function markScrollIntent(): void {
     pausedUntilRef.current = Date.now() + IDLE_RESUME_MS
   }
@@ -679,6 +721,11 @@ export function Transcript(props: TranscriptProps): ReactElement {
             {alignToast !== null && (
               <span data-testid="transcript-align-toast" role="status" className="ts-align-toast">
                 {alignToast}
+              </span>
+            )}
+            {alignErrorCode !== null && (
+              <span data-testid="transcript-align-error" role="status" className="ts-align-error" data-code={alignErrorCode}>
+                {`Align failed (${alignErrorCode}) — nothing applied`}
               </span>
             )}
           </span>
@@ -763,6 +810,12 @@ export function Transcript(props: TranscriptProps): ReactElement {
           <button type="button" data-testid="transcript-replace-all" className="ts-popover-action" onClick={onReplaceAll}>
             Replace all
           </button>
+          {/* Review-r1 F5: real close affordance — the input cannot bind Esc
+              (keyboard allowlist), ⌘F is swallowed by the browser find while
+              the field has focus. CLICK-dispatch through the registry. */}
+          <button type="button" data-testid="transcript-search-close" className="ts-popover-action ts-search-close" aria-label="Close search" onClick={closeSearch}>
+            ×
+          </button>
         </div>
       )}
       {/* FR-104.8: grouped issue list (plain-language labels, code in
@@ -794,11 +847,10 @@ export function Transcript(props: TranscriptProps): ReactElement {
         data-testid="transcript-root"
         role="list"
         aria-label="Transcript"
-        className="ts-root"
-        style={{ height: `${heightPx}px`, overflowY: 'auto' }}
+        className={heightPx === undefined ? 'ts-root ts-root-fill' : 'ts-root'}
+        style={heightPx === undefined ? { overflowY: 'auto' } : { height: `${heightPx}px`, overflowY: 'auto' }}
         onScroll={onScroll}
         onWheel={markScrollIntent}
-        onPointerDown={markScrollIntent}
       >
         <div style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
           {virtualizer.getVirtualItems().map((item) => {
