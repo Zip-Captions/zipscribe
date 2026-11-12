@@ -4,6 +4,7 @@
 // `pnpm lint` stays focused on rules).
 import tseslint from 'typescript-eslint'
 import { purityPlugin } from './scripts/eslint-engine-purity.mjs'
+import { plugin as keyboardPlugin } from './scripts/eslint-keyboard.mjs'
 
 const SDK_PACKAGES = ['@huggingface/transformers', '@huggingface/*', '@ffmpeg/*', 'ffmpeg-static', 'mediabunny', 'onnxruntime-web', 'onnxruntime-common', 'sherpa-onnx', '@xenova/*', '@onnxproto/*']
 const FRAMEWORK_PACKAGES = ['react', 'react-dom', 'react-dom/*', 'react/*']
@@ -75,17 +76,22 @@ export default tseslint.config(
   // src/state/services/playback/** — the SyncArbitrator/MediaClock layer is
   // the one clock owner; components never touch a media element's time. The
   // frozen contract scan (tests/unit/editor/contract.test.ts) mirrors this
-  // repo-wide as the test-side guard. SEED (unit-105): the
-  // keyboard→command-registry allowlist rule (conventions § UI conventions —
-  // no `onKeyDown` outside the editable-component paths) joins this block when
-  // the binding table lands; reviewer round-1 confirmed neither rule existed
-  // before slice D.
+  // repo-wide as the test-side guard.
+  //
+  // FR-105.5/CC-105.5 (unit-105 slice D): the keyboard→command-registry
+  // allowlist rule (conventions § UI conventions — keyboard handling
+  // exclusively via registry bindings; `onKeyDown` JSX only inside
+  // ui/commands/**, ui/**/editable/** and ui/editable/TimecodeInput.tsx)
+  // shares this src/** block under the '@zipscribe' plugin; the frozen scan
+  // (tests/unit/commands/keyboard-allowlist-scan.test.ts) pins rule name,
+  // messageId and allowlist semantics.
   {
     files: ['src/**/*.ts', 'src/**/*.tsx'],
     ignores: ['src/state/services/playback/**/*.ts'],
-    plugins: { '2:zipscribe': purityPlugin },
+    plugins: { '2:zipscribe': purityPlugin, '@zipscribe': keyboardPlugin },
     rules: {
       '2:zipscribe/no-media-current-time': 'error',
+      '@zipscribe/no-keydown-outside-allowlist': 'error',
     },
   },
 
