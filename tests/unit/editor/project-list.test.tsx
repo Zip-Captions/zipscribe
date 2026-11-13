@@ -186,20 +186,6 @@ describe('CC-106.5 (L2): the project list rows, buttons and storage display', ()
     expect(persistence.blobs.has('d'), 'blobCache store purged').toBe(false)
   })
 
-  test('CC-106.2: a loaded project with transcription `partial` renders the interrupted-transcription banner (count only — SECURITY-03)', async () => {
-    redaction = createRedactionSpy()
-    const { persistence } = await mountList((p) => {
-      p.rows.set('i', makeProjectRow('i', canaryProject({ id: 'i', transcription: 'partial' })))
-    })
-    const user = userEvent.setup()
-    await user.click(screen.getByTestId('project-open-i'))
-    const banner = await screen.findByTestId('interrupted-transcription')
-    const copy = banner.textContent ?? ''
-    expect(copy, 'copy contains the kept-block count (2)').toContain('2')
-    expect(copy, 'the banner is a NUMBER — never transcript content').not.toContain(CANARY_MARKER)
-    expect(persistence.calls.openProject, 'the banner follows a real open').toEqual(['i'])
-  })
-
   test('CC-106.3: a future-schemaVersion row shows the read-only banner', async () => {
     redaction = createRedactionSpy()
     const { persistence } = await mountList((p) => {
@@ -221,4 +207,24 @@ describe('CC-106.5 (L2): the project list rows, buttons and storage display', ()
     await user.click(screen.getByTestId('new-project-button'))
     expect(persistence.calls.createProjectRow.length).toBe(1)
   })
+  // [106-ADJ 7] moved into its own CC-106.2-leading describe — the verify
+  // credit policy counts only the LEADING citation of the combined
+  // "suite > test" title (scripts/lib/criteria-credit.ts). Body and
+  // assertions byte-identical.
+  describe('CC-106.2 (L2): the interrupted-transcription banner', () => {
+    test('CC-106.2: a loaded project with transcription `partial` renders the interrupted-transcription banner (count only — SECURITY-03)', async () => {
+      redaction = createRedactionSpy()
+      const { persistence } = await mountList((p) => {
+        p.rows.set('i', makeProjectRow('i', canaryProject({ id: 'i', transcription: 'partial' })))
+      })
+      const user = userEvent.setup()
+      await user.click(screen.getByTestId('project-open-i'))
+      const banner = await screen.findByTestId('interrupted-transcription')
+      const copy = banner.textContent ?? ''
+      expect(copy, 'copy contains the kept-block count (2)').toContain('2')
+      expect(copy, 'the banner is a NUMBER — never transcript content').not.toContain(CANARY_MARKER)
+      expect(persistence.calls.openProject, 'the banner follows a real open').toEqual(['i'])
+    })
+  })
+
 })

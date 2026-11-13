@@ -189,6 +189,14 @@ describe('CC-106.1: store trio, canonical byte form, documented exclusion list',
     }
   })
 
+  // [106-ADJ 6] moved into its own CC-106.2-leading describe — the verify
+  // credit policy counts only the LEADING citation of the combined
+  // "suite > test" title (scripts/lib/criteria-credit.ts), so this test sat
+  // under the CC-106.1 suite with zero credit. Body and assertions are
+  // byte-identical.
+})
+
+describe('CC-106.2: interrupted-transcription reopen keeps committed blocks', () => {
   test('CC-106.2: a project saved with transcription `partial` reopens with its committed blocks kept', async ({ skip }) => {
     const bundle = createFakePersistenceDeps()
     const service = await makeService(bundle)
