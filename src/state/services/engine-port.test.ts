@@ -21,6 +21,11 @@ class FakeWorker {
     this.handlers.push(handler)
   }
 
+  removeEventListener(_type: string, handler: (event: { data: unknown }) => void): void {
+    const index = this.handlers.indexOf(handler)
+    if (index >= 0) this.handlers.splice(index, 1)
+  }
+
   postMessage(message: unknown): void {
     this.posted.push(message)
   }
@@ -159,3 +164,80 @@ describe('worker engine port (FR-2.0.6)', () => {
     })
   })
 })
+
+const PROBE_ASSET = {
+  id: 'A',
+  name: 'a.mp4',
+  kind: 'audio',
+  container: 'mp4',
+  audioCodec: 'aac',
+  videoCodec: null,
+  duration: 1,
+  width: 0,
+  height: 0,
+  fps: 0,
+  fingerprint: { name: 'a.mp4', size: 10, durationMs: 1000, sampleHashes: ['h1', 'h2', 'h3'] },
+} as const
+
+describe('probeFingerprint (FR-106.8 correlation, unit-106 slice D)', () => {
+  test('resolves the matching media:probed fingerprint on a DEDICATED worker — the media listeners never see it', async () => {
+    await withFakeWorkerAsync(async () => {
+      const port = createWorkerEnginePort()
+      const media: MediaEvent[] = []
+      port.onMediaEvent((event) => {
+        media.push(event)
+      })
+      const pending = port.probeFingerprint(new File(['x'], 'a.mp4', { type: 'video/mp4' }))
+      const probeWorker = FakeWorker.created[0] as FakeWorker
+      expect(FakeWorker.created, 'the probe uses its own instance, not the shared media channel worker').toHaveLength(1)
+      const firstPosted = probeWorker.posted[0] as { t: string; jobId: string; file: File }
+      expect(firstPosted.t, 'a probe request rides the protocol union').toBe('probe')
+      expect(firstPosted.file.name, 'the File crosses to the worker').toBe('a.mp4')
+      const jobId = firstPosted.jobId
+      probeWorker.emit({ t: 'media:probed', jobId: 'other-job', asset: PROBE_ASSET })
+      probeWorker.emit({ t: 'job:progress', jobId, processedSec: 0, totalSec: 1 })
+      probeWorker.emit({ t: 'media:probed', jobId, asset: PROBE_ASSET })
+      await expect(pending).resolves.toEqual(PROBE_ASSET.fingerprint)
+      expect(media, 'probe replies never fan out to the media listeners (intake createProject stays probe-free)').toEqual([])
+      const second = port.probeFingerprint(new File(['y'], 'b.mp4'))
+      expect(FakeWorker.created, 'the probe instance is reused').toHaveLength(1)
+      const secondJobId = (probeWorker.posted[1] as { jobId: string }).jobId
+      probeWorker.emit({ t: 'media:probed', jobId: secondJobId, asset: PROBE_ASSET })
+      await expect(second).resolves.toEqual(PROBE_ASSET.fingerprint)
+    })
+  })
+
+  test('a matching job:error rejects with the CODE only (SECURITY-03)', async () => {
+    await withFakeWorkerAsync(async () => {
+      const port = createWorkerEnginePort()
+      const pending = port.probeFingerprint(new File(['x'], 'a.mp4'))
+      const probeWorker = FakeWorker.created[0] as FakeWorker
+      const jobId = (probeWorker.posted[0] as { jobId: string }).jobId
+      probeWorker.emit({ t: 'job:error', jobId, error: { code: 'UNSUPPORTED_MEDIA', retryable: false, detail: 'user content never crosses' } })
+      await expect(pending).rejects.toThrow('UNSUPPORTED_MEDIA')
+      await expect(pending).rejects.not.toThrow(/user content/u)
+    })
+  })
+
+  test('dispose terminates the probe instance too', async () => {
+    await withFakeWorkerAsync(() => {
+      const port = createWorkerEnginePort()
+      void port.probeFingerprint(new File(['x'], 'a.mp4'))
+      const probeWorker = FakeWorker.created[0] as FakeWorker
+      port.dispose()
+      expect(probeWorker.terminated).toBe(true)
+    })
+  })
+})
+
+async function withFakeWorkerAsync(run: () => void | Promise<void>): Promise<void> {
+  FakeWorker.created.length = 0
+  const previous = globalThis.Worker
+  globalThis.Worker = FakeWorker as unknown as typeof Worker
+  try {
+    await run()
+  } finally {
+    if (previous === undefined) delete (globalThis as { Worker?: typeof Worker }).Worker
+    else globalThis.Worker = previous
+  }
+}
