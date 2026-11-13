@@ -28,8 +28,6 @@ import type { PanelState, PersistenceDeps, PersistenceService, PeaksLike, Projec
 import type { EditorStore } from '@state/generated/contract-types'
 import { serializeProject } from '@state/services/serialize'
 
-const CHILD = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.ZIPSCRIBE_CHILD === '1'
-const CHILD_REASON = 'gates-scaffold child run: authoritative execution is the parent `pnpm test` / verify:unit'
 
 const PERSISTENCE_MODULE = '@state/services/persistence'
 type PersistenceModule = typeof import('@state/services/persistence')
@@ -125,7 +123,6 @@ function fakeHandle(granted: boolean, file: File, permissionLog: unknown[]): Fil
 export function describePersistenceContract(name: string, makeService: (deps: PersistenceDeps) => Promise<PersistenceService>): void {
   describe(`persistence contract (${name})`, () => {
     test('CC-106.1: save→load round-trips project/peaks/panelState through the canonical string', async ({ skip }) => {
-      skip(CHILD, CHILD_REASON)
       const spy = createRedactionSpy()
       try {
         const bundle = createFakePersistenceDeps()
@@ -149,7 +146,6 @@ export function describePersistenceContract(name: string, makeService: (deps: Pe
     })
 
     test('CC-106.5: eviction evicts ONLY blobCache rows, lowest lastOpened first; projects/mediaHandles survive', async ({ skip }) => {
-      skip(CHILD, CHILD_REASON)
       const bundle = createFakePersistenceDeps({ saveBlobLimitBytes: 250 })
       const service = await makeService(bundle.deps)
       await service.storeMediaHandle('proj_contract', null, cannedFingerprint())
@@ -170,7 +166,6 @@ export function describePersistenceContract(name: string, makeService: (deps: Pe
     })
 
     test('CC-106.4: silent handle restore — granted + matching fingerprint → {kind:"silent"}, picker untouched, stored row intact', async ({ skip }) => {
-      skip(CHILD, CHILD_REASON)
       const bundle = createFakePersistenceDeps()
       const service = await makeService(bundle.deps)
       const stored = cannedFingerprint()
@@ -190,7 +185,6 @@ export function describePersistenceContract(name: string, makeService: (deps: Pe
     })
 
     test('CC-106.4: permission-denied falls back to the picker; a validated picked file is {kind:"silent"} with that file (Firefox path)', async ({ skip }) => {
-      skip(CHILD, CHILD_REASON)
       const bundle = createFakePersistenceDeps()
       const service = await makeService(bundle.deps)
       const stored = cannedFingerprint()
@@ -211,7 +205,6 @@ export function describePersistenceContract(name: string, makeService: (deps: Pe
     })
 
     test('CC-106.4: fingerprint mismatch lists the differing fields and NEVER overwrites the stored handle/fingerprint', async ({ skip }) => {
-      skip(CHILD, CHILD_REASON)
       const bundle = createFakePersistenceDeps()
       const service = await makeService(bundle.deps)
       const stored = cannedFingerprint()
@@ -229,7 +222,6 @@ export function describePersistenceContract(name: string, makeService: (deps: Pe
     })
 
     test('CC-106.4: no handle + cancelled picker → {kind:"picker-needed", file:null}', async ({ skip }) => {
-      skip(CHILD, CHILD_REASON)
       const bundle = createFakePersistenceDeps()
       const service = await makeService(bundle.deps)
       await service.storeMediaHandle('proj_w', null, cannedFingerprint())
@@ -243,7 +235,6 @@ export function describePersistenceContract(name: string, makeService: (deps: Pe
     })
 
     test('CC-106.4: no stored row at all → a defined outcome from the pinned vocabulary (never a throw)', async ({ skip }) => {
-      skip(CHILD, CHILD_REASON)
       const bundle = createFakePersistenceDeps()
       const service = await makeService(bundle.deps)
       const outcome = await service.relinkMedia('ghost')
@@ -261,7 +252,6 @@ describe('CC-106.4 (L3): the real persistence service obeys the service contract
   })
 
   test('CC-106.1: listProjects sorts updatedAt DESC through the contract surface too', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const bundle = createFakePersistenceDeps()
     const mod = await loadModule()
     const service = mod.createPersistenceService(bundle.deps)

@@ -20,9 +20,6 @@ import { createRedactionSpy } from '../../../src/test-support/redaction'
 import type { SaveState } from '@state/services/persistence'
 import type { SaveStateSource } from '@ui/shell/Workbench'
 
-const CHILD = process.env.ZIPSCRIBE_CHILD === '1'
-const CHILD_REASON = 'gates-scaffold child run: authoritative execution is the parent `pnpm test` / verify:unit'
-
 const WORKBENCH_MODULE = '@ui/shell/Workbench'
 type WorkbenchModule = typeof import('@ui/shell/Workbench')
 
@@ -65,8 +62,7 @@ afterEach(() => {
 })
 
 describe('CC-106.1 (L2): the save-state indicator in the status bar', () => {
-  test('CC-106.1: renders the pinned span contract (testid + polite live region)', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
+  test('CC-106.1: renders the pinned span contract (testid + polite live region)', async () => {
     redaction = createRedactionSpy()
     const { source } = makeSource({ state: 'idle', lastSavedAt: null, errorCode: null })
     await mount(source)
@@ -76,8 +72,7 @@ describe('CC-106.1 (L2): the save-state indicator in the status bar', () => {
     expect(['', 'idle'], 'idle claims nothing from the pinned copy set').toContain(indicatorText())
   })
 
-  test('CC-106.1: each save state renders its EXACT copy', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
+  test('CC-106.1: each save state renders its EXACT copy', async () => {
     redaction = createRedactionSpy()
     const { source, set } = makeSource({ state: 'idle', lastSavedAt: null, errorCode: null })
     await mount(source)
@@ -92,8 +87,7 @@ describe('CC-106.1 (L2): the save-state indicator in the status bar', () => {
     expect(indicatorText()).toBe('not saved')
   })
 
-  test('CC-106.1 (CC-I2.12 backing): `not saved` persists through re-dirty/re-saving until a later save succeeds', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
+  test('CC-106.1 (CC-I2.12 backing): `not saved` persists through re-dirty/re-saving until a later save succeeds', async () => {
     redaction = createRedactionSpy()
     const { source, set } = makeSource({ state: 'idle', lastSavedAt: null, errorCode: null })
     await mount(source)
@@ -108,8 +102,7 @@ describe('CC-106.1 (L2): the save-state indicator in the status bar', () => {
     expect(indicatorText(), 'the first success clears it').toBe('saved')
   })
 
-  test('CC-106.1: the indicator re-renders from the subscription and unsubscribes on unmount', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
+  test('CC-106.1: the indicator re-renders from the subscription and unsubscribes on unmount', async () => {
     redaction = createRedactionSpy()
     const { source, set, listenerCount } = makeSource({ state: 'idle', lastSavedAt: null, errorCode: null })
     expect(listenerCount(), 'not subscribed before mount').toBe(0)
@@ -121,8 +114,7 @@ describe('CC-106.1 (L2): the save-state indicator in the status bar', () => {
     expect(listenerCount(), 'unmount releases the subscription (no leak per panel remount)').toBe(0)
   })
 
-  test('CC-106.1: the status bar mounts the indicator (unit-101 footer EXTENDS)', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
+  test('CC-106.1: the status bar mounts the indicator (unit-101 footer EXTENDS)', async () => {
     redaction = createRedactionSpy()
     // [106-ADJ 4] orchestrator environment fix (slice-B Test finding 1): the
     // jsdom environment gives a non-file `import.meta.url`, so the URL-base

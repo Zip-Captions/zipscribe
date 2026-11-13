@@ -23,9 +23,6 @@ import type { FakePersistenceService, FakeTimers } from './helpers/fake-persiste
 import type { LoadedProject, ProjectRow } from '@state/services/persistence'
 import type { Project } from '@engine/model@102'
 
-const CHILD = process.env.ZIPSCRIBE_CHILD === '1'
-const CHILD_REASON = 'gates-scaffold child run: authoritative execution is the parent `pnpm test` / verify:unit'
-
 const PROJECT_LIST_MODULE = '@ui/shell/ProjectList'
 type ProjectListModule = typeof import('@ui/shell/ProjectList')
 
@@ -96,8 +93,7 @@ afterEach(() => {
 })
 
 describe('CC-106.5 (L2): the project list rows, buttons and storage display', () => {
-  test('CC-106.5: rows render in updatedAt DESC order with the pinned testids', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
+  test('CC-106.5: rows render in updatedAt DESC order with the pinned testids', async () => {
     redaction = createRedactionSpy()
     await mountList((p) => {
       p.rows.set('a', makeProjectRow('a', canaryProject({ id: 'a', name: 'Old', updatedAt: 100 })))
@@ -114,8 +110,7 @@ describe('CC-106.5 (L2): the project list rows, buttons and storage display', ()
     expect(screen.getByTestId('new-project-button'), 'the FR-106.5 button set is complete').toBeTruthy()
   })
 
-  test('CC-106.5: open / new / duplicate / delete buttons call the service', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
+  test('CC-106.5: open / new / duplicate / delete buttons call the service', async () => {
     redaction = createRedactionSpy()
     const { persistence, opened } = await mountList((p) => {
       p.rows.set('x', makeProjectRow('x', canaryProject({ id: 'x', updatedAt: 5 })))
@@ -136,8 +131,7 @@ describe('CC-106.5 (L2): the project list rows, buttons and storage display', ()
     expect(persistence.calls.deleteProject, 'delete is deferred until the toast decides').toEqual(['x'])
   })
 
-  test('CC-106.5 / FR-106.7: the storage estimate renders from storageEstimate() (honest persisted flag)', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
+  test('CC-106.5 / FR-106.7: the storage estimate renders from storageEstimate() (honest persisted flag)', async () => {
     redaction = createRedactionSpy()
     const { persistence } = await mountList()
     persistence.setEstimate({ usage: 1_572_864, quota: 5 * 1024 ** 3, persisted: true, blobCacheBytes: 0 })
@@ -150,8 +144,7 @@ describe('CC-106.5 (L2): the project list rows, buttons and storage display', ()
     expect(estimate.textContent, 'the persist result is shown honestly').toContain('persistent on')
   })
 
-  test('FR-106.5: opening a project restores lastPlayhead + selection into the EditorStore', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
+  test('FR-106.5: opening a project restores lastPlayhead + selection into the EditorStore', async () => {
     redaction = createRedactionSpy()
     const { editor, opened } = await mountList((p) => {
       p.rows.set('r', makeProjectRow('r', canaryProject({ id: 'r' }), { panelState: { ...CANNED_PANEL_STATE, lastPlayhead: 42.5, selection: { anchorBlockId: 'blk_a', focusBlockId: 'blk_b' } } }))
@@ -163,8 +156,7 @@ describe('CC-106.5 (L2): the project list rows, buttons and storage display', ()
     expect(opened.at(-1)?.loaded?.panelState?.lastPlayhead, 'the context also reaches the caller via onOpen').toBe(42.5)
   })
 
-  test('CC-106.5: delete → undo toast cancels the purge; expiry on the injected timers COMMITS it (all three stores purged)', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
+  test('CC-106.5: delete → undo toast cancels the purge; expiry on the injected timers COMMITS it (all three stores purged)', async () => {
     redaction = createRedactionSpy()
     const { persistence, timers } = await mountList((p) => {
       p.rows.set('d', makeProjectRow('d', canaryProject({ id: 'd', updatedAt: 7 })))
@@ -194,8 +186,7 @@ describe('CC-106.5 (L2): the project list rows, buttons and storage display', ()
     expect(persistence.blobs.has('d'), 'blobCache store purged').toBe(false)
   })
 
-  test('CC-106.2: a loaded project with transcription `partial` renders the interrupted-transcription banner (count only — SECURITY-03)', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
+  test('CC-106.2: a loaded project with transcription `partial` renders the interrupted-transcription banner (count only — SECURITY-03)', async () => {
     redaction = createRedactionSpy()
     const { persistence } = await mountList((p) => {
       p.rows.set('i', makeProjectRow('i', canaryProject({ id: 'i', transcription: 'partial' })))
@@ -209,8 +200,7 @@ describe('CC-106.5 (L2): the project list rows, buttons and storage display', ()
     expect(persistence.calls.openProject, 'the banner follows a real open').toEqual(['i'])
   })
 
-  test('CC-106.3: a future-schemaVersion row shows the read-only banner', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
+  test('CC-106.3: a future-schemaVersion row shows the read-only banner', async () => {
     redaction = createRedactionSpy()
     const { persistence } = await mountList((p) => {
       const row: ProjectRow = makeProjectRow('f', canaryProject({ id: 'f' }))
@@ -223,8 +213,7 @@ describe('CC-106.5 (L2): the project list rows, buttons and storage display', ()
     expect(await screen.findByTestId('read-only-banner'), 'future-schema projects announce read-only mode').toBeTruthy()
   })
 
-  test('CC-106.5: empty list renders the container (no rows, no crash) and the create path still works', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
+  test('CC-106.5: empty list renders the container (no rows, no crash) and the create path still works', async () => {
     redaction = createRedactionSpy()
     const { persistence } = await mountList()
     expect(rowIds()).toEqual([])

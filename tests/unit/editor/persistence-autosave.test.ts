@@ -20,9 +20,6 @@ import { serializeProject } from '@state/services/serialize'
 import type { PersistenceService } from '@state/services/persistence'
 import type { Project } from '@engine/model@102'
 
-const CHILD = process.env.ZIPSCRIBE_CHILD === '1'
-const CHILD_REASON = 'gates-scaffold child run: authoritative execution is the parent `pnpm test` / verify:unit'
-
 const PERSISTENCE_MODULE = '@state/services/persistence'
 type PersistenceModule = typeof import('@state/services/persistence')
 
@@ -61,7 +58,6 @@ function rename(app: Harness['app'], name: string): void {
 
 describe('FR-106.2 (CC-106.1): the autosave predicate — pendingCount ≥ 1 ∧ idle 2 s ∧ not in-flight', () => {
   test('CC-106.1: no autosave with 0 pending even after long idle (no phantom writes)', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const { bundle, service } = await setup()
     bundle.timers.advance(60_000)
     expect(bundle.instrument.putsTo('projects'), 'idle with nothing pending writes NOTHING').toBe(0)
@@ -70,7 +66,6 @@ describe('FR-106.2 (CC-106.1): the autosave predicate — pendingCount ≥ 1 ∧
   })
 
   test('CC-106.1: the save fires at 2 s idle — not before (debounce)', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const { bundle, service, app } = await setup()
     rename(app, 'Two second cut')
     bundle.timers.advance(1_999)
@@ -84,7 +79,6 @@ describe('FR-106.2 (CC-106.1): the autosave predicate — pendingCount ≥ 1 ∧
   })
 
   test('CC-106.1: each new change RESETS the 2 s debounce', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const { bundle, service, app } = await setup()
     rename(app, 'Rapid edit 1')
     bundle.timers.advance(1_500)
@@ -99,7 +93,6 @@ describe('FR-106.2 (CC-106.1): the autosave predicate — pendingCount ≥ 1 ∧
   })
 
   test('CC-106.1: visibilitychange→hidden forces an immediate save when pending; nothing when clean', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const { bundle, service, app } = await setup()
     expect(bundle.doc.visibilityListenerCount(), 'the hidden watcher is registered via deps.document').toBeGreaterThan(0)
 
@@ -117,7 +110,6 @@ describe('FR-106.2 (CC-106.1): the autosave predicate — pendingCount ≥ 1 ∧
   })
 
   test('CC-106.1: manual save forces EXACTLY ONE write when dirty and performs NO write when clean', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const { bundle, service, app } = await setup()
     expect(await service.saveNow('manual'), 'clean ⌘S is not-dirty — no write').toBe('not-dirty')
     expect(bundle.instrument.putsTo('projects')).toBe(0)
@@ -130,7 +122,6 @@ describe('FR-106.2 (CC-106.1): the autosave predicate — pendingCount ≥ 1 ∧
   })
 
   test('CC-106.1: save-state transitions idle→dirty→saving→saved with lastSavedAt from the injected clock', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const { bundle, service, app, states } = await setup()
     expect(service.getSaveState().state, 'fresh attach is idle, nothing pending').toBe('idle')
     rename(app, 'Tracked transitions')
@@ -149,7 +140,6 @@ describe('FR-106.2 (CC-106.1): the autosave predicate — pendingCount ≥ 1 ∧
 
 describe('CC-106.3: concurrency — never a second save in flight; follow-up with the latest state', () => {
   test('CC-106.3: a save started while another is in flight queues; the follow-up carries the LATEST state (last-completed-wins)', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const { bundle, service, app } = await setup()
     rename(app, 'In flight')
     const saveA = service.saveNow('manual')

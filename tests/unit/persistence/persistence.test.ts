@@ -28,8 +28,6 @@ import { CANNED_PANEL_STATE, CANNED_PEAKS, cannedFingerprint, createFakePersiste
 import type { FakePersistenceBundle } from '../editor/helpers/fake-persistence'
 import type { PanelState, PersistenceService, PeaksLike, Project, ProjectRow } from '../editor/helpers/fake-persistence'
 
-const CHILD = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.ZIPSCRIBE_CHILD === '1'
-const CHILD_REASON = 'gates-scaffold child run: authoritative execution is the parent `pnpm test` / verify:unit'
 
 const PERSISTENCE_MODULE = '@state/services/persistence'
 type PersistenceModule = typeof import('@state/services/persistence')
@@ -108,7 +106,6 @@ afterEach(() => {
 
 describe('CC-106.1: store trio, canonical byte form, documented exclusion list', () => {
   test('CC-106.1: database `zipscribe` v1 exposes exactly the three stores with their key paths', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const bundle = createFakePersistenceDeps()
     const service = await makeService(bundle)
     expect(await service.saveNow('manual'), 'clean project: manual performs NO write').toBe('not-dirty')
@@ -119,7 +116,6 @@ describe('CC-106.1: store trio, canonical byte form, documented exclusion list',
   })
 
   test('CC-106.1: the persistence.ts docblock documents the exclusion list (playing, rate, loop, searchOpen)', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     // [106-ADJ 1] orchestrator path fix: the module under test lives at
     // src/state/services/persistence.ts (every other access in this suite
     // uses the @state alias; './persistence.ts' resolved next to THIS test
@@ -133,7 +129,6 @@ describe('CC-106.1: store trio, canonical byte form, documented exclusion list',
   })
 
   test('CC-106.1: the stored `project` field is string-equal to serializeProject output — serialize.ts is the ONLY byte form', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const bundle = createFakePersistenceDeps()
     const service = await makeService(bundle)
     const app = makeApp(sampleProjectLocal())
@@ -148,7 +143,6 @@ describe('CC-106.1: store trio, canonical byte form, documented exclusion list',
   })
 
   test('CC-106.1: golden convention — canonical bytes are unchanged across save→reload→re-save; peaks + panelState ride along structural-equal (invariant 8)', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     expect(serializeProject(parseProject(GOLDEN_BYTES)), 'the committed golden is canonical fixed-point (the 102 golden convention)').toBe(GOLDEN_BYTES)
 
     const bundle = createFakePersistenceDeps()
@@ -174,7 +168,6 @@ describe('CC-106.1: store trio, canonical byte form, documented exclusion list',
   })
 
   test('CC-106.1: the exclusion list is real — playing/rate/loop/searchOpen changes never persist (not-dirty, zero writes)', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const bundle = createFakePersistenceDeps()
     const service = await makeService(bundle)
     const app = makeApp(sampleProjectLocal())
@@ -197,7 +190,6 @@ describe('CC-106.1: store trio, canonical byte form, documented exclusion list',
   })
 
   test('CC-106.2: a project saved with transcription `partial` reopens with its committed blocks kept', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const bundle = createFakePersistenceDeps()
     const service = await makeService(bundle)
     const app = makeApp(sampleProjectLocal({ transcription: 'partial' }))
@@ -213,7 +205,6 @@ describe('CC-106.1: store trio, canonical byte form, documented exclusion list',
 
 describe('CC-106.3: racing saves, torn-write injection, migrations', () => {
   test('CC-106.3: two racing autosaves end with the LATEST state — last-completed-wins, the row is never torn', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const bundle = createFakePersistenceDeps()
     const service = await makeService(bundle)
     const app = makeApp(sampleProjectLocal())
@@ -231,7 +222,6 @@ describe('CC-106.3: racing saves, torn-write injection, migrations', () => {
   })
 
   test('CC-106.3: quota failure on the FIRST write (fail-at-step k=0) → persistent not-saved + QUOTA_EXCEEDED, empty stores', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const bundle = createFakePersistenceDeps()
     const service = await makeService(bundle)
     const app = makeApp(sampleProjectLocal())
@@ -248,7 +238,6 @@ describe('CC-106.3: racing saves, torn-write injection, migrations', () => {
   })
 
   test('CC-106.3: quota failure on a LATER write (fail-at-step k=1) → the row is fully-OLD (IDB txn atomicity), reload on a fresh service agrees', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const bundle = createFakePersistenceDeps()
     const service = await makeService(bundle)
     const app = makeApp(sampleProjectLocal())
@@ -269,7 +258,6 @@ describe('CC-106.3: racing saves, torn-write injection, migrations', () => {
   })
 
   test('CC-106.3: not-saved is persistent until a LATER successful save clears it (CC-I2.12 backing)', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const bundle = createFakePersistenceDeps()
     const service = await makeService(bundle)
     const app = makeApp(sampleProjectLocal())
@@ -287,7 +275,6 @@ describe('CC-106.3: racing saves, torn-write injection, migrations', () => {
   })
 
   test('CC-106.3: MIGRATIONS[1] is the exported identity baseline', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const mod = await loadModule()
     expect(mod.PERSISTENCE_SCHEMA_VERSION).toBe(1)
     const baseline = mod.MIGRATIONS[1]
@@ -297,7 +284,6 @@ describe('CC-106.3: racing saves, torn-write injection, migrations', () => {
   })
 
   test('CC-106.3: a schemaVersion-0 row upgrades through the MIGRATIONS chain before use', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const mod = await loadModule()
     expect(mod.MIGRATIONS[0], 'the test installs the 0→1 step of the chain').toBeUndefined()
     mod.MIGRATIONS[0] = (row) => ({ ...(row as Record<string, unknown>), schemaVersion: 1 })
@@ -316,7 +302,6 @@ describe('CC-106.3: racing saves, torn-write injection, migrations', () => {
   })
 
   test('CC-106.3: a future-schemaVersion row loads readOnly with SCHEMA_FUTURE and any save for it is refused (never written over)', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const bundle = createFakePersistenceDeps()
     await makeService(bundle)
     const futureRow: ProjectRow = { id: 'proj_106', schemaVersion: 2, name: 'From tomorrow', updatedAt: 1, project: JSON.stringify(sampleProjectLocal()), peaks: null, panelState: null }
@@ -340,7 +325,6 @@ describe('CC-106.3: racing saves, torn-write injection, migrations', () => {
 
 describe('CC-106.5 + FR-106.7: blob LRU, storage honesty, lifecycle', () => {
   test('CC-106.5: blobCache evicts LOWEST lastOpened first while over the limit — projects and mediaHandles rows are NEVER evicted (JSON never evicted)', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const bundle = createFakePersistenceDeps({ saveBlobLimitBytes: 250 })
     const service = await makeService(bundle)
     const app = makeApp(sampleProjectLocal())
@@ -364,7 +348,6 @@ describe('CC-106.5 + FR-106.7: blob LRU, storage honesty, lifecycle', () => {
   })
 
   test('CC-106.5: getMediaBlob touches lastOpened — recency changes the eviction order', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const bundle = createFakePersistenceDeps({ saveBlobLimitBytes: 250 })
     const service = await makeService(bundle)
     await service.cacheMediaBlob('p1', blob(100))
@@ -382,7 +365,6 @@ describe('CC-106.5 + FR-106.7: blob LRU, storage honesty, lifecycle', () => {
   })
 
   test('FR-106.7: storageEstimate is honest — injected passthrough + cached persisted flag; requestPersist fires exactly ONCE on the first new-project save', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const bundle = createFakePersistenceDeps()
     bundle.setEstimate(123_456, 5 * 1024 * 1024 * 1024)
     bundle.setPersistResult(true)
@@ -414,7 +396,6 @@ describe('CC-106.5 + FR-106.7: blob LRU, storage honesty, lifecycle', () => {
   })
 
   test('CC-106.5: deleteProject defers the purge — the row REMAINS until commit(); undo cancels it; commit purges ALL THREE stores', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const bundle = createFakePersistenceDeps()
     const service = await makeService(bundle)
     const app = makeApp(sampleProjectLocal())
@@ -438,7 +419,6 @@ describe('CC-106.5 + FR-106.7: blob LRU, storage honesty, lifecycle', () => {
   })
 
   test('CC-106.5: duplicateProject suffixes " (copy)", fresh id + updatedAt=now, copies project/peaks/panelState + the handle row — the blob cache is NOT copied', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const bundle = createFakePersistenceDeps()
     const service = await makeService(bundle)
     const app = makeApp(sampleProjectLocal({ name: 'Cut 1' }))
@@ -471,7 +451,6 @@ describe('CC-106.5 + FR-106.7: blob LRU, storage honesty, lifecycle', () => {
   })
 
   test('CC-106.5: openProject records lastOpened on its blobCache row (touch); listProjects sorts updatedAt DESC', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const bundle = createFakePersistenceDeps()
     const service = await makeService(bundle)
     const app = makeApp(sampleProjectLocal())
@@ -509,7 +488,6 @@ describe('CC-106.5 + FR-106.7: blob LRU, storage honesty, lifecycle', () => {
 
 describe('CC-106.6: .zipscribe.json export → import round-trip', () => {
   test('CC-106.6: exportProjectFile returns the canonical project string verbatim; unknown id → null', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const bundle = createFakePersistenceDeps()
     const service = await makeService(bundle)
     const app = makeApp(sampleProjectLocal())
@@ -521,7 +499,6 @@ describe('CC-106.6: .zipscribe.json export → import round-trip', () => {
   })
 
   test('CC-106.6: export→import→re-export is byte-equal content with a fresh id + updatedAt; the source row is untouched', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const bundle = createFakePersistenceDeps()
     const service = await makeService(bundle)
     const app = makeApp(sampleProjectLocal())
@@ -544,7 +521,6 @@ describe('CC-106.6: .zipscribe.json export → import round-trip', () => {
   })
 
   test('CC-106.6 / SECURITY-03: malformed import rejects with a CODE-only message + IMPORT_INVALID — never an input fragment', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
     const bundle = createFakePersistenceDeps()
     const service = await makeService(bundle)
     let message = 'NO THROW'
