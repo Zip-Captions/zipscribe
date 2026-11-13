@@ -120,7 +120,12 @@ describe('CC-106.1: store trio, canonical byte form, documented exclusion list',
 
   test('CC-106.1: the persistence.ts docblock documents the exclusion list (playing, rate, loop, searchOpen)', async ({ skip }) => {
     skip(CHILD, CHILD_REASON)
-    const source = readFileSync(new URL('./persistence.ts', import.meta.url), 'utf8')
+    // [106-ADJ 1] orchestrator path fix: the module under test lives at
+    // src/state/services/persistence.ts (every other access in this suite
+    // uses the @state alias; './persistence.ts' resolved next to THIS test
+    // → ENOENT). Assertion unchanged — the real source still must document
+    // the exclusion list.
+    const source = readFileSync(new URL('../../../src/state/services/persistence.ts', import.meta.url), 'utf8')
     for (const excluded of ['playing', 'rate', 'loop', 'searchOpen']) {
       expect(source, `docblock must name the excluded UI state "${excluded}"`).toContain(excluded)
     }
@@ -438,6 +443,15 @@ describe('CC-106.5 + FR-106.7: blob LRU, storage honesty, lifecycle', () => {
     const service = await makeService(bundle)
     const app = makeApp(sampleProjectLocal({ name: 'Cut 1' }))
     service.attachEditor(app)
+    // [106-ADJ 2] seeding amended per the pinned save semantics —
+    // "manual forces EXACTLY ONE write when dirty and performs NO write when
+    // clean" (tests/unit/editor/persistence-autosave.test.ts § manual) and
+    // this suite's own clean-project expectations at :114/:168/:185. A fresh
+    // attach with no command is CLEAN, so the seed dirties through two real
+    // commands that net back to the original bytes (copy name and
+    // byte-equality assertions below are unchanged).
+    expect(app.dispatch('project-rename', { name: 'Cut 1 · seeded' })).toBeNull()
+    expect(app.dispatch('project-rename', { name: 'Cut 1' })).toBeNull()
     expect(await service.saveNow('manual')).toBe('saved')
     await service.storeMediaHandle('proj_106', null, cannedFingerprint())
     await service.cacheMediaBlob('proj_106', blob(10))
@@ -462,6 +476,11 @@ describe('CC-106.5 + FR-106.7: blob LRU, storage honesty, lifecycle', () => {
     const service = await makeService(bundle)
     const app = makeApp(sampleProjectLocal())
     service.attachEditor(app)
+    // [106-ADJ 3] same adjudication as the duplicateProject seeding — the
+    // seed dirties through a command ping-pong netting to the original
+    // bytes; sort-order and touch assertions unchanged.
+    expect(app.dispatch('project-rename', { name: 'Sample project · seeded' })).toBeNull()
+    expect(app.dispatch('project-rename', { name: 'Sample project' })).toBeNull()
     expect(await service.saveNow('manual')).toBe('saved')
     await service.cacheMediaBlob('proj_106', blob(10))
     const before = await rawRow<{ lastOpened: number }>(bundle.instrument.raw, 'blobCache', 'proj_106')
