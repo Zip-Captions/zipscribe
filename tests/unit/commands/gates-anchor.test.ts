@@ -44,7 +44,19 @@ describe('CC-105.6: the quality-gate wiring is in place', () => {
 
   test('CC-105.6: the unit-105 branch exists', async ({ skip }) => {
     skip(CHILD, CHILD_REASON)
-    const sha = execFileSync('git', ['rev-parse', '--verify', `refs/heads/${UNIT_BRANCH}`], { cwd: repoRoot.pathname, encoding: 'utf8' }).trim()
-    expect(sha, 'the unit branch is a real ref').toMatch(/^[0-9a-f]{40}$/)
+    // CI-honest (orchestrator adjudication, Actions run 43358141096): a PR checkout has no local refs/heads/<branch> — it checks out refs/pull/N/merge and carries the branch in GITHUB_HEAD_REF — so any authoritative source counts: local ref, origin ref (fetch context), or GITHUB_HEAD_REF (PR context). A branch absent from all three still fails.
+    const resolveRef = (ref: string): string | null => {
+      try {
+        return execFileSync('git', ['rev-parse', '--verify', ref], { cwd: repoRoot.pathname, encoding: 'utf8' }).trim()
+      } catch {
+        return null
+      }
+    }
+    const sha = resolveRef(`refs/heads/${UNIT_BRANCH}`) ?? resolveRef(`refs/remotes/origin/${UNIT_BRANCH}`)
+    if (sha !== null) {
+      expect(sha, 'the unit branch is a real ref').toMatch(/^[0-9a-f]{40}$/)
+    } else {
+      expect(process.env.GITHUB_HEAD_REF, 'the unit branch exists as no local/origin ref — a PR checkout must carry it in GITHUB_HEAD_REF').toBe(UNIT_BRANCH)
+    }
   })
 })
