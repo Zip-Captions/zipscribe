@@ -27,6 +27,7 @@ import type { ImportReport, IntakeService } from '../../state/services/intake'
 import { isCaptionFileName, isMediaFileName } from '../../state/services/intake'
 import type { CaptionImportPort } from '../../state/services/caption-import'
 import type { EditorApp } from '../../state/history'
+import type { SaveOutcome, SaveState, SaveStateName } from '../../state/services/persistence'
 import type { RafDriver } from '../../state/services/playback/arbitrator'
 import type { StageController } from '../../app/stage'
 import type { OverlayRenderer } from '../canvas/overlay'
@@ -58,6 +59,27 @@ export interface WorkbenchProps {
   project: ProjectStore
   intake: IntakeService
   transport?: WorkbenchTransport
+  /**
+   * Unit-106 slice B EXTENDS (optional — every frozen 101/102/103/104 mount
+   * path is untouched): the persistence service behind the status-bar
+   * save-state indicator and the ⌘S provider. Injected via
+   * src/app/context.ts (slice D); absent, the indicator stays unmounted and
+   * ⌘S keeps the unit-105 documented no-op.
+   */
+  persistence?: WorkbenchPersistence
+}
+
+/** The injectable save-state seam of the status-bar indicator (frozen
+ *  unit106-api-contract.d.ts § @ui/shell/Workbench — plain object, fake ok). */
+export interface SaveStateSource {
+  getSaveState(): SaveState
+  subscribeSaveState(cb: () => void): () => void
+}
+
+/** The Workbench-level seam (slice D injects the real `PersistenceService`,
+ *  which satisfies this structurally): indicator reads + the ⌘S command. */
+export interface WorkbenchPersistence extends SaveStateSource {
+  saveNow(reason: 'idle' | 'manual' | 'hidden'): Promise<SaveOutcome>
 }
 
 type SidebarTab = 'subtitles' | 'media' | 'style'
@@ -387,15 +409,53 @@ function DropZone({ jobsState, onFiles, onSample }: { jobsState: JobsState; onFi
   )
 }
 
+// FR-106.2 (CC-106.1, unit-101 status-bar EXTENDS): the save-state indicator.
+// Frozen copy (unit106-api-contract.d.ts): `saved` | `saving…` | `not saved` |
+// `unsaved changes` (dirty); `idle` claims nothing. Reads ONLY through the
+// injected seam's subscription (thin component — the service itself lives
+// behind props, wired by slice D). Persistent-failure rule (CC-I2.12 backing)
+// is a render-layer claim: once `not saved`, it stays `not saved` through
+// further dirty/saving transitions until a LATER successful save.
+const SAVE_STATE_COPY: Record<SaveStateName, string> = {
+  idle: '',
+  dirty: 'unsaved changes',
+  saving: 'saving…',
+  saved: 'saved',
+  'not-saved': 'not saved',
+}
+
+export function SaveStateIndicator({ persistence }: { persistence: SaveStateSource }): ReactNode {
+  const [state, setState] = useState<SaveState>(() => persistence.getSaveState())
+  const [failureLatched, setFailureLatched] = useState<boolean>(() => persistence.getSaveState().state === 'not-saved')
+  // Same store→React contract as useSnapshot: the subscription flushes the
+  // render synchronously so listener pushes settle without a manual act().
+  useEffect(() => {
+    const sync = (): void => {
+      const next = persistence.getSaveState()
+      setState((current) => (Object.is(current, next) ? current : next))
+      if (next.state === 'not-saved') setFailureLatched(true)
+      else if (next.state === 'saved') setFailureLatched(false)
+    }
+    sync() // catch pushes that landed between render and subscribe
+    return persistence.subscribeSaveState(() => {
+      flushSync(sync)
+    })
+  }, [persistence])
+  return <span data-testid="save-state" aria-live="polite">{failureLatched ? 'not saved' : SAVE_STATE_COPY[state.state]}</span>
+}
+
 // FR-2.0.4: polite live region — progress % while a job runs, model · tier ·
-// cache otherwise. Numbers and codes only.
-function StatusBar({ jobsState }: { jobsState: JobsState }): ReactNode {
+// cache otherwise. Numbers and codes only. The unit-106 EXTENDS nests the
+// save-state indicator (own polite live region) INSIDE the frozen unit-101
+// footer; without the injected seam the footer renders byte-identically.
+function StatusBar({ jobsState, persistence }: { jobsState: JobsState; persistence?: SaveStateSource }): ReactNode {
   const percent = jobsState.progress !== null && jobsState.progress.totalSec > 0 ? `${Math.round((jobsState.progress.processedSec / jobsState.progress.totalSec) * 100)}%` : 'Idle'
   const model = jobsState.running === null ? 'no model' : jobsState.running.kind === 'align' ? 'aligning' : 'transcribing'
   const tier = jobsState.capability === null ? 'tier pending' : TIER_LABEL[jobsState.capability.tier]
   return (
     <footer data-testid="status-bar" role="status" aria-live="polite" className="ws-status">
       {`${percent} · ${model} · ${tier} · ${cacheCopy(jobsState)}`}
+      {persistence !== undefined && <SaveStateIndicator persistence={persistence} />}
     </footer>
   )
 }
@@ -419,11 +479,19 @@ function BlockedScreen({ reasons }: { reasons: readonly string[] }): ReactNode {
 }
 
 export function Workbench(props: WorkbenchProps): ReactNode {
-  const { jobs, settings, project, intake, transport } = props
+  const { jobs, settings, project, intake, transport, persistence } = props
 
   useCommands(settings)
   useTransportCommands(transport?.app)
-  useEditorCommands(transport?.app)
+  // FR-106.2 production ⌘S provider (unit-105 follow-up seam): the real
+  // onSave forwards to the injected service's manual save (slice D wires the
+  // service through src/app/context.ts); absent, useEditorCommands keeps its
+  // documented no-op. The component holds no save logic — one forwarding call.
+  useEditorCommands(transport?.app, {
+    onSave: persistence === undefined ? undefined : () => {
+      void persistence.saveNow('manual')
+    },
+  })
   const jobsState = useSnapshot(jobs)
   const settingsState = useSnapshot(settings)
   const { project: currentProject } = useSnapshot(project)
@@ -635,7 +703,7 @@ export function Workbench(props: WorkbenchProps): ReactNode {
         </div>
       </main>
       {toastCodes !== null && <Toast codes={toastCodes} />}
-      <StatusBar jobsState={jobsState} />
+      <StatusBar jobsState={jobsState} persistence={persistence} />
       {shortcutsOpen && (
         <ShortcutsOverlay
           onClose={() => {

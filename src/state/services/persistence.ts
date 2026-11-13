@@ -14,18 +14,22 @@
 //
 // PERSISTED-UI-STATE EXCLUSION LIST (CC-106.1): the following are UI state and
 // are NEVER persisted — `playing`, `rate`, `loop`, `searchOpen`, and the live
-// playhead mirror during playback. Dirty detection compares canonical
-// project bytes only, so a pure UI change (none of which lives inside
-// `Project`) can never mark the project dirty or reach a row.
+// playhead mirror during playback. Dirty detection counts ACCEPTED project
+// changes observed since `attachEditor` or the last successful save
+// (clean-on-attach: a pre-existing project attaches CLEAN — the baseline the
+// FR-106.2 suites pin), so a pure UI change (which never reaches the project
+// store subscription, and none of which lives inside `Project`) can never
+// mark the project dirty or reach a row.
 //
 // Save semantics (FR-106.2, US-2.4.1): one `readwrite` transaction per save
 // across every row it writes — a save is fully-old-or-fully-new by native IDB
-// transaction atomicity (CC-106.3). Autosave: an attached editor schedules a
-// debounced (2 s idle) save on every project change; racing saves run
-// in-flight-guarded with a single queued follow-up carrying the latest
-// snapshot (last-completed-wins). `⌘S`-style `manual` and `visibilitychange→
-// hidden` flushes force the SAME byte-comparison rule — a clean project
-// performs NO write (`not-dirty`).
+// transaction atomicity (CC-106.3). Autosave: the 2 s debounce timer is
+// scheduled ONLY when pending becomes ≥ 1 and RESETS on every further change;
+// `visibilitychange→hidden` and `⌘S`-style `manual` flushes bypass the
+// debounce when pending ≥ 1. All three reasons share the pending-count rule —
+// a clean project (0 changes since attach or the last successful save)
+// performs NO write (`not-dirty`). Racing saves run in-flight-guarded with a
+// single queued follow-up carrying the LATEST state (last-completed-wins).
 //
 // Migrations (FR-106.3): `MIGRATIONS[v]` steps a row stored at v one version
 // up; rows below `PERSISTENCE_SCHEMA_VERSION` are chain-upgraded before use
@@ -361,8 +365,8 @@ export function createPersistenceService(deps: PersistenceDeps): PersistenceServ
       request.addEventListener('success', () => resolve(request.result))
       request.addEventListener('error', () => reject(request.error ?? new ZipscribeError('DB_OPEN_FAILED')))
     })
-    // FR-106.2: hidden→flush (the byte-comparison inside saveNow keeps it a
-    // no-op unless pending work ≥ 1 — exactly the pinned `hidden` policy).
+    // FR-106.2: hidden→flush (the pending-count rule inside saveNow keeps it
+    // a no-op unless pending work ≥ 1 — exactly the pinned `hidden` policy).
     deps.document?.addEventListener('visibilitychange', () => {
       void service.saveNow('hidden')
     })
@@ -424,6 +428,13 @@ export function createPersistenceService(deps: PersistenceDeps): PersistenceServ
   }
 
   // ── autosave state machine (FR-106.2) ─────────────────────────────────────
+  //
+  // PENDING-COUNT, CLEAN-ON-ATTACH (orchestrator adjudication): `attachEditor`
+  // does NOT mark a pre-existing project dirty. `dirty` := ≥ 1 ACCEPTED
+  // project change observed since attach or since the last successful save —
+  // a change counter, deliberately NOT a byte comparison (a command ping-pong
+  // that nets the canonical bytes back is still pending work; a byte baseline
+  // attached-dirty instead, which the FR-106.2 suites reject).
 
   let app: EditorAppLike | null = null
   let unsubscribeEditor: (() => void) | null = null
@@ -431,8 +442,16 @@ export function createPersistenceService(deps: PersistenceDeps): PersistenceServ
   let peaksSource: (() => PeaksLike | null) | null = null
   let debounceId: number | null = null
 
-  /** project id → canonical bytes of the last SUCCESSFUL save (dirty truth). */
-  const lastSavedBytes = new Map<string, string>()
+  /** Accepted project changes observed; `savedChanges` is the count the last
+   *  SUCCESSFUL save wrote. dirty := projectChanges > savedChanges. */
+  let projectChanges = 0
+  let savedChanges = 0
+
+  /** Last observed {id, canonical bytes}. A null→entry sighting (or an id
+   *  change) is an attach-equivalent baseline, never a change; a callback
+   *  with UNCHANGED bytes is a UI-store notification (the docblock exclusion
+   *  list — the editor store shares the subscription), never a change. */
+  let baseline: { id: string; bytes: string } | null = null
 
   /** In-flight guard + single queued follow-up (last-completed-wins). */
   let inFlight: Promise<SaveOutcome> | null = null
@@ -449,16 +468,8 @@ export function createPersistenceService(deps: PersistenceDeps): PersistenceServ
     }
   }
 
-  function onProjectChanged(): void {
-    const project = currentProject()
-    if (project === null) return
-    const bytes = serializeProject(project)
-    // Pure UI changes (the docblock exclusion list) leave the canonical bytes
-    // untouched → never pending work, never a write.
-    if (bytes === lastSavedBytes.get(project.id)) return
-    // Persistent-failure rule (CC-I2.12): `not-saved` survives edits and
-    // clears only on a LATER successful save.
-    if (saveState.state !== 'not-saved') setSaveState({ state: 'dirty' })
+  /** THE only place the autosave timer is scheduled (pending ≥ 1). */
+  function scheduleDebounce(): void {
     clearDebounce()
     debounceId = timers.setTimeout(() => {
       debounceId = null
@@ -466,9 +477,46 @@ export function createPersistenceService(deps: PersistenceDeps): PersistenceServ
     }, AUTOSAVE_DEBOUNCE_MS)
   }
 
+  function onProjectChanged(): void {
+    const project = currentProject()
+    if (project === null) {
+      baseline = null
+      return
+    }
+    const bytes = serializeProject(project)
+    if (baseline === null || baseline.id !== project.id) {
+      // First sighting of this project (attach with a late load, or a
+      // project switch) — an attach-equivalent baseline, never a change.
+      baseline = { id: project.id, bytes }
+      return
+    }
+    if (bytes === baseline.bytes) {
+      // Identical canonical bytes: a UI-store notification (the exclusion
+      // list lives in the editor store but shares this subscription) — never
+      // pending work, never a timer, never a write.
+      return
+    }
+    baseline = { id: project.id, bytes }
+    // Accepted project change: pending becomes/stays ≥ 1. (Counted per
+    // TRANSITION, not against the save baseline — a command ping-pong that
+    // nets the bytes back is still ≥ 1 accepted change, [106-ADJ 2/3].)
+    projectChanges += 1
+    // Persistent-failure rule (CC-I2.12): `not-saved` survives edits and
+    // clears only on a LATER successful save.
+    if (saveState.state !== 'not-saved') setSaveState({ state: 'dirty' })
+    // Each change RESETS the 2 s idle window.
+    scheduleDebounce()
+  }
+
   function attachEditor(next: EditorAppLike): void {
     if (unsubscribeEditor !== null) unsubscribeEditor()
     app = next
+    // CLEAN-ON-ATTACH: zero pending, no timer, no save-state transition.
+    projectChanges = 0
+    savedChanges = 0
+    const initial = next.project.getState().project
+    baseline = initial === null ? null : { id: initial.id, bytes: serializeProject(initial) }
+    clearDebounce()
     unsubscribeEditor = next.project.subscribe(onProjectChanged)
   }
 
@@ -490,21 +538,24 @@ export function createPersistenceService(deps: PersistenceDeps): PersistenceServ
   async function performSave(): Promise<SaveOutcome> {
     const project = currentProject()
     if (project === null) return 'not-dirty'
-    const bytes = serializeProject(project)
-    if (bytes === lastSavedBytes.get(project.id)) return 'not-dirty'
+    if (projectChanges === savedChanges) return 'not-dirty'
+    // Snapshot the state AND the change count together: changes landing while
+    // the write is in flight stay PENDING, so the queued follow-up (single,
+    // LATEST state — CC-106.3 last-completed-wins) still carries them.
+    const snapshotChanges = projectChanges
     setSaveState({ state: 'saving' })
     const row: ProjectRow = {
       id: project.id,
       schemaVersion: PERSISTENCE_SCHEMA_VERSION,
       name: project.name,
       updatedAt: project.updatedAt,
-      project: bytes,
+      project: serializeProject(project),
       peaks: peaksSource === null ? null : peaksSource(),
       panelState: panelStateSource === null ? null : panelStateSource(),
     }
     try {
       const isNewProject = await writeProjectRow(row)
-      lastSavedBytes.set(project.id, bytes)
+      savedChanges = snapshotChanges
       clearDebounce()
       setSaveState({ state: 'saved', lastSavedAt: clock.now(), errorCode: null })
       // FR-106.7: exactly once, on the first successful save of a NEW project.
