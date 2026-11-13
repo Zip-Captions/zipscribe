@@ -27,7 +27,7 @@ import type { ImportReport, IntakeService } from '../../state/services/intake'
 import { isCaptionFileName, isMediaFileName } from '../../state/services/intake'
 import type { CaptionImportPort } from '../../state/services/caption-import'
 import type { EditorApp } from '../../state/history'
-import type { SaveOutcome, SaveState, SaveStateName } from '../../state/services/persistence'
+import type { LoadedProject, PersistenceService, RelinkField, SaveState, SaveStateName } from '../../state/services/persistence'
 import type { RafDriver } from '../../state/services/playback/arbitrator'
 import type { StageController } from '../../app/stage'
 import type { OverlayRenderer } from '../canvas/overlay'
@@ -40,6 +40,7 @@ import { formatTimecode } from '../format'
 import { Timeline } from '../timeline/Timeline'
 import { Transcript } from '../transcript/Transcript'
 import { CaptionImportDialog } from '../transcript/CaptionImportDialog'
+import { ProjectList } from './ProjectList'
 import { StageMedia } from './StageMedia'
 import { TranscribePopover } from './TranscribePopover'
 import './workbench.css'
@@ -62,11 +63,28 @@ export interface WorkbenchProps {
   /**
    * Unit-106 slice B EXTENDS (optional — every frozen 101/102/103/104 mount
    * path is untouched): the persistence service behind the status-bar
-   * save-state indicator and the ⌘S provider. Injected via
-   * src/app/context.ts (slice D); absent, the indicator stays unmounted and
-   * ⌘S keeps the unit-105 documented no-op.
+   * save-state indicator, the ⌘S provider and the slice-C Media-tab project
+   * list. Injected via src/app/context.ts (slice D); absent, the indicator
+   * and the project list stay unmounted and ⌘S keeps the unit-105 documented
+   * no-op.
    */
   persistence?: WorkbenchPersistence
+  /**
+   * Unit-106 slice C EXTENDS (optional): the caller owns project loading —
+   * ProjectList restored the playhead/selection via the editor seam
+   * (FR-106.5); this receives the loaded reopen context (slice D applies the
+   * project content in src/app/context.ts).
+   */
+  onOpenProject?: (projectId: string, loaded: LoadedProject | null) => void
+  /**
+   * Unit-106 slice C EXTENDS (optional, CC-106.4 / US-2.4.2): app-level
+   * relink state. Set when `persistence.relinkMedia` reports
+   * `{kind: 'mismatch', differs}`; the keep/replace callbacks own the
+   * decision — nothing here (or in the service) ever auto-swaps media.
+   */
+  relinkMismatch?: readonly RelinkField[] | null
+  onRelinkKeep?: () => void
+  onRelinkReplace?: () => void
 }
 
 /** The injectable save-state seam of the status-bar indicator (frozen
@@ -77,10 +95,11 @@ export interface SaveStateSource {
 }
 
 /** The Workbench-level seam (slice D injects the real `PersistenceService`,
- *  which satisfies this structurally): indicator reads + the ⌘S command. */
-export interface WorkbenchPersistence extends SaveStateSource {
-  saveNow(reason: 'idle' | 'manual' | 'hidden'): Promise<SaveOutcome>
-}
+ *  which satisfies this structurally): the frozen ProjectList prop type
+ *  (unit106-api-contract.d.ts) is the FULL service, so the seam is the full
+ *  service — indicator reads, the ⌘S command and the slice-C project-list
+ *  surface all flow through it. */
+export type WorkbenchPersistence = PersistenceService
 
 type SidebarTab = 'subtitles' | 'media' | 'style'
 
@@ -479,7 +498,7 @@ function BlockedScreen({ reasons }: { reasons: readonly string[] }): ReactNode {
 }
 
 export function Workbench(props: WorkbenchProps): ReactNode {
-  const { jobs, settings, project, intake, transport, persistence } = props
+  const { jobs, settings, project, intake, transport, persistence, onOpenProject, relinkMismatch = null, onRelinkKeep, onRelinkReplace } = props
 
   useCommands(settings)
   useTransportCommands(transport?.app)
@@ -642,6 +661,19 @@ export function Workbench(props: WorkbenchProps): ReactNode {
               {tab === 'media' && (
                 <div role="tabpanel" id="tabpanel-media" aria-labelledby="tab-media" className="ws-tabpanel">
                   <MediaTab asset={currentProject?.asset ?? null} />
+                  {/* Unit-106 slice C (FR-106.5): the project list mounts BELOW the asset card when the persistence seam is injected — absent, the Media tab renders byte-identically to unit-101. The editor seam restores the reopen context (FR-106.5); project content loading is the caller's (slice D wires onOpenProject through src/app/context.ts). */}
+                  {persistence !== undefined && (
+                    <ProjectList
+                      persistence={persistence}
+                      editor={transport?.app.editor}
+                      onOpen={(projectId, loaded) => {
+                        onOpenProject?.(projectId, loaded)
+                      }}
+                      relinkMismatch={relinkMismatch}
+                      onRelinkKeep={onRelinkKeep}
+                      onRelinkReplace={onRelinkReplace}
+                    />
+                  )}
                 </div>
               )}
               {tab === 'style' && (
