@@ -14,7 +14,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import { afterEach, describe, expect, test } from 'vitest'
 import { createRedactionSpy } from '../../../src/test-support/redaction'
 import type { SaveState } from '@state/services/persistence'
@@ -124,7 +124,12 @@ describe('CC-106.1 (L2): the save-state indicator in the status bar', () => {
   test('CC-106.1: the status bar mounts the indicator (unit-101 footer EXTENDS)', async ({ skip }) => {
     skip(CHILD, CHILD_REASON)
     redaction = createRedactionSpy()
-    const workbench = readFileSync(fileURLToPath(new URL('../../../src/ui/shell/Workbench.tsx', import.meta.url)), 'utf8')
+    // [106-ADJ 4] orchestrator environment fix (slice-B Test finding 1): the
+    // jsdom environment gives a non-file `import.meta.url`, so the URL-base
+    // read throws ERR_INVALID_URL_SCHEME — same documented pitfall as
+    // tests/unit/transcript/editing.test.tsx § cwd-relative note. Assertions
+    // unchanged.
+    const workbench = readFileSync(join(process.cwd(), 'src/ui/shell/Workbench.tsx'), 'utf8')
     expect(workbench, 'the unit-101 status-bar testid survives the EXTENDS').toContain('data-testid="status-bar"')
     expect(workbench, 'the footer renders the unit-106 save-state indicator').toContain('SaveStateIndicator')
     expect(workbench, 'the indicator span carries the polite live region').toContain('aria-live="polite"')
