@@ -51,11 +51,13 @@
 // error — failures surface `PersistenceErrorCode` values (codes + numbers)
 // through `deps.onError` and code-only `ZipscribeError`s.
 //
-// NOTE on `idb` (pinned runtime dep): the promise helpers are hand-rolled on
-// the INJECTED factory instead of idb's openDB/wrap because those reference
-// the global `indexedDB`/`IDBRequest` constructors at call time, which do not
-// exist in the deps-injected L1/L3 node environment (fake-indexeddb ships per
-// instance, no globals — a `wrap()` call throws ReferenceError there). The
+// NOTE on `idb` (REMOVED from the dependency manifest — no unused deps): the
+// promise helpers are hand-rolled on the INJECTED factory instead of idb's
+// openDB/wrap because idb@8 dereferences the bare global `indexedDB`/
+// `IDBRequest` constructors at call time, which do not exist in the
+// deps-injected L1/L3 node environment (fake-indexeddb ships PER INSTANCE with
+// no globals — a `wrap()`/`openDB()` call throws ReferenceError there, so the
+// package was never importable under the injected-factory contract). The
 // request→promise/transaction-settle helpers below implement the same
 // semantics against `deps.indexedDB` (browser factory in production).
 
@@ -308,6 +310,18 @@ function errorName(error: unknown): string | undefined {
   return undefined
 }
 
+/** Shape gates for UNTRUSTED fingerprint data — stored rows and probe results
+ *  are both external input. Field VALUES are never named or logged
+ *  (SECURITY-03); only the field NAMEs reach the coded `mismatch` outcome. */
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry: unknown) => typeof entry === 'string')
+}
+
+function isWellFormedFingerprint(value: unknown): value is MediaFingerprint {
+  const fp = value as Partial<MediaFingerprint> | null
+  return typeof fp === 'object' && fp !== null && typeof fp.name === 'string' && typeof fp.size === 'number' && typeof fp.durationMs === 'number' && isStringArray(fp.sampleHashes)
+}
+
 function requestResult<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     request.addEventListener('success', () => resolve(request.result))
@@ -417,7 +431,16 @@ export function createPersistenceService(deps: PersistenceDeps): PersistenceServ
 
   function setSaveState(patch: Partial<SaveState>): void {
     saveState = { ...saveState, ...patch }
-    for (const listener of [...saveListeners]) listener()
+    // A throwing subscriber is contained (CC-106.3): the save-state machine —
+    // and every queued save waiter riding on it — is never stranded by a
+    // subscriber. SECURITY-03: subscriber failures are never logged.
+    for (const listener of [...saveListeners]) {
+      try {
+        listener()
+      } catch {
+        /* a subscriber failure belongs to the subscriber, not the queue */
+      }
+    }
   }
 
   function subscribeSaveState(cb: () => void): () => void {
@@ -544,24 +567,37 @@ export function createPersistenceService(deps: PersistenceDeps): PersistenceServ
     // LATEST state — CC-106.3 last-completed-wins) still carries them.
     const snapshotChanges = projectChanges
     setSaveState({ state: 'saving' })
-    const row: ProjectRow = {
-      id: project.id,
-      schemaVersion: PERSISTENCE_SCHEMA_VERSION,
-      name: project.name,
-      updatedAt: project.updatedAt,
-      project: serializeProject(project),
-      peaks: peaksSource === null ? null : peaksSource(),
-      panelState: panelStateSource === null ? null : panelStateSource(),
-    }
     try {
+      // Row materialization lives INSIDE the try, after the DB handshake: a
+      // throwing peaks/panelState source or serializer is contained like any
+      // other save failure — a FAILED save, never a rejected saveNow, never a
+      // stranded queued waiter, never a machine stuck on 'saving'.
+      await requireDb()
+      const row: ProjectRow = {
+        id: project.id,
+        schemaVersion: PERSISTENCE_SCHEMA_VERSION,
+        name: project.name,
+        updatedAt: project.updatedAt,
+        project: serializeProject(project),
+        peaks: peaksSource === null ? null : peaksSource(),
+        panelState: panelStateSource === null ? null : panelStateSource(),
+      }
       const isNewProject = await writeProjectRow(row)
       savedChanges = snapshotChanges
       clearDebounce()
       setSaveState({ state: 'saved', lastSavedAt: clock.now(), errorCode: null })
       // FR-106.7: exactly once, on the first successful save of a NEW project.
+      // The persist request is post-save honesty metadata ONLY — a rejecting
+      // request never turns a LANDED write into 'failed'/DB_WRITE_FAILED (no
+      // blocking prompt): the success outcome stands and `persisted`
+      // degrades to false.
       if (!persistRequested && isNewProject) {
         persistRequested = true
-        persisted = await deps.requestPersist()
+        try {
+          persisted = await deps.requestPersist()
+        } catch {
+          persisted = false
+        }
       }
       return 'saved'
     } catch (error) {
@@ -731,6 +767,18 @@ export function createPersistenceService(deps: PersistenceDeps): PersistenceServ
       const store = transaction.objectStore(STORE_PROJECTS)
       const row = (await requestResult(store.get(id) as IDBRequest<unknown>)) as ProjectRow | undefined
       if (row === undefined) throw new ZipscribeError('PROJECT_NOT_FOUND')
+      // FR-106.3 (writeProjectRow's guard, mirrored): this write path
+      // RE-SERIALIZES the stored bytes, so a FUTURE-schema row is refused —
+      // unknown bytes never pass through the v1 canonicalizer. The remaining
+      // write paths need no guard: the blobCache touches (openProject,
+      // getMediaBlob) and storeMediaHandle rewrite rows of this module's own
+      // schema, deleteProject only deletes, duplicateProject copies the
+      // future bytes verbatim, create/import write fresh v1 rows under fresh
+      // ids.
+      if (row.schemaVersion > PERSISTENCE_SCHEMA_VERSION) {
+        reportError('SCHEMA_FUTURE')
+        throw new SaveRefused('SCHEMA_FUTURE')
+      }
       const parsed = parseProject(row.project)
       const stamped: Project = { ...parsed, name, updatedAt: clock.now() }
       await requestResult(store.put({ ...row, name, updatedAt: stamped.updatedAt, project: serializeProject(stamped) }))
@@ -821,14 +869,29 @@ export function createPersistenceService(deps: PersistenceDeps): PersistenceServ
       // file again is the honest fallback (never a blind accept).
       return { kind: 'picker-needed', file: null }
     }
+    // A MALFORMED probe result is as untrustworthy as a rejected probe — same
+    // honest fallback: keep asking. The contract is Promise<RelinkOutcome>:
+    // a defined outcome from the pinned vocabulary, never a TypeError.
+    if (!isWellFormedFingerprint(probe)) return { kind: 'picker-needed', file: null }
+    // A malformed STORED field can never CONFIRM equality — the affected
+    // field counts as differing (honest coded `mismatch`, never a throw).
+    const record = stored as Partial<MediaFingerprint> | null
     const differs: RelinkField[] = []
-    if (probe.name !== stored.name) differs.push('name')
-    if (probe.size !== stored.size) differs.push('size')
-    if (probe.durationMs !== stored.durationMs) differs.push('durationMs')
-    for (let i = 0; i < stored.sampleHashes.length; i++) {
-      if (probe.sampleHashes[i] !== stored.sampleHashes[i]) {
-        differs.push('sampleHashes')
-        break
+    const name = record?.name
+    if (typeof name !== 'string' || probe.name !== name) differs.push('name')
+    const size = record?.size
+    if (typeof size !== 'number' || probe.size !== size) differs.push('size')
+    const durationMs = record?.durationMs
+    if (typeof durationMs !== 'number' || probe.durationMs !== durationMs) differs.push('durationMs')
+    const storedHashes = record?.sampleHashes
+    if (!isStringArray(storedHashes)) {
+      differs.push('sampleHashes')
+    } else {
+      for (let i = 0; i < storedHashes.length; i++) {
+        if (probe.sampleHashes[i] !== storedHashes[i]) {
+          differs.push('sampleHashes')
+          break
+        }
       }
     }
     if (differs.length === 0) return { kind: 'silent', file }
