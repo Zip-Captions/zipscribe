@@ -233,6 +233,11 @@ export default defineConfig({
       '@engine': new URL('./src/engine', import.meta.url).pathname,
       '@state': new URL('./src/state', import.meta.url).pathname,
       '@ui': new URL('./src/ui', import.meta.url).pathname,
+      // unit-105 (slice D): the frozen RuleTester seam
+      // (tests/unit/commands/keyboard-allowlist-scan.test.ts) imports the
+      // keyboard ESLint plugin by its repo-path specifier; exact-match key,
+      // same runtime-alias doctrine as the `@`-prefixed entries above.
+      'scripts/eslint-keyboard.mjs': new URL('./scripts/eslint-keyboard.mjs', import.meta.url).pathname,
     },
   },
 })
