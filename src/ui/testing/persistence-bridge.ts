@@ -35,10 +35,7 @@ interface FingerprintLike {
 }
 
 type BridgeRelinkOutcome =
-  | { kind: 'silent'; file: { name: string; size: number } | null }
-  | { kind: 'picker-needed'; file: { name: string; size: number } | null }
-  | { kind: 'mismatch'; differs: string[] }
-  | { kind: 'no-handle' }
+  { kind: 'silent'; file: { name: string; size: number } | null } | { kind: 'picker-needed'; file: { name: string; size: number } | null } | { kind: 'mismatch'; differs: string[] } | { kind: 'no-handle' }
 
 interface PersistenceBridge {
   saveNow(reason: 'idle' | 'manual' | 'hidden'): Promise<'saved' | 'not-dirty' | 'failed'>
@@ -95,8 +92,7 @@ export function installPersistenceBridge(): void {
     exportProjectFile: (id) => service.exportProjectFile(id),
     importProjectFileJson: (json) => service.importProjectFile(json),
     relinkMedia: async (projectId) => mapRelinkOutcome(await service.relinkMedia(projectId)),
-    seedMediaHandle: (projectId, handleLike, fingerprint) =>
-      service.storeMediaHandle(projectId, handleLike as unknown as FileSystemFileHandle, fingerprint as unknown as MediaFingerprint),
+    seedMediaHandle: (projectId, handleLike, fingerprint) => service.storeMediaHandle(projectId, handleLike as unknown as FileSystemFileHandle, fingerprint as unknown as MediaFingerprint),
     setProbeResult: (fingerprint) => {
       deps.probeFingerprint = () => (fingerprint === 'reject' ? Promise.reject(new Error('PROBE_REJECTED')) : Promise.resolve(structuredClone(fingerprint) as unknown as MediaFingerprint))
     },

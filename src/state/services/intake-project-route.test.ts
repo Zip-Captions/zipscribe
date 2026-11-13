@@ -12,7 +12,35 @@ import type { MediaEvent, MediaRequest } from '../../engine/protocol'
 import type { EnginePort, JobsStore } from '../jobs'
 import type { ProjectStore } from '../project'
 
-const ENVELOPE = JSON.stringify({ id: 'p1', name: 'cut', schemaVersion: 1, asset: { id: 'a', name: 'm.mp4', kind: 'video', container: 'mp4', audioCodec: null, videoCodec: null, duration: 2, width: 1, height: 1, fps: 1, fingerprint: { name: 'm.mp4', size: 1, durationMs: 2000, sampleHashes: ['h', 'h', 'h'] } }, blocks: [], captionOrigin: 'none', translations: [], speakers: [], speakerSource: 'none', language: null, modelId: null, style: null, outputAspect: 'source', transcription: 'none', updatedAt: 0 })
+const ENVELOPE = JSON.stringify({
+  id: 'p1',
+  name: 'cut',
+  schemaVersion: 1,
+  asset: {
+    id: 'a',
+    name: 'm.mp4',
+    kind: 'video',
+    container: 'mp4',
+    audioCodec: null,
+    videoCodec: null,
+    duration: 2,
+    width: 1,
+    height: 1,
+    fps: 1,
+    fingerprint: { name: 'm.mp4', size: 1, durationMs: 2000, sampleHashes: ['h', 'h', 'h'] },
+  },
+  blocks: [],
+  captionOrigin: 'none',
+  translations: [],
+  speakers: [],
+  speakerSource: 'none',
+  language: null,
+  modelId: null,
+  style: null,
+  outputAspect: 'source',
+  transcription: 'none',
+  updatedAt: 0,
+})
 const CAPTION_JSON = JSON.stringify({ blocks: [{ start: 0, end: 1, text: 'hi', words: [] }] })
 
 function fakeEngine(): { port: EnginePort; posted: MediaRequest[] } {
@@ -130,7 +158,7 @@ describe('handleFiles project route (FR-106.6)', () => {
   test('a caption-shaped zipscribe-json stays on the caption path even WITH the hook', async () => {
     let hookCalls = 0
     const importService = fakeImportService('zipscribe-json')
-    const { intake } = service({ importService, importProjectFile: () => (hookCalls += 1, Promise.resolve('p')) })
+    const { intake } = service({ importService, importProjectFile: () => ((hookCalls += 1), Promise.resolve('p')) })
     const outcome = await intake.handleFiles([new File([CAPTION_JSON], 'captions.zipscribe.json')])
     expect(hookCalls, 'the envelope sniff rejected the caption shape — the hook never saw it').toBe(0)
     expect(outcome.importedCaptions).toHaveLength(1)

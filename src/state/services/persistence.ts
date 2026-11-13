@@ -87,15 +87,7 @@ export const MIGRATIONS: Record<number, (row: unknown) => { schemaVersion: numbe
 
 /** SECURITY-03: failure codes ONLY — persistence never surfaces content. */
 export type PersistenceErrorCode =
-  | 'QUOTA_EXCEEDED'
-  | 'DB_OPEN_FAILED'
-  | 'DB_WRITE_FAILED'
-  | 'DB_READ_FAILED'
-  | 'SCHEMA_FUTURE'
-  | 'FINGERPRINT_MISMATCH'
-  | 'HANDLE_PERMISSION_DENIED'
-  | 'PICKER_UNAVAILABLE'
-  | 'IMPORT_INVALID'
+  'QUOTA_EXCEEDED' | 'DB_OPEN_FAILED' | 'DB_WRITE_FAILED' | 'DB_READ_FAILED' | 'SCHEMA_FUTURE' | 'FINGERPRINT_MISMATCH' | 'HANDLE_PERMISSION_DENIED' | 'PICKER_UNAVAILABLE' | 'IMPORT_INVALID'
 
 export type SaveOutcome = 'saved' | 'not-dirty' | 'failed'
 
@@ -155,11 +147,7 @@ export interface LoadedProject {
 /** CC-106.4 outcome vocabulary — the e2e counterpart reuses these kinds. */
 export type RelinkField = 'name' | 'size' | 'durationMs' | 'sampleHashes'
 
-export type RelinkOutcome =
-  | { kind: 'silent'; file: File }
-  | { kind: 'picker-needed'; file: File | null }
-  | { kind: 'mismatch'; differs: readonly RelinkField[] }
-  | { kind: 'no-handle' }
+export type RelinkOutcome = { kind: 'silent'; file: File } | { kind: 'picker-needed'; file: File | null } | { kind: 'mismatch'; differs: readonly RelinkField[] } | { kind: 'no-handle' }
 
 export interface PersistenceTimers {
   setTimeout(cb: () => void, ms: number): number

@@ -474,7 +474,11 @@ export function SaveStateIndicator({ persistence }: { persistence: SaveStateSour
       flushSync(sync)
     })
   }, [persistence])
-  return <span data-testid="save-state" aria-live="polite">{failureLatched ? 'not saved' : SAVE_STATE_COPY[state.state]}</span>
+  return (
+    <span data-testid="save-state" aria-live="polite">
+      {failureLatched ? 'not saved' : SAVE_STATE_COPY[state.state]}
+    </span>
+  )
 }
 
 // FR-2.0.4: polite live region — progress % while a job runs, model · tier ·
@@ -521,9 +525,12 @@ export function Workbench(props: WorkbenchProps): ReactNode {
   // service through src/app/context.ts); absent, useEditorCommands keeps its
   // documented no-op. The component holds no save logic — one forwarding call.
   useEditorCommands(transport?.app, {
-    onSave: persistence === undefined ? undefined : () => {
-      void persistence.saveNow('manual')
-    },
+    onSave:
+      persistence === undefined
+        ? undefined
+        : () => {
+            void persistence.saveNow('manual')
+          },
   })
   const jobsState = useSnapshot(jobs)
   const settingsState = useSnapshot(settings)

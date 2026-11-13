@@ -49,7 +49,24 @@ function withFakeWorker(run: () => void): void {
 }
 
 function requestFixture(): ExportRequest {
-  const snapshot = { snapshotVersion: 1, id: 'p', name: 'n', schemaVersion: 1, asset: null, blocks: [], captionOrigin: 'none', translations: [], speakers: [], speakerSource: 'none', language: null, modelId: null, style: null, outputAspect: 'source', transcription: 'none', updatedAt: 0 } as unknown as ProjectSnapshot
+  const snapshot = {
+    snapshotVersion: 1,
+    id: 'p',
+    name: 'n',
+    schemaVersion: 1,
+    asset: null,
+    blocks: [],
+    captionOrigin: 'none',
+    translations: [],
+    speakers: [],
+    speakerSource: 'none',
+    language: null,
+    modelId: null,
+    style: null,
+    outputAspect: 'source',
+    transcription: 'none',
+    updatedAt: 0,
+  } as unknown as ProjectSnapshot
   return {
     t: 'export',
     jobId: 'job-1',
