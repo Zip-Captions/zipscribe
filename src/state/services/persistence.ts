@@ -17,9 +17,11 @@
 // playhead mirror during playback. Dirty detection counts ACCEPTED project
 // changes observed since `attachEditor` or the last successful save
 // (clean-on-attach: a pre-existing project attaches CLEAN — the baseline the
-// FR-106.2 suites pin), so a pure UI change (which never reaches the project
-// store subscription, and none of which lives inside `Project`) can never
-// mark the project dirty or reach a row.
+// FR-106.2 suites pin), so a pure UI change can never mark the project dirty
+// or reach a row. In production `project.subscribe` IS the root store
+// subscription (editor commits notify too), which is exactly why the change
+// handler gates on the project REFERENCE first: an unchanged reference is a
+// UI notification and returns without serializing.
 //
 // Save semantics (FR-106.2, US-2.4.1): one `readwrite` transaction per save
 // across every row it writes — a save is fully-old-or-fully-new by native IDB
@@ -464,6 +466,19 @@ export function createPersistenceService(deps: PersistenceDeps): PersistenceServ
    *  list — the editor store shares the subscription), never a change. */
   let baseline: { id: string; bytes: string } | null = null
 
+  /** Last observed project REFERENCE (unit-106 perf fix). `project.subscribe`
+   *  is the ROOT zustand subscription, so it also fires on every editor-slice
+   *  commit — the playhead mirror alone notifies once per rAF tick. The
+   *  project reference is STABLE across all editor-only commits (immer keeps
+   *  untouched subtrees), so an unchanged reference is the hot-path proof of
+   *  "nothing project-relevant happened": return without serializing. Only a
+   *  reference CHANGE may pay for serializeProject — the byte-transition
+   *  count below is otherwise unchanged (reference change + bytes equal to
+   *  the last observed bytes stays a UI-notification-shaped no-count, exactly
+   *  as before this memoization; a command ping-pong changes the reference
+   *  twice and each byte transition still counts, [106-ADJ 2/3]). */
+  let lastProjectRef: Project | null = null
+
   /** In-flight guard + single queued follow-up (last-completed-wins). */
   let inFlight: Promise<SaveOutcome> | null = null
   const queuedWaiters: Array<(outcome: SaveOutcome) => void> = []
@@ -492,8 +507,16 @@ export function createPersistenceService(deps: PersistenceDeps): PersistenceServ
     const project = currentProject()
     if (project === null) {
       baseline = null
+      lastProjectRef = null
       return
     }
+    // Hot-path gate (unit-106 perf fix): the root subscription notifies on
+    // EVERY commit including editor-only ones (playhead mirror per rAF tick).
+    // A stable project reference means the project object was untouched by
+    // this commit — return WITHOUT serializing (the byte check below could
+    // only ever re-derive the same bytes for the same object).
+    if (project === lastProjectRef) return
+    lastProjectRef = project
     const bytes = serializeProject(project)
     if (baseline === null || baseline.id !== project.id) {
       // First sighting of this project (attach with a late load, or a
@@ -525,7 +548,11 @@ export function createPersistenceService(deps: PersistenceDeps): PersistenceServ
     // CLEAN-ON-ATTACH: zero pending, no timer, no save-state transition.
     projectChanges = 0
     savedChanges = 0
+    // Attach-time serialization is the ONE allowed serializeProject per attach
+    // (the clean baseline); the reference memo starts here so the very first
+    // editor-only tick after attach already short-circuits.
     const initial = next.project.getState().project
+    lastProjectRef = initial
     baseline = initial === null ? null : { id: initial.id, bytes: serializeProject(initial) }
     clearDebounce()
     unsubscribeEditor = next.project.subscribe(onProjectChanged)
