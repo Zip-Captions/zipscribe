@@ -29,7 +29,13 @@ describe('CC-01.1: the five quality gate commands', () => {
   test('CC-01.1: `pnpm test` exits 0', () => {
     // A child (this very test's own spawned suite) must not re-spawn the suite.
     if (isChildRun()) return
-    const result = runPnpm('test', ['--coverage'])
+    // CI adaptation (orchestrator adjudication, Actions run 43358141096): the child was SIGTERM'd at the 90 s
+    // spawnSync default mid-run on the CI runner (child log tail: completed files, no summary); local idle child
+    // now ~50 s — the suite outgrew the 77-file/690-test era the unit-102 tuning note was written for. 240 s is
+    // comfortably above the 90 s CI kill, bounded at half the parent's 600 s vitest per-test budget. This is an
+    // anti-hang bound, not a quality threshold: assertions and coverage thresholds unchanged, the repo.ts default
+    // (90 s) stays for every other gate call.
+    const result = runPnpm('test', ['--coverage'], 240_000)
     expect(result.status, `${result.slug} exited ${result.status}\n${result.output.slice(-6000)}`).toBe(0)
   }, 600_000)
 
