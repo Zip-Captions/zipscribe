@@ -46,6 +46,7 @@
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@huggingface/transformers": "~3.8.1",
     "@tanstack/react-virtual": "^3.14.26",
+    "idb": "^8.0.4",
     "immer": "^11.2.9",
     "mediabunny": "1.62.1",
     "react": "19.3.1",
