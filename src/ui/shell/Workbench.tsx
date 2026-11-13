@@ -85,6 +85,20 @@ export interface WorkbenchProps {
   relinkMismatch?: readonly RelinkField[] | null
   onRelinkKeep?: () => void
   onRelinkReplace?: () => void
+  /**
+   * Unit-106 slice D EXTENDS (optional, FR-106.6): a dropped caption-named
+   * file gets an app-owned PROJECT sniff before the FR-104.9 dialog wins —
+   * a `.zipscribe.json` whose content is the persistence envelope imports +
+   * opens (true = handled); anything else lands on the untouched
+   * caption-import dialog. Absent, the dialog branch is byte-identical.
+   */
+  interceptProjectFile?: (file: File) => Promise<boolean>
+  /**
+   * Unit-106 slice D EXTENDS (optional): reports the active sidebar tab so
+   * the composition root can persist it in the panelState (FR-106.5 reopen
+   * context) — the tab itself stays Workbench-owned state.
+   */
+  onTabChange?: (tab: SidebarTab) => void
 }
 
 /** The injectable save-state seam of the status-bar indicator (frozen
@@ -498,7 +512,7 @@ function BlockedScreen({ reasons }: { reasons: readonly string[] }): ReactNode {
 }
 
 export function Workbench(props: WorkbenchProps): ReactNode {
-  const { jobs, settings, project, intake, transport, persistence, onOpenProject, relinkMismatch = null, onRelinkKeep, onRelinkReplace } = props
+  const { jobs, settings, project, intake, transport, persistence, onOpenProject, relinkMismatch = null, onRelinkKeep, onRelinkReplace, interceptProjectFile, onTabChange } = props
 
   useCommands(settings)
   useTransportCommands(transport?.app)
@@ -527,6 +541,12 @@ export function Workbench(props: WorkbenchProps): ReactNode {
   // The FR-102.6 overlay canvas mounts INSIDE the reserved canvas layer (the
   // host node stays unit-101's).
   const canvasHostRef = useRef<HTMLDivElement | null>(null)
+
+  // FR-106.5 (slice D): the composition root owns the panelState snapshot —
+  // the active tab is reported up (the tab remains Workbench-owned state).
+  useEffect(() => {
+    onTabChange?.(tab)
+  }, [tab, onTabChange])
 
   // Intake flows (drop / sample): outcomes are pushed into local UI state —
   // rejections as reason CODES, the latest import as the report. flushSync so
@@ -566,6 +586,20 @@ export function Workbench(props: WorkbenchProps): ReactNode {
       if (!hasMedia) {
         const captionFile = files.find((file) => isCaptionFileName(file.name))
         if (captionFile !== undefined) {
+          // FR-106.6 (slice D): a caption-named drop first gets the app-owned
+          // PROJECT sniff (`.zipscribe.json` envelope → import + open); not a
+          // project (or no seam, or a throwing seam) lands on the untouched
+          // FR-104.9 dialog.
+          if (interceptProjectFile !== undefined) {
+            void interceptProjectFile(captionFile)
+              .then((handled) => {
+                if (!handled) flushSync(() => setCaptionDrop(captionFile))
+              })
+              .catch(() => {
+                flushSync(() => setCaptionDrop(captionFile))
+              })
+            return
+          }
           setCaptionDrop(captionFile)
           return
         }

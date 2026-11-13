@@ -27,6 +27,16 @@ export interface ProjectStore {
   /** True once ≥ 1 block exists (Export enabled state, FR-2.0.2 — display only in 101). */
   hasBlocks(): boolean
   setProjectName(name: string): void
+  /**
+   * EXTENDS (unit-106 slice D, additive/optional — every frozen 101/102
+   * mount keeps the untouched surface): replace the whole project with a
+   * LOADED one (the persistence reopen path, FR-106.5). The identity
+   * (`id`/`updatedAt`/blocks) is the caller's — unlike `createProject`,
+   * which derives a fresh project from a probed asset. The shell-side
+   * store keeps this unimplemented (intake-only); the editor app store
+   * (history.ts) implements it.
+   */
+  loadProject?(project: Project): void
 }
 
 // Neutral broadcast defaults; Intent 3 owns the styling surface (FR-2.0.3

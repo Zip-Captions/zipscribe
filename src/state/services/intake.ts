@@ -48,7 +48,7 @@ export interface ImportCaptionsService {
 
 export interface RejectedFile {
   /** Extension + MIME summary — NOT the file name (SECURITY-03: the toast shows codes, not user strings). */
-  reason: 'UNSUPPORTED_TYPE' | 'UNSUPPORTED_CAPTION'
+  reason: 'UNSUPPORTED_TYPE' | 'UNSUPPORTED_CAPTION' | 'IMPORT_INVALID'
 }
 
 export interface IntakeOutcome {
@@ -125,6 +125,51 @@ export function isMediaFileName(name: string): boolean {
   return MEDIA_EXTENSIONS.has(extensionOf(name))
 }
 
+/**
+ * EXTENDS (unit-106 slice D, FR-106.6): the project-file suffix. Distinct
+ * from the unit-07 caption `zipscribe-json` format by CONTENT (the project
+ * envelope carries `schemaVersion` + `asset` — see `readProjectEnvelope`),
+ * by name the two share the suffix, so the Workbench dialog branch defers
+ * to the sniff before offering the caption-import dialog.
+ */
+export function isProjectFileName(name: string): boolean {
+  return name.toLowerCase().endsWith('.zipscribe.json')
+}
+
+/** Envelope sniff size ceiling — a project file is JSON without media;
+ *  anything larger is not treated as one (it falls to the caption path). */
+const MAX_ENVELOPE_SNIFF_BYTES = 4 * 1024 * 1024
+
+/**
+ * FR-106.6 (unit-106 slice D): classify a dropped file as the PROJECT
+ * envelope — a JSON OBJECT with numeric `schemaVersion` and object `asset`
+ * (the persistence row's canonical `project` string; `parseProject` inside
+ * `importProjectFile` is the strict gatekeeper). Caption `zipscribe-json`
+ * (`{ blocks: … }`, no schemaVersion/asset) and malformed JSON return null
+ * so the caller keeps the existing caption path. Returns the text verbatim
+ * on a hit. SECURITY-03: nothing here logs; the text never enters a reason.
+ */
+export async function readProjectEnvelope(file: File): Promise<string | null> {
+  if (file.size > MAX_ENVELOPE_SNIFF_BYTES) return null
+  let text: string
+  try {
+    text = await file.text()
+  } catch {
+    return null
+  }
+  try {
+    const parsed: unknown = JSON.parse(text)
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null
+    const record = parsed as Record<string, unknown>
+    if (typeof record['schemaVersion'] === 'number' && typeof record['asset'] === 'object' && record['asset'] !== null && !Array.isArray(record['asset'])) {
+      return text
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
 export function createIntakeService(deps: {
   engine: EnginePort
   jobs: JobsStore
@@ -137,6 +182,15 @@ export function createIntakeService(deps: {
    * frozen 101 contract never pass it.
    */
   onMediaProbe?: (file: File, jobId: string) => void
+  /**
+   * EXTENDS (unit-106 slice D, additive/optional — FR-106.6 drag-in):
+   * given the VERBATIM text of a `.zipscribe.json` project envelope,
+   * import it (persistence `importProjectFile`) and open it. Absent (the
+   * frozen 101 contract + every existing test), project files keep the
+   * caption path untouched. A rejecting hook degrades to a rejected entry
+   * with the `IMPORT_INVALID` CODE (IN.1/IN.2 discipline).
+   */
+  importProjectFile?: (json: string) => Promise<string>
 }): IntakeService {
   // IN.3/IN.4 (adversary adjudication): per-drop pairing — each imported
   // caption is bound to the probe jobId ITS OWN drop posts, so a slow probe
@@ -159,6 +213,22 @@ export function createIntakeService(deps: {
       if (isMediaFile(file)) {
         media.push(file)
         continue
+      }
+      // FR-106.6 (unit-106 slice D): a `.zipscribe.json` whose CONTENT is a
+      // project envelope (schemaVersion + asset) OPENS A PROJECT via the
+      // app hook — neither media nor caption. Not an envelope (the unit-07
+      // caption `zipscribe-json`, `{ blocks: … }`) falls to the caption
+      // path untouched. Hook absent → caption path (frozen contract).
+      if (deps.importProjectFile !== undefined && isProjectFileName(file.name)) {
+        const envelope = await readProjectEnvelope(file)
+        if (envelope !== null) {
+          try {
+            await deps.importProjectFile(envelope)
+          } catch {
+            outcome.rejected.push({ reason: 'IMPORT_INVALID' })
+          }
+          continue
+        }
       }
       if (CAPTION_EXTENSIONS.has(extensionOf(file.name))) {
         let format: CaptionFormat | null = null

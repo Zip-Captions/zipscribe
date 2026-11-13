@@ -161,6 +161,16 @@ export function createEditorApp(deps: EditorAppDeps): EditorApp {
         root.project = buildProjectFromAsset(asset, captionImport, deps.clock.now())
       })
     },
+    loadProject(project) {
+      // FR-106.5 reopen path (unit-106 slice D EXTENDS, project.ts): the
+      // loaded row IS the project — identity and updatedAt are the stored
+      // ones (byte-equal reload, CC-106.1); `structuredClone` keeps the
+      // handed snapshot immutable (initialProject doctrine). The autosave
+      // baseline treats the id sighting as attach-clean.
+      commit((root) => {
+        root.project = structuredClone(project)
+      })
+    },
     hasBlocks() {
       const current = store.getState().project
       return current !== null && current.blocks.length >= 1
