@@ -27,6 +27,7 @@ import type { ImportReport, IntakeService } from '../../state/services/intake'
 import { isCaptionFileName, isMediaFileName } from '../../state/services/intake'
 import type { CaptionImportPort } from '../../state/services/caption-import'
 import type { EditorApp } from '../../state/history'
+import type { LoadedProject, PersistenceService, RelinkField, SaveState, SaveStateName } from '../../state/services/persistence'
 import type { RafDriver } from '../../state/services/playback/arbitrator'
 import type { StageController } from '../../app/stage'
 import type { OverlayRenderer } from '../canvas/overlay'
@@ -39,6 +40,7 @@ import { formatTimecode } from '../format'
 import { Timeline } from '../timeline/Timeline'
 import { Transcript } from '../transcript/Transcript'
 import { CaptionImportDialog } from '../transcript/CaptionImportDialog'
+import { ProjectList } from './ProjectList'
 import { StageMedia } from './StageMedia'
 import { TranscribePopover } from './TranscribePopover'
 import './workbench.css'
@@ -58,7 +60,60 @@ export interface WorkbenchProps {
   project: ProjectStore
   intake: IntakeService
   transport?: WorkbenchTransport
+  /**
+   * Unit-106 slice B EXTENDS (optional — every frozen 101/102/103/104 mount
+   * path is untouched): the persistence service behind the status-bar
+   * save-state indicator, the ⌘S provider and the slice-C Media-tab project
+   * list. Injected via src/app/context.ts (slice D); absent, the indicator
+   * and the project list stay unmounted and ⌘S keeps the unit-105 documented
+   * no-op.
+   */
+  persistence?: WorkbenchPersistence
+  /**
+   * Unit-106 slice C EXTENDS (optional): the caller owns project loading —
+   * ProjectList restored the playhead/selection via the editor seam
+   * (FR-106.5); this receives the loaded reopen context (slice D applies the
+   * project content in src/app/context.ts).
+   */
+  onOpenProject?: (projectId: string, loaded: LoadedProject | null) => void
+  /**
+   * Unit-106 slice C EXTENDS (optional, CC-106.4 / US-2.4.2): app-level
+   * relink state. Set when `persistence.relinkMedia` reports
+   * `{kind: 'mismatch', differs}`; the keep/replace callbacks own the
+   * decision — nothing here (or in the service) ever auto-swaps media.
+   */
+  relinkMismatch?: readonly RelinkField[] | null
+  onRelinkKeep?: () => void
+  onRelinkReplace?: () => void
+  /**
+   * Unit-106 slice D EXTENDS (optional, FR-106.6): a dropped caption-named
+   * file gets an app-owned PROJECT sniff before the FR-104.9 dialog wins —
+   * a `.zipscribe.json` whose content is the persistence envelope imports +
+   * opens (true = handled); anything else lands on the untouched
+   * caption-import dialog. Absent, the dialog branch is byte-identical.
+   */
+  interceptProjectFile?: (file: File) => Promise<boolean>
+  /**
+   * Unit-106 slice D EXTENDS (optional): reports the active sidebar tab so
+   * the composition root can persist it in the panelState (FR-106.5 reopen
+   * context) — the tab itself stays Workbench-owned state.
+   */
+  onTabChange?: (tab: SidebarTab) => void
 }
+
+/** The injectable save-state seam of the status-bar indicator (frozen
+ *  unit106-api-contract.d.ts § @ui/shell/Workbench — plain object, fake ok). */
+export interface SaveStateSource {
+  getSaveState(): SaveState
+  subscribeSaveState(cb: () => void): () => void
+}
+
+/** The Workbench-level seam (slice D injects the real `PersistenceService`,
+ *  which satisfies this structurally): the frozen ProjectList prop type
+ *  (unit106-api-contract.d.ts) is the FULL service, so the seam is the full
+ *  service — indicator reads, the ⌘S command and the slice-C project-list
+ *  surface all flow through it. */
+export type WorkbenchPersistence = PersistenceService
 
 type SidebarTab = 'subtitles' | 'media' | 'style'
 
@@ -387,15 +442,57 @@ function DropZone({ jobsState, onFiles, onSample }: { jobsState: JobsState; onFi
   )
 }
 
+// FR-106.2 (CC-106.1, unit-101 status-bar EXTENDS): the save-state indicator.
+// Frozen copy (unit106-api-contract.d.ts): `saved` | `saving…` | `not saved` |
+// `unsaved changes` (dirty); `idle` claims nothing. Reads ONLY through the
+// injected seam's subscription (thin component — the service itself lives
+// behind props, wired by slice D). Persistent-failure rule (CC-I2.12 backing)
+// is a render-layer claim: once `not saved`, it stays `not saved` through
+// further dirty/saving transitions until a LATER successful save.
+const SAVE_STATE_COPY: Record<SaveStateName, string> = {
+  idle: '',
+  dirty: 'unsaved changes',
+  saving: 'saving…',
+  saved: 'saved',
+  'not-saved': 'not saved',
+}
+
+export function SaveStateIndicator({ persistence }: { persistence: SaveStateSource }): ReactNode {
+  const [state, setState] = useState<SaveState>(() => persistence.getSaveState())
+  const [failureLatched, setFailureLatched] = useState<boolean>(() => persistence.getSaveState().state === 'not-saved')
+  // Same store→React contract as useSnapshot: the subscription flushes the
+  // render synchronously so listener pushes settle without a manual act().
+  useEffect(() => {
+    const sync = (): void => {
+      const next = persistence.getSaveState()
+      setState((current) => (Object.is(current, next) ? current : next))
+      if (next.state === 'not-saved') setFailureLatched(true)
+      else if (next.state === 'saved') setFailureLatched(false)
+    }
+    sync() // catch pushes that landed between render and subscribe
+    return persistence.subscribeSaveState(() => {
+      flushSync(sync)
+    })
+  }, [persistence])
+  return (
+    <span data-testid="save-state" aria-live="polite">
+      {failureLatched ? 'not saved' : SAVE_STATE_COPY[state.state]}
+    </span>
+  )
+}
+
 // FR-2.0.4: polite live region — progress % while a job runs, model · tier ·
-// cache otherwise. Numbers and codes only.
-function StatusBar({ jobsState }: { jobsState: JobsState }): ReactNode {
+// cache otherwise. Numbers and codes only. The unit-106 EXTENDS nests the
+// save-state indicator (own polite live region) INSIDE the frozen unit-101
+// footer; without the injected seam the footer renders byte-identically.
+function StatusBar({ jobsState, persistence }: { jobsState: JobsState; persistence?: SaveStateSource }): ReactNode {
   const percent = jobsState.progress !== null && jobsState.progress.totalSec > 0 ? `${Math.round((jobsState.progress.processedSec / jobsState.progress.totalSec) * 100)}%` : 'Idle'
   const model = jobsState.running === null ? 'no model' : jobsState.running.kind === 'align' ? 'aligning' : 'transcribing'
   const tier = jobsState.capability === null ? 'tier pending' : TIER_LABEL[jobsState.capability.tier]
   return (
     <footer data-testid="status-bar" role="status" aria-live="polite" className="ws-status">
       {`${percent} · ${model} · ${tier} · ${cacheCopy(jobsState)}`}
+      {persistence !== undefined && <SaveStateIndicator persistence={persistence} />}
     </footer>
   )
 }
@@ -419,11 +516,22 @@ function BlockedScreen({ reasons }: { reasons: readonly string[] }): ReactNode {
 }
 
 export function Workbench(props: WorkbenchProps): ReactNode {
-  const { jobs, settings, project, intake, transport } = props
+  const { jobs, settings, project, intake, transport, persistence, onOpenProject, relinkMismatch = null, onRelinkKeep, onRelinkReplace, interceptProjectFile, onTabChange } = props
 
   useCommands(settings)
   useTransportCommands(transport?.app)
-  useEditorCommands(transport?.app)
+  // FR-106.2 production ⌘S provider (unit-105 follow-up seam): the real
+  // onSave forwards to the injected service's manual save (slice D wires the
+  // service through src/app/context.ts); absent, useEditorCommands keeps its
+  // documented no-op. The component holds no save logic — one forwarding call.
+  useEditorCommands(transport?.app, {
+    onSave:
+      persistence === undefined
+        ? undefined
+        : () => {
+            void persistence.saveNow('manual')
+          },
+  })
   const jobsState = useSnapshot(jobs)
   const settingsState = useSnapshot(settings)
   const { project: currentProject } = useSnapshot(project)
@@ -440,6 +548,12 @@ export function Workbench(props: WorkbenchProps): ReactNode {
   // The FR-102.6 overlay canvas mounts INSIDE the reserved canvas layer (the
   // host node stays unit-101's).
   const canvasHostRef = useRef<HTMLDivElement | null>(null)
+
+  // FR-106.5 (slice D): the composition root owns the panelState snapshot —
+  // the active tab is reported up (the tab remains Workbench-owned state).
+  useEffect(() => {
+    onTabChange?.(tab)
+  }, [tab, onTabChange])
 
   // Intake flows (drop / sample): outcomes are pushed into local UI state —
   // rejections as reason CODES, the latest import as the report. flushSync so
@@ -479,6 +593,20 @@ export function Workbench(props: WorkbenchProps): ReactNode {
       if (!hasMedia) {
         const captionFile = files.find((file) => isCaptionFileName(file.name))
         if (captionFile !== undefined) {
+          // FR-106.6 (slice D): a caption-named drop first gets the app-owned
+          // PROJECT sniff (`.zipscribe.json` envelope → import + open); not a
+          // project (or no seam, or a throwing seam) lands on the untouched
+          // FR-104.9 dialog.
+          if (interceptProjectFile !== undefined) {
+            void interceptProjectFile(captionFile)
+              .then((handled) => {
+                if (!handled) flushSync(() => setCaptionDrop(captionFile))
+              })
+              .catch(() => {
+                flushSync(() => setCaptionDrop(captionFile))
+              })
+            return
+          }
           setCaptionDrop(captionFile)
           return
         }
@@ -574,6 +702,19 @@ export function Workbench(props: WorkbenchProps): ReactNode {
               {tab === 'media' && (
                 <div role="tabpanel" id="tabpanel-media" aria-labelledby="tab-media" className="ws-tabpanel">
                   <MediaTab asset={currentProject?.asset ?? null} />
+                  {/* Unit-106 slice C (FR-106.5): the project list mounts BELOW the asset card when the persistence seam is injected — absent, the Media tab renders byte-identically to unit-101. The editor seam restores the reopen context (FR-106.5); project content loading is the caller's (slice D wires onOpenProject through src/app/context.ts). */}
+                  {persistence !== undefined && (
+                    <ProjectList
+                      persistence={persistence}
+                      editor={transport?.app.editor}
+                      onOpen={(projectId, loaded) => {
+                        onOpenProject?.(projectId, loaded)
+                      }}
+                      relinkMismatch={relinkMismatch}
+                      onRelinkKeep={onRelinkKeep}
+                      onRelinkReplace={onRelinkReplace}
+                    />
+                  )}
                 </div>
               )}
               {tab === 'style' && (
@@ -635,7 +776,7 @@ export function Workbench(props: WorkbenchProps): ReactNode {
         </div>
       </main>
       {toastCodes !== null && <Toast codes={toastCodes} />}
-      <StatusBar jobsState={jobsState} />
+      <StatusBar jobsState={jobsState} persistence={persistence} />
       {shortcutsOpen && (
         <ShortcutsOverlay
           onClose={() => {

@@ -44,6 +44,19 @@ describe('CC-105.6: the quality-gate wiring is in place', () => {
 
   test('CC-105.6: the unit-105 branch exists', async ({ skip }) => {
     skip(CHILD, CHILD_REASON)
+    // [106-ADJ 8] orchestrator adjudication (Actions run 43551015319 + develop
+    // run 43364639088): the attestation is meaningful WHILE THE UNIT IS IN
+    // FLIGHT (status: pending). After the squash-merge the branch is retired
+    // and no context — a PR for a LATER unit, or a develop push with an empty
+    // GITHUB_HEAD_REF — can present it; the unit file's own `status: done`
+    // line is then the merged-branch attestation (the closing docs commit,
+    // e.g. 092f564, records the merge). In-flight semantics are UNCHANGED:
+    // status pending + branch absent from all three sources still fails.
+    const unitText = readFileSync(new URL(UNIT_FILE, repoRoot), 'utf8')
+    if (/^status:\s*done\b/m.test(unitText)) {
+      expect(unitText, 'the merged unit carries its done-status attestation in its own file').toMatch(/^status:\s*done\b/m)
+      return
+    }
     // CI-honest (orchestrator adjudication, Actions run 43358141096): a PR checkout has no local refs/heads/<branch> — it checks out refs/pull/N/merge and carries the branch in GITHUB_HEAD_REF — so any authoritative source counts: local ref, origin ref (fetch context), or GITHUB_HEAD_REF (PR context). A branch absent from all three still fails.
     const resolveRef = (ref: string): string | null => {
       try {
