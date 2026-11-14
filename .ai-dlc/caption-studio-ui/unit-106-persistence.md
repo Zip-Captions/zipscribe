@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done   # merged (PR #17 → a5e1ab3, 2026-11-14T05:05Z); reviewer R1 APPROVE (0 HIGH; 4 LOW/2 OBS → follow-ups), 7 cited test amendments assertion-preserving (incl. child-coverage authenticity + leading-citation moves), adversary AUDIT 36 counterexamples with 4 MED findings (F1–F4) fixed + non-vacuous AUDIT regressions, gate-battery-caught p95 regression fixed (17.7→0.70 ms), R2 APPROVE the merge-status-aware anchor adaptation (CI round-1 develop-red adjudicated, red-simulated); BUILD_VERIFIED gates green at e760324/6688ecb; CI quality 36m40s
 phase: mvp
 discipline: frontend
 depends_on: [unit-102-editor-core-playback, local-transcribe-engine/unit-04-media-ingest]
