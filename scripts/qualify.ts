@@ -54,6 +54,14 @@ const RQ_COVERAGE: Record<string, readonly string[]> = {
 // legs); these entries are recorded evidence.
 const MEMORY_IDS = ['CC-04.9', 'CC-05.2'] as const
 
+// [RQ] drift gates (unit-107): the 10-minute wall-clock legs — CC-107.4
+// (element + decoded clocks playing the click tracks, |end − 600| ≤ 20 ms,
+// ≥ 5900 audible bursts, ≤ 150 ms max gap). Hour-class wall-clock
+// measurement, same opt-in (ZIPSCRIBE_QUALIFY_DRIFT=1), junit-trust and
+// carry-forward doctrine as the memory tier; exit code stays governed by
+// the frozen unit-02 RQ verdicts.
+const DRIFT_IDS = ['CC-107.4'] as const
+
 interface MemoryVerdict {
   passed: number
   failed: number
@@ -96,6 +104,50 @@ function collectMemoryResults(): Map<string, MemoryVerdict> | null {
   }
   const verdicts = new Map<string, MemoryVerdict>()
   for (const id of MEMORY_IDS) {
+    const cases = evidence.cases.filter((testCase) => citationsOf(testCase.title).includes(id))
+    verdicts.set(id, {
+      passed: cases.filter((testCase) => testCase.status === 'passed').length,
+      failed: cases.filter((testCase) => testCase.status === 'failed').length,
+      skipped: cases.filter((testCase) => testCase.status === 'skipped').length,
+    })
+  }
+  return verdicts
+}
+
+/** Provision the click tracks (`--perf` builds them when absent) and spawn
+ *  the `drift` Playwright project under the junit-trust doctrine — identical
+ *  shape to collectMemoryResults. Returns null when the run produced no
+ *  trustworthy evidence. */
+function collectDriftResults(): Map<string, MemoryVerdict> | null {
+  const clickTracks = [join(repoRoot, 'fixtures', 'audio', 'click-track-10min.wav'), join(repoRoot, 'fixtures', 'audio', 'click-track-10min.aiff')]
+  if (clickTracks.some((file) => !existsSync(file))) {
+    const perf = spawnSync('corepack', ['pnpm', 'exec', 'node', 'scripts/make-fixtures.ts', '--perf'], { cwd: repoRoot, encoding: 'utf8', timeout: 10 * 60_000 })
+    if (perf.status !== 0)
+      console.error(`qualify: perf fixture provisioning ${perf.status === null ? 'did not complete (spawn failed, killed, or timed out)' : `exited ${perf.status}`} — drift specs will skip and record as uncovered`)
+  }
+  const outDir = join(repoRoot, '.cache', 'qualify-drift')
+  const evidence = collectPlaywrightEvidence({
+    tmpJunitFile: join(outDir, 'junit.xml'),
+    persistentJunitFile: join(repoRoot, 'test-results', 'junit.xml'),
+    spawn: (junitFile) => {
+      const child = spawnSync('corepack', ['pnpm', 'exec', 'playwright', 'test', '--project=drift', '--reporter=junit', `--output=${outDir}`], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        timeout: 45 * 60_000,
+        env: { ...process.env, PLAYWRIGHT_JUNIT_OUTPUT_FILE: junitFile },
+      })
+      return { status: child.status, output: `${child.stdout ?? ''}${child.stderr ?? ''}` }
+    },
+    parse: (file) => parseJunit(file, 'playwright'),
+  })
+  for (const file of clickTracks) rmSync(file, { force: true })
+  if (existsSync(join(repoRoot, '.git'))) spawnSync('git', ['checkout', '--', 'fixtures/harness/manifest.json'], { cwd: repoRoot, timeout: 30_000 })
+  if (evidence.failure) {
+    console.error(`qualify: drift evidence rejected — ${evidence.failure}`)
+    return null
+  }
+  const verdicts = new Map<string, MemoryVerdict>()
+  for (const id of DRIFT_IDS) {
     const cases = evidence.cases.filter((testCase) => citationsOf(testCase.title).includes(id))
     verdicts.set(id, {
       passed: cases.filter((testCase) => testCase.status === 'passed').length,
@@ -422,12 +474,34 @@ async function main(): Promise<void> {
     }
   })
 
+  const driftVerdicts = process.env.ZIPSCRIBE_QUALIFY_DRIFT === '1' ? collectDriftResults() : null
+  const driftResults = DRIFT_IDS.map((id) => {
+    const verdict = driftVerdicts?.get(id)
+    if (verdict) {
+      const skippedNote = verdict.skipped > 0 ? `; ${verdict.skipped} skipped (spec did not execute — coverage gap)` : ''
+      return {
+        id,
+        pass: verdict.failed === 0 && verdict.passed > 0 && verdict.skipped === 0,
+        measured: `${verdict.passed}/${verdict.passed + verdict.failed} drift assertions passed (playwright --project=drift)${skippedNote}`,
+        threshold: 'every drift-project assertion citing the criterion passes (leading-title citation, junit-trust freshness)',
+      }
+    }
+    const carried = committedEntries.find((entry) => String(entry['id']) === id)
+    if (carried) return carried
+    return {
+      id,
+      pass: false,
+      measured: 'drift gate not measured — run `ZIPSCRIBE_QUALIFY_DRIFT=1 pnpm qualify` on reference hardware (unit-107 [RQ] tier)',
+      threshold: 'every drift-project assertion citing the criterion passes (leading-title citation, junit-trust freshness)',
+    }
+  })
+
   const file = {
     version: fileName,
     contentHash,
     startedAt,
     machine,
-    results: [...results, ...memoryResults],
+    results: [...results, ...memoryResults, ...driftResults],
     manual,
   }
   const intended = `${JSON.stringify(file, null, 2)}\n`

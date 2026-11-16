@@ -59,15 +59,17 @@ export default defineConfig({
       // spec-spawned server on 4312, so a second project matching them would
       // race that port. (testMatch unset here would otherwise match all of
       // ./e2e.)
-      testIgnore: [probeRequested ? undefined : /retry-detection\.spec\.ts/, /memory\/.*\.spec\.ts/].filter((re) => re !== undefined),
+      testIgnore: [probeRequested ? undefined : /retry-detection\.spec\.ts/, /memory\/.*\.spec\.ts/, /drift-10min\.spec\.ts/].filter((re) => re !== undefined),
     },
     {
       // Present but skipped by default (FR-1.0.4) — "webkit = view/export
       // tier", enabled per-unit once those specs exist.
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
-      // Same 4312 race guard as chromium once webkit is enabled.
-      testIgnore: process.env.E2E_WEBKIT ? [/memory\/.*\.spec\.ts/] : [/.*/],
+      // Same 4312 race guard as chromium once webkit is enabled; the drift
+      // tier is chromium-only (CC-107.4 thresholds measured on the reference
+      // hardware's Chromium).
+      testIgnore: process.env.E2E_WEBKIT ? [/memory\/.*\.spec\.ts/, /drift-10min\.spec\.ts/] : [/.*/],
     },
     {
       // CC-04.9 (unit-04): the 120-min decode memory gate (settings.yml
@@ -102,6 +104,21 @@ export default defineConfig({
       // core pins GC with decode pressure. Same "single owner" doctrine as
       // the spec-owned ports: these specs measure alone or not at all.
       // (CI history: gh run 42633403941 931.5 MB — same shape.)
+      workers: 1,
+    },
+    {
+      // CC-107.4 [RQ] (unit-107): the 10-minute wall-clock drift legs —
+      // element and decoded clocks playing click tracks must keep the
+      // playhead within 20 ms of media truth with ≥ 5900 audible bursts and
+      // ≤ 150 ms max gap. Hour-class wall-clock measurement: excluded from
+      // chromium (`drift-10min.spec.ts` in its testIgnore) and run ONLY by
+      // scripts/qualify.ts (ZIPSCRIBE_QUALIFY_DRIFT=1) on reference
+      // hardware, mirroring the `memory` project doctrine. workers: 1 —
+      // timing measurements must run alone (sibling CPU pressure is the
+      // very failure mode being measured).
+      name: 'drift',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /audio-preview\/drift-10min\.spec\.ts/,
       workers: 1,
     },
   ],

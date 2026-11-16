@@ -177,6 +177,87 @@ function writeWav(file: string, samples: Float64Array, sampleRate: number, chann
   writeFileSync(file, Buffer.concat([header, data]))
 }
 
+// Minimal uncompressed AIFF writer (big-endian s16, integer sample rate —
+// exact in 80-bit extended). Hand-rolled so the click-track perf fixtures
+// stay pure-math deterministic like writeWav, with no ffmpeg on the path.
+function writeAiff(file: string, samples: Float64Array, sampleRate: number, channels: number): void {
+  const data = Buffer.alloc(samples.length * 2)
+  for (let i = 0; i < samples.length; i++) {
+    const v = Math.max(-1, Math.min(1, samples[i]!))
+    data.writeInt16BE(Math.round(v * 32767), i * 2)
+  }
+  const pad = data.length % 2
+  const comm = Buffer.alloc(4 + 4 + 18)
+  comm.write('COMM', 0)
+  comm.writeUInt32BE(18, 4)
+  comm.writeUInt16BE(channels, 8)
+  comm.writeUInt32BE(samples.length, 10) // numSampleFrames
+  comm.writeUInt16BE(16, 14) // bits per sample
+  const bias = 16383
+  const e = bias + (31 - Math.clz32(sampleRate))
+  const mantissa = BigInt(sampleRate) << BigInt(63 - (e - bias))
+  comm.writeUInt16BE(e, 16)
+  comm.writeUInt32BE(Number((mantissa >> 32n) & 0xffffffffn), 18)
+  comm.writeUInt32BE(Number(mantissa & 0xffffffffn), 22)
+  const ssnd = Buffer.alloc(8 + data.length + pad)
+  ssnd.write('SSND', 0)
+  ssnd.writeUInt32BE(8 + data.length, 4)
+  ssnd.writeUInt32BE(0, 8) // offset
+  ssnd.writeUInt32BE(0, 12) // block size
+  data.copy(ssnd, 16)
+  const form = Buffer.alloc(12)
+  form.write('FORM', 0)
+  form.writeUInt32BE(4 + comm.length + ssnd.length, 4)
+  form.write('AIFF', 8)
+  writeFileSync(file, Buffer.concat([form, comm, ssnd]))
+}
+
+// AIFF declared-duration probe (metadata-only, no decode): COMM chunk
+// numSampleFrames / sampleRate (80-bit extended, integers ≤ 2^31). Used
+// instead of declaredAudioDuration because mediabunny does not recognize
+// AIFF — the same element-side gap that makes the click AIFF a DECODED-path
+// fixture.
+function aiffDeclaredDuration(file: string): number {
+  const buf = readFileSync(file)
+  if (buf.toString('ascii', 0, 4) !== 'FORM' || buf.toString('ascii', 4 + 4, 4 + 8) !== 'AIFF') {
+    throw new Error(`${file}: not an AIFF FORM container`)
+  }
+  let off = 12
+  while (off + 8 <= buf.length) {
+    const id = buf.toString('ascii', off, off + 4)
+    const size = buf.readUInt32BE(off + 4)
+    if (id === 'COMM') {
+      const numSampleFrames = buf.readUInt32BE(off + 8 + 2)
+      const exponent = (buf.readUInt16BE(off + 8 + 8) & 0x7fff) - 16383
+      const hi = buf.readUInt32BE(off + 8 + 10)
+      const mantissa = (BigInt(hi) << 32n) | BigInt(buf.readUInt32BE(off + 8 + 14))
+      const sampleRate = Number(mantissa) / 2 ** 63 / 2 ** -exponent
+      if (!(sampleRate > 0)) throw new Error(`${file}: unparseable COMM sampleRate`)
+      return numSampleFrames / sampleRate
+    }
+    off += 8 + size + (size % 2)
+  }
+  throw new Error(`${file}: no COMM chunk found`)
+}
+
+// CC-107.4 [RQ] drift legs measure wall-clock playback integrity: a 1 kHz
+// tone burst every 100 ms (40 ms Hann-enveloped, 44.1 kHz mono) for 10 min.
+// The in-page analyser-energy sampler counts bursts and max inter-burst gap,
+// so silence gaps (60 ms nominal) and dropouts are both observable.
+function synthClickTrack(seconds: number): Float64Array {
+  const sampleRate = 44_100
+  const samples = new Float64Array(sampleRate * seconds)
+  const burst = Math.round(0.04 * sampleRate)
+  const step = Math.round(0.1 * sampleRate)
+  for (let start = 0; start < samples.length; start += step) {
+    for (let i = 0; i < burst && start + i < samples.length; i++) {
+      const env = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (burst - 1))
+      samples[start + i] = env * 0.9 * Math.sin((2 * Math.PI * 1000 * i) / sampleRate)
+    }
+  }
+  return samples
+}
+
 // ---------------------------------------------------------------------------
 // formant speech synthesizer (deterministic; ground truth exact by construction)
 // ---------------------------------------------------------------------------
@@ -429,6 +510,20 @@ function segmentLength(buf: Buffer, pageStart: number, segCount: number): number
 // SHA-256 of audio-120min.mp4 produced by the deterministic command below
 // with the pinned ffmpeg-static in the lockfile (`pnpm fixtures --perf`).
 const PERF_SHA256 = '99f102f1596e2b14d791f682ca9e7076ae58317f53f079e62cb2c3ac6e8f3628'
+
+// CC-107.4 [RQ] click tracks (synthClickTrack above, `pnpm fixtures --perf`):
+// pure-math bytes are deterministic under the pinned Node; the shas are
+// same-machine regeneration tripwires like PERF_SHA256, never committed bytes.
+const CLICK_TRACK_SHA256: Record<string, string> = {
+  'click-track-10min.wav': '193fb12187978955c470c098696f29fc0af32acbea4662e15966c8ff03ae0f76',
+  'click-track-10min.aiff': 'e12de3dd3cf97f792153fdb1b17c1b1e52072fc897b54ab33fce677361f24b0a',
+}
+
+function clickTrackSha256(name: string): string {
+  const v = CLICK_TRACK_SHA256[name]
+  if (v === undefined) throw new Error(`no recorded sha256 for ${name}`)
+  return v
+}
 
 interface ManifestEntry {
   sha256: string
@@ -994,6 +1089,48 @@ async function synthVideos(): Promise<void> {
       channels: 1,
       expectedPath: 'webcodecs',
     })
+
+    // CC-107.4 [RQ] click tracks — pure-math, ~106 MB total, generated +
+    // gitignored like audio-120min; consumed only by the opt-in drift tier
+    // (e2e/audio-preview/drift-10min.spec.ts via scripts/qualify.ts).
+    const clicks = synthClickTrack(600)
+    const clickRows = [
+      { name: 'click-track-10min.wav', file: join(AUDIO, 'click-track-10min.wav'), codec: 'pcm_s16le', write: (f: string) => writeWav(f, clicks, 44_100, 1) },
+      { name: 'click-track-10min.aiff', file: join(AUDIO, 'click-track-10min.aiff'), codec: 'pcm_s16be', write: (f: string) => writeAiff(f, clicks, 44_100, 1) },
+    ] as const
+    for (const row of clickRows) {
+      row.write(row.file)
+      const bytes = statSync(row.file).size
+      if (bytes < 50_000_000 || bytes > 56_000_000) {
+        throw new Error(`${row.name} is ${bytes} bytes, outside the 50–56 MB envelope for 600 s @ 44.1 kHz mono s16`)
+      }
+      const dur = row.name.endsWith('.aiff') ? aiffDeclaredDuration(row.file) : await declaredAudioDuration(row.file)
+      if (!(Math.abs(dur - 600) <= 0.01)) {
+        throw new Error(`${row.name} declared duration ${dur}s is not 600 ±0.01 s`)
+      }
+      const sha = sha256(row.file)
+      const recorded = CLICK_TRACK_SHA256[row.name]
+      if (recorded && !recorded.startsWith('pending')) {
+        if (sha !== recorded) {
+          console.warn(`make-fixtures: ${row.name} sha256 ${sha} differs from the recorded ${recorded} — Node Math.sin/rounding drift; e2e burst-count assertions are the contract, bytes are a tripwire`)
+        }
+      } else {
+        console.log(`make-fixtures: ${row.name} sha256 ${sha} (record this in CLICK_TRACK_SHA256)`)
+      }
+      register(row.name, row.file, {
+        duration: 600,
+        kind: 'perf',
+        language: null,
+        category: null,
+        groundTruth: null,
+        generated: true,
+        license: CC0,
+        codec: row.codec,
+        sampleRate: 44_100,
+        channels: 1,
+        expectedPath: 'webcodecs',
+      })
+    }
   } else {
     // recorded without building: deterministic command, checksum stable per
     // pinned ffmpeg-static version; `--perf` is the regeneration path.
@@ -1011,6 +1148,30 @@ async function synthVideos(): Promise<void> {
       sampleRate: 16000,
       channels: 1,
       expectedPath: 'webcodecs',
+    }
+    // Click tracks: recorded without building (keeps `pnpm fixtures` inside
+    // its budget and off the 106 MB; `--perf` — which scripts/qualify.ts
+    // runs — builds + verifies them for the CC-107.4 drift tier).
+    rmSync(join(AUDIO, 'click-track-10min.wav'), { force: true })
+    rmSync(join(AUDIO, 'click-track-10min.aiff'), { force: true })
+    for (const row of [
+      { name: 'click-track-10min.wav', codec: 'pcm_s16le' },
+      { name: 'click-track-10min.aiff', codec: 'pcm_s16be' },
+    ] as const) {
+      manifestFiles[row.name] = {
+        sha256: clickTrackSha256(row.name),
+        duration: 600,
+        kind: 'perf',
+        language: null,
+        category: null,
+        groundTruth: null,
+        generated: true,
+        license: CC0,
+        codec: row.codec,
+        sampleRate: 44_100,
+        channels: 1,
+        expectedPath: 'webcodecs',
+      }
     }
   }
 }
