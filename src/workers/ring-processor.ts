@@ -165,7 +165,7 @@ class RingProcessor extends AudioWorkletProcessor {
 
   private enqueueAt(entry: { absStart: number; samples: Float32Array }, front: boolean): void {
     const queuedFrames = this.queue.reduce((n, e) => n + Math.floor(e.samples.length / this.channels), 0)
-    if (queuedFrames >= 6 * this.mediaRate) return
+    if (queuedFrames >= 9 * this.mediaRate) return // [107-ADJ 13] tracks the 9 s feed window
     if (front) this.queue.unshift(entry)
     else this.queue.push(entry)
   }

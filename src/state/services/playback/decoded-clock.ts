@@ -117,11 +117,22 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
       postToWorklet({ t: 'chunk', startSec: data.startSec, samples: data.samples })
       awaitingAnchor = false
       postedEndFrames = Math.max(postedEndFrames, Math.round(data.startSec * sampleRate) + data.samples.length / deps.channels)
-      if (postedEndFrames - consumedFrames > 6 * sampleRate) {
+      // [107-ADJ 13] 9 s in-flight / 1.5 s refill lead (was 6 s / 0.5 s): the
+      // 600 s drift legs recorded one worker hiccup beyond the old buffer
+      // (single-threaded ffmpeg feed + GC); 1.5 s remaining + 9 s in flight
+      // tolerates ~10 s of feed stall.
+      if (postedEndFrames - consumedFrames > 9 * sampleRate) {
         // Bound memory: cut the stream; refill restarts from the consumed
         // position (cancel + re-request is inside the pinned wire).
+        // [107-ADJ 13] RESTART NOW, not at the 1.5 s drain: leaving
+        // feedActive false let every in-flight cut drain the ring 9 s→1.5 s
+        // before the position-message gate re-requested — one worker
+        // hiccup past 1.5 s per 10-min leg was the recorded underrun.
+        // Immediate restart from the consumed position keeps ~9 s of slack.
         cancelFeed()
         feedActive = false
+        const consumedSec = consumedFrames / sampleRate
+        void startFeed(consumedSec)
       }
     }
     const blob = await blobPromise()
@@ -199,7 +210,7 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
           if (msg.consumedFrames / sampleRate >= duration - 1e-6) {
             fireEnded()
           }
-          if (!feedActive && !endedLatch && time < duration - 0.75 && postedEndFrames - consumedFrames < 0.5 * sampleRate) {
+          if (!feedActive && !endedLatch && time < duration - 0.75 && postedEndFrames - consumedFrames < 1.5 * sampleRate) {
             void startFeed(time)
           }
         } else if (msg.t === 'underrun') {
