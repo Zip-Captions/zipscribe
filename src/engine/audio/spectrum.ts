@@ -126,10 +126,7 @@ export function toSpectrumLine(bins: Float32Array, options: SpectrumLineOptions)
   return out
 }
 
-export function toWaveformLine(
-  samples: Float32Array,
-  options: { width: number; height: number; pointsPerPx?: number; startSec?: number; durationSec?: number },
-): Float32Array {
+export function toWaveformLine(samples: Float32Array, options: { width: number; height: number; pointsPerPx?: number; startSec?: number; durationSec?: number }): Float32Array {
   const pointsPerPx = options.pointsPerPx ?? DEFAULT_POINTS_PER_PX
   const { width, height } = options
   const n = pointCount(width, pointsPerPx)
