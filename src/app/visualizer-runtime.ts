@@ -104,6 +104,12 @@ export interface VisualizerRuntime {
   setScriptedAnalyser(analyser: VisualizerAnalyser | null): void
   setMuted(muted: boolean): void
   readAnalyserEnergy(): number
+  /** Drift-tier burst discrimination ([107-ADJ 11]): RMS over ONLY the most
+   *  recent `windowSamples` of the time-domain buffer. The spectrum-shaped
+   *  readAnalyserEnergy (fft 4096 + 0.75 frequency smoothing) cannot
+   *  resolve inter-click gaps shorter than its window — the 10-minute click
+   *  train would count a single burst. Numbers only (SECURITY-03). */
+  readRecentEnergy(windowSamples: number): number
   setVisualizerMode(mode: 'spectrum' | 'waveform'): void
   setTintBySpeaker(on: boolean): void
   /** FR-107.6: transport/bridge play is gesture-parity — resume the stage AudioContext. */
@@ -396,6 +402,20 @@ export function createVisualizerRuntime(deps: VisualizerRuntimeDeps): Visualizer
     setMuted(next): void {
       muted = next
       graph?.setMuted(next)
+    },
+    readRecentEnergy(windowSamples: number): number {
+      const analyser = readAnalyser()
+      if (analyser === null) return 0
+      const size = analyser.fftSize
+      const n = Math.max(64, Math.min(Math.trunc(windowSamples), size))
+      const buf = new Float32Array(size)
+      analyser.getFloatTimeDomainData(buf)
+      let sum = 0
+      for (let i = size - n; i < size; i++) {
+        const v = buf[i] ?? 0
+        sum += v * v
+      }
+      return Math.sqrt(sum / n)
     },
     readAnalyserEnergy(): number {
       const analyser = readAnalyser()

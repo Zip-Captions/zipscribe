@@ -19,6 +19,7 @@ interface VisualizerBridge {
   setScriptedWaveform(samples: number[] | null): void | Promise<void>
   setMuted(muted: boolean): void
   readAnalyserEnergy(): number
+  readRecentEnergy(windowSamples: number): number
   setVisualizerMode(mode: 'spectrum' | 'waveform'): void
   setTintBySpeaker(on: boolean): void
 }
@@ -56,6 +57,7 @@ export function installVisualizerBridge(): void {
     },
     setMuted: (muted) => visualizer.setMuted(muted),
     readAnalyserEnergy: () => visualizer.readAnalyserEnergy(),
+    readRecentEnergy: (windowSamples) => visualizer.readRecentEnergy(windowSamples),
     setVisualizerMode: (mode) => visualizer.setVisualizerMode(mode),
     setTintBySpeaker: (on) => visualizer.setTintBySpeaker(on),
   }

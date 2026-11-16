@@ -45,19 +45,21 @@ async function runDriftLeg(
   const b = bridge(page)
   expect((await b.state()).playbackPath, `expected the ${expectedPath} path for this click track`).toBe(expectedPath)
 
-  // In-page burst sampler: 20 ms polling of the post-gain analyser energy,
-  // rising/falling edges at 0.02 (bursts are ~0.3 RMS, inter-click samples
-  // are exact zeros) — numbers only (SECURITY-03).
+  // In-page burst sampler: 20 ms polling of a SHORT time-domain window
+  // (256 samples ≈ 5.8/16 ms at 44.1k/16k — shorter than the 60 ms click
+  // gap; the 4096-bin smoothed spectrum cannot resolve the gap, [107-ADJ
+  // 11]), rising/falling edges at 0.02 (bursts are ~0.3-0.7 RMS, inter-click
+  // samples are exact zeros) — numbers only (SECURITY-03).
   await page.evaluate(() => {
     const w = window as unknown as {
       __zipDriftSampler?: { bursts: number; maxGapMs: number; firstBurstAtMs: number | null; lastBurstAtMs: number | null; energySamples: number; active: boolean; prev: boolean; lastActive: number | null }
-      __zipVisualizerBridge?: { readAnalyserEnergy: () => number }
+      __zipVisualizerBridge?: { readRecentEnergy: (windowSamples: number) => number }
       __zipDriftSamplerStop?: () => void
     }
     const s: SamplerState = (w.__zipDriftSampler = { bursts: 0, maxGapMs: 0, firstBurstAtMs: null, lastBurstAtMs: null, energySamples: 0, active: false, prev: false, lastActive: null })
     const started = performance.now()
     const tick = (): void => {
-      const energy = w.__zipVisualizerBridge!.readAnalyserEnergy()
+      const energy = w.__zipVisualizerBridge!.readRecentEnergy(256)
       const now = performance.now() - started
       s.energySamples += 1
       const on = energy > 0.02

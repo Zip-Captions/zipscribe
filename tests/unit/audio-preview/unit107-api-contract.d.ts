@@ -409,6 +409,8 @@ interface Window {
     /** Aggregate live-analyser energy (sum of bin dB above −50) — the drift
      *  leg's click-burst sampler polls THIS in-page (numbers only). */
     readAnalyserEnergy(): number
+    /** [107-ADJ 11] time-domain RMS over the most recent windowSamples. */
+    readRecentEnergy(windowSamples: number): number
     /** Corner-menu toggles (same effect as the buttons). */
     setVisualizerMode(mode: 'spectrum' | 'waveform'): void
     setTintBySpeaker(on: boolean): void
