@@ -59,9 +59,10 @@ declare module '@state/services/playback/probe-element' {
   import type { ElementProbeEvidence } from '@state/services/playback/choose-path'
 
   /**
-   * DOM-side probe (composition-root ONLY, never under test in L1): creates a
+   * DOM-side probe (composition-root; degradation paths pinned in L1 on a
+   * stubbed element, [107-ADJ 10]): creates a
    * detached muted `<audio src=url>`, reads `canPlayType(mime)`, attempts a
-   * `play()` resolving within `timeoutMs` (default 300) as
+   * `play()` resolving within `timeoutMs` (default 1000, [107-ADJ 10]) as
    * `probePlaySucceeded`, tears the element down. Never throws — every
    * failure mode degrades to `{ canPlayType, probePlaySucceeded: false }`.
    */

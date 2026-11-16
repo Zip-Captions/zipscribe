@@ -72,6 +72,10 @@ export function createRouterMediaClock(deps: RouterMediaClockDeps = {}): RouterM
       rebindEnded()
       return () => {
         endedCallbacks.delete(cb)
+        // Rebind so the ACTIVE clock also forgets the callback (not just the
+        // router's source-of-truth set — swaps would otherwise resurrect a
+        // stale subscription onto the next clock).
+        rebindEnded()
       }
     },
     dispose: (): void => {
