@@ -133,9 +133,16 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
   }
 
   // decode:support (MediaEvent) is observed and tolerated; the clock's
-  // correctness never depends on the codec path (honesty: it only gates
-  // telemetry the UI does not consume yet).
-  deps.worker.onmessage = (): void => undefined
+  // truth channel is the dedicated feed port. Main-port job:error is the
+  // one main-port signal that matters: it stalls the clock honestly
+  // (numeric code only — SECURITY-03 never carries file-derived strings).
+  deps.worker.onmessage = (event: MessageEvent<unknown>): void => {
+    const msg = event.data as { t?: unknown } | null
+    if (msg !== null && msg.t === 'job:error') {
+      paused = true
+      deps.onNotice?.('PLAYBACK_STALL')
+    }
+  }
 
   const ensureWorklet = async (): Promise<void> => {
     if (workletReady !== null) {
@@ -144,7 +151,21 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
     }
     ctx = deps.audioContextFactory()
     workletReady = (async () => {
-      await ctx?.audioWorklet.addModule(deps.workletUrl)
+      try {
+        await ctx?.audioWorklet.addModule(deps.workletUrl)
+      } catch {
+        // MIME-hostile servers (a `?url` asset served as .ts): re-source the
+        // module text through a same-origin fetch + JS-typed blob URL. The
+        // L3 fake resolves the direct addModule, so tests never fetch.
+        if (ctx === null) return
+        const source = await (await fetch(deps.workletUrl)).text()
+        const blobUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }))
+        try {
+          await ctx.audioWorklet.addModule(blobUrl)
+        } finally {
+          URL.revokeObjectURL(blobUrl)
+        }
+      }
       if (disposed || ctx === null) return
       const options: AudioWorkletNodeOptions = {
         numberOfInputs: 1,
@@ -161,6 +182,9 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
       // addEventListener, NOT onmessage: the L3 double (fake-webaudio
       // attachFakeWorklet) owns the port's onmessage slot for the scripted
       // inbound direction — stacked listeners are the pinned wire.
+      // Chromium does NOT implicitly activate an AudioWorkletNode port for
+      // addEventListener — start() is required or messages never dispatch.
+      node.port.start?.()
       node.port.addEventListener('message', (event: MessageEvent<unknown>) => {
         const msg = event.data as WorkletInbound | null
         if (msg === null || typeof msg.t !== 'string' || disposed) return
@@ -232,7 +256,13 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
         postToWorklet({ t: 'flush' })
         awaitingAnchor = true
       }
-      await ensureWorklet()
+      await ensureWorklet().catch(() => {
+        // Setup failure (worklet/ctx): the clock is honest — paused again,
+        // numeric notice code (SECURITY-03).
+        paused = true
+        deps.onNotice?.('PLAYBACK_STALL')
+      })
+      if (paused) return
       postToWorklet({ t: 'play' })
       void ctx?.resume().catch(() => undefined)
       if (needsFeed) void startFeed(time)

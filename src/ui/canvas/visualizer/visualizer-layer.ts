@@ -104,10 +104,13 @@ export function createVisualizerLayer(deps: VisualizerLayerDeps): VisualizerLaye
 
   return {
     setPlaying(next: boolean): void {
+      const wasPlaying = playing
       playing = next
       opacity = next ? 1 : PAUSED_OPACITY
       canvas.style.opacity = String(opacity)
-      if (next) lastDrawAt = null
+      // Fresh-frame allowance only on the paused→playing EDGE — the pump
+      // calls setPlaying(true) every frame (throttle clock must survive).
+      if (next && !wasPlaying) lastDrawAt = null
     },
     draw(_playheadSec: number): void {
       if (disposed || !playing || ctx === null) return

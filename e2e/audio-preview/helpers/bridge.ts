@@ -112,7 +112,7 @@ export async function openAudioProject(page: Page, fixture: { asset: Record<stri
       const w = window as unknown as { __zipEditorBridge?: EditorBridgeLike }
       w.__zipEditorBridge?.openProjectWithMedia(asset, src, b)
     },
-    [fixture.asset, fixture.src, blocks ?? null] as const,
+    [fixture.asset, fixture.src, blocks] as const,
   )
   // The active clock (and graph for element/decoded paths) exist once the
   // project is open; the media card is the observable readiness signal.

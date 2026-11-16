@@ -24,7 +24,9 @@ import type { EditorApp } from '../state/history'
 import type { SettingsStore } from '../state/settings'
 import type { StageController } from './stage'
 import { createWorker } from '../state/services/worker-registry'
-import RingWorkletUrl from '../workers/ring-processor.ts?url'
+// `?worker&url` (not `?url`): compiles the worklet to classic-safe JS —
+// `?url` would ship raw TypeScript and addModule would choke on types.
+import RingWorkletUrl from '../workers/ring-processor.ts?worker&url'
 
 /** Fixed visualizer base size (design.md 16:9 stage; the L4 pixel scan and
  *  the CC-107.7 goldens pin geometry at this CSS box × DPR). */
@@ -120,6 +122,10 @@ export function createVisualizerRuntime(deps: VisualizerRuntimeDeps): Visualizer
   let muted = false
   let rate = 1
   let endedCount = 0
+  // Path-agnostic ended tally (router forwards to whichever clock is active).
+  deps.router.onEnded(() => {
+    endedCount += 1
+  })
   let lastFrameAtMs: number | null = null
   let blobCache: { url: string; promise: Promise<Blob> } | null = null
   let sharedContext: AudioContext | null = null
@@ -138,9 +144,14 @@ export function createVisualizerRuntime(deps: VisualizerRuntimeDeps): Visualizer
     const url = currentUrl()
     if (url === null) throw new Error('NO_MEDIA_SOURCE')
     if (blobCache !== null && blobCache.url === url) return blobCache.promise
+    // A real File (with the asset's name): the mediabunny adapter type-sniffs
+    // by extension before content — a nameless Blob stalls its Input analyze
+    // (name never enters logs; SECURITY-03 covers strings, not this plumbing).
+    const name = currentAsset()?.name ?? url.split('/').pop() ?? 'media'
+    const mime = MIME_BY_CONTAINER[currentAsset()?.container ?? ''] ?? ''
     const promise = fetch(url).then((response) => {
       if (!response.ok) throw new Error('MEDIA_FETCH_FAILED')
-      return response.blob()
+      return response.blob().then((blob) => new File([blob], name, { type: mime }))
     })
     blobCache = { url, promise }
     return promise
@@ -252,9 +263,6 @@ export function createVisualizerRuntime(deps: VisualizerRuntimeDeps): Visualizer
       },
     })
     decodedClock = clock
-    deps.router.onEnded(() => {
-      endedCount += 1
-    })
     deps.router.attachActive(clock)
     clockKind = 'decoded'
     playbackPath = 'decoded'
@@ -352,23 +360,29 @@ export function createVisualizerRuntime(deps: VisualizerRuntimeDeps): Visualizer
       }
     },
     clockControl(method, arg): void {
-      const active = deps.router.activeClock
-      if (active === null) return
+      // Same transport commands the transport bar dispatches — bridge play is
+      // UI play (arbitrator owns playhead/playing; FR-107.6 autoplay honesty
+      // via the same gesture-parity AudioContext resume).
       if (method === 'play') {
-        // Gesture-parity resume (FR-107.6 autoplay honesty).
         void audioContextFactory()
           .resume()
           .catch(() => undefined)
-        void active.play()
+        // Ended-restart convention (media-player parity): at the media end the
+        // arbitrator is still "playing" (dt model pins at duration), so a bare
+        // transport-play would no-op — seek to 0 first through the arbitrator.
+        if (deps.router.atMediaEnd()) {
+          deps.editorApp.dispatch('transport-seek', { time: 0 })
+        }
+        deps.editorApp.dispatch('transport-play', undefined)
       } else if (method === 'pause') {
-        active.pause()
+        deps.editorApp.dispatch('transport-pause', undefined)
       } else if (method === 'seek' && arg !== undefined) {
-        active.seek(arg)
+        deps.editorApp.dispatch('transport-seek', { time: arg })
       } else if (method === 'setRate' && arg !== undefined) {
         rate = arg
-        active.setRate(arg)
+        deps.editorApp.dispatch('transport-rate', { rate: arg })
       } else if (method === 'dispose') {
-        active.dispose()
+        deps.router.dispose()
       }
     },
     resetVisualizerDiagnostics(): void {

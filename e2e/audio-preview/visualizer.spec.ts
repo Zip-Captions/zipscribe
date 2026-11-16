@@ -151,10 +151,19 @@ test.describe('CC-107.6: visualizer canvas (real chromium pixels)', () => {
         pointerEvents: canvas.style.pointerEvents,
         inSlot: slot !== null,
         overlayMounted: overlayCanvas !== null,
-        // DOM order = paint order inside the stage (both absolutely
-        // positioned siblings in .ws-stage): the caption overlay canvas must
-        // come AFTER the visualizer canvas.
-        belowOverlay: overlayCanvas !== null && (canvas.compareDocumentPosition(overlayCanvas) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+        // Paint order inside the stage is z-stacking [107-ADJ 6]: the
+        // positioned .ws-canvas-layer host (z 2) must stack above the
+        // positioned 16:9 visualizer slot (auto/0). DOM order is not the
+        // contract (the video path relies on z-stacking too).
+        belowOverlay: (() => {
+          if (overlayCanvas === null) return false
+          const host = overlayCanvas.closest('[data-testid=preview-canvas-layer]')
+          const slot = canvas.closest('[data-testid=stage-visualizer-slot]')
+          if (host === null || slot === null) return false
+          const zOverlay = Number.parseFloat(getComputedStyle(host as HTMLElement).zIndex)
+          const zViz = Number.parseFloat(getComputedStyle(slot as HTMLElement).zIndex)
+          return (Number.isNaN(zOverlay) ? 0 : zOverlay) > (Number.isNaN(zViz) ? 0 : zViz)
+        })(),
       }
     })
     expect(facts, 'visualizer canvas mounted with its pinned testid').not.toBeNull()

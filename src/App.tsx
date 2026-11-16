@@ -55,7 +55,7 @@ export function App(): ReactNode {
       settings={context.settings}
       project={context.project}
       intake={context.intake}
-      transport={{ app: context.editorApp, stage: context.stage, rafs: context.rafs, captionImport: context.captionImport }}
+      transport={{ app: context.editorApp, stage: context.stage, rafs: context.rafs, captionImport: context.captionImport, visualizer: context.visualizer }}
       persistence={context.persistence}
       onTabChange={(tab) => {
         context.setActiveTab(tab)

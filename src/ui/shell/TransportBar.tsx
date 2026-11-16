@@ -48,8 +48,11 @@ export function TransportBar({ editor, duration, onCycleRate }: TransportBarProp
 
   return (
     <div data-testid="transport-bar" className="ws-transport" role="group" aria-label="Transport">
-      <button type="button" data-testid="transport-skip-back" className="ws-button ws-transport-button" aria-label="Back 5 seconds" onClick={() => dispatchCommand('transport.skip-backward')}>
-        ⏪5s
+      <button type="button" data-testid="transport-skip-back" className="ws-button ws-transport-button" aria-label="⏪5s — Back 5 seconds" onClick={() => dispatchCommand('transport.skip-backward')}>
+        {/* Presentational glyphs: aria-hidden keeps the accessible name (the
+            aria-label) free of mismatching visible text (axe label-content-
+            name-mismatch, CC-107.9 audio stage). */}
+        <span aria-hidden="true">⏪5s</span>
       </button>
       <button
         type="button"
@@ -62,8 +65,8 @@ export function TransportBar({ editor, duration, onCycleRate }: TransportBarProp
       >
         {playing ? '⏸' : '▶'}
       </button>
-      <button type="button" data-testid="transport-skip-forward" className="ws-button ws-transport-button" aria-label="Forward 5 seconds" onClick={() => dispatchCommand('transport.skip-forward')}>
-        5s⏩
+      <button type="button" data-testid="transport-skip-forward" className="ws-button ws-transport-button" aria-label="5s⏩ — Forward 5 seconds" onClick={() => dispatchCommand('transport.skip-forward')}>
+        <span aria-hidden="true">5s⏩</span>
       </button>
       <span className="ws-transport-time">
         <span data-testid="transport-time-current" className="ws-tabular">

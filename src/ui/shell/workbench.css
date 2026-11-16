@@ -266,6 +266,11 @@ body,
   position: absolute;
   inset: 0;
   pointer-events: none;
+  /* unit-107 [107-ADJ 6]: the caption overlay stacks ABOVE the positioned
+     16:9 visualizer slot (both absolute siblings; z-order, not DOM order,
+     is the paint contract — the video path was non-positioned, so order
+     never mattered there). */
+  z-index: 2;
 }
 
 .ws-resizer {

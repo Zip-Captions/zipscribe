@@ -23,6 +23,8 @@ export interface RouterMediaClock extends MediaClock {
   /** Diagnostics snapshot (bridge surfaces): built INSIDE the sanctioned
    *  currentTime home so composition/UI layers never spell the access. */
   snapshot(): { paused: boolean; currentTime: Seconds; duration: Seconds }
+  /** Paused with the position pinned at (or past) the media end. */
+  atMediaEnd(): boolean
 }
 
 export function createRouterMediaClock(deps: RouterMediaClockDeps = {}): RouterMediaClock {
@@ -88,6 +90,13 @@ export function createRouterMediaClock(deps: RouterMediaClockDeps = {}): RouterM
       currentTime: active?.currentTime() ?? 0,
       duration: active?.duration ?? 0,
     }),
+    // Ended-state question answered INSIDE the zone (the CC-102.5 guard
+    // keeps `.currentTime` reads out of the composition layer).
+    atMediaEnd: (): boolean => {
+      if (active === null) return false
+      const d = active.duration
+      return active.paused && d > 0 && active.currentTime() >= d - 0.05
+    },
   }
   return clock
 }

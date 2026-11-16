@@ -6,9 +6,30 @@
 // across a full 30 s playback. CC-107.3 (L5): decoded-path gain authority —
 // muting is the GainNode only, proven by the POST-gain AnalyserNode going
 // silent and back.
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { runClockContract, type ArbitratorContractHandle, type ClockContractHandle } from '../../tests/unit/audio-preview/clock-contract-lib'
 import { AIFF_DECODED, WMA_DECODED, bridge, editor, openAudioProject } from './helpers/bridge'
+
+
+// [107-ADJ 7] The shared clock contract measures CLOCK behaviour on primed
+// data; the ffmpeg cold-decode latency (lazy core load + first exec) is a
+// separate, separately-gated concern (the seek-to-audible leg warms the
+// decode explicitly). Warm the feed: play until the ring is truly
+// consuming, then pause.
+async function warmDecoded(page: Page): Promise<void> {
+  const b = bridge(page)
+  await b.control('play')
+  await page.waitForFunction(
+    () => {
+      const w = (window as unknown as { __zipVisualizerBridge?: { getClockDiagnostics: () => { currentTime: number }; readAnalyserEnergy: () => number } }).__zipVisualizerBridge!
+      return w.getClockDiagnostics().currentTime > 0.3 || w.readAnalyserEnergy() > 0
+    },
+    undefined,
+    { timeout: 30_000 },
+  )
+  await b.control('pause')
+  await page.waitForFunction(() => (window as unknown as { __zipVisualizerBridge?: { getClockDiagnostics: () => { paused: boolean } } }).__zipVisualizerBridge!.getClockDiagnostics().paused === true, undefined, { timeout: 5_000 })
+}
 
 test.describe('CC-107.2: decoded clock (chromium, WebCodecs/ffmpeg-decoded formats)', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:unit')
@@ -16,6 +37,7 @@ test.describe('CC-107.2: decoded clock (chromium, WebCodecs/ffmpeg-decoded forma
   test('CC-107.2: the shared clock contract holds for the real decoded clock (AIFF)', async ({ page }) => {
     test.setTimeout(120_000)
     await openAudioProject(page, AIFF_DECODED)
+    await warmDecoded(page)
     const b = bridge(page)
     expect((await b.state()).playbackPath, 'AIFF is element-unsupported → decoded path').toBe('decoded')
 
@@ -46,6 +68,7 @@ test.describe('CC-107.2: decoded clock (chromium, WebCodecs/ffmpeg-decoded forma
   test('CC-107.2: the shared clock contract holds for the ffmpeg-path decoded clock (WMA)', async ({ page }) => {
     test.setTimeout(180_000)
     await openAudioProject(page, WMA_DECODED)
+    await warmDecoded(page)
     const b = bridge(page)
     expect((await b.state()).playbackPath, 'WMA is element-unsupported → decoded path').toBe('decoded')
 
@@ -109,6 +132,7 @@ test.describe('CC-107.2: decoded clock (chromium, WebCodecs/ffmpeg-decoded forma
   test('CC-107.2: zero underruns across a full 30 s decoded playback (AIFF)', async ({ page }) => {
     test.setTimeout(120_000)
     await openAudioProject(page, AIFF_DECODED)
+    await warmDecoded(page)
     const b = bridge(page)
     await b.control('seek', 0)
     await b.control('play')
@@ -125,6 +149,7 @@ test.describe('CC-107.2: decoded clock (chromium, WebCodecs/ffmpeg-decoded forma
   test('CC-107.3: decoded-path gain authority — setMuted silences the POST-gain analyser, unmute restores it (element untouched)', async ({ page }) => {
     test.setTimeout(90_000)
     await openAudioProject(page, AIFF_DECODED)
+    await warmDecoded(page)
     const b = bridge(page)
     await b.control('seek', 1)
     await b.control('play')
