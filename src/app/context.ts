@@ -35,6 +35,9 @@ import { createDeferredMediaClock } from '../state/services/playback/media-clock
 import type { DeferredMediaClock } from '../state/services/playback/media-clock'
 import type { RafDriver } from '../state/services/playback/arbitrator'
 import { createStageController } from './stage'
+import { createRouterMediaClock } from '../state/services/playback/router-clock'
+import { createVisualizerRuntime } from './visualizer-runtime'
+import type { VisualizerRuntime } from './visualizer-runtime'
 import type { StageController } from './stage'
 import { createBrowserRafDriver } from './browser-rafs'
 import { createLocalStorageSettings, createPendingUnit07ImportService, createProductionModelCache, probeDeviceCapability } from './ports'
@@ -52,6 +55,8 @@ export interface AppContext {
   stage: StageController
   /** Slice C: the stage element's clock (diagnostics: seekCount/clockTime via the bridge). */
   mediaClock: DeferredMediaClock
+  /** unit-107: clock router + stage graph + visualizer layer composition (FR-107.1/.4). */
+  visualizer: VisualizerRuntime
   /** Unit-103: the app's ONE rAF loop (the Timeline panel's repaint driver — the same driver the arbitrator runs on). */
   rafs: RafDriver
   /**
@@ -168,14 +173,69 @@ async function buildAppContext(): Promise<AppContext> {
   // the US-1.3.3 merge/split pair). `NOT_IMPLEMENTED_SPEAKER_ENGINE` stays the
   // dispatch-without-engine seam default inside `createEditorApp`.
   const mediaClock = createDeferredMediaClock()
-  const rafs = createBrowserRafDriver()
+  // unit-107 (FR-107.1): the arbitrator's single clock is the ROUTER — the
+  // composition swaps element/deferred/decoded clocks per project; the
+  // deferred element clock stays the video backing + the bridge's seek
+  // diagnostics owner.
+  let resumeOnPlay: () => void = () => undefined
+  const router = createRouterMediaClock({ onActivePlay: () => resumeOnPlay() })
+  let stageElement: HTMLMediaElement | null = null
+  let visualizerRef: VisualizerRuntime | null = null
+  // ONE rAF loop (frozen transport-bar pin): the visualizer pump piggybacks
+  // on the arbitrator's driver — no second subscription.
+  const baseRafs = createBrowserRafDriver()
+  const rafs: RafDriver = {
+    request: (cb): number =>
+      baseRafs.request((timeMs) => {
+        visualizerRef?.pumpFrame(timeMs)
+        cb(timeMs)
+      }),
+    cancel: (id: number): void => {
+      baseRafs.cancel(id)
+    },
+    frame: (dtMs: number): void => baseRafs.frame(dtMs),
+  }
   const editorApp = createEditorApp({
     clock: { now: () => Date.now() },
     rafs,
-    mediaClock,
+    mediaClock: router,
     speakerEngine: DEFAULT_COMMAND_DEPS.speakerEngine,
   })
-  const stage = createStageController({ onAttachElement: (element) => mediaClock.attach(element) })
+  const stage = createStageController({
+    onAttachElement: (element) => {
+      mediaClock.attach(element)
+      stageElement = element
+      const asset = editorApp.project.getState().project?.asset ?? null
+      if (element === null) router.attachActive(null)
+      else if (asset !== null && asset.kind === 'audio') visualizerRef?.onStageElement(element)
+      else router.attachActive(mediaClock)
+    },
+  })
+  const visualizer = createVisualizerRuntime({
+    settings,
+    stage,
+    editorApp,
+    router,
+    devicePixelRatio: () => (typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1),
+    now: () => Date.now(),
+    prefersReducedMotion: () => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  })
+  visualizerRef = visualizer
+  resumeOnPlay = () => {
+    visualizer.resumeForGesture()
+  }
+  // Source swaps (open/reopen/relink) re-decide the clock path (FR-107.1).
+  let lastMediaUrl = stage.getMediaSource()
+  stage.subscribe(() => {
+    const url = stage.getMediaSource()
+    if (url === lastMediaUrl) return
+    lastMediaUrl = url
+    visualizer.reset()
+    if (stageElement !== null) {
+      const asset = editorApp.project.getState().project?.asset ?? null
+      if (asset !== null && asset.kind === 'audio') visualizer.onStageElement(stageElement)
+    }
+  })
 
   // ── unit-106 slice D: persistence (FR-106.1/FR-106.7/FR-106.8) ───────────
   // Production deps: the real IndexedDB factory, wall clock, real timers,
@@ -383,6 +443,7 @@ async function buildAppContext(): Promise<AppContext> {
     editorApp,
     stage,
     mediaClock,
+    visualizer,
     rafs,
     captionImport: createEngineCaptionImportPort(),
     setCaptionImportOverride(result: CaptionImportResult | null): void {

@@ -22,18 +22,20 @@ export function App(): ReactNode {
         // the initial bundle and production users (who never set the flag)
         // never load them. No bridge module self-installs on import.
         if (new URLSearchParams(window.location.search).get('ziptest') === '1') {
-          const [{ installWorkbenchBridge }, { installEditorBridge }, { installTimelineBridge }, { installTranscriptBridge }, { installPersistenceBridge }] = await Promise.all([
+          const [{ installWorkbenchBridge }, { installEditorBridge }, { installTimelineBridge }, { installTranscriptBridge }, { installPersistenceBridge }, { installVisualizerBridge }] = await Promise.all([
             import('./ui/testing/workbench-bridge'),
             import('./ui/testing/editor-bridge'),
             import('./ui/testing/timeline-bridge'),
             import('./ui/testing/transcript-bridge'),
             import('./ui/testing/persistence-bridge'),
+            import('./ui/testing/visualizer-bridge'),
           ])
           installWorkbenchBridge()
           installEditorBridge()
           installTimelineBridge()
           installTranscriptBridge()
           installPersistenceBridge()
+          installVisualizerBridge()
         }
         if (mounted) setContext(created)
       })

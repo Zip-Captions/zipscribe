@@ -36,6 +36,10 @@ export interface DecodedClockDeps {
   audioContextFactory(): AudioContext
   workletUrl: string
   onNotice?(code: 'PLAYBACK_STALL'): void
+  /** Composition handoff (graph tail): the worklet node is routed through the
+   *  stage graph's gain+analyser (CC-107.3 gain authority) instead of the
+   *  clock connecting it to the destination itself. */
+  onWorkletNode?(node: AudioWorkletNode): void
   timers?: { setTimeout(fn: () => void, ms: number): number; clearTimeout(id: number): void }
 }
 
@@ -192,7 +196,7 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
           fireEnded()
         }
       })
-      node.connect(ctx.destination)
+      deps.onWorkletNode?.(node)
     })()
     await workletReady
   }
