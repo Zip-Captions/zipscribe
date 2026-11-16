@@ -8,7 +8,11 @@
 
 import type { ElementProbeEvidence } from './choose-path'
 
-const DEFAULT_TIMEOUT_MS = 300
+// [107-ADJ 10] 1 s budget: under the full parallel e2e load (8 workers +
+// the memory tier) the probe's 'playing' event can starve past 300 ms and
+// an element-native file misroutes to decoded. Semantics unchanged — only
+// the patience of the (already-necessary-not-sufficient) probe play widened.
+const DEFAULT_TIMEOUT_MS = 1_000
 
 export function probeElementPlayback(url: string, mime: string, opts: { timeoutMs?: number } = {}): Promise<ElementProbeEvidence> {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS

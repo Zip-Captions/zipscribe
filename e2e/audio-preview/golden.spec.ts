@@ -116,6 +116,12 @@ async function captureScene(page: import('@playwright/test').Page, dpr: number):
 
 test.describe('CC-107.7: visualizer goldens (scripted scene, committed PNGs)', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:unit')
+  // [107-ADJ 9] The committed PNGs are PINNED-ENGINE artifacts (linux noble
+  // docker, scripts/make-visualizer-goldens.ts); text rasterization is
+  // platform-specific, so non-linux hosts are not comparable (verified:
+  // same-engine comparison passes both DPRs; the CI ubuntu runner is the
+  // authoritative environment — never re-bless from an unpinned host).
+  test.skip(process.platform !== 'linux', 'CC-107.7: goldens compare against the pinned linux engine only (font rasterization is platform-specific)')
 
   for (const dpr of [1, 2] as const) {
     test(`CC-107.7: DPR ${String(dpr)} scripted-spectrum + caption overlay matches the committed golden (SSIM ≥ ${String(SSIM_MIN)})`, async ({ browser }) => {

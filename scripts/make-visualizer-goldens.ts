@@ -16,6 +16,17 @@ import { join } from 'node:path'
 
 const REPO_ROOT = process.cwd()
 const IMAGE = 'mcr.microsoft.com/playwright:v1.64.1-noble'
+// The pinned image ships node without corepack; install the repo's pnpm
+// version (package.json packageManager — contract pin) so lockfile
+// semantics match the host toolchain.
+import { readFileSync } from 'node:fs'
+const declared = (JSON.parse(readFileSync('package.json', 'utf8')) as { packageManager?: string }).packageManager ?? ''
+const match = /^pnpm@(\d+\.\d+\.\d+)$/.exec(declared)
+if (match === null) {
+  console.error(`package.json packageManager must be pnpm@x.y.z (got ${declared || 'none'})`)
+  process.exit(1)
+}
+const PACKAGE_MANAGER = match[1]
 const OUTPUT_DIR = 'fixtures/golden/visualizer'
 
 if (!existsSync(join(REPO_ROOT, 'pnpm-lock.yaml'))) {
@@ -35,10 +46,10 @@ const cmd = [
   'mkdir -p /tmp/goldenwork',
   "tar -C /work --exclude=node_modules --exclude=.git --exclude=dist --exclude='coverage*' -cf - . | tar -C /tmp/goldenwork -xf -",
   'cd /tmp/goldenwork',
-  'corepack enable',
-  'corepack pnpm install --frozen-lockfile --prefer-offline',
-  'corepack pnpm run build',
-  '(corepack pnpm run preview -- --port 4310 --strictPort >/tmp/preview.log 2>&1 &)',
+  `npm i -g pnpm@${PACKAGE_MANAGER}`,
+  'pnpm install --frozen-lockfile --prefer-offline',
+  'pnpm run build',
+  '(pnpm run preview -- --port 4310 --strictPort >/tmp/preview.log 2>&1 &)',
   'for i in $(seq 1 60); do curl -sf http://127.0.0.1:4310 >/dev/null && break; sleep 1; done',
   'PLAYWRIGHT_BROWSERS_PATH=/ms-playwright GOLDEN_OUT=/work/fixtures/golden/visualizer node scripts/lib/capture-visualizer-golden.mjs',
 ].join(' && ')

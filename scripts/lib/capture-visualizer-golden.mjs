@@ -9,7 +9,7 @@
 import { mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { chromium } from 'playwright'
+import { chromium } from '@playwright/test'
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const OUTPUT_DIR = process.env.GOLDEN_OUT ?? join(REPO_ROOT, 'fixtures', 'golden', 'visualizer')

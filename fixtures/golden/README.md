@@ -91,3 +91,13 @@ unsplit blocks pin id stability. Regeneration: `.night/gen-diar-goldens.py`
 | `reassign.{in,out}.json` | inclusive `[fromIndex,toIndex]` word range only + derived block majority |
 | `merge-speakers.{in,out}.json` | all of `b`'s words → `a`, `b` removed, third speaker untouched |
 | `split-speaker.{in,out}.json` | words with `start ≥ cutTime` move to a new appended `SPK_3`/`Speaker 3` with the caller color |
+
+## visualizer/spectrum-overlay-dpr{1,2}.png (unit-107, CC-107.7)
+
+Scripted-spectrum + caption-overlay stage scene (deterministic synthetic
+bins — no real audio), captured at DPR 1/2 of `[data-testid=stage-visualizer-slot]`.
+Generated ONLY by `corepack pnpm exec node scripts/make-visualizer-goldens.ts`
+inside the pinned engine (mcr.microsoft.com/playwright:v1.64.1-noble — CI-
+equivalent linux). The golden spec compares on linux only (font
+rasterization is platform-specific; see [107-ADJ 9] in golden.spec.ts).
+Never re-bless from an unpinned environment or by hand.
