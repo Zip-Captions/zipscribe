@@ -96,8 +96,13 @@ export type ModelEvent =
   | { t: 'model:error'; model: ModelId; error: EngineError }
 
 // media.worker
-export type MediaRequest = { t: 'probe'; jobId: string; file: File } | { t: 'decode'; jobId: string; file: File; ports: MessagePort[] } | { t: 'cancel'; jobId: string }
+export type MediaRequest =
+  | { t: 'probe'; jobId: string; file: File }
+  | { t: 'decode'; jobId: string; file: File; ports: MessagePort[] }
+  | { t: 'decode-playback'; jobId: string; file: File; fromSec: number; port: MessagePort }
+  | { t: 'cancel'; jobId: string }
 // tee: identical PcmChunks to every port (ASR + diarize)
+// decode-playback (unit-107): native-rate interleaved-f32 {startSec,samples} chunks to one port — the decoded clock feed
 
 export type MediaEvent =
   | JobEvent

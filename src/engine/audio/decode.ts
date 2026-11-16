@@ -729,6 +729,14 @@ export function handleMediaRequest(request: MediaRequest, scope: { postMessage(m
       liveJobs.set(request.jobId, job)
       return job
     }
+    case 'decode-playback': {
+      // unit-107 decoded-clock feed: native-rate interleaved-f32
+      // {startSec,samples} chunks streamed to the clock's port (the worker
+      // instance is DEDICATED per clock — probe-worker doctrine).
+      const job = decodeForPlayback({ jobId: request.jobId, file: request.file, fromSec: request.fromSec, port: request.port }, { ...deps, emit })
+      liveJobs.set(request.jobId, job)
+      return job
+    }
     case 'cancel': {
       const job = liveJobs.get(request.jobId)
       job?.cancel()

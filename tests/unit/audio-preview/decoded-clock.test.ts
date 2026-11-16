@@ -244,9 +244,16 @@ describe('CC-107.2: clock contract — decoded clock on doubles (L3)', () => {
     }
     const arbitrator = createSyncArbitrator({ clock: view, rafs })
     const pump = async (ms: number): Promise<void> => {
+      // Wall-time yield: keepFed is a REAL 1 ms interval and MessagePort
+      // delivery is macrotask-scheduled — a pure setImmediate drain never
+      // lets the feed catch up (wait(ms) models real elapsed time).
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 2)
+      })
       const frames = Math.max(1, Math.round(ms / FRAME_MS))
       for (let i = 0; i < frames; i++) rafs.frame(FRAME_MS)
       await flushPorts()
+      if (process.env.DC_DEBUG) console.log('pump', ms, 'paused', rig.clock.paused, 'worklets', rig.harness.worklets.length)
       if (!rig.clock.paused && rig.harness.worklets.length > 0) {
         rig.ensureWorklet().consumeMs(ms)
       }

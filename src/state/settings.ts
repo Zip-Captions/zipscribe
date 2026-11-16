@@ -34,6 +34,19 @@ export interface TranscribePrefs {
 
 const DEFAULT_TRANSCRIBE_PREFS: TranscribePrefs = { language: null, modelId: null, diarize: false }
 
+/**
+ * unit-107 (FR-107.5, design.md § Audio projects): visualizer prefs —
+ * spectrum|waveform mode + tint-by-speaker (default ON). Persisted inside
+ * the same blob (NOT project history — zundo partializes to {project} only);
+ * hydration-tolerant like every other slice (SET.2 symmetry).
+ */
+export interface VisualizerPrefs {
+  mode: 'spectrum' | 'waveform'
+  tintBySpeaker: boolean
+}
+
+const DEFAULT_VISUALIZER_PREFS: VisualizerPrefs = { mode: 'spectrum', tintBySpeaker: true }
+
 export const SETTINGS_STORAGE_KEY = 'zipscribe.settings.workbench'
 
 /** Minimum panel sizes (US-2.0.1 "minimum panel sizes enforced"); `setPanelSize` clamps, never silently drops. */
@@ -52,6 +65,8 @@ export interface WorkbenchSettings {
   theme: 'dark' | 'light' | 'system'
   /** MAJOR-5 (unit-102 EXTENDS): transcribe popover memory, per settings. */
   transcribe: TranscribePrefs
+  /** unit-107 (FR-107.5 EXTENDS): visualizer mode + tint, persisted in this blob. */
+  visualizer: VisualizerPrefs
 }
 
 export interface SettingsStore {
@@ -64,6 +79,8 @@ export interface SettingsStore {
   setTheme(theme: 'dark' | 'light' | 'system'): void
   /** MAJOR-5: partial merge into the persisted `transcribe` prefs (popover remembers language/model/diarize). */
   setTranscribePrefs(prefs: Partial<TranscribePrefs>): void
+  /** unit-107: partial merge into the persisted `visualizer` prefs (corner-menu toggles). */
+  setVisualizerPrefs(prefs: Partial<VisualizerPrefs>): void
 }
 
 const DEFAULT_PANELS: PanelSizes = { sidebarPx: 320, timelinePx: 200 }
@@ -73,6 +90,7 @@ const DEFAULT_SETTINGS: WorkbenchSettings = {
   collapsed: { sidebar: false, timeline: false },
   theme: 'dark',
   transcribe: { ...DEFAULT_TRANSCRIBE_PREFS },
+  visualizer: { ...DEFAULT_VISUALIZER_PREFS },
 }
 
 /**
@@ -120,6 +138,17 @@ function hydrateTranscribe(value: unknown): TranscribePrefs {
   return { language, modelId, diarize: value.diarize === true }
 }
 
+/** unit-107 SET.2 hydration: per-field tolerance — an invalid value degrades
+ *  to the design.md default for THAT field (never throws): mode must be one
+ *  of the two literals, tint must be a boolean. */
+function hydrateVisualizer(value: unknown): VisualizerPrefs {
+  if (!isRecord(value)) return { ...DEFAULT_VISUALIZER_PREFS }
+  return {
+    mode: value.mode === 'waveform' || value.mode === 'spectrum' ? value.mode : DEFAULT_VISUALIZER_PREFS.mode,
+    tintBySpeaker: typeof value.tintBySpeaker === 'boolean' ? value.tintBySpeaker : DEFAULT_VISUALIZER_PREFS.tintBySpeaker,
+  }
+}
+
 /** Missing key → defaults; corrupt JSON → defaults, never throws (contract § createSettingsStore). */
 function hydrate(raw: string | null): WorkbenchSettings {
   if (raw === null) return structuredClone(DEFAULT_SETTINGS)
@@ -140,6 +169,7 @@ function hydrate(raw: string | null): WorkbenchSettings {
     collapsed: { sidebar: collapsed.sidebar === true, timeline: collapsed.timeline === true },
     theme,
     transcribe: hydrateTranscribe(parsed.transcribe),
+    visualizer: hydrateVisualizer(parsed.visualizer),
   }
 }
 
@@ -191,6 +221,21 @@ export function createSettingsStore(deps: { storage: SettingsStorage }): Promise
             state.transcribe.language = next.language
             state.transcribe.modelId = next.modelId
             state.transcribe.diarize = next.diarize
+          })
+          persist()
+        },
+        setVisualizerPrefs(prefs: Partial<VisualizerPrefs>): void {
+          store.setState((state) => {
+            // Key-presence merge (absent keys keep stored values), then the
+            // same per-field hydration tolerance (corrupt input degrades per
+            // field — the UI can never write corruption).
+            const merged: Partial<VisualizerPrefs> = {
+              mode: 'mode' in prefs ? prefs.mode : state.visualizer.mode,
+              tintBySpeaker: 'tintBySpeaker' in prefs ? prefs.tintBySpeaker : state.visualizer.tintBySpeaker,
+            }
+            const next = hydrateVisualizer(merged)
+            state.visualizer.mode = next.mode
+            state.visualizer.tintBySpeaker = next.tintBySpeaker
           })
           persist()
         },

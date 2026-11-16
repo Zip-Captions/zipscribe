@@ -154,7 +154,7 @@ export function createFakeAudioContextHarness(): {
 }
 
 /** Drain pending MessagePort deliveries (real node channels are async). */
-export async function flushPorts(times = 3): Promise<void> {
+export async function flushPorts(times = 12): Promise<void> {
   for (let i = 0; i < times; i++) await new Promise<void>((resolve) => setImmediate(resolve))
 }
 
@@ -249,7 +249,13 @@ export function attachFakeWorklet(handle: FakeWorkletNodeHandle, opts: { sampleR
   let endedSent = false
   const totalFrames = Math.round(opts.durationSec * opts.sampleRate)
   const messagesFromClock: unknown[] = []
-  handle.node.port.onmessage = (event: { data: unknown }) => {
+  // Physical MessagePort semantics: clock posts on node.port (port1) → the
+  // scripted worklet receives on PEER (port2); the worklet posts on peer →
+  // the clock receives on node.port. The scripted handler therefore sits on
+  // BOTH ends of the channel — port1 keeps the pinned `node.port.onmessage`
+  // slot (the clock must listen via addEventListener, stacked), and port2
+  // makes clock→worklet messages observable in messagesFromClock.
+  const scriptedWorklet = (event: { data: unknown }): void => {
     const msg = event.data as { t: string; startSec?: number; samples?: Float32Array; value?: number }
     messagesFromClock.push(event.data)
     if (msg.t === 'chunk' && msg.samples !== undefined) {
@@ -264,6 +270,8 @@ export function attachFakeWorklet(handle: FakeWorkletNodeHandle, opts: { sampleR
     }
     if (msg.t === 'rate' && typeof msg.value === 'number') rate = msg.value
   }
+  handle.node.port.onmessage = scriptedWorklet
+  handle.peer.onmessage = scriptedWorklet
   const post = (data: unknown): void => {
     handle.peer.postMessage(data)
   }

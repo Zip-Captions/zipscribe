@@ -102,9 +102,10 @@ describe('CC-107.1: choosePlaybackPath decision table', () => {
 
   test('CC-107.1: the table covers every fixtures/audio/ entry', async () => {
     await choose() // RED gate: module must exist
-    const files = readdirSync(new URL('../../../fixtures/audio/', import.meta.url)).filter((f) => !f.startsWith('.'))
+    // `--perf` click tracks are the CC-107.4 drift rig, not element-path fixtures.
+    const files = readdirSync(new URL('../../../fixtures/audio/', import.meta.url)).filter((f) => !f.startsWith('.') && !f.startsWith('click-track'))
     const covered = new Set(TABLE.map((r) => r.file))
-    for (const file of files) expect(covered, `fixtures/audio/${file} is in the decision table`).toBe(true)
+    for (const file of files) expect(covered.has(file), `fixtures/audio/${file} is in the decision table`).toBe(true)
   })
 
   test('CC-107.1: video assets ALWAYS choose the element clock (decoded video is a seed)', async () => {
