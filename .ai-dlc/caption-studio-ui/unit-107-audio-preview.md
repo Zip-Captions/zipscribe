@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done   # merged (PR #18 → 671a596, 2026-11-17T20:4xZ squash); CI quality green run 44168254251 (35m16s, all 18 steps incl. L4–L5 golden phase CC-107.7 SSIM ≥ 0.98 ubuntu-latest + criteria traceability); reviewers: (flow doctrine [107-ADJ 17] frozen, golden saga [107-ADJ 18–22] closed — root cause scripted-bridge null wipe, shared-fake fix + Liberation pin + rasterizer flags); qualify 11/11 RQ at 1b6327… re-signed c2cd284…; BUILD_VERIFIED: 1858 unit tests + 130 e2e local green; DEVIATION: no builder subagent (orchestrator implemented slices, same gates)
 phase: mvp
 discipline: frontend
 depends_on: [unit-102-editor-core-playback, local-transcribe-engine/unit-04-media-ingest]

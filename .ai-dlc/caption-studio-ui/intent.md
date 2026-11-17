@@ -21,19 +21,32 @@ Maps to Epic 2 (US 2.1–2.2) of the original brief + shortcuts/persistence requ
 ## Completion Criteria
 
 - [ ] **CC-I2.1** E2E (chromium, mocked fast worker): import fixture → transcribe → edit text/split/merge/retime → autosave → reload → state restored byte-equal (golden project JSON)
-- [ ] **CC-I2.2** E2E: media + third-party `vendor.vtt` → import report → QC fixes → shift timing → align (mocked) → autosave → reload byte-equal
+- [x] **CC-I2.2** E2E: media + third-party `vendor.vtt` → import report → QC fixes → shift timing → align (mocked) → autosave → reload byte-equal
 - [ ] **CC-I2.3** E2E audio project: `speech-2spk-2min.m4a` → visualizer renders while playing → transcribe + diarize (mocked) → edit → export dialog offers sidecars only (no burn-in in the DOM) → autosave → reload byte-equal; repeated for one fallback-path file (`fmt-30s.aiff`) with decoded playback
-- [ ] **CC-I2.4** 10 000-block project: transcript scrolls ≥ 55 FPS (rAF frame-drop assertion) and timeline drag input latency < 16 ms p95
-- [ ] **CC-I2.5** 100% of command-registry actions keyboard-reachable per `knowledge/design.md` shortcut table (registry snapshot test) + `⌘/` overlay lists them
-- [ ] **CC-I2.6** Undo/redo ≥ 100 steps across every command type (property test: random command sequences → undo-to-empty)
-- [ ] **CC-I2.7** Playhead ↔ active-word highlight ↔ transcript auto-scroll synced within 33 ms (2 frames) during playback and seeks
-- [ ] **CC-I2.8** axe scan: 0 critical violations on main views; keyboard-only walkthrough test passes (import→export-without-mouse, mocked worker)
-- [ ] **CC-I2.9** All gates incl. `pnpm test:e2e` green
+- [x] **CC-I2.4** 10 000-block project: transcript scrolls ≥ 55 FPS (rAF frame-drop assertion) and timeline drag input latency < 16 ms p95
+- [x] **CC-I2.5** 100% of command-registry actions keyboard-reachable per `knowledge/design.md` shortcut table (registry snapshot test) + `⌘/` overlay lists them
+- [x] **CC-I2.6** Undo/redo ≥ 100 steps across every command type (property test: random command sequences → undo-to-empty)
+- [x] **CC-I2.7** Playhead ↔ active-word highlight ↔ transcript auto-scroll synced within 33 ms (2 frames) during playback and seeks
+- [x] **CC-I2.8** axe scan: 0 critical violations on main views; keyboard-only walkthrough test passes (import→export-without-mouse, mocked worker)
+- [x] **CC-I2.9** All gates incl. `pnpm test:e2e` green
+
+### Completion status (orchestrator, 2026-11-17)
+
+9/12 criteria have passing leading-cited evidence (e2e/intent/caption-studio-ui.spec.ts
++ citation amendments in the proving suites; PR #19, CI green). BLOCKED — single root
+cause [107-ADJ 24]: the streaming transcribe→blocks commit is unimplemented
+(`src/state/jobs.ts` `startTranscribe` posts `placeholderPcm` — "Follow-up: real stream
+plumbing"), so CC-I2.1, CC-I2.3 and CC-I2.11 are skipped-with-reason in the intent
+suite (a Transcript-level commit was built and correctly rejected by the frozen unit-104
+FR-104.6 skeleton contract — reverted). These need a stream-plumbing unit (proposed
+unit-108: PCM stream wiring, frontier-aware commit, job-error StatusBar notice). The
+export-dialog leg of CC-I2.3 additionally waits on styling-and-export/unit-202
+([107-ADJ 23]).
 
 ### Failure cases
-- [ ] **CC-I2.10** Invalid edit payloads (overlapping retime, empty text on last word, unknown speaker) are rejected by reducers with no state change and no history entry
+- [x] **CC-I2.10** Invalid edit payloads (overlapping retime, empty text on last word, unknown speaker) are rejected by reducers with no state change and no history entry
 - [ ] **CC-I2.11** Engine `job:error` mid-transcription leaves committed blocks editable and shows a one-line coded notice (no modal, no data loss)
-- [ ] **CC-I2.12** IndexedDB write failure (quota) surfaces a persistent "not saved" indicator; edits stay in memory and retry on next idle
+- [x] **CC-I2.12** IndexedDB write failure (quota) surfaces a persistent "not saved" indicator; edits stay in memory and retry on next idle
 
 ## Units
 
