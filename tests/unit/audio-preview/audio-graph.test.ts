@@ -18,8 +18,8 @@ function fakeElement(): HTMLMediaElement {
   return { muted: true, volume: 0.5 } as unknown as HTMLMediaElement
 }
 
-describe('CC-107.3: stage audio graph (gain-node authority)', () => {
-  test('CC-107.3: connectElement unmutes the element ONCE and chains source → gain → analyser → destination', async () => {
+describe('stage audio graph (gain-node authority)', () => {
+  test('Risks(gain-authority): connectElement unmutes the element ONCE and chains source → gain → analyser → destination', async () => {
     const mod = await load()
     const harness = createFakeAudioContextHarness()
     const graph = mod.createStageAudioGraph({ audioContextFactory: harness.factory })
@@ -39,7 +39,7 @@ describe('CC-107.3: stage audio graph (gain-node authority)', () => {
     graph.dispose()
   })
 
-  test('CC-107.3: setMuted acts on the GainNode ONLY — the element keeps volume 1 / unmuted', async () => {
+  test('Risks(gain-authority): setMuted acts on the GainNode ONLY — the element keeps volume 1 / unmuted', async () => {
     const mod = await load()
     const harness = createFakeAudioContextHarness()
     const graph = mod.createStageAudioGraph({ audioContextFactory: harness.factory })
@@ -57,7 +57,7 @@ describe('CC-107.3: stage audio graph (gain-node authority)', () => {
     graph.dispose()
   })
 
-  test('CC-107.3: the analyser is configured fftSize 4096 / smoothing 0.75 (FR-107.4)', async () => {
+  test('FR-107.4: the analyser is configured fftSize 4096 / smoothing 0.75 (FR-107.4)', async () => {
     const mod = await load()
     const harness = createFakeAudioContextHarness()
     const graph = mod.createStageAudioGraph({ audioContextFactory: harness.factory })
@@ -87,7 +87,7 @@ describe('CC-107.3: stage audio graph (gain-node authority)', () => {
     expect(graph.contextState()).toBe('closed')
   })
 
-  test('CC-107.3: the decoded tail routes worklet → gain → analyser → destination', async () => {
+  test('Risks(gain-authority): the decoded tail routes worklet → gain → analyser → destination', async () => {
     const mod = await load()
     const harness = createFakeAudioContextHarness()
     const graph = mod.createStageAudioGraph({ audioContextFactory: harness.factory })
@@ -104,7 +104,26 @@ describe('CC-107.3: stage audio graph (gain-node authority)', () => {
     graph.dispose()
   })
 
-  test('CC-107.3: double dispose is safe', async () => {
+  test('Risks(gain-authority): connectDecodedSource disconnects the PRIOR worklet — a re-route never sums two', async () => {
+    const mod = await load()
+    const harness = createFakeAudioContextHarness()
+    const graph = mod.createStageAudioGraph({ audioContextFactory: harness.factory })
+    graph.ensureContext()
+    await flushPorts()
+    const ctx = harness.contexts[0] as unknown as { createWorkletNode(name: string, options: unknown): unknown }
+    const prior = ctx.createWorkletNode('zipscribe-ring', {}) as { kind: string; disconnectCalls?: number }
+    const next = ctx.createWorkletNode('zipscribe-ring', {}) as { kind: string }
+    graph.connectDecodedSource(prior as unknown as AudioNode)
+    await flushPorts()
+    graph.connectDecodedSource(next as unknown as AudioNode)
+    await flushPorts()
+    const links = harness.connections.filter((c) => c.from === 'worklet' && c.to === 'gain')
+    expect(links.length, 'exactly ONE worklet feeds the stage gain after a re-route (double-audio class)').toBe(1)
+    expect(prior.disconnectCalls ?? 0, 'the prior worklet was explicitly disconnected').toBeGreaterThanOrEqual(1)
+    graph.dispose()
+  })
+
+  test('graph lifecycle: double dispose is safe', async () => {
     const mod = await load()
     const harness = createFakeAudioContextHarness()
     const graph = mod.createStageAudioGraph({ audioContextFactory: harness.factory })

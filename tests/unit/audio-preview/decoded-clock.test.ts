@@ -196,10 +196,14 @@ describe('CC-107.2: decoded clock — FR-107.2/FR-107.6 mechanics (doubles)', ()
     const worklet = rig.ensureWorklet()
     rig.worker.pushChunk({ startSec: 0, samples: new Float32Array(18 * SAMPLE_RATE * CHANNELS) })
     await flushPorts()
-    worklet.consume(SAMPLE_RATE) // pe−cf = 17 s ≥ 16 s upper edge
+    // The cancel fires at chunk ARRIVAL (delivered 18 s ≥ 16 s above the
+    // edge with nothing consumed yet) — not on a consume tick.
+    expect(rig.worker.requests.filter((x) => x.t === 'cancel').length, 'exactly one cancel at the upper edge, on arrival').toBe(1)
+    rig.worker.pushChunk({ startSec: 0, samples: new Float32Array(18 * SAMPLE_RATE * CHANNELS) })
     await flushPorts()
-    const cancels = rig.worker.requests.filter((x) => x.t === 'cancel')
-    expect(cancels.length, 'exactly one cancel at the upper edge').toBe(1)
+    expect(rig.worker.requests.filter((x) => x.t === 'cancel').length, 'once per episode: feedActive dropped with the cancel — no per-chunk storm').toBe(1)
+    worklet.consume(SAMPLE_RATE)
+    await flushPorts()
     expect(rig.worker.requests.filter((x) => x.t === 'decode-playback').length, 'no refill while the buffer rides above the lead').toBe(1)
     worklet.consume(16 * SAMPLE_RATE) // drain to the 12 s lead
     await flushPorts()
@@ -220,8 +224,6 @@ describe('CC-107.2: decoded clock — FR-107.2/FR-107.6 mechanics (doubles)', ()
     rig.worker.pushChunk({ startSec: 0, samples: new Float32Array(short) })
     await flushPorts()
     const reqs = rig.worker.requests.filter((r) => r.t === 'decode-playback')
-    reqs[reqs.length - 1]!.port.postMessage({ t: 'end', eof: true })
-    await flushPorts()
     worklet.consume(short) // drain the ring exactly to the delivered tail
     await flushPorts()
     expect(rig.endedFires.n, 'position alone does not end below duration-1 ms').toBe(0)
@@ -231,6 +233,30 @@ describe('CC-107.2: decoded clock — FR-107.2/FR-107.6 mechanics (doubles)', ()
     expect(rig.clock.paused, 'ended is paused').toBe(true)
     expect(rig.clock.currentTime(), 'clamped at or below duration').toBeLessThanOrEqual(DURATION)
     expect(rig.notices, 'no stall notice for an EOF drain').not.toContain('PLAYBACK_STALL')
+  })
+
+  test('CC-107.3: a container decoded >250 ms short of its header duration still ENDS (no stall deadlock)', async () => {
+    // [107-ADJ 18] mediabunny path on truncated/odd edit lists: decodable
+    // frames run 500 ms below the header duration. The 0.25 s EOF guard let
+    // this fall to the stall branch — whose re-feed is fully covered, never
+    // primes again, and leaves the clock frozen at stallPaused with a live
+    // worker. The drained ring at the delivered tail with the whole file
+    // (within 2 s of header) delivered MEANS end.
+    const rig = await makeRig()
+    rig.clock.play()
+    await flushPorts()
+    const worklet = rig.ensureWorklet()
+    const short = Math.round(SAMPLE_RATE * CHANNELS * (DURATION - 0.5))
+    rig.worker.pushChunk({ startSec: 0, samples: new Float32Array(short) })
+    await flushPorts()
+    worklet.consume(short) // drain to the delivered tail — 0.5 s below duration
+    await flushPorts()
+    expect(rig.endedFires.n, 'position alone cannot reach duration-1 ms').toBe(0)
+    worklet.underrun()
+    await flushPorts()
+    expect(rig.endedFires.n, 'EOF underrun latches ended despite the 0.5 s header/decoded mismatch').toBe(1)
+    expect(rig.notices, 'no stall notice, no re-feed deadlock').not.toContain('PLAYBACK_STALL')
+    expect(rig.worker.requests.filter((r) => r.t === 'decode-playback').length, 'no covered re-feed').toBe(1)
   })
 
   test('CC-107.4: a delivered window covering EOF does not re-request (feed-complete)', async () => {
@@ -248,8 +274,6 @@ describe('CC-107.2: decoded clock — FR-107.2/FR-107.6 mechanics (doubles)', ()
     rig.worker.pushChunk({ startSec: 0, samples: new Float32Array(SAMPLE_RATE * CHANNELS * DURATION - 2) })
     await flushPorts()
     const reqs = rig.worker.requests.filter((r) => r.t === 'decode-playback')
-    reqs[reqs.length - 1]!.port.postMessage({ t: 'end', eof: true })
-    await flushPorts()
     worklet.consume(SAMPLE_RATE * 2) // deep inside the lead window
     await flushPorts()
     worklet.consume(SAMPLE_RATE * 8)

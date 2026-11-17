@@ -31,10 +31,10 @@ async function warmDecoded(page: Page): Promise<void> {
   await page.waitForFunction(() => (window as unknown as { __zipVisualizerBridge?: { getClockDiagnostics: () => { paused: boolean } } }).__zipVisualizerBridge!.getClockDiagnostics().paused === true, undefined, { timeout: 5_000 })
 }
 
-test.describe('CC-107.2: decoded clock (chromium, WebCodecs/ffmpeg-decoded formats)', () => {
+test.describe('CC-107.2/CC-107.3: decoded clock (chromium, WebCodecs/ffmpeg-decoded formats)', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:unit')
 
-  test('CC-107.2: the shared clock contract holds for the real decoded clock (AIFF)', async ({ page }) => {
+  test('CC-107.2/CC-107.3: the shared clock contract holds for the real decoded clock (AIFF — plays + contract)', async ({ page }) => {
     test.setTimeout(120_000)
     await openAudioProject(page, AIFF_DECODED)
     await warmDecoded(page)
@@ -65,7 +65,7 @@ test.describe('CC-107.2: decoded clock (chromium, WebCodecs/ffmpeg-decoded forma
     expect(violations, 'MediaClock contract violations').toEqual([])
   })
 
-  test('CC-107.2: the shared clock contract holds for the ffmpeg-path decoded clock (WMA)', async ({ page }) => {
+  test('CC-107.2/CC-107.3: the shared clock contract holds for the ffmpeg-path decoded clock (WMA — plays + contract)', async ({ page }) => {
     test.setTimeout(180_000)
     await openAudioProject(page, WMA_DECODED)
     await warmDecoded(page)
@@ -96,7 +96,7 @@ test.describe('CC-107.2: decoded clock (chromium, WebCodecs/ffmpeg-decoded forma
     expect(violations, 'MediaClock contract violations').toEqual([])
   })
 
-  test('CC-107.2: seek-to-audible ≤ 250 ms — from seek+play to consumption audibly past the target (AIFF)', async ({ page }) => {
+  test('CC-107.3: seek-to-audible ≤ 250 ms — from seek+play to consumption audibly past the target (AIFF)', async ({ page }) => {
     test.setTimeout(90_000)
     await openAudioProject(page, AIFF_DECODED)
     const b = bridge(page)
@@ -129,7 +129,7 @@ test.describe('CC-107.2: decoded clock (chromium, WebCodecs/ffmpeg-decoded forma
     await b.control('pause')
   })
 
-  test('CC-107.2: zero underruns across a full 30 s decoded playback (AIFF)', async ({ page }) => {
+  test('CC-107.3: zero underruns across a full 30 s decoded playback (AIFF)', async ({ page }) => {
     test.setTimeout(120_000)
     await openAudioProject(page, AIFF_DECODED)
     await warmDecoded(page)
@@ -146,7 +146,7 @@ test.describe('CC-107.2: decoded clock (chromium, WebCodecs/ffmpeg-decoded forma
     expect(state.underrunCount, `underruns during 30 s decoded playback (measured ${String(state.underrunCount)})`).toBe(0)
   })
 
-  test('CC-107.3: decoded-path gain authority — setMuted silences the POST-gain analyser, unmute restores it (element untouched)', async ({ page }) => {
+  test('Risks(gain-authority): decoded-path gain authority — setMuted silences the POST-gain analyser, unmute restores it (element untouched)', async ({ page }) => {
     test.setTimeout(90_000)
     await openAudioProject(page, AIFF_DECODED)
     await warmDecoded(page)

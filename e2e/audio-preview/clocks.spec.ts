@@ -48,7 +48,7 @@ test.describe('CC-107.2: element audio clock contract (real element, chromium)',
     expect(violations, 'MediaClock contract violations').toEqual([])
   })
 
-  test('CC-107.3: autoplay-policy probe — bridge-driven play reaches a running AudioContext and live analyser energy', async ({ page }) => {
+  test('FR-107.6: autoplay-policy probe — bridge-driven play reaches a running AudioContext and live analyser energy', async ({ page }) => {
     const b = bridge(page)
     await b.control('seek', 0.5)
     await b.control('play')
@@ -64,7 +64,7 @@ test.describe('CC-107.2: element audio clock contract (real element, chromium)',
     await b.control('pause')
   })
 
-  test('CC-107.3: element-path gain authority — muting is gain-only; the <audio> element stays unmuted at volume 1', async ({ page }) => {
+  test('Risks(gain-authority): element-path gain authority — muting is gain-only; the <audio> element stays unmuted at volume 1', async ({ page }) => {
     const b = bridge(page)
     await b.control('play')
     await page.waitForFunction(() => (window as unknown as { __zipVisualizerBridge?: { getVisualizerState: () => { playing: boolean } } }).__zipVisualizerBridge?.getVisualizerState().playing === true, undefined, { timeout: 5_000 })

@@ -109,4 +109,66 @@ describe('handleMediaRequest: decode-playback routing (unit-107 feed)', () => {
     ch.port2.close()
     channels.pop()?.close()
   })
+
+  test('the 4-sample task-queue yield keeps a MACROTASK cancel visible with bounded post-cancel overrun ([107-ADJ 14])', async () => {
+    // The ffmpeg-cache decode source is a SYNCHRONOUS generator: each
+    // next() settles on a microtask, so a tight for-await loop starves
+    // macrotasks — and in the real worker `cancel` arrives as a port
+    // MESSAGE (macrotask). Without decodeForPlayback's yieldToTaskQueue
+    // every few samples the cancel below cannot run until the whole
+    // 300-sample file has been delivered (deterministic tail hole on the
+    // 600 s drift legs). Discriminating: deleting the yield makes the
+    // setTimeout cancel invisible until EOF — delivered-at-cancel blows
+    // past the bound and the ordering assertion fails.
+    const ch = channel()
+    const sampleRate = 16_000
+    const track: AudioTrackLike = { number: 0, codec: 'pcm_f32', sampleRate, numberOfChannels: 1, canDecode: () => true }
+    let delivered = 0
+    let deliveredAtCancel = -1
+    let cancelFired = false
+    ch.port1.onmessage = (event: { data: unknown }) => {
+      const data = event.data as { startSec?: unknown; samples?: unknown }
+      if (typeof data?.startSec === 'number' && data.samples instanceof Float32Array) delivered += 1
+    }
+    ch.port1.start?.()
+    const source: MediaSourceLike = {
+      getDuration: () => 300,
+      audioTracks: () => [track],
+      samples: async function* (): AsyncGenerator<AudioSampleLike> {
+        for (let index = 0; index < 300; index++) {
+          yield {
+            timestamp: index,
+            sampleRate,
+            numberOfFrames: sampleRate,
+            numberOfChannels: 1,
+            samples: () => [new Float32Array(sampleRate).fill(0.1)],
+            close: () => undefined,
+          }
+          // microtask-only pacing — no macrotask ever yields here
+          await Promise.resolve()
+        }
+      },
+    }
+    const job = handleMediaRequest(
+      { t: 'decode-playback', jobId: 'pb-yield-1', file: file(), fromSec: 0, port: ch.port2 },
+      { postMessage: () => undefined },
+      { open: () => Promise.resolve({ source, path: 'webcodecs', probe: probeWith({ duration: 300 }) }), emit: () => undefined },
+    ) as PlaybackJob
+    await job.path
+    setTimeout(() => {
+      cancelFired = true
+      deliveredAtCancel = delivered
+      handleMediaRequest({ t: 'cancel', jobId: 'pb-yield-1' }, { postMessage: () => undefined }, { open: () => Promise.reject(new Error('unused')), emit: () => undefined })
+    }, 0)
+    await until(() => cancelFired || delivered >= 300, 5_000, 'cancel macrotask to run')
+    expect(cancelFired, 'the macrotask cancel ran WHILE the file was still streaming (yield keeps the task queue reachable)').toBe(true)
+    expect(deliveredAtCancel, 'cancel landed mid-stream, not at EOF').toBeLessThan(300)
+    await job.done // cancel must actually terminate the job
+    const overrun = delivered - deliveredAtCancel
+    expect(overrun, `post-cancel overrun ${String(overrun)} chunks must stay bounded by the 4-sample yield (~0.5 s)`).toBeLessThanOrEqual(10)
+    await job.done
+    ch.port1.close()
+    ch.port2.close()
+    channels.pop()?.close()
+  })
 })

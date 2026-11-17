@@ -62,6 +62,11 @@ Make audio-only projects first-class on the preview stage: play **any** importab
 - **AudioWorklet + MessagePort throughput** on long files → 2 s ring buffer and chunked transfers; underrun notice instead of glitchy audio.
 - **Analyser on `MediaElementAudioSourceNode`** reroutes element audio through the AudioContext — volume/mute controls must act on a `GainNode`, not the element (tested).
 
+## Frozen
+
+- `src/engine/model.ts` + `src/engine/protocol.ts` — verbatim mirrors of `knowledge/architecture.md` (orchestrator amended in PREP f88c2ef before generation; `contract-verbatim.test.ts` enforces).
+- `tests/unit/audio/decode.test.ts`, `src/engine/audio/worker-core@ref.ts` — unit-04 frozen harnesses; not edited (unit-102 precedent).
+
 ## Boundaries
 
 - Decoded playback for *video* the element can't play: seed. Audiogram video export: seed (burn-in doesn't exist for audio projects).

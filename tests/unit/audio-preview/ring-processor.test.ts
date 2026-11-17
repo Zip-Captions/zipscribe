@@ -126,9 +126,9 @@ describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
 
   test('CC-107.4: overlapping double-feed bursts (open + play re-feed) lose no content to the cap', () => {
     // The real clock opens the feed at project load AND again on play
-    // (needsFeed) — two whole-window bursts of the SAME span interleave
-    // with reads. The queue rides exactly at its 9.00 s cap while the ring
-    // drains; place()'s partial-fill remainder (FRONT re-queue) must
+    // (needsFeed) — two whole-span bursts of the SAME span interleave with
+    // reads. The second burst is deduped at enqueue (queueEndFrames,
+    // [107-ADJ 16]); place()'s partial-fill remainder (FRONT re-queue) must
     // survive the cap or a hole opens (observed e2e at [2.152, 3.0) s).
     const RATE = 44_100
     const node = createNode({ sampleRate: RATE, channels: 2 })
@@ -149,6 +149,29 @@ describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
     const last = pumpTo(node, 6 * RATE - 1, 30_000)
     expect(last, 'consumption reaches 6 s through the double burst').toBeGreaterThanOrEqual(6 * RATE - QUANTUM)
     expect(countOf(node, 'underrun'), 'no starvation from cap-rejected remainders').toBe(0)
+  })
+
+  test('CC-107.4: a queue pinned at the 16.5 s cap survives place() partial-fill FRONT re-queue', () => {
+    // [107-ADJ 15/16] the cap gates BACK deliveries only. A whole-file
+    // burst overruns the cap (17 s queued past a gap); the clock's bridging
+    // chunk then partial-fills the drained ring and its remainder is
+    // re-queued at the FRONT. If the cap ever gated FRONT entries the
+    // remainder vanished (e2e lost [2.152, 3.0) s exactly this way) and
+    // consumption would stop at 4 s with a second underrun.
+    const node = createNode()
+    node.post({ t: 'chunk', startSec: 0, samples: ramp(0, 2) }) // ring base [0,2)
+    // 19 × 1 s at 20 s: the queue crosses the 16.5 s cap at [37,38) and
+    // [38,39) is dropped by design (pathological over-delivery).
+    for (let c = 20; c < 39; c++) node.post({ t: 'chunk', startSec: c, samples: ramp(c, 1) })
+    node.post({ t: 'play' })
+    pumpTo(node, 2 * MEDIA_RATE - 1, 2_000) // drain the ring into the gap
+    node.pump(2) // one more block on the empty ring → the stall alert
+    expect(countOf(node, 'underrun'), 'the designed hole at 2 s stalls once').toBe(1)
+    // The clock's stall recovery: re-request from the frozen playhead.
+    node.post({ t: 'chunk', startSec: 2, samples: ramp(2, 18) })
+    const last = pumpTo(node, 30 * MEDIA_RATE - 1, 40_000)
+    expect(last, 'consumption reaches 30 s through the capped queue + FRONT remainder').toBeGreaterThanOrEqual(30 * MEDIA_RATE - QUANTUM)
+    expect(countOf(node, 'underrun'), 'the 2 s stall is the ONLY starvation — the remainder survived the cap').toBe(1)
   })
 
   test('CC-107.2: priming cue at ring/8, sample-accurate consumption, underrun ONCE at exhaustion', () => {
@@ -216,6 +239,12 @@ describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
     node.post({ t: 'play' })
     const last = pumpTo(node, 3 * MEDIA_RATE - 1)
     expect(last, 'contiguous to 3 s after overlap dedupe').toBeGreaterThanOrEqual(3 * MEDIA_RATE - QUANTUM)
+    // Ceiling: with dedupe the file truly ends at 3 s, so the drained ring
+    // goes silent (underrun) and positions stop. Without it the [1,2) re-run
+    // extends content to 4 s and positions keep climbing past 3 s.
+    node.pump(400)
+    const ceiling = (positions(node).slice(-1)[0] ?? 0)
+    expect(ceiling, 'no ink past the true 3 s end').toBeLessThanOrEqual(3 * MEDIA_RATE + QUANTUM)
     // monotonic positions, no re-run of [1,2)
     const ps = positions(node)
     for (let i = 1; i < ps.length; i++) expect(ps[i]! >= ps[i - 1]!, 'positions monotonic').toBe(true)
@@ -236,55 +265,57 @@ describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
   })
 
   test('CC-107.2: rate=2 consumes ~2× (sample-accurate stride)', () => {
-    const node = createNode()
-    node.post({ t: 'chunk', startSec: 0, samples: ramp(0, 2) })
-    node.post({ t: 'rate', value: 2 })
-    node.post({ t: 'play' })
-    const quanta = 1000
-    node.pump(quanta)
-    const ps = positions(node)
-    const last = ps[ps.length - 1] ?? 0
-    // 1000 quanta × (128/48000 s) × rate 2 × media 16000 ≈ 6400 frames… wait:
-    // 1000×128/48000 = 2.667 s wall → 2× = 5.33 s media → but only 2 s fed.
-    expect(last, 'double-rate drains the 2 s buffer')
-      .toBeGreaterThanOrEqual(2 * MEDIA_RATE - QUANTUM)
+    // Discriminating: 1000 quanta drains the 2 s buffer at ANY rate ≳0.75,
+    // so pin the HALVING against a rate-1 control on an identical feed.
+    const drainQuanta = (value: number): number => {
+      const node = createNode()
+      node.post({ t: 'chunk', startSec: 0, samples: ramp(0, 2) })
+      if (value !== 1) node.post({ t: 'rate', value })
+      node.post({ t: 'play' })
+      for (let q = 1; q <= 2_000; q++) {
+        node.pump(1)
+        const ps = positions(node)
+        if ((ps[ps.length - 1] ?? 0) >= 2 * MEDIA_RATE - QUANTUM) return q
+      }
+      return Number.POSITIVE_INFINITY
+    }
+    const at1 = drainQuanta(1)
+    const at2 = drainQuanta(2)
+    expect(at2, 'rate 2 drains in well under the rate-1 quanta').toBeLessThan(at1 * 0.7)
+    expect(at2, 'rate 2 drains the 2 s buffer in ~375 quanta').toBeLessThanOrEqual(420)
   })
 
-  test('CC-107.4: cancel/re-request flow-control simulation — 12 s file consumed whole, holes heal in ≤ 4 blocks', () => {
-    // Mirrors decoded-clock pacing ([107-ADJ 13]): whole-file iterator,
-    // 1 s chunks, 9 s in-flight cancel + IMMEDIATE restart from consumed,
-    // 1.5 s refill trigger. The clock treats a stale (never-primed) consumed
-    // as invalid ([107-ADJ 14]) — mirrored here by feedPositionSeen.
-    const FILE_SECONDS = 12
+  test('CC-107.4: cancel/re-request flow-control simulation — 20 s file consumed whole, holes heal in ≤ 4 blocks', () => {
+    // Mirrors decoded-clock pacing ([107-ADJ 17]): whole-file iterator (NO
+    // worker window), 1 s chunks, CLOCK-side cancel at a 16 s delivered lead
+    // + refill from the playhead at a 12 s lead. The clock treats a stale
+    // (never-primed) consumed as invalid ([107-ADJ 14]) — mirrored here by
+    // feedPositionSeen.
+    const FILE_SECONDS = 20
     const node = createNode()
     let postedEndSec = 0 // seconds of the file handed to the port since last restart
     let feedActive = true
     let consumedSec = 0
     let nextChunkSec = 0
-    // [107-ADJ 15] worker decode-playback window is fromSec+10; the clock's
-    // 9 s cancel is gone — backpressure is the ring's 'dropped' message.
-    let feedWindowStart = 0
-    const feedEndSec = (): number => Math.min(FILE_SECONDS, feedWindowStart + 10)
     const restartFeed = (fromSec: number): void => {
       feedActive = true
-      feedWindowStart = fromSec
       nextChunkSec = fromSec
       postedEndSec = fromSec
       while (postNextChunk()) {
-        /* burst the new window */
+        /* burst the remainder of the whole file */
       }
     }
 
     const postNextChunk = (): boolean => {
-      if (nextChunkSec >= feedEndSec()) return false
-      const dur = Math.min(1, feedEndSec() - nextChunkSec)
+      if (nextChunkSec >= FILE_SECONDS) return false
+      const dur = Math.min(1, FILE_SECONDS - nextChunkSec)
       node.post({ t: 'chunk', startSec: nextChunkSec, samples: ramp(nextChunkSec, dur) })
       nextChunkSec += dur
       postedEndSec = Math.max(postedEndSec, nextChunkSec)
       return true
     }
 
-    // initial whole-file burst window
+    // initial whole-file burst
     restartFeed(0)
     node.post({ t: 'play' })
 
@@ -294,8 +325,7 @@ describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
     let underrunsSeen = 0
     let pausedClock = false
     let primedSeen = 0
-    let droppedSeen = 0
-    for (let quanta = 0; quanta < 6000; quanta++) {
+    for (let quanta = 0; quanta < 40_000; quanta++) {
       const block = node.pump(1)
       if (consumedSec > 0.1 && consumedSec < FILE_SECONDS - 0.05) {
         if (block.every((v) => v === 0)) {
@@ -307,7 +337,7 @@ describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
       if (underrunMsgs > underrunsSeen) {
         underrunsSeen = underrunMsgs
         pausedClock = true // clock freezes the playhead on stall
-        // [107-ADJ 15] the stall carries its own recovery: startFeed cut +
+        // the stall carries its own recovery: startFeed cut +
         // re-request from the frozen time.
         restartFeed(consumedSec)
         feedPositionSeen = false
@@ -322,23 +352,19 @@ describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
         feedPositionSeen = true
         consumedSec = last / MEDIA_RATE
       }
-      // clock rules, in order ([107-ADJ 15]): ring 'dropped' cuts+restarts;
-      // the refill gate resumes an exhausted window.
-      const droppedMsgs = countOf(node, 'dropped')
-      if (droppedMsgs > droppedSeen) {
-        droppedSeen = droppedMsgs
-        if (feedActive && feedPositionSeen && !pausedClock) restartFeed(consumedSec)
-      }
-      if (!feedActive && feedPositionSeen && consumedSec < FILE_SECONDS - 0.75 && postedEndSec - consumedSec < 1.5) {
+      // clock rules, in order ([107-ADJ 17]): the upper-edge cancel at a
+      // 16 s delivered lead, then the refill gate at a 12 s lead.
+      if (feedActive && postedEndSec - consumedSec >= 16) feedActive = false // cancelFeed (once per episode)
+      if (!feedActive && feedPositionSeen && consumedSec < FILE_SECONDS - 0.75 && postedEndSec < FILE_SECONDS - 1 / MEDIA_RATE && postedEndSec - consumedSec < 12) {
         restartFeed(consumedSec)
       }
-      if (nextChunkSec >= feedEndSec() && postedEndSec >= FILE_SECONDS) feedActive = false // iterator exhausted at EOF
       if (consumedSec >= FILE_SECONDS - 0.01) break
       if (process.env.RING_DEBUG && quanta % 200 === 0) console.log('sim q=' + String(quanta) + ' consumed=' + consumedSec.toFixed(3) + ' postedEnd=' + postedEndSec.toFixed(3) + ' feedActive=' + String(feedActive) + ' primed=' + String(countOf(node, 'primed')) + ' underrun=' + String(countOf(node, 'underrun')))
     }
     if (process.env.RING_DEBUG) console.log('sim done consumed=' + consumedSec.toFixed(4) + ' postedEnd=' + postedEndSec.toFixed(4) + ' lastPositions=' + String(positions(node).slice(-4).map((f) => (f / MEDIA_RATE).toFixed(3))))
     expect(consumedSec, 'the whole synthetic file is consumed — no tail starvation').toBeGreaterThanOrEqual(FILE_SECONDS - 0.01)
     expect(silentRunMax, `longest silent run ${String(silentRunMax)} quanta — re-fetch must heal holes in <= 4 blocks`).toBeLessThanOrEqual(4)
+    expect(underrunsSeen, 'the pathological whole-file burst drops its tail at the cap — the stall recovery re-fetches it exactly once ([107-ADJ 16]: the 600 s leg saw the same counted single underrun)').toBeLessThanOrEqual(1)
     if (process.env.RING_DEBUG) console.log('sim underruns=' + String(underrunsSeen))
   })
 })

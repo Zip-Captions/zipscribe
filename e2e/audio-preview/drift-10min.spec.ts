@@ -131,8 +131,11 @@ test.describe('CC-107.4: 10-minute wall-clock drift legs (reference hardware)', 
     expect(r.sampler.energySamples, 'sampler really ran for the full leg').toBeGreaterThan(20_000)
     expect(r.sampler.bursts, `burst count ${String(r.sampler.bursts)} — ≥ 5900 audible bursts required`).toBeGreaterThanOrEqual(5_900)
     expect(r.sampler.maxGapMs, `max inter-burst gap ${String(r.sampler.maxGapMs)} ms — ≤ 150 ms required`).toBeLessThanOrEqual(150)
+    // Silence must not hide in the tail edge: bursts ≥ 5900 alone would
+    // pass with the last ~10 s silent. The final click must be HEARD.
+    expect(r.sampler.lastBurstAtMs ?? -1, 'click train still audible at the tail (last burst ≥ 590 s)').toBeGreaterThanOrEqual(590_000)
     expect(r.maxMirrorGapMs, `max |playhead − clockTime| ${String(r.maxMirrorGapMs)} ms — ≤ 20 ms required`).toBeLessThanOrEqual(20)
-    expect(r.underrunCount, 'element path reports no worklet underruns').toBe(0)
+    expect(r.underrunCount, 'element path reports no worklet underruns (decoded-only counter — constant 0 here by construction)').toBe(0)
   })
 
   test('CC-107.4: decoded clock holds 600 s of wall-clock playback within 20 ms with an intact click train', async ({ page }) => {
@@ -142,6 +145,7 @@ test.describe('CC-107.4: 10-minute wall-clock drift legs (reference hardware)', 
     expect(r.sampler.energySamples, 'sampler really ran for the full leg').toBeGreaterThan(20_000)
     expect(r.sampler.bursts, `burst count ${String(r.sampler.bursts)} — ≥ 5900 audible bursts required`).toBeGreaterThanOrEqual(5_900)
     expect(r.sampler.maxGapMs, `max inter-burst gap ${String(r.sampler.maxGapMs)} ms — ≤ 150 ms required`).toBeLessThanOrEqual(150)
+    expect(r.sampler.lastBurstAtMs ?? -1, 'click train still audible at the tail (last burst ≥ 590 s)').toBeGreaterThanOrEqual(590_000)
     expect(r.maxMirrorGapMs, `max |playhead − clockTime| ${String(r.maxMirrorGapMs)} ms — ≤ 20 ms required`).toBeLessThanOrEqual(20)
     expect(r.underrunCount, `decoded underruns during 10 min (measured ${String(r.underrunCount)})`).toBe(0)
   })

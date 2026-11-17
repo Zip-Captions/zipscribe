@@ -8,7 +8,10 @@
 //   clock → worklet (node.port.postMessage):  { t:'chunk', startSec, samples: Float32Array },
 //                    { t:'flush' }, { t:'rate', value }, { t:'play' }, { t:'pause' }.
 //   worklet → clock (node.port.onmessage):    { t:'position', consumedFrames },
-//                    { t:'underrun' }, { t:'primed' }, { t:'ended' }.
+//                    { t:'underrun' }, { t:'primed' }. { t:'ended' } is a
+//                    LEGACY tolerated message: the real ring never posts it
+//                    (EOF is latched clock-side); only an explicit
+//                    ended() call may inject it.
 //
 // MessagePort pairs are REAL node MessageChannels (async delivery — drain
 // with `flushPorts()`), so the production clock can (and must) use
@@ -22,6 +25,7 @@ export interface FakeConnection {
 export interface FakeAudioNode {
   kind: string
   connections: FakeConnection[]
+  disconnectCalls?: number
   connect(target: unknown): void
   disconnect(): void
 }
@@ -95,10 +99,19 @@ export function createFakeAudioContextHarness(): {
         connections: [],
         connect: (target: unknown) => {
           const to = (target as { kind?: string })?.kind ?? 'external'
-          node.connections.push({ from: kind, to })
-          connections.push({ from: kind, to })
+          const link = { from: kind, to } as FakeConnection
+          node.connections.push(link)
+          connections.push(link)
         },
-        disconnect: () => undefined,
+        disconnect: () => {
+          // Real semantics matter: an inert disconnect hid the MAJOR-1 class
+          // (decoded→decoded re-route leaving two worklets summed into gain).
+          node.disconnectCalls = (node.disconnectCalls ?? 0) + 1
+          for (let i = connections.length - 1; i >= 0; i--) {
+            if (node.connections.includes(connections[i]!)) connections.splice(i, 1)
+          }
+          node.connections.length = 0
+        },
       }
       ctx.nodes.push(node)
       return node as FakeAudioNode & { kind: K }
@@ -227,8 +240,9 @@ export function createFakeDecodeWorker(): {
 /** Scripted worklet: consumes chunks at a commanded pace and reports
  *  ABSOLUTE positions (chunk-anchor + local consumption) — the deterministic
  *  stand-in for the AudioWorkletProcessor. `flush` resets the anchor like
- *  the real ring does on seek; consumption reaching `durationSec` posts
- *  `ended` once. */
+ *  the real ring does on seek. Like the real ring it NEVER posts 'ended'
+ *  automatically (EOF is latched clock-side); ended() injects the legacy
+ *  tolerated message on explicit request. */
 export function attachFakeWorklet(handle: FakeWorkletNodeHandle, opts: { sampleRate: number; channels: number; durationSec: number }): {
   bufferedFrames(): number
   consumedFrames(): number
@@ -246,8 +260,6 @@ export function attachFakeWorklet(handle: FakeWorkletNodeHandle, opts: { sampleR
   let buffered = 0
   let consumed = 0
   let rate = 1
-  let endedSent = false
-  const totalFrames = Math.round(opts.durationSec * opts.sampleRate)
   const messagesFromClock: unknown[] = []
   // Physical MessagePort semantics: clock posts on node.port (port1) → the
   // scripted worklet receives on PEER (port2); the worklet posts on peer →
@@ -266,7 +278,6 @@ export function attachFakeWorklet(handle: FakeWorkletNodeHandle, opts: { sampleR
       anchorFrames = 0
       buffered = 0
       consumed = 0
-      endedSent = false
     }
     if (msg.t === 'rate' && typeof msg.value === 'number') rate = msg.value
   }
@@ -279,10 +290,6 @@ export function attachFakeWorklet(handle: FakeWorkletNodeHandle, opts: { sampleR
     const n = Math.min(frames, buffered - consumed)
     consumed += Math.max(0, n)
     post({ t: 'position', consumedFrames: anchorFrames + consumed })
-    if (!endedSent && anchorFrames + consumed >= totalFrames) {
-      endedSent = true
-      post({ t: 'ended' })
-    }
   }
   return {
     bufferedFrames: () => buffered - consumed,

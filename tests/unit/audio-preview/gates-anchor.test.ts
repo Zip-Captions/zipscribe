@@ -35,7 +35,8 @@ describe('CC-107.10: the quality-gate wiring is in place', () => {
     // budget file it refuses to run without; pin BOTH halves of the wiring.
     const checker = readFileSync(new URL('scripts/check-bundle.mjs', repoRoot), 'utf8')
     expect(checker, 'check-bundle.mjs reads its limit from bundle-budget.json').toContain('bundle-budget.json')
-    expect(checker, 'check-bundle.mjs is wired as scripts/check-bundle.mjs').toBeTruthy()
+    const pkg = JSON.parse(readFileSync(new URL('package.json', repoRoot), 'utf8')) as { scripts: Record<string, string> }
+    expect(pkg.scripts['check-bundle'], 'the check-bundle gate runs scripts/check-bundle.mjs').toContain('scripts/check-bundle.mjs')
     const budget = JSON.parse(readFileSync(new URL('bundle-budget.json', repoRoot), 'utf8')) as { initialJsGzipBytes: number }
     expect(budget.initialJsGzipBytes, '≤ 350 KB gzip (settings.yml / AGENTS.md gate)').toBe(350 * 1024)
   })
@@ -53,7 +54,13 @@ describe('CC-107.10: the quality-gate wiring is in place', () => {
     skip(CHILD, CHILD_REASON)
     const config = readFileSync(new URL('playwright.config.ts', repoRoot), 'utf8')
     expect(config, "a 'drift' playwright project exists (CC-107.4 [RQ] tier)").toMatch(/name:\s*'drift'/)
-    expect(config, 'the default chromium run must not execute the hour-class drift legs').toMatch(/drift-10min/)
+    // The exclusion must be STRUCTURAL, not a mention: the drift project
+    // testMatches only the hour-class spec (single worker), and the default
+    // chromium project testIgnores it — so a config edit that moved the leg
+    // into the per-PR run would fail here, not silently slow CI.
+    expect(config, 'the drift project testMatches ONLY the drift spec').toMatch(/testMatch:\s*\/audio-preview\\\/drift-10min\\\.spec\\\.ts\//)
+    expect(config, 'the drift project runs single-worker (wall-clock legs)').toMatch(/name:\s*'drift'[\s\S]{0,200}workers:\s*1/)
+    expect(config, 'the default chromium run testIgnores the hour-class drift legs').toMatch(/testIgnore:[^\n]*drift-10min\\\.spec\\\.ts/)
     const qualifier = readFileSync(new URL('scripts/qualify.ts', repoRoot), 'utf8')
     expect(qualifier, 'scripts/qualify.ts records CC-107.4 (reference hardware)').toContain('CC-107.4')
     const checker = readFileSync(new URL('scripts/qualification-check.ts', repoRoot), 'utf8')
