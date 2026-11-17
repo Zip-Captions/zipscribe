@@ -205,6 +205,8 @@ describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
     let silentRun = 0
     let silentRunMax = 0
     let underrunsSeen = 0
+    let pausedClock = false
+    let primedSeen = 0
     for (let quanta = 0; quanta < 6000; quanta++) {
       const block = node.pump(1)
       if (consumedSec > 0.1 && consumedSec < FILE_SECONDS - 0.05) {
@@ -216,14 +218,20 @@ describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
       const underrunMsgs = countOf(node, 'underrun')
       if (underrunMsgs > underrunsSeen) {
         underrunsSeen = underrunMsgs
-        feedPositionSeen = false // clock stalls the mirror; live baseline re-arms
+        pausedClock = true // clock freezes the playhead on stall
         feedActive = false // clock invalidates the delivered window [107-ADJ 15]
         postedEndSec = consumedSec
       }
+      if (countOf(node, 'primed') > primedSeen) {
+        primedSeen = countOf(node, 'primed')
+        pausedClock = false // 'primed' resumes the mirror
+      }
       const ps = positions(node)
       const last = ps[ps.length - 1] ?? 0
-      if (last > 0) feedPositionSeen = true
-      consumedSec = last / MEDIA_RATE
+      if (last > 0 && !pausedClock) {
+        feedPositionSeen = true
+        consumedSec = last / MEDIA_RATE
+      }
       // clock rules, in order
       if (feedPositionSeen && postedEndSec - consumedSec > 9) {
         feedActive = false

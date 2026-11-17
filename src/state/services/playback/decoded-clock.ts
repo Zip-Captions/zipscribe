@@ -230,10 +230,16 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
         if (msg.t === 'position') {
           consumedFrames = msg.consumedFrames
         }
-        if (msg.t === 'position' && !paused && !awaitingAnchor) {
-          time = Math.min(duration, msg.consumedFrames / sampleRate)
-          if (msg.consumedFrames / sampleRate >= duration - 1e-6) {
-            fireEnded()
+        if (msg.t === 'position' && (!paused || stallPaused) && !awaitingAnchor) {
+          // [107-ADJ 15] during a HOLE stall the playhead freezes at the
+          // stall position but the refill gate must keep running — it is
+          // the stall's own recovery path (startFeed from the frozen time
+          // re-fetches exactly where the ring starved; 'primed' resumes).
+          if (!paused) {
+            time = Math.min(duration, msg.consumedFrames / sampleRate)
+            if (msg.consumedFrames / sampleRate >= duration - 1e-6) {
+              fireEnded()
+            }
           }
           feedPositionSeen = true
           if (!feedActive && !endedLatch && time < duration - 0.75 && postedEndFrames - consumedFrames < 1.5 * sampleRate) {
