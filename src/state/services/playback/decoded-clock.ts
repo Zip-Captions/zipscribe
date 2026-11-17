@@ -94,6 +94,11 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
   let consumedFrames = 0
   let postedEndFrames = 0
   let feedActive = false
+  // [107-ADJ 14] a fresh feed's `consumedFrames` is STALE until the worklet
+  // posts its first live position (a seek-to-585 before any play measured
+  // the in-flight gap against 0 → bogus cancel + re-request from 0). All
+  // consumed-vs-posted decisions wait for this flag.
+  let feedPositionSeen = false
 
   const cancelFeed = (): void => {
     if (currentJobId !== null) deps.worker.postMessage({ t: 'cancel', jobId: currentJobId })
@@ -106,8 +111,21 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
   const startFeed = async (fromSec: number): Promise<void> => {
     const jobId = `pb_${String(++feedSeq)}`
     currentJobId = jobId
-    needsFeed = false
     feedActive = true
+    // [107-ADJ 14] the feed is meaningless (and chunks would be DROPPED)
+    // before the worklet exists — a seek-then-play sequence started the feed
+    // at 585 s pre-worklet and the clock froze with no underrun (chunks
+    // vanished into a null port). Await the worklet first; failure keeps
+    // needsFeed true so play() retries honestly.
+    try {
+      await ensureWorklet()
+    } catch {
+      feedActive = false
+      return
+    }
+    if (disposed || currentJobId !== jobId) return
+    needsFeed = false
+    feedPositionSeen = false
     postedEndFrames = Math.round(fromSec * sampleRate)
     const channel = new MessageChannel()
     feedPort = channel.port1
@@ -121,7 +139,7 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
       // 600 s drift legs recorded one worker hiccup beyond the old buffer
       // (single-threaded ffmpeg feed + GC); 1.5 s remaining + 9 s in flight
       // tolerates ~10 s of feed stall.
-      if (postedEndFrames - consumedFrames > 9 * sampleRate) {
+      if (feedPositionSeen && postedEndFrames - consumedFrames > 9 * sampleRate) {
         // Bound memory: cut the stream; refill restarts from the consumed
         // position (cancel + re-request is inside the pinned wire).
         // [107-ADJ 13] RESTART NOW, not at the 1.5 s drain: leaving
@@ -148,8 +166,15 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
   // one main-port signal that matters: it stalls the clock honestly
   // (numeric code only — SECURITY-03 never carries file-derived strings).
   deps.worker.onmessage = (event: MessageEvent<unknown>): void => {
-    const msg = event.data as { t?: unknown } | null
+    const msg = event.data as { t?: unknown; jobId?: unknown; error?: { code?: unknown } } | null
     if (msg !== null && msg.t === 'job:error') {
+      // [107-ADJ 14] two honest exclusions: errors for SUPERSEDED jobs (the
+      // pacing/seek cancel+restart churns jobIds) and CANCELLED — the
+      // worker's truthful report of a cancel WE issued (flow control), not
+      // a stall. Anything else on the LIVE job stalls the clock honestly
+      // (numeric code only — SECURITY-03 never carries file-derived strings).
+      if (msg.jobId !== currentJobId) return
+      if (msg.error?.code === 'CANCELLED') return
       paused = true
       deps.onNotice?.('PLAYBACK_STALL')
     }
@@ -210,6 +235,7 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
           if (msg.consumedFrames / sampleRate >= duration - 1e-6) {
             fireEnded()
           }
+          feedPositionSeen = true
           if (!feedActive && !endedLatch && time < duration - 0.75 && postedEndFrames - consumedFrames < 1.5 * sampleRate) {
             void startFeed(time)
           }

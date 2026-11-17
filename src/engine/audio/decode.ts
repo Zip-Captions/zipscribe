@@ -546,10 +546,27 @@ export function decodeForPlayback(request: { jobId: string; file: File; fromSec:
         }
       }
 
+      let sinceYield = 0
       for (;;) {
         if (cancelled) break
         const next = await iteratorSource.next()
         if (next.done) break
+        // [107-ADJ 14] macrotask yield every few samples: the ffmpeg-cache
+        // source is a SYNCHRONOUS generator (each `next()` is a microtask),
+        // so without this the whole-file burst never yields to the worker's
+        // event loop — `cancel` sat unprocessed while the clock dropped
+        // everything past its ring+queue (deterministic tail hole on the
+        // 600 s drift legs). A yield every 4 samples caps the post-cancel
+        // overrun at ~0.5 s, far inside the clock's 9 s window.
+        sinceYield += 1
+        if (sinceYield >= 4) {
+          sinceYield = 0
+          if (cancelled) break
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, 0)
+          })
+          if (cancelled) break
+        }
         const sample = next.value
         const sampleEnd = sample.timestamp + sample.numberOfFrames / sample.sampleRate
         if (sampleEnd <= fromSec) {

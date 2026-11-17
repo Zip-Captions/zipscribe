@@ -83,19 +83,13 @@ class RingProcessor extends AudioWorkletProcessor {
         this.rate = msg.value
       } else if (msg.t === 'play') {
         this.playing = true
-        // A late 'play' after an underrun-refill still needs the primed cue.
-        if (this.primed && this.ringFramesAvailable() > 0) {
-          this.underrunSent = false
-          this.port.postMessage({ t: 'primed' })
-        }
+        // No primed re-post here ([107-ADJ 15]): every re-fill path already
+        // runs through place(), which owns the primed cue; re-posting on
+        // play double-fired it.
       } else if (msg.t === 'pause') {
         this.playing = false
       }
     }
-  }
-
-  private ringFramesAvailable(): number {
-    return this.writeFrame - this.readFrame
   }
 
   private write(startSec: unknown, samples: Float32Array): void {
@@ -208,6 +202,17 @@ class RingProcessor extends AudioWorkletProcessor {
             this.underrunSent = true
             this.primed = false
             this.port.postMessage({ t: 'underrun' })
+          }
+          // [107-ADJ 15] a hole with content QUEUED must not deadlock the
+          // reads: the ring can only place queued frames once reads free
+          // capacity, so at a hole we output silence AND keep the read head
+          // advancing (the queued head is placed as soon as space opens).
+          // Freezing here is what stranded the 600 s drift tail at 593 s.
+          if (this.queue.length > 0) {
+            this.readFrac += stride
+            const holeStep = Math.floor(this.readFrac)
+            this.readFrame += holeStep
+            this.readFrac -= holeStep
           }
           continue
         }
