@@ -18,6 +18,8 @@ import type { ReactNode } from 'react'
 import type { MediaAsset } from '../../engine/model'
 import type { EditorApp } from '../../state/history'
 import type { StageController, StageNoticeCode } from '../../app/stage'
+import type { VisualizerRuntime } from '../../app/visualizer-runtime'
+import { VISUALIZER_CSS_SIZE } from '../../app/visualizer-runtime'
 import { createOverlayLayer, NO_OP_OVERLAY_RENDERER } from '../canvas/overlay'
 import type { OverlayRenderer } from '../canvas/overlay'
 import { TransportBar } from './TransportBar'
@@ -32,6 +34,8 @@ export interface StageMediaProps {
   canvasHostRef: { current: HTMLDivElement | null }
   /** FR-102.6 pluggable renderer (default no-op; Intent 3 supplies the caption renderer). */
   overlayRenderer?: OverlayRenderer
+  /** unit-107 (FR-107.4/CC-107.6): visualizer runtime (audio stage canvas mount). */
+  visualizer?: VisualizerRuntime
 }
 
 const NOTICE_COPY: Record<StageNoticeCode, string> = {
@@ -56,10 +60,11 @@ function mediaTypeOf(asset: MediaAsset): string {
   return `${asset.kind}/${asset.container}`
 }
 
-export function StageMedia({ app, stage, asset, canvasHostRef, overlayRenderer }: StageMediaProps): ReactNode {
+export function StageMedia({ app, stage, asset, canvasHostRef, overlayRenderer, visualizer }: StageMediaProps): ReactNode {
   const mediaUrl = useStageValue(stage, () => stage.getMediaSource())
   const notice = useStageValue(stage, () => stage.getNotice())
   const elementRef = useRef<HTMLVideoElement | HTMLAudioElement | null>(null)
+  const visualizerCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const boxRef = useRef<HTMLDivElement | null>(null)
   const isAudio = asset.kind === 'audio' || asset.width <= 0 || asset.height <= 0
 
@@ -111,6 +116,18 @@ export function StageMedia({ app, stage, asset, canvasHostRef, overlayRenderer }
     // below keeps this effect inert while no source is set).
   }, [mediaUrl, app, asset, canvasHostRef, overlayRenderer, isAudio])
 
+  // unit-107: the visualizer canvas mounts INSIDE the slot (paint order:
+  // below the caption overlay, which lives in the 101 preview-canvas-layer
+  // host). The layer owns aria-hidden/pointer-events styling (frozen
+  // visualizer-layer contract).
+  useEffect(() => {
+    if (!isAudio || visualizer === undefined) return
+    visualizer.mountCanvas(visualizerCanvasRef.current)
+    return () => {
+      visualizer.mountCanvas(null)
+    }
+  }, [isAudio, visualizer, mediaUrl])
+
   if (mediaUrl === null) return null
 
   const sharedProps = {
@@ -137,6 +154,7 @@ export function StageMedia({ app, stage, asset, canvasHostRef, overlayRenderer }
     <div ref={boxRef} className="ws-stage-media" data-testid="stage-media">
       {isAudio ? (
         <div data-testid="stage-visualizer-slot" className="ws-visualizer-slot" aria-hidden="true">
+          <canvas ref={visualizerCanvasRef} data-testid="visualizer-canvas" className="ws-visualizer-canvas" style={{ width: VISUALIZER_CSS_SIZE.width, height: VISUALIZER_CSS_SIZE.height }} />
           <audio data-testid="stage-video" {...sharedProps} />
         </div>
       ) : (

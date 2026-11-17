@@ -92,3 +92,12 @@
   font-family: 'JetBrains Mono', monospace;
   font-variant-numeric: tabular-nums;
 }
+
+/* unit-107 (CC-107.6): the visualizer canvas — fixed 16:9 base box (L4 pixel
+   scan / CC-107.7 goldens pin 640×360 CSS × DPR), decorative + transparent to
+   pointers (the layer re-asserts both; CSS keeps the pre-mount flash clean). */
+.ws-visualizer-canvas {
+  position: relative;
+  pointer-events: none;
+  flex: none;
+}

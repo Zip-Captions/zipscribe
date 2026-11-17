@@ -81,6 +81,7 @@ interface MediaAsset {
   id: string; name: string; kind: 'video' | 'audio';
   container: string; audioCodec: string | null; videoCodec: string | null;
   duration: Seconds; width: number; height: number; fps: number;   // audio-only: width = height = fps = 0
+  sampleRate?: number; channels?: number;                          // audio probe evidence for the preview card (unit-107); absent when the probe lacks them
   fingerprint: MediaFingerprint;
 }
 interface CaptionStyle {
@@ -165,6 +166,7 @@ type ModelEvent =
 type MediaRequest =
   | { t: 'probe'; jobId: string; file: File }
   | { t: 'decode'; jobId: string; file: File; ports: MessagePort[] }      // tee: identical PcmChunks to every port (ASR + diarize)
+  | { t: 'decode-playback'; jobId: string; file: File; fromSec: number; port: MessagePort } // decoded clock feed (unit-107): native-rate interleaved-f32 {startSec,samples} chunks to one port
   | { t: 'cancel'; jobId: string };
 type MediaEvent = JobEvent
   | { t: 'media:probed'; jobId: string; asset: MediaAsset }

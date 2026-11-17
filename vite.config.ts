@@ -103,6 +103,8 @@ const FIXTURE_MIME: Record<string, string> = {
   '.m4a': 'audio/mp4',
   '.aac': 'audio/aac',
   '.wav': 'audio/wav',
+  '.aiff': 'audio/aiff',
+  '.aif': 'audio/aiff',
   '.flac': 'audio/flac',
   '.ogg': 'audio/ogg',
   '.opus': 'audio/opus',

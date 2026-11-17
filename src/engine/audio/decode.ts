@@ -195,6 +195,36 @@ function interleaveForFeed(sample: AudioSampleLike, frameOffset = 0, usable = sa
 
 const macrotask = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0))
 
+// [107-ADJ 15] playback-loop yield: NOT setTimeout — Chromium throttles
+// and clamps timers (observed ~90 ms per yield; 43 yields per 16 s window
+// = 3.9 s of delivery cost per refill, escalating under load; the decoded
+// drift leg's "GC-stall" underruns were timer clamping). A MessageChannel
+// round-trip is a real task-queue turn (cancel flags become visible) with
+// no throttling. A shared resolve slot would deadlock when concurrent
+// playback jobs yield in the same task (open+seek+play start three), so
+// the queue drains one token per post; start() is required in Node and
+// harmless in the worker.
+const yieldChannel = new MessageChannel()
+const yieldQueue: (() => void)[] = []
+yieldChannel.port1.onmessage = () => {
+  yieldQueue.shift()?.()
+}
+yieldChannel.port1.start?.()
+const yieldToTaskQueue = (): Promise<void> =>
+  new Promise<void>((resolve) => {
+    yieldQueue.push(resolve)
+    yieldChannel.port2.postMessage(0)
+  })
+
+/** [107-ADJ 17] flow doctrine: decode-playback streams the WHOLE file on the
+ * feed port — {t:'end'} is RETIRED (it was additive to the pinned wire, never
+ * part of protocol.ts). The CLOCK owns flow: it cancels the job once
+ * delivered−consumed reaches 16 s and re-issues from the playhead at a 12 s
+ * lead, so a live feed never outruns the ring's 16.5 s queue cap by more than
+ * the post-cancel yield overrun (~0.5 s). EOF is clock-side: "delivered to the
+ * header duration AND drained" — the underrun branch of the position handler
+ * latches ended, there is no worker terminal message to wait for. */
+
 // --- decodeAudio -------------------------------------------------------------
 
 export function decodeAudio(request: { jobId: string; file: File; ports: MessagePort[] }, deps: DecodeDeps): DecodeJob {
@@ -514,8 +544,8 @@ export function decodeForPlayback(request: { jobId: string; file: File; fromSec:
       resolvePath(opened.path)
       const iteratorSource = opened.source.samples(track)[Symbol.asyncIterator]()
       iterator = iteratorSource
-      active = 1
       const sourceChannels = track.numberOfChannels
+      active = 1
       const chunkFrames = sampleRate
       const carry: Float32Array[] = []
       let carryTotal = 0
@@ -546,10 +576,25 @@ export function decodeForPlayback(request: { jobId: string; file: File; fromSec:
         }
       }
 
+      let sinceYield = 0
       for (;;) {
         if (cancelled) break
         const next = await iteratorSource.next()
         if (next.done) break
+        // [107-ADJ 14] macrotask yield every few samples: the ffmpeg-cache
+        // source is a SYNCHRONOUS generator (each `next()` is a microtask),
+        // so without this the whole-file burst never yields to the worker's
+        // event loop — `cancel` sat unprocessed while the clock dropped
+        // everything past its ring+queue (deterministic tail hole on the
+        // 600 s drift legs). A yield every 4 samples caps the post-cancel
+        // overrun at ~0.5 s, far inside the clock's 16 s cancel edge.
+        sinceYield += 1
+        if (sinceYield >= 4) {
+          sinceYield = 0
+          if (cancelled) break
+          await yieldToTaskQueue()
+          if (cancelled) break
+        }
         const sample = next.value
         const sampleEnd = sample.timestamp + sample.numberOfFrames / sample.sampleRate
         if (sampleEnd <= fromSec) {
@@ -726,6 +771,14 @@ export function handleMediaRequest(request: MediaRequest, scope: { postMessage(m
   switch (request.t) {
     case 'decode': {
       const job = decodeAudio({ jobId: request.jobId, file: request.file, ports: request.ports }, { ...deps, emit })
+      liveJobs.set(request.jobId, job)
+      return job
+    }
+    case 'decode-playback': {
+      // unit-107 decoded-clock feed: native-rate interleaved-f32
+      // {startSec,samples} chunks streamed to the clock's port (the worker
+      // instance is DEDICATED per clock — probe-worker doctrine).
+      const job = decodeForPlayback({ jobId: request.jobId, file: request.file, fromSec: request.fromSec, port: request.port }, { ...deps, emit })
       liveJobs.set(request.jobId, job)
       return job
     }

@@ -180,13 +180,122 @@ export function parseF32Wav(bytes: Uint8Array): { sampleRate: number; channels: 
  * (and the direct forced-fallback entry): transcode the whole file to
  * 32-bit float PCM WAV in the worker, then stream it back through the frozen
  * `MediaSourceLike` contract. Single-threaded core only (no SharedArrayBuffer
- * → no COOP/COEP, repo policy); the whole decoded buffer is resident for the
- * duration of one open (the long-tail codecs this serves are short-form
- * inputs; the 120-min streaming gate is the mediabunny path).
+ * → no COOP/COEP, repo policy); the whole decoded buffer is resident while
+ * the file stays cached ([107-ADJ 12]: the decoded-clock feed re-opens the
+ * same file per chunk — the buffer is reused, evicted only by another file;
+ * the 120-min streaming gate remains the mediabunny path).
  */
+// [107-ADJ 12] single-entry transcode cache: the decoded-clock feed opens the
+// SAME file once per 6 s chunk request (dedicated worker per clock, no
+// per-open handle to hang state on); re-running the whole-file transcode per
+// chunk starved the worklet at ~5 s on the 600 s click tracks (CC-107.4
+// drift legs). Keyed by file identity; opening a DIFFERENT file evicts and
+// zeroes the previous buffer (audio-derived bytes do not linger).
+interface FfmpegConversion {
+  key: string
+  sampleRate: number
+  channels: number
+  frames: number
+  data: Float32Array
+}
+let conversion: FfmpegConversion | null = null
+
+function cacheKeyOf(file: Blob): string {
+  const asFile = file as File
+  const lastModified = typeof asFile.lastModified === 'number' ? String(asFile.lastModified) : ''
+  return `${asFile.name ?? ''}|${String(file.size)}|${lastModified}`
+}
+
+function buildOpened(entry: FfmpegConversion, reason: FfmpegOpenReason): FfmpegOpenedMedia {
+  const { sampleRate, channels, frames, data } = entry
+  const track: AudioTrackLike = {
+    number: 0,
+    codec: reason.codec.length > 0 ? reason.codec : 'unknown',
+    sampleRate,
+    numberOfChannels: channels,
+    canDecode: () => false,
+  }
+  const streamSamples = (): Iterator<AudioSampleLike> =>
+    (function* (): Generator<AudioSampleLike> {
+      // The buffer is cache-owned across opens — a completed or cancelled
+      // read must NOT zero it (eviction does).
+      for (let offset = 0; offset < frames; offset += SAMPLE_FRAMES) {
+        const end = Math.min(frames, offset + SAMPLE_FRAMES)
+        yield {
+          timestamp: offset / sampleRate,
+          sampleRate,
+          numberOfFrames: end - offset,
+          numberOfChannels: channels,
+          // Single interleaved plane: decode.ts `interleaveForFeed`
+          // treats a lone plane with channels > 1 as interleaved.
+          samples: () => [data.subarray(offset * channels, end * channels)],
+          close: () => undefined,
+        }
+      }
+    })()
+  const source: MediaSourceLike = {
+    getDuration: () => frames / sampleRate,
+    audioTracks: () => [track],
+    // The transcode output is fully materialised, so streaming needs no
+    // awaits: a synchronous generator bridges to the frozen
+    // `AsyncIterable<AudioSampleLike>` contract. `return`/`throw` simply
+    // stop iteration (the buffer survives for the next open of the file).
+    samples: () => ({
+      [Symbol.asyncIterator]: () => {
+        const iterator = streamSamples()
+        return {
+          next: () => Promise.resolve(iterator.next()),
+          return: (value?: AudioSampleLike) => {
+            iterator.return?.(value)
+            return Promise.resolve({ done: true, value })
+          },
+          throw: (reason?: unknown) => {
+            iterator.throw?.(reason)
+            return Promise.resolve({ done: true, value: undefined })
+          },
+        }
+      },
+    }),
+  }
+  const probe: DecodeProbe = {
+    container: reason.container.length > 0 ? reason.container : 'unknown',
+    duration: frames / sampleRate,
+    audioCodec: reason.codec.length > 0 ? reason.codec : 'unknown',
+    videoCodec: null,
+    width: 0,
+    height: 0,
+    fps: 0,
+    trackCount: 1,
+    audioTrackCount: 1,
+    canDecodeAudio: false,
+  }
+  return { source, path: 'ffmpeg', probe }
+}
+
 export async function openFfmpeg(file: Blob, reason: FfmpegOpenReason, options: OpenFfmpegOptions = {}): Promise<FfmpegOpenedMedia> {
+  const key = cacheKeyOf(file)
+  if (conversion !== null && conversion.key === key) return buildOpened(conversion, reason)
+  // [107-ADJ 15] single-flight: a feed cancel/restart (CC-107.4 pacing) can
+  // open the SAME mid-transcode file again; without this a second whole-file
+  // ffmpeg exec runs concurrently (two ~230 MB f32 buffers + MEMFS copies →
+  // a LIVE job:error stalls the decoded drift leg at ~133 s deterministically).
+  if (inflight !== null && inflight.key === key) return buildOpened(await inflight.promise, reason)
+  const promise = runConversion(file, key, options)
+  inflight = { key, promise }
+  let entry: FfmpegConversion
+  try {
+    entry = await promise
+  } finally {
+    if (inflight?.promise === promise) inflight = null
+  }
+  return buildOpened(entry, reason)
+}
+
+let inflight: { key: string; promise: Promise<FfmpegConversion> } | null = null
+
+async function runConversion(file: Blob, key: string, options: OpenFfmpegOptions): Promise<FfmpegConversion> {
   const ffmpeg = await ensureRuntime(options)
-  const bytes = new Uint8Array(await file.arrayBuffer())
+  const bytes = new Uint8Array(await file.arrayBuffer()) // view, not a copy
   sequence += 1
   const input = `zipscribe-in-${sequence}.bin`
   const output = `zipscribe-out-${sequence}.wav`
@@ -204,76 +313,18 @@ export async function openFfmpeg(file: Blob, reason: FfmpegOpenReason, options: 
     const ret = await ffmpeg.exec(['-i', input, '-vn', '-map', '0:a:0', '-f', 'wav', '-c:a', 'pcm_f32le', output])
     if (ret !== 0) throw labelled('UNSUPPORTED_MEDIA')
     const wav = await ffmpeg.readFile(output)
+    // [107-ADJ 15] release BOTH MEMFS files before parsing: the 600 s leg's
+    // transient peak (input + output + readFile copy + parsed buffer ≈ 800 MB
+    // in one worker) was killing the decoded drift leg near 135 s.
+    await cleanup()
     if (!(wav instanceof Uint8Array)) throw labelled('UNSUPPORTED_MEDIA')
     const decoded = parseF32Wav(wav)
     if (!decoded) throw labelled('UNSUPPORTED_MEDIA')
-    const { sampleRate, channels, frames, data } = decoded
-    const track: AudioTrackLike = {
-      number: 0,
-      codec: reason.codec.length > 0 ? reason.codec : 'unknown',
-      sampleRate,
-      numberOfChannels: channels,
-      canDecode: () => false,
-    }
-    const streamSamples = (): Iterator<AudioSampleLike> =>
-      (function* (): Generator<AudioSampleLike> {
-        try {
-          for (let offset = 0; offset < frames; offset += SAMPLE_FRAMES) {
-            const end = Math.min(frames, offset + SAMPLE_FRAMES)
-            yield {
-              timestamp: offset / sampleRate,
-              sampleRate,
-              numberOfFrames: end - offset,
-              numberOfChannels: channels,
-              // Single interleaved plane: decode.ts `interleaveForFeed`
-              // treats a lone plane with channels > 1 as interleaved.
-              samples: () => [data.subarray(offset * channels, end * channels)],
-              close: () => undefined,
-            }
-          }
-        } finally {
-          // Release the decoded buffer on early return (cancel) as well as
-          // normal completion.
-          data.fill(0)
-        }
-      })()
-    const source: MediaSourceLike = {
-      getDuration: () => frames / sampleRate,
-      audioTracks: () => [track],
-      // The transcode output is fully materialised, so streaming needs no
-      // awaits: a synchronous generator bridges to the frozen
-      // `AsyncIterable<AudioSampleLike>` contract. `return`/`throw` forward
-      // to the generator's finally (buffer release on cancel).
-      samples: () => ({
-        [Symbol.asyncIterator]: () => {
-          const iterator = streamSamples()
-          return {
-            next: () => Promise.resolve(iterator.next()),
-            return: (value?: AudioSampleLike) => {
-              iterator.return?.(value)
-              return Promise.resolve({ done: true, value })
-            },
-            throw: (reason?: unknown) => {
-              iterator.throw?.(reason)
-              return Promise.resolve({ done: true, value: undefined })
-            },
-          }
-        },
-      }),
-    }
-    const probe: DecodeProbe = {
-      container: reason.container.length > 0 ? reason.container : 'unknown',
-      duration: frames / sampleRate,
-      audioCodec: reason.codec.length > 0 ? reason.codec : 'unknown',
-      videoCodec: null,
-      width: 0,
-      height: 0,
-      fps: 0,
-      trackCount: 1,
-      audioTrackCount: 1,
-      canDecodeAudio: false,
-    }
-    return { source, path: 'ffmpeg', probe }
+    const previous = conversion
+    const entry: FfmpegConversion = { key, sampleRate: decoded.sampleRate, channels: decoded.channels, frames: decoded.frames, data: decoded.data }
+    conversion = entry
+    if (previous !== null && previous.key !== key) previous.data.fill(0)
+    return entry
   } catch (error) {
     await cleanup()
     const code = (error as { code?: unknown } | null | undefined)?.code

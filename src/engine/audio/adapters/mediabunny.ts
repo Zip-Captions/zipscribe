@@ -10,6 +10,7 @@
 // FFMPEG_CORE_UNAVAILABLE rather than silently pretending.
 
 import { ALL_FORMATS, AudioSampleSink, BlobSource, Input } from 'mediabunny'
+import { sniffContainer } from './probe'
 import type { AudioSampleLike, AudioTrackLike, DecodePath, DecodeProbe, MediaSourceLike } from '../decode'
 
 export interface OpenFallbackReason {
@@ -81,7 +82,17 @@ export async function openMediabunny(file: Blob, options: OpenOptions = {}): Pro
     const name = (error as { name?: unknown } | null | undefined)?.name
     const message = error instanceof Error ? error.message : ''
     if (name === 'UnsupportedInputFormatError' || /unsupported or unrecognizable format/i.test(message)) {
-      throw Object.assign(new Error('UNSUPPORTED_MEDIA'), { code: 'UNSUPPORTED_MEDIA' })
+      // FR-04.5 (universal net): mediabunny is capability EVIDENCE, never the
+      // decision — containers it cannot even parse (the aiff/caf/wma/amr
+      // fallback set) still get the ffmpeg delegate when one is injected.
+      // Without an openFfmpeg the verdict stays UNSUPPORTED_MEDIA.
+      const head = new Uint8Array(await file.slice(0, 32).arrayBuffer())
+      const reason: OpenFallbackReason = { container: sniffContainer(head), codec: 'unknown' }
+      options.onFallback?.(reason)
+      if (!options.openFfmpeg) {
+        throw Object.assign(new Error('UNSUPPORTED_MEDIA'), { code: 'UNSUPPORTED_MEDIA' })
+      }
+      return options.openFfmpeg(file, reason)
     }
     throw error
   }

@@ -30,6 +30,7 @@ import type { EditorApp } from '../../state/history'
 import type { LoadedProject, PersistenceService, RelinkField, SaveState, SaveStateName } from '../../state/services/persistence'
 import type { RafDriver } from '../../state/services/playback/arbitrator'
 import type { StageController } from '../../app/stage'
+import type { VisualizerRuntime } from '../../app/visualizer-runtime'
 import type { OverlayRenderer } from '../canvas/overlay'
 import { registerCommandHandler } from '../commands/registry'
 import { ShortcutsOverlay } from '../commands/ShortcutsOverlay'
@@ -52,6 +53,8 @@ export interface WorkbenchTransport {
   overlayRenderer?: OverlayRenderer
   rafs?: RafDriver
   captionImport?: CaptionImportPort
+  /** unit-107 (FR-107.4): visualizer runtime mount (audio stage). */
+  visualizer?: VisualizerRuntime
 }
 
 export interface WorkbenchProps {
@@ -343,6 +346,16 @@ function MediaTab({ asset }: { asset: MediaAsset | null }): ReactNode {
         <dd>{asset.container}</dd>
         <dt>Audio</dt>
         <dd>{asset.audioCodec ?? '—'}</dd>
+        {asset.kind === 'audio' && (
+          <>
+            {/* unit-107 CC-107.8: audio card swaps resolution for sample
+                rate / channels (probe-honest em-dash when absent). */}
+            <dt>Sample rate</dt>
+            <dd className="ws-tabular">{asset.sampleRate === undefined ? '—' : `${asset.sampleRate} Hz`}</dd>
+            <dt>Channels</dt>
+            <dd className="ws-tabular">{asset.channels === undefined ? '—' : String(asset.channels)}</dd>
+          </>
+        )}
         {asset.kind === 'video' && (
           <>
             <dt>Video</dt>
@@ -751,7 +764,7 @@ export function Workbench(props: WorkbenchProps): ReactNode {
               />
             )}
             {currentProject !== null && transport !== undefined && (
-              <StageMedia app={transport.app} stage={transport.stage} asset={currentProject.asset} canvasHostRef={canvasHostRef} overlayRenderer={transport.overlayRenderer} />
+              <StageMedia app={transport.app} stage={transport.stage} asset={currentProject.asset} canvasHostRef={canvasHostRef} overlayRenderer={transport.overlayRenderer} visualizer={transport.visualizer} />
             )}
           </section>
           {!settingsState.collapsed.timeline && (

@@ -57,6 +57,8 @@ export interface MediaAsset {
   width: number
   height: number
   fps: number // audio-only: width = height = fps = 0
+  sampleRate?: number
+  channels?: number
   fingerprint: MediaFingerprint
 }
 
