@@ -218,7 +218,7 @@ function applyIntent(t: ReturnType<typeof createTestApp>, intent: Intent, counte
 }
 
 describe('CC-102.1 / US-2.1.4: command undo/redo round-trip (property)', () => {
-  test('CC-102.1: ≥ 500 random command sequences (N ≤ 200) undo×N → start, redo×N → final', () => {
+  test('CC-102.1 CC-I2.6: ≥ 500 random command sequences (N ≤ 200) undo×N → start, redo×N → final', () => {
     let counter = 0
     fc.assert(
       fc.property(fc.array(intentArb, { minLength: 1, maxLength: 200 }), (intents: unknown) => {
@@ -259,7 +259,7 @@ describe('FR-102.2: zundo configuration through the history seam', () => {
     return { t, start }
   }
 
-  test('FR-102.2: history depth ≥ 100 — 100 undos from 120 commands do NOT reach the start; 120 do', () => {
+  test('FR-102.2 CC-I2.6: history depth ≥ 100 — 100 undos from 120 commands do NOT reach the start; 120 do', () => {
     const { t, start } = renameRun(120)
     expect(t.app.history.undoCount()).toBe(120)
     t.app.history.undo(100)

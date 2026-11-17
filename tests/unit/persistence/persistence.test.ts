@@ -265,7 +265,7 @@ describe('CC-106.3: racing saves, torn-write injection, migrations', () => {
     expect(serializeProject(row?.project as Project), 'fully-old: byte-equal to the last good save').toBe(goodBytes)
   })
 
-  test('CC-106.3: not-saved is persistent until a LATER successful save clears it (CC-I2.12 backing)', async ({ skip }) => {
+  test('CC-106.3 CC-I2.12: not-saved is persistent until a LATER successful save clears it', async ({ skip }) => {
     const bundle = createFakePersistenceDeps()
     const service = await makeService(bundle)
     const app = makeApp(sampleProjectLocal())

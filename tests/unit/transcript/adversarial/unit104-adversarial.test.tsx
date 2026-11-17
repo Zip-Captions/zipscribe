@@ -103,7 +103,7 @@ describe('AUDIT boundary: speaker-split `>=` cut-time boundary (CONTRACT @104 ro
 })
 
 describe('AUDIT boundary: replace-text (CONTRACT @104 replace-text row; domain invariants 2/3)', () => {
-  test('VIOLATION invariant 3: replace-all with an empty replacement ERASES the last words but the empty block PERSISTS — block-edit-text treats "" as a delete; the UI Replace field is freely emptyable (US-2.1.6)', async ({ skip }) => {
+  test('VIOLATION invariant 3 CC-I2.10: replace-all with an empty replacement ERASES the last words but the empty block PERSISTS — block-edit-text treats "" as a delete; the UI Replace field is freely emptyable (US-2.1.6)', async ({ skip }) => {
     skip(CHILD, CHILD_REASON)
     const t = createTestApp({ project: auditProject([block('blk_1', 0, 1, 'SPK_1', [word('alpha', 0, 1.0)])]) })
     expect(t.app.dispatch('replace-text', { query: 'alpha', replacement: '' })).toBeNull()

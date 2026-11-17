@@ -6,7 +6,7 @@
 // `test.skip` by default (enabled per-unit)".
 import { expect, test } from '@playwright/test'
 
-test('CC-01.5: the workbench shell renders header bar and empty panels', async ({ page }) => {
+test('CC-01.5 CC-I2.9: the workbench shell renders header bar and empty panels', async ({ page }) => {
   await page.goto('/')
   await expect(page.locator('header')).toBeVisible()
   await expect(page.locator('main')).toBeVisible()

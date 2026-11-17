@@ -10,7 +10,7 @@ import type { CaptionBlock } from '@engine/model@102'
 const b: CaptionBlock = block('blk_aw', 1, 6, 'SPK_1', [word('one', 1, 2), word('two', 2.5, 3.5), word('three', 4, 5.5)])
 
 describe('FR-102.4: activeWord boundaries', () => {
-  test('FR-102.4: exactly-on-boundary — word.start is inclusive, word.end is exclusive', () => {
+  test('FR-102.4 CC-I2.7: exactly-on-boundary — word.start is inclusive, word.end is exclusive', () => {
     expect(activeWord(b, 1)?.text, 'block/word start is inclusive').toBe('one')
     expect(activeWord(b, 2), 'word end is exclusive → next-word gap begins').toBeNull()
     expect(activeWord(b, 2.5)?.text).toBe('two')

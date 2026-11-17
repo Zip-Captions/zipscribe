@@ -70,7 +70,7 @@ describe('CC-105.1: the design-table snapshot equals the registry (drift = CI fa
     expect(normalizeKeyCell(trimRow?.key ?? '')).toEqual(['C+ArrowLeft', 'C+ArrowRight', 'Z+ArrowLeft', 'Z+ArrowRight'])
   })
 
-  test('CC-105.1: every design row (minus the exemption list) has its registry bindings with exact id/keys/when', async ({ skip }) => {
+  test('CC-105.1 CC-I2.5: every design row (minus the exemption list) has its registry bindings with exact id/keys/when', async ({ skip }) => {
     skip(CHILD, CHILD_REASON)
     const { getCommandBindings } = await loadRegistry()
     const rows = getCommandBindings()
@@ -142,7 +142,7 @@ describe('CC-105.1: the design-table snapshot equals the registry (drift = CI fa
 })
 
 describe('FR-105.6: the registry exposes palette/docs JSON', () => {
-  test('FR-105.6: getCommandCatalog is JSON-serializable, covers every id, stable order', async ({ skip }) => {
+  test('FR-105.6 CC-I2.5: getCommandCatalog is JSON-serializable, covers every id, stable order', async ({ skip }) => {
     skip(CHILD, CHILD_REASON)
     const { getCommandBindings, getCommandCatalog } = await loadRegistry()
     if (typeof getCommandCatalog !== 'function') throw new Error('unit-105 RED seam: "getCommandCatalog" is not implemented yet')

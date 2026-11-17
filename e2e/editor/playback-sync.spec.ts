@@ -34,7 +34,7 @@ async function openStage(page: import('@playwright/test').Page): Promise<void> {
 test.describe('CC-102.2: real-element playback sync', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:unit')
 
-  test('CC-102.2: after a seek the playhead updates within ≤ 1 frame', async ({ page }) => {
+  test('CC-102.2 CC-I2.7: after a seek the playhead updates within ≤ 1 frame', async ({ page }) => {
     test.setTimeout(90_000)
     await openStage(page)
 
