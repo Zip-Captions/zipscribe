@@ -85,6 +85,13 @@ async function pageSsim(page: import('@playwright/test').Page, pngA: string, png
 
 async function captureScene(page: import('@playwright/test').Page, dpr: number): Promise<string> {
   await openAudioProject(page, TONES, STAGE_BLOCKS as never[])
+  // DETERMINISM ([107-ADJ 19] cont.): the caption overlay text resolves
+  // its font-family through each OS's fontconfig — pinned-container vs CI
+  // ubuntu runner substituted differently (measured: container-vs-CI diff
+  // confined to the slot's caption bands, canvas pixels identical). Pin the
+  // captured scene to the Liberation family (present in the pinned image
+  // AND the ubuntu runner — same Ubuntu release, same apt package).
+  await page.addStyleTag({ content: `*, *::before, *::after { font-family: 'Liberation Sans', sans-serif !important; }` })
   const b = bridge(page)
   const bins = await page.evaluate(() => {
     const sr = 44_100
@@ -111,7 +118,7 @@ async function captureScene(page: import('@playwright/test').Page, dpr: number):
   // Re-seek AFTER the pause (paused clocks land exactly) and settle past
   // any in-flight rAF before the slot screenshot.
   await b.control('seek', 1.5)
-  await page.waitForFunction(() => Math.abs(((window as unknown as { __zipVisualizerBridge?: { getClockDiagnostics: () => { currentTime: number } } }).__zipVisualizerBridge!.getClockDiagnostics().currentTime) - 1.5) < 0.02, undefined, { timeout: 5_000 })
+  await page.waitForFunction(() => Math.abs(((window as unknown as { __zipVisualizerBridge?: { getClockDiagnostics: () => { currentTime: number } } }).__zipVisualizerBridge!.getClockDiagnostics().currentTime) - 1.5) < 0.0005, undefined, { timeout: 5_000 })
   await page.evaluate(() => document.fonts.ready)
   await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => window.setTimeout(resolve, 150)))))
 

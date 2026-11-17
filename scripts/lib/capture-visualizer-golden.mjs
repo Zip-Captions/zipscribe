@@ -103,7 +103,8 @@ async function captureScene(browser, dpr) {
     // loaded runner) and settle past any in-flight rAF. Mirrors
     // e2e/audio-preview/golden.spec.ts captureScene.
     await page.evaluate(() => window.__zipVisualizerBridge.clockControl('seek', 1.5))
-    await page.waitForFunction(() => Math.abs(window.__zipVisualizerBridge.getClockDiagnostics().currentTime - 1.5) < 0.02, undefined, { timeout: 5000 })
+    await page.waitForFunction(() => Math.abs(window.__zipVisualizerBridge.getClockDiagnostics().currentTime - 1.5) < 0.0005, undefined, { timeout: 5000 })
+    await page.addStyleTag({ content: `*, *::before, *::after { font-family: 'Liberation Sans', sans-serif !important; }` })
     await page.evaluate(() => document.fonts.ready)
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => window.setTimeout(resolve, 150)))))
     const state = await page.evaluate(() => window.__zipVisualizerBridge.getVisualizerState())
