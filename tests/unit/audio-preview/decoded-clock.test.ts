@@ -185,6 +185,31 @@ describe('CC-107.2: decoded clock — FR-107.2/FR-107.6 mechanics (doubles)', ()
     rig.clock.dispose()
   })
 
+  test('CC-107.4: an underrun at the delivered tail with feed complete is END, not a stall', async () => {
+    // [107-ADJ 16] the 600 s leg died here: the final 114-frame rest chunk
+    // left the ring drained below the 0.25 s re-prime threshold, 'primed'
+    // never re-fired, and the clock sat stall-paused at 599.997 s.
+    const rig = await makeRig()
+    rig.clock.play()
+    await flushPorts()
+    const worklet = rig.ensureWorklet()
+    const short = SAMPLE_RATE * CHANNELS * DURATION - 114 // decoded tail short of header duration
+    rig.worker.pushChunk({ startSec: 0, samples: new Float32Array(short) })
+    await flushPorts()
+    const reqs = rig.worker.requests.filter((r) => r.t === 'decode-playback')
+    reqs[reqs.length - 1]!.port.postMessage({ t: 'end' })
+    await flushPorts()
+    worklet.consume(short) // drain the ring exactly to the delivered tail
+    await flushPorts()
+    expect(rig.endedFires.n, 'position alone does not end below duration-1 ms').toBe(0)
+    worklet.underrun()
+    await flushPorts()
+    expect(rig.endedFires.n, 'EOF underrun latches ended').toBe(1)
+    expect(rig.clock.paused, 'ended is paused').toBe(true)
+    expect(rig.clock.currentTime(), 'clamped at or below duration').toBeLessThanOrEqual(DURATION)
+    expect(rig.notices, 'no stall notice for an EOF drain').not.toContain('PLAYBACK_STALL')
+  })
+
   test('CC-107.4: a delivered window covering EOF does not re-request (feed-complete)', async () => {
     // [107-ADJ 15] EOF ping-pong: the 12 s refill lead keeps the gate open
     // for the whole final second; without the feed-complete latch the

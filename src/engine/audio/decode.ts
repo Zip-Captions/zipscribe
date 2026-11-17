@@ -549,8 +549,8 @@ export function decodeForPlayback(request: { jobId: string; file: File; fromSec:
       resolvePath(opened.path)
       const iteratorSource = opened.source.samples(track)[Symbol.asyncIterator]()
       iterator = iteratorSource
-      active = 1
       const sourceChannels = track.numberOfChannels
+      active = 1
       const chunkFrames = sampleRate
       const carry: Float32Array[] = []
       let carryTotal = 0

@@ -261,7 +261,20 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
             void startFeed(time)
           }
         } else if (msg.t === 'underrun') {
-          if (!paused && !endedLatch) {
+          if (endedLatch) return
+          // [107-ADJ 16] EOF is not a stall: with the feed-complete latch
+          // set and consumption at the delivered tail (within 100 ms of
+          // it — the drained ring cannot wait for the 0.25 s re-prime
+          // threshold on a file's last frames; the 600 s leg's tail chunk
+          // carried 114 frames), the drained ring MEANS "file finished".
+          // Position-based ended needs consumed >= duration-1 ms, which a
+          // container whose decoded frame count runs short of its header
+          // duration can never reach.
+          if (feedComplete && consumedFrames >= Math.min(postedEndFrames, Math.round(duration * sampleRate)) - Math.round(0.1 * sampleRate)) {
+            fireEnded()
+            return
+          }
+          if (!paused) {
             paused = true
             stallPaused = true
             underruns += 1
@@ -272,8 +285,7 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
             // far ahead while the ring starves — so the refill gate cannot
             // fire in time. The stall carries its own recovery: cut the
             // feed and re-request [stalled time, +window); place() heals
-            // and 'primed' resumes the mirror. At EOF the ended latch
-            // (1 ms frame-accurate) normally fires first.
+            // and 'primed' resumes the mirror.
             cancelFeed()
             void startFeed(time)
           }
