@@ -6,8 +6,9 @@
 // truth = anchorFrames + consumedLocal frames (sample-accurate — the
 // CC-107.4 drift legs read this), reported to the main thread per block.
 // Flow control stays INSIDE the pinned wire: the CLOCK paces postings by
-// position-vs-posted gaps and restarts the worker feed (cancel + re-request)
-// on refill, so this ring only ever holds ~2 s.
+// position-vs-posted gaps — it cancels the worker feed at a 16 s delivered
+// lead and re-issues from the playhead at 12 s (unit-107 doctrine), so the
+// ring + its queue hold at most ~16 s of unique content.
 //
 // 'ended' is latched by the CLOCK (duration is clock-side knowledge), so
 // the processor never posts it. On exhaustion while playing it posts

@@ -216,18 +216,14 @@ const yieldToTaskQueue = (): Promise<void> =>
     yieldChannel.port2.postMessage(0)
   })
 
-/** [107-ADJ 15] decode-playback delivers a bounded window, then posts
- * {t:'end'} on the feed port (the wire's terminal marker, protocol.ts).
- * Without it the worker streamed the WHOLE file: everything past
- * ring+queue cap was dropped at the cap and never re-delivered (the clock
- * believed it delivered), so playback starved every ~11 s — and the old
- * 9 s clock-side cancel was a broken workaround (below the natural full
- * buffer → cancel storm). 12 s > ring 2 s + queue 9 s keeps cap drops to
- * the ≤1 s the clock re-requests on its refill gate. [107-ADJ 15] widened
- * 12→16 s with the ring cap 9→14 s and the gate lead 1.5→3 s: the resident
- * ~230 MB ffmpeg worker's major GC pauses (observed ~6 s near the 560 s
- * mark of the 600 s leg) must fit inside a refill cycle, not starve the
- * ring. */
+/** [107-ADJ 17] flow doctrine: decode-playback streams the WHOLE file on the
+ * feed port — {t:'end'} is RETIRED (it was additive to the pinned wire, never
+ * part of protocol.ts). The CLOCK owns flow: it cancels the job once
+ * delivered−consumed reaches 16 s and re-issues from the playhead at a 12 s
+ * lead, so a live feed never outruns the ring's 16.5 s queue cap by more than
+ * the post-cancel yield overrun (~0.5 s). EOF is clock-side: "delivered to the
+ * header duration AND drained" — the underrun branch of the position handler
+ * latches ended, there is no worker terminal message to wait for. */
 
 // --- decodeAudio -------------------------------------------------------------
 
@@ -591,7 +587,7 @@ export function decodeForPlayback(request: { jobId: string; file: File; fromSec:
         // event loop — `cancel` sat unprocessed while the clock dropped
         // everything past its ring+queue (deterministic tail hole on the
         // 600 s drift legs). A yield every 4 samples caps the post-cancel
-        // overrun at ~0.5 s, far inside the clock's 9 s window.
+        // overrun at ~0.5 s, far inside the clock's 16 s cancel edge.
         sinceYield += 1
         if (sinceYield >= 4) {
           sinceYield = 0

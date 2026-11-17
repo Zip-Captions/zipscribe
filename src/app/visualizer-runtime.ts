@@ -251,6 +251,11 @@ export function createVisualizerRuntime(deps: VisualizerRuntimeDeps): Visualizer
       playbackPath = 'element'
       return
     }
+    // A remount re-decides without a URL change (StrictMode, stage re-attach):
+    // tear the prior decoded clock down first or the old worker + feed port +
+    // connected worklet leak and keep sounding.
+    decodedClock?.dispose()
+    decodedClock = null
     const stage = buildGraph()
     const clock = createDecodedMediaClock({
       getBlob: blobForCurrentSource,

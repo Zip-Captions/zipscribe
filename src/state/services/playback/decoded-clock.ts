@@ -80,6 +80,9 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
     if (endedLatch) return
     endedLatch = true
     paused = true
+    // Quiet the worklet: without 'pause' it keeps emitting per-quantum
+    // position messages into an ended clock until the next seek/play.
+    postToWorklet({ t: 'pause' })
     time = Math.min(time, duration)
     for (const cb of [...endedCallbacks]) cb()
   }
@@ -138,14 +141,13 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
     channel.port1.onmessage = (event: MessageEvent<unknown>) => {
       const data = event.data as { t?: unknown; startSec?: unknown; samples?: unknown } | null
       if (data === null) return
-      // [107-ADJ 15] the worker's window-terminal marker: the delivered
-      // window is complete — arms the refill gate (12 s lead; see the
-      // position-handler branch). There is no clock-side in-flight cancel:
-      // with the ring+queue holding ~16 s, a cache-hit feed legitimately
-      // sits far ahead of consumption, and an arithmetic cancel threshold
-      // below the natural full buffer cancel-stormed at chunk-arrival
-      // rate. The ring's queue cap (14 s) is the memory flow control;
-      // late delivery is caught by the ring's underrun alert.
+      // Feed-port chunk (the pinned wire's only payload: {startSec, samples}).
+      // [107-ADJ 17] there is NO terminal 'end' marker on this port — the
+      // worker streams the whole file and the CLOCK owns flow: the 16 s
+      // upper-edge cancel below, the 12 s refill gate in the position
+      // handler. The ring's queue cap (16.5 s) with enqueue-frontier dedupe
+      // is the pathological-stream memory guard; late delivery is caught by
+      // the ring's underrun alert.
       if (typeof data.startSec !== 'number' || !(data.samples instanceof Float32Array)) return
       postToWorklet({ t: 'chunk', startSec: data.startSec, samples: data.samples })
       awaitingAnchor = false
@@ -273,15 +275,19 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
           }
         } else if (msg.t === 'underrun') {
           if (endedLatch) return
-          // [107-ADJ 16] EOF is not a stall: with the feed-complete latch
-          // set and consumption at the delivered tail (within 100 ms of
-          // it — the drained ring cannot wait for the 0.25 s re-prime
-          // threshold on a file's last frames; the 600 s leg's tail chunk
-          // carried 114 frames), the drained ring MEANS "file finished".
-          // Position-based ended needs consumed >= duration-1 ms, which a
-          // container whose decoded frame count runs short of its header
-          // duration can never reach.
-          if (postedEndFrames >= Math.round(duration * sampleRate) - Math.round(0.25 * sampleRate) && consumedFrames >= Math.min(postedEndFrames, Math.round(duration * sampleRate)) - Math.round(0.1 * sampleRate)) {
+          // [107-ADJ 16/18] EOF is not a stall: with the whole file delivered
+          // (within 2 s of the header duration — [107-ADJ 18]: a container
+          // whose decodable frame count runs >250 ms short of its header,
+          // e.g. truncated/odd edit lists on the mediabunny path, must still
+          // end, not freeze in stallPaused with a live worker) and
+          // consumption at the delivered tail (within 100 ms of it — the
+          // drained ring cannot wait for the 0.25 s re-prime threshold on a
+          // file's last frames; the 600 s leg's tail chunk carried 114
+          // frames), the drained ring MEANS "file finished". Position-based
+          // ended needs consumed >= duration-1 ms, which such containers can
+          // never reach; and the stall branch's re-feed from the playhead is
+          // fully covered, so it would never prime again — deadlock.
+          if (postedEndFrames >= Math.round(duration * sampleRate) - Math.round(2 * sampleRate) && consumedFrames >= Math.min(postedEndFrames, Math.round(duration * sampleRate)) - Math.round(0.1 * sampleRate)) {
             fireEnded()
             return
           }
@@ -308,6 +314,9 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
             void ctx?.resume().catch(() => undefined)
           }
         } else if (msg.t === 'ended') {
+          // Legacy tolerated message: the real ring never posts 'ended'
+          // (duration is clock-side knowledge); only the scripted test
+          // harness may. Keep the branch inert-but-honest.
           fireEnded()
         }
       })

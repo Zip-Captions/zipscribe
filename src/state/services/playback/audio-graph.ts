@@ -84,6 +84,9 @@ export function createStageAudioGraph(deps: StageAudioGraphDeps): StageAudioGrap
       ensureContext()
       elementSource?.disconnect()
       elementSource = null
+      // Mirror connectElement: a decoded→decoded re-route must drop the prior
+      // worklet or two worklets sum into the stage gain (double audio).
+      workletSource?.disconnect()
       workletSource = sourceNode
       sourceNode.connect(gain as GainNode)
       activePath = 'decoded'
