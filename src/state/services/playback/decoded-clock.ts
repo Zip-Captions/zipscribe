@@ -94,6 +94,15 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
   let consumedFrames = 0
   let postedEndFrames = 0
   let feedActive = false
+  // [107-ADJ 15] EOF ping-pong guard: with a 12 s lead the refill gate
+  // stays open through the final second, and a sub-second re-anchoring
+  // startFeed (window already fully delivered) RESETS the worklet read
+  // head to its fromSec — the 600 s leg thrashed 2.4 ms restarts from
+  // 599.16 to 599.24 and stranded the last ~120 frames in a stall. Once
+  // the delivered window covers the file minus refill hysteresis there is
+  // nothing worth re-requesting; stop refilling (the ended latch handles
+  // the finish). Reset per feed start so mid-file 'end's don't latch it.
+  let feedComplete = false
 
   const cancelFeed = (): void => {
     if (currentJobId !== null) deps.worker.postMessage({ t: 'cancel', jobId: currentJobId })
@@ -120,6 +129,7 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
     }
     if (disposed || currentJobId !== jobId) return
     needsFeed = false
+    feedComplete = false
     postedEndFrames = Math.round(fromSec * sampleRate)
     const channel = new MessageChannel()
     feedPort = channel.port1
@@ -136,6 +146,7 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
       // late delivery is caught by the ring's underrun alert.
       if (data.t === 'end') {
         feedActive = false
+        if (postedEndFrames >= Math.round(duration * sampleRate) - 12 * sampleRate) feedComplete = true
         return
       }
       if (typeof data.startSec !== 'number' || !(data.samples instanceof Float32Array)) return
@@ -241,7 +252,7 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
           // refill can add content — without this the gate re-fired every
           // ~0.2 s through the final seconds (postedEnd pinned at EOF <
           // lead below consumed's approach).
-          if (!feedActive && !endedLatch && time < duration - 0.75 && postedEndFrames < Math.round(duration * sampleRate) - 1 && postedEndFrames - consumedFrames < 12 * sampleRate) {
+          if (!feedActive && !feedComplete && !endedLatch && time < duration - 0.75 && postedEndFrames < Math.round(duration * sampleRate) - 1 && postedEndFrames - consumedFrames < 12 * sampleRate) {
             // Cancel the outgoing job first: an uncancelled predecessor
             // streams its shrinking window CONCURRENTLY with the refill
             // (duplicate chunks + late tail delivery — the decoded leg's

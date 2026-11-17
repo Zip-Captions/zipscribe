@@ -185,6 +185,31 @@ describe('CC-107.2: decoded clock — FR-107.2/FR-107.6 mechanics (doubles)', ()
     rig.clock.dispose()
   })
 
+  test('CC-107.4: a delivered window covering EOF does not re-request (feed-complete)', async () => {
+    // [107-ADJ 15] EOF ping-pong: the 12 s refill lead keeps the gate open
+    // for the whole final second; without the feed-complete latch the
+    // clock re-issued decode-playback every ~40 ms at 599.2 s and each
+    // re-anchored startFeed reset the worklet read head, stranding the
+    // tail in a stall.
+    const rig = await makeRig()
+    rig.clock.play()
+    await flushPorts()
+    const worklet = rig.ensureWorklet()
+    // One window delivering the whole file (minus two frames — rounding,
+    // the realistic case the old postedEnd EOF guard let through).
+    rig.worker.pushChunk({ startSec: 0, samples: new Float32Array(SAMPLE_RATE * CHANNELS * DURATION - 2) })
+    await flushPorts()
+    const reqs = rig.worker.requests.filter((r) => r.t === 'decode-playback')
+    reqs[reqs.length - 1]!.port.postMessage({ t: 'end' })
+    await flushPorts()
+    worklet.consume(SAMPLE_RATE * 2) // deep inside the lead window
+    await flushPorts()
+    worklet.consume(SAMPLE_RATE * 8)
+    await flushPorts()
+    expect(rig.endedFires.n, 'ended latches within 1 ms of EOF').toBe(1)
+    expect(rig.worker.requests.filter((r) => r.t === 'decode-playback').length, 'no EOF re-request storm').toBe(1)
+  })
+
   test('CC-107.2: ended → paused, clamped, onEnded fires once', async () => {
     const rig = await makeRig()
     let fired = 0
