@@ -165,7 +165,8 @@ class RingProcessor extends AudioWorkletProcessor {
     // while the ring drained, and the remainder vanished at enqueueAt).
     if (!front) {
       const queuedFrames = this.queue.reduce((n, e) => n + Math.floor(e.samples.length / this.channels), 0)
-      if (queuedFrames >= 9 * this.mediaRate) {
+      if (queuedFrames >= 14 * this.mediaRate) {
+        // [107-ADJ 15] tracks the 16 s window with 3 s gate lead
         // [107-ADJ 15] the cap itself IS the flow control (bounded memory).
         // Deliveries past tail+cap are dropped SILENTLY and harmlessly —
         // they are content the ring already holds or the clock will
@@ -173,7 +174,7 @@ class RingProcessor extends AudioWorkletProcessor {
         // the clock's 9 s arithmetic cancel (sat below the natural full
         // buffer → cancel storm at chunk-arrival rate) and a 'dropped'
         // message (queue≈cap is the steady state → same storm). The clock's
-        // 1.5 s refill gate keeps the queue refilled as reads drain it.
+        // 12 s refill gate keeps the queue refilled as reads drain it.
         return
       }
     }
@@ -229,10 +230,6 @@ class RingProcessor extends AudioWorkletProcessor {
           // with a non-contiguous head that became unbounded silent
           // read-ahead — the 10-min leg lost 1219 clicks to it.)
           const head = this.queue[0]
-          if ((this as { __dbgCount?: number }).__dbgCount === undefined || ((this as { __dbgCount?: number }).__dbgCount ?? 0) < 6) {
-            ;(this as { __dbgCount?: number }).__dbgCount = ((this as { __dbgCount?: number }).__dbgCount ?? 0) + 1
-            this.port.postMessage({ t: 'dbg', line: `exhaust q=${String(this.queue.length)} head=${String(head?.absStart ?? -1)} headFrames=${String(head ? Math.floor(head.samples.length / this.channels) : -1)} tail=${String(this.tailContentFrames)} w=${String(this.writeFrame)} r=${String(this.readFrame)} rf=${String(this.ringFrames)} primed=${String(this.primed)} anchor=${String(this.anchorFrames)}` })
-          }
           if (this.primed && !this.underrunSent && (!head || head.absStart > this.tailContentFrames)) {
             this.underrunSent = true
             this.primed = false

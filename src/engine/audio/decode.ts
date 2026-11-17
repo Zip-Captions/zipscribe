@@ -195,6 +195,27 @@ function interleaveForFeed(sample: AudioSampleLike, frameOffset = 0, usable = sa
 
 const macrotask = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0))
 
+// [107-ADJ 15] playback-loop yield: NOT setTimeout — Chromium throttles
+// and clamps timers (observed ~90 ms per yield; 43 yields per 16 s window
+// = 3.9 s of delivery cost per refill, escalating under load; the decoded
+// drift leg's "GC-stall" underruns were timer clamping). A MessageChannel
+// round-trip is a real task-queue turn (cancel flags become visible) with
+// no throttling. A shared resolve slot would deadlock when concurrent
+// playback jobs yield in the same task (open+seek+play start three), so
+// the queue drains one token per post; start() is required in Node and
+// harmless in the worker.
+const yieldChannel = new MessageChannel()
+const yieldQueue: (() => void)[] = []
+yieldChannel.port1.onmessage = () => {
+  yieldQueue.shift()?.()
+}
+yieldChannel.port1.start?.()
+const yieldToTaskQueue = (): Promise<void> =>
+  new Promise<void>((resolve) => {
+    yieldQueue.push(resolve)
+    yieldChannel.port2.postMessage(0)
+  })
+
 /** [107-ADJ 15] decode-playback delivers a bounded window, then posts
  * {t:'end'} on the feed port (the wire's terminal marker, protocol.ts).
  * Without it the worker streamed the WHOLE file: everything past
@@ -202,8 +223,12 @@ const macrotask = (): Promise<void> => new Promise((resolve) => setTimeout(resol
  * believed it delivered), so playback starved every ~11 s — and the old
  * 9 s clock-side cancel was a broken workaround (below the natural full
  * buffer → cancel storm). 12 s > ring 2 s + queue 9 s keeps cap drops to
- * the ≤1 s the clock re-requests on its 1.5 s refill gate. */
-const PLAYBACK_WINDOW_SEC = 12
+ * the ≤1 s the clock re-requests on its refill gate. [107-ADJ 15] widened
+ * 12→16 s with the ring cap 9→14 s and the gate lead 1.5→3 s: the resident
+ * ~230 MB ffmpeg worker's major GC pauses (observed ~6 s near the 560 s
+ * mark of the 600 s leg) must fit inside a refill cycle, not starve the
+ * ring. */
+const PLAYBACK_WINDOW_SEC = 16
 
 // --- decodeAudio -------------------------------------------------------------
 
@@ -574,9 +599,7 @@ export function decodeForPlayback(request: { jobId: string; file: File; fromSec:
         if (sinceYield >= 4) {
           sinceYield = 0
           if (cancelled) break
-          await new Promise<void>((resolve) => {
-            setTimeout(resolve, 0)
-          })
+          await yieldToTaskQueue()
           if (cancelled) break
         }
         const sample = next.value

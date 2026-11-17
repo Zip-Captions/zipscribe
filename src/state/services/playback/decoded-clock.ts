@@ -127,9 +127,14 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
       const data = event.data as { t?: unknown; startSec?: unknown; samples?: unknown } | null
       if (data === null) return
       // [107-ADJ 15] the worker's window-terminal marker: the delivered
-      // window is complete — arms the 1.5 s refill gate.
+      // window is complete — arms the refill gate (12 s lead; see the
+      // position-handler branch). There is no clock-side in-flight cancel:
+      // with the ring+queue holding ~16 s, a cache-hit feed legitimately
+      // sits far ahead of consumption, and an arithmetic cancel threshold
+      // below the natural full buffer cancel-stormed at chunk-arrival
+      // rate. The ring's queue cap (14 s) is the memory flow control;
+      // late delivery is caught by the ring's underrun alert.
       if (data.t === 'end') {
-        console.info(`107dbg feed end (postedEnd ${(postedEndFrames / sampleRate).toFixed(2)})`)
         feedActive = false
         return
       }
@@ -137,16 +142,6 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
       postToWorklet({ t: 'chunk', startSec: data.startSec, samples: data.samples })
       awaitingAnchor = false
       postedEndFrames = Math.max(postedEndFrames, Math.round(data.startSec * sampleRate) + data.samples.length / deps.channels)
-      // [107-ADJ 13] 9 s in-flight / 1.5 s refill lead (was 6 s / 0.5 s): the
-      // 600 s drift legs recorded one worker hiccup beyond the old buffer
-      // (single-threaded ffmpeg feed + GC); 1.5 s remaining + 9 s in flight
-      // tolerates ~10 s of feed stall.
-      // [107-ADJ 15] the 9 s in-flight cancel is GONE: with the ring+queue
-      // holding ~11 s, a cache-hit feed legitimately sits at ~10 s delivered
-      // and the threshold canceled on every chunk arrival (storm measured
-      // at 0.13 s intervals on the drift leg). Backpressure is now the
-      // ring's 'dropped' message — see the port listener below.
-      
     }
     const blob = await blobPromise()
     if (disposed || currentJobId !== jobId) {
@@ -232,18 +227,28 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
           // re-fetches exactly where the ring starved; 'primed' resumes).
           if (!paused) {
             time = Math.min(duration, msg.consumedFrames / sampleRate)
-            if (msg.consumedFrames / sampleRate >= duration - 1e-6) {
+            // [107-ADJ 15] ended fires within 1 ms of duration, not 1e-6:
+            // the ring's final consumedFrame is the FILE's frame count
+            // (26 459 996 for the 600.000 s nominal click track) — an
+            // epsilon below one frame could never be reached, the latch
+            // stayed closed, and the drained ring posted a spurious
+            // underrun at EOF.
+            if (msg.consumedFrames / sampleRate >= duration - 0.001) {
               fireEnded()
             }
           }
-          if (!feedActive && !endedLatch && time < duration - 0.75 && postedEndFrames - consumedFrames < 1.5 * sampleRate) {
-            console.info(`107dbg gate refill at ${time.toFixed(2)} (postedEnd ${(postedEndFrames / sampleRate).toFixed(2)})`)
+          // [107-ADJ 15] EOF guard: once the whole file is delivered, no
+          // refill can add content — without this the gate re-fired every
+          // ~0.2 s through the final seconds (postedEnd pinned at EOF <
+          // lead below consumed's approach).
+          if (!feedActive && !endedLatch && time < duration - 0.75 && postedEndFrames < Math.round(duration * sampleRate) - 1 && postedEndFrames - consumedFrames < 12 * sampleRate) {
+            // Cancel the outgoing job first: an uncancelled predecessor
+            // streams its shrinking window CONCURRENTLY with the refill
+            // (duplicate chunks + late tail delivery — the decoded leg's
+            // last-67 s underrun cluster). CANCELLED is a filtered error.
+            cancelFeed()
             void startFeed(time)
           }
-        } else if ((msg as { t?: string }).t === 'dbg') {
-          const line = (msg as { line?: unknown }).line
-          if (typeof line === 'string') console.info('107dbg ring ' + line)
-          else console.info('107dbg ring ' + JSON.stringify(msg))
         } else if (msg.t === 'underrun') {
           if (!paused && !endedLatch) {
             paused = true
@@ -251,16 +256,14 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
             underruns += 1
             deps.onNotice?.('PLAYBACK_STALL')
             // [107-ADJ 15] the ring posts underrun for a HOLE too (queued
-            // head not contiguous with the tail): the delivered-window
-            // bookkeeping then lies — postedEnd sits far ahead while the
-            // ring starves at the hole — and while an iterator window is
-            // still in flight feedActive stays true, so neither the 1.5 s
-            // refill gate nor the 9 s cancel gate can ever fire. The stall
-            // must carry its own recovery: cut the feed (startFeed cancels
-            // the job + flushes) and re-request [stalled time, +window);
-            // place() heals the hole and 'primed' resumes the mirror.
-            // Re-requesting at EOF is a no-op — the ended latch already fired.
-            console.info(`107dbg underrun-recover at ${time.toFixed(2)} (postedEnd ${(postedEndFrames / sampleRate).toFixed(2)})`)
+            // head not contiguous with the tail) and for late delivery.
+            // The delivered-window bookkeeping then lies — postedEnd sits
+            // far ahead while the ring starves — so the refill gate cannot
+            // fire in time. The stall carries its own recovery: cut the
+            // feed and re-request [stalled time, +window); place() heals
+            // and 'primed' resumes the mirror. At EOF the ended latch
+            // (1 ms frame-accurate) normally fires first.
+            cancelFeed()
             void startFeed(time)
           }
         } else if (msg.t === 'primed') {
