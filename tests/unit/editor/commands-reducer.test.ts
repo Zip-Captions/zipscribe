@@ -153,7 +153,7 @@ describe('CC-102.3: block command validation', () => {
     expect(reject?.code).toBe('DURATION_NON_POSITIVE')
   })
 
-  test('CC-102.3: retime that would overlap the next block is rejected (invariant 1)', () => {
+  test('CC-102.3 CC-I2.10: retime that would overlap the next block is rejected (invariant 1)', () => {
     const { app } = createTestApp()
     const before = snapshot(app)
     const reject = app.dispatch('block-retime', { blockId: 'blk_a', end: 4 })
@@ -223,7 +223,7 @@ describe('CC-102.3: deletions never move media (invariant 9) and never orphan sp
     expect(projectOf(app).speakers.map((s) => s.id), 'SPK_2 keeps its label for reuse').toContain('SPK_2')
   })
 
-  test('CC-102.3: empty edit-text deletes the block (invariant 3)', () => {
+  test('CC-102.3 CC-I2.10: empty edit-text deletes the block (invariant 3)', () => {
     const { app } = createTestApp()
     const reject = app.dispatch('block-edit-text', { blockId: 'blk_c', text: '' })
     expect(reject).toBeNull()

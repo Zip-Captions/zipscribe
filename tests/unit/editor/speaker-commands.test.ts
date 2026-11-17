@@ -83,7 +83,7 @@ describe('FR-102.1: speaker commands through the engine seam', () => {
     expect(after?.speakerId, 'majority over the updated words').toBe('SPK_1')
   })
 
-  test('CC-102.3 (invariant 4): assign to an unknown speaker is rejected', () => {
+  test('CC-102.3 CC-I2.10 (invariant 4): assign to an unknown speaker is rejected', () => {
     const { app } = createTestApp()
     const reject = app.dispatch('speaker-assign', { blockIds: ['blk_a'], speakerId: 'SPK_404' })
     expect(reject?.code).toBe('DANGLING_SPEAKER_REF')

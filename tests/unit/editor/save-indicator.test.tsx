@@ -87,7 +87,7 @@ describe('CC-106.1 (L2): the save-state indicator in the status bar', () => {
     expect(indicatorText()).toBe('not saved')
   })
 
-  test('CC-106.1 (CC-I2.12 backing): `not saved` persists through re-dirty/re-saving until a later save succeeds', async () => {
+  test('CC-106.1 CC-I2.12: `not saved` persists through re-dirty/re-saving until a later save succeeds', async () => {
     redaction = createRedactionSpy()
     const { source, set } = makeSource({ state: 'idle', lastSavedAt: null, errorCode: null })
     await mount(source)

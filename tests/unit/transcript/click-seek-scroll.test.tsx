@@ -67,7 +67,7 @@ describe('CC-104.2 (L2): click-word seek · follow-scroll · scroll-intent & edi
     }
   })
 
-  test('CC-104.2 (positive control): seek to an off-screen row drives the follow-scroll', async ({ skip }) => {
+  test('CC-104.2 CC-I2.7 (positive control): seek to an off-screen row drives the follow-scroll', async ({ skip }) => {
     skip(CHILD, CHILD_REASON)
     currentDom = installDomStubs()
     const t = createTestApp({ project: transcriptProject(bulkBlocks(200)) })

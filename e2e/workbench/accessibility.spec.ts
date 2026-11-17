@@ -16,7 +16,7 @@ async function seededShell(page: import('@playwright/test').Page): Promise<void>
 test.describe('CC-101.5: axe clean + keyboard-only region focus', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:unit')
 
-  test('CC-101.5: axe reports 0 critical/serious violations on the shell', async ({ page }) => {
+  test('CC-101.5 CC-I2.8: axe reports 0 critical/serious violations on the shell', async ({ page }) => {
     test.setTimeout(120_000)
     // DYNAMIC import: `@axe-core/playwright` is an approved devDep not yet
     // installed — a static import would fail SPEC COLLECTION (even for the
@@ -31,7 +31,7 @@ test.describe('CC-101.5: axe clean + keyboard-only region focus', () => {
     expect(blocking.map((violation) => `${violation.id}: ${violation.description}`), 'intent exit gate pre-figured: 0 critical/serious on shell views').toEqual([])
   })
 
-  test('CC-101.5: Alt+1/2/3 focus the regions keyboard-only on the built app', async ({ page }) => {
+  test('CC-101.5 CC-I2.8: Alt+1/2/3 focus the regions keyboard-only on the built app', async ({ page }) => {
     test.setTimeout(90_000)
     await seededShell(page)
     const activeRegion = () => page.evaluate(() => (document.activeElement instanceof Element ? document.activeElement.getAttribute('data-region') : null))

@@ -150,7 +150,7 @@ describe('CC-105.4: the ⌘/ overlay — filter, grouping, glyphs, coverage', ()
     win.unmount()
   })
 
-  test('CC-105.4: COUNT assertion — one row per registered command id; every row shows its label', async ({ skip }) => {
+  test('CC-105.4 CC-I2.5: COUNT assertion — one row per registered command id; every row shows its label', async ({ skip }) => {
     skip(CHILD, CHILD_REASON)
     const ShortcutsOverlay = await loadOverlay()
     const { getCommandBindings } = await loadRegistry()

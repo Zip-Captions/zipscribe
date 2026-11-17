@@ -20,7 +20,7 @@ interface EditorBridge {
 test.describe('CC-104.6: axe 0 critical on a populated transcript · full keyboard reachability', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:unit')
 
-  test('CC-104.6: axe critical == 0, rows reachable by Tab, visible focus ring, canary never in console', async ({ page }) => {
+  test('CC-104.6 CC-I2.8: axe critical == 0, rows reachable by Tab, visible focus ring, canary never in console', async ({ page }) => {
     test.setTimeout(90_000)
     const consoleTexts: string[] = []
     page.on('console', (msg) => consoleTexts.push(msg.text()))
