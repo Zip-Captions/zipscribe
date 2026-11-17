@@ -94,21 +94,24 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
   let consumedFrames = 0
   let postedEndFrames = 0
   let feedActive = false
-  // [107-ADJ 15] EOF ping-pong guard: with a 12 s lead the refill gate
-  // stays open through the final second, and a sub-second re-anchoring
-  // startFeed (window already fully delivered) RESETS the worklet read
-  // head to its fromSec — the 600 s leg thrashed 2.4 ms restarts from
-  // 599.16 to 599.24 and stranded the last ~120 frames in a stall. Once
-  // the delivered window covers the file minus refill hysteresis there is
-  // nothing worth re-requesting; stop refilling (the ended latch handles
-  // the finish). Reset per feed start so mid-file 'end's don't latch it.
-  let feedComplete = false
+  // [107-ADJ 17] flow doctrine: the worker streams the WHOLE file (unit-04
+  // CC-04.6 contract); the CLOCK owns the buffer. Once delivered−consumed
+  // reaches FEED_WINDOW_FRAMES the clock cancels the job (feedActive drops
+  // immediately, so the policy never re-fires per chunk — the pre-15 cancel
+  // storm fired below the natural buffer with the job still active). The
+  // refill gate re-issues at FEED_LEAD_FRAMES. EOF is "delivered to the
+  // header duration AND drained": no 'end' marker exists (the job is
+  // cancelled mid-stream long before it), so the EOF-underrun branch keys
+  // on postedEnd reaching the duration instead of a feed-complete latch.
 
   const cancelFeed = (): void => {
     if (currentJobId !== null) deps.worker.postMessage({ t: 'cancel', jobId: currentJobId })
     currentJobId = null
     feedPort?.close()
     feedPort = null
+    // [107-ADJ 17] the cancel IS the feed's end — feedActive drops with it
+    // (the 16 s cancel policy must not re-fire per in-flight chunk).
+    feedActive = false
     needsFeed = true
   }
 
@@ -129,7 +132,6 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
     }
     if (disposed || currentJobId !== jobId) return
     needsFeed = false
-    feedComplete = false
     postedEndFrames = Math.round(fromSec * sampleRate)
     const channel = new MessageChannel()
     feedPort = channel.port1
@@ -144,18 +146,18 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
       // below the natural full buffer cancel-stormed at chunk-arrival
       // rate. The ring's queue cap (14 s) is the memory flow control;
       // late delivery is caught by the ring's underrun alert.
-      if (data.t === 'end') {
-        feedActive = false
-        // [107-ADJ 16] latch only on iterator exhaustion AND a delivered
-        // tail at (nearly) the header duration — a window break is just a
-        // boundary; the ring may still need the rest of the file.
-        if ((data as { eof?: unknown }).eof === true && postedEndFrames >= Math.round(duration * sampleRate) - Math.round(0.25 * sampleRate)) feedComplete = true
-        return
-      }
       if (typeof data.startSec !== 'number' || !(data.samples instanceof Float32Array)) return
       postToWorklet({ t: 'chunk', startSec: data.startSec, samples: data.samples })
       awaitingAnchor = false
       postedEndFrames = Math.max(postedEndFrames, Math.round(data.startSec * sampleRate) + data.samples.length / deps.channels)
+      // [107-ADJ 17] upper edge of the buffer hysteresis: cancel the feed
+      // once ~16 s are delivered ahead. feedActive drops with the cancel,
+      // so this is once per episode; the post-cancel overrun is bounded by
+      // the worker's 4-sample yields (~0.5 s). The ring's queue cap (16.5 s)
+      // with enqueue-frontier dedupe stays the pathological-stream guard.
+      if (feedActive && postedEndFrames - consumedFrames >= Math.round(16 * sampleRate)) {
+        cancelFeed()
+      }
     }
     const blob = await blobPromise()
     if (disposed || currentJobId !== jobId) {
@@ -255,7 +257,7 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
           // refill can add content — without this the gate re-fired every
           // ~0.2 s through the final seconds (postedEnd pinned at EOF <
           // lead below consumed's approach).
-          if (!feedActive && !feedComplete && !endedLatch && time < duration - 0.75 && postedEndFrames < Math.round(duration * sampleRate) - 1 && postedEndFrames - consumedFrames < 12 * sampleRate) {
+          if (!feedActive && !endedLatch && time < duration - 0.75 && postedEndFrames < Math.round(duration * sampleRate) - 1 && postedEndFrames - consumedFrames < 12 * sampleRate) {
             // Cancel the outgoing job first: an uncancelled predecessor
             // streams its shrinking window CONCURRENTLY with the refill
             // (duplicate chunks + late tail delivery — the decoded leg's
@@ -279,7 +281,7 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
           // Position-based ended needs consumed >= duration-1 ms, which a
           // container whose decoded frame count runs short of its header
           // duration can never reach.
-          if (feedComplete && consumedFrames >= Math.min(postedEndFrames, Math.round(duration * sampleRate)) - Math.round(0.1 * sampleRate)) {
+          if (postedEndFrames >= Math.round(duration * sampleRate) - Math.round(0.25 * sampleRate) && consumedFrames >= Math.min(postedEndFrames, Math.round(duration * sampleRate)) - Math.round(0.1 * sampleRate)) {
             fireEnded()
             return
           }

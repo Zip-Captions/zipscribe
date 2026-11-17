@@ -228,7 +228,6 @@ const yieldToTaskQueue = (): Promise<void> =>
  * ~230 MB ffmpeg worker's major GC pauses (observed ~6 s near the 560 s
  * mark of the 600 s leg) must fit inside a refill cycle, not starve the
  * ring. */
-const PLAYBACK_WINDOW_SEC = 16
 
 // --- decodeAudio -------------------------------------------------------------
 
@@ -582,16 +581,10 @@ export function decodeForPlayback(request: { jobId: string; file: File; fromSec:
       }
 
       let sinceYield = 0
-      let iteratorEof = false
-      const windowEndFrame = Math.round((fromSec + PLAYBACK_WINDOW_SEC) * sampleRate)
       for (;;) {
         if (cancelled) break
-        if (absoluteFrame >= windowEndFrame) break // [107-ADJ 15] bounded window
         const next = await iteratorSource.next()
-        if (next.done) {
-          iteratorEof = true
-          break
-        }
+        if (next.done) break
         // [107-ADJ 14] macrotask yield every few samples: the ffmpeg-cache
         // source is a SYNCHRONOUS generator (each `next()` is a microtask),
         // so without this the whole-file burst never yields to the worker's
@@ -649,12 +642,6 @@ export function decodeForPlayback(request: { jobId: string; file: File; fromSec:
         const copy = rest.slice()
         port.postMessage({ startSec: absoluteFrame / sampleRate, samples: copy }, [copy.buffer as Transferable])
       }
-      // [107-ADJ 16] 'end' carries WHY: iterator exhaustion (eof) vs the
-      // bounded-window break. The clock's feed-complete latch — and its
-      // EOF-underrun-is-END semantics — must only trust iterator truth; a
-      // window boundary sitting near the header duration latched EOF early
-      // (588.2 s death) when the reason was inferred from arithmetic.
-      if (!cancelled) port.postMessage({ t: 'end', eof: iteratorEof }) // [107-ADJ 15] window terminal marker
       if (cancelled) deps.emit({ t: 'job:error', jobId, error: { code: 'CANCELLED', retryable: true } })
       else deps.emit({ t: 'job:done', jobId })
     } catch (error) {

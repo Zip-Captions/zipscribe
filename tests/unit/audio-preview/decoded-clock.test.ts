@@ -26,7 +26,7 @@ const CHANNELS = 1
 const DURATION = 10
 const FRAME_MS = 16
 
-async function makeRig(): Promise<{
+async function makeRig(rigDuration = DURATION): Promise<{
   clock: DecodedMediaClock
   harness: ReturnType<typeof createFakeAudioContextHarness>
   worker: ReturnType<typeof createFakeDecodeWorker>
@@ -46,7 +46,7 @@ async function makeRig(): Promise<{
     worker: worker.worker,
     sampleRate: SAMPLE_RATE,
     channels: CHANNELS,
-    duration: DURATION,
+    duration: rigDuration,
     audioContextFactory: harness.factory,
     workletUrl: '/assets/ring-processor.js',
     onNotice: (code) => {
@@ -185,6 +185,29 @@ describe('CC-107.2: decoded clock — FR-107.2/FR-107.6 mechanics (doubles)', ()
     rig.clock.dispose()
   })
 
+  test('CC-107.4: the clock cancels the feed once ~16 s are delivered ahead', async () => {
+    // [107-ADJ 17] the worker streams whole files (unit-04 CC-04.6); the
+    // buffer bound is the CLOCK's job. delivered−consumed crossing 16 s
+    // cancels the job exactly once (feedActive drops with the cancel — the
+    // pre-15 policy re-fired per chunk below the natural buffer: storm).
+    const rig = await makeRig(40)
+    rig.clock.play()
+    await flushPorts()
+    const worklet = rig.ensureWorklet()
+    rig.worker.pushChunk({ startSec: 0, samples: new Float32Array(18 * SAMPLE_RATE * CHANNELS) })
+    await flushPorts()
+    worklet.consume(SAMPLE_RATE) // pe−cf = 17 s ≥ 16 s upper edge
+    await flushPorts()
+    const cancels = rig.worker.requests.filter((x) => x.t === 'cancel')
+    expect(cancels.length, 'exactly one cancel at the upper edge').toBe(1)
+    expect(rig.worker.requests.filter((x) => x.t === 'decode-playback').length, 'no refill while the buffer rides above the lead').toBe(1)
+    worklet.consume(16 * SAMPLE_RATE) // drain to the 12 s lead
+    await flushPorts()
+    const reqs = rig.worker.requests.filter((x) => x.t === 'decode-playback')
+    expect(reqs.length, 'gate re-issues at the lead').toBe(2)
+    expect(reqs[1]!.fromSec, 'refill re-requests from the playhead (bounded window; the ring dedupes the overlap)').toBeCloseTo(17, 0)
+  })
+
   test('CC-107.4: an underrun at the delivered tail with feed complete is END, not a stall', async () => {
     // [107-ADJ 16] the 600 s leg died here: the final 114-frame rest chunk
     // left the ring drained below the 0.25 s re-prime threshold, 'primed'
@@ -208,26 +231,6 @@ describe('CC-107.2: decoded clock — FR-107.2/FR-107.6 mechanics (doubles)', ()
     expect(rig.clock.paused, 'ended is paused').toBe(true)
     expect(rig.clock.currentTime(), 'clamped at or below duration').toBeLessThanOrEqual(DURATION)
     expect(rig.notices, 'no stall notice for an EOF drain').not.toContain('PLAYBACK_STALL')
-  })
-
-  test('CC-107.4: refill extends from the delivered end, not the playhead', async () => {
-    // [107-ADJ 16] windows re-requested from `time` duplicated the whole
-    // lead of already-queued content; the inflated queue crossed its cap
-    // and the (silent) drop ate the file's unique tail near EOF.
-    const rig = await makeRig()
-    rig.clock.play()
-    await flushPorts()
-    const worklet = rig.ensureWorklet()
-    rig.worker.pushChunk({ startSec: 0, samples: new Float32Array(2 * SAMPLE_RATE * CHANNELS) })
-    await flushPorts()
-    const r0 = rig.worker.requests.filter((r) => r.t === 'decode-playback')
-    r0[r0.length - 1]!.port.postMessage({ t: 'end', eof: false })
-    await flushPorts()
-    worklet.consume(SAMPLE_RATE) // 1 s: deep inside the lead — gate fires
-    await flushPorts()
-    const reqs = rig.worker.requests.filter((r) => r.t === 'decode-playback')
-    expect(reqs.length, 'gate re-requests').toBeGreaterThanOrEqual(2)
-    expect(reqs[1]!.fromSec, 'bounded from-time window (extending from pe stacks windows)').toBeCloseTo(1, 1)
   })
 
   test('CC-107.4: a delivered window covering EOF does not re-request (feed-complete)', async () => {
