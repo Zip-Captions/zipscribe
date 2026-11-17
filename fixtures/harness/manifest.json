@@ -1359,7 +1359,7 @@
       "expectedPath": null
     },
     "golden/visualizer/spectrum-overlay-dpr1.png": {
-      "sha256": "cd8b331202ea9cc3316654608c83aeb47efef840e3310baeebe8454bf23fbd50",
+      "sha256": "4befdc9c8c24a04a1330ec5c914c2251a86923f5e1d4be0bf59de9837f0c7163",
       "duration": null,
       "kind": "golden",
       "language": null,
@@ -1369,7 +1369,7 @@
       "license": "CC0-1.0 (visualizer goldens rendered by scripts/make-visualizer-goldens.ts in the pinned engine — unit-107 CC-107.7)"
     },
     "golden/visualizer/spectrum-overlay-dpr2.png": {
-      "sha256": "8f5a1aa079ea78a92d2ee308ebe5951c2e26cbb506a3e26567f68853c3f28bb7",
+      "sha256": "83f76532c607f1e2621a5572743ecf309f98e00d25a1d0caa25c1d48ef282620",
       "duration": null,
       "kind": "golden",
       "language": null,
