@@ -210,6 +210,26 @@ describe('CC-107.2: decoded clock — FR-107.2/FR-107.6 mechanics (doubles)', ()
     expect(rig.notices, 'no stall notice for an EOF drain').not.toContain('PLAYBACK_STALL')
   })
 
+  test('CC-107.4: refill extends from the delivered end, not the playhead', async () => {
+    // [107-ADJ 16] windows re-requested from `time` duplicated the whole
+    // lead of already-queued content; the inflated queue crossed its cap
+    // and the (silent) drop ate the file's unique tail near EOF.
+    const rig = await makeRig()
+    rig.clock.play()
+    await flushPorts()
+    const worklet = rig.ensureWorklet()
+    rig.worker.pushChunk({ startSec: 0, samples: new Float32Array(2 * SAMPLE_RATE * CHANNELS) })
+    await flushPorts()
+    const r0 = rig.worker.requests.filter((r) => r.t === 'decode-playback')
+    r0[r0.length - 1]!.port.postMessage({ t: 'end', eof: false })
+    await flushPorts()
+    worklet.consume(SAMPLE_RATE) // 1 s: deep inside the lead — gate fires
+    await flushPorts()
+    const reqs = rig.worker.requests.filter((r) => r.t === 'decode-playback')
+    expect(reqs.length, 'gate re-requests').toBeGreaterThanOrEqual(2)
+    expect(reqs[1]!.fromSec, 'extends from the delivered end (2 s), not the playhead (1 s)').toBeCloseTo(2, 1)
+  })
+
   test('CC-107.4: a delivered window covering EOF does not re-request (feed-complete)', async () => {
     // [107-ADJ 15] EOF ping-pong: the 12 s refill lead keeps the gate open
     // for the whole final second; without the feed-complete latch the

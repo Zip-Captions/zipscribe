@@ -261,7 +261,14 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
             // (duplicate chunks + late tail delivery — the decoded leg's
             // last-67 s underrun cluster). CANCELLED is a filtered error.
             cancelFeed()
-            void startFeed(time)
+            // [107-ADJ 16] extend from the DELIVERED end, never the
+            // playhead: a window re-requested from time duplicates ~lead
+            // seconds of already-queued content (observed q≈17 s with a
+            // 16 s window), inflating the queue past its cap — and the cap
+            // then drops the UNIQUE tail (the 600 s leg's 590.4 s drain).
+            // Place-level dedupe cannot save the queue: duplicate entries
+            // sit beyond the ring tail where nothing is placed yet.
+            void startFeed(Math.max(time, postedEndFrames / sampleRate))
           }
         } else if (msg.t === 'underrun') {
           if (endedLatch) return
