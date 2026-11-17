@@ -275,6 +275,25 @@ function buildOpened(entry: FfmpegConversion, reason: FfmpegOpenReason): FfmpegO
 export async function openFfmpeg(file: Blob, reason: FfmpegOpenReason, options: OpenFfmpegOptions = {}): Promise<FfmpegOpenedMedia> {
   const key = cacheKeyOf(file)
   if (conversion !== null && conversion.key === key) return buildOpened(conversion, reason)
+  // [107-ADJ 15] single-flight: a feed cancel/restart (CC-107.4 pacing) can
+  // open the SAME mid-transcode file again; without this a second whole-file
+  // ffmpeg exec runs concurrently (two ~230 MB f32 buffers + MEMFS copies →
+  // a LIVE job:error stalls the decoded drift leg at ~133 s deterministically).
+  if (inflight !== null && inflight.key === key) return buildOpened(await inflight.promise, reason)
+  const promise = runConversion(file, key, options)
+  inflight = { key, promise }
+  let entry: FfmpegConversion
+  try {
+    entry = await promise
+  } finally {
+    if (inflight?.promise === promise) inflight = null
+  }
+  return buildOpened(entry, reason)
+}
+
+let inflight: { key: string; promise: Promise<FfmpegConversion> } | null = null
+
+async function runConversion(file: Blob, key: string, options: OpenFfmpegOptions): Promise<FfmpegConversion> {
   const ffmpeg = await ensureRuntime(options)
   const bytes = new Uint8Array(await file.arrayBuffer())
   sequence += 1
@@ -298,9 +317,10 @@ export async function openFfmpeg(file: Blob, reason: FfmpegOpenReason, options: 
     const decoded = parseF32Wav(wav)
     if (!decoded) throw labelled('UNSUPPORTED_MEDIA')
     const previous = conversion
-    conversion = { key, sampleRate: decoded.sampleRate, channels: decoded.channels, frames: decoded.frames, data: decoded.data }
+    const entry: FfmpegConversion = { key, sampleRate: decoded.sampleRate, channels: decoded.channels, frames: decoded.frames, data: decoded.data }
+    conversion = entry
     if (previous !== null && previous.key !== key) previous.data.fill(0)
-    return buildOpened(conversion, reason)
+    return entry
   } catch (error) {
     await cleanup()
     const code = (error as { code?: unknown } | null | undefined)?.code
