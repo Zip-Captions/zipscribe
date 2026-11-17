@@ -98,6 +98,14 @@ async function captureScene(browser, dpr) {
     await page.waitForFunction(() => window.__zipVisualizerBridge.getVisualizerState().framesDrawn > 0, undefined, { timeout: 15000 })
     await page.evaluate(() => window.__zipVisualizerBridge.clockControl('pause'))
     await page.waitForFunction(() => window.__zipVisualizerBridge.getVisualizerState().playing === false, undefined, { timeout: 5000 })
+    // DETERMINISM ([107-ADJ 19]): re-seek AFTER the pause (paused clocks
+    // land exactly on 1.5 — the playhead drifts between seek and pause on a
+    // loaded runner) and settle past any in-flight rAF. Mirrors
+    // e2e/audio-preview/golden.spec.ts captureScene.
+    await page.evaluate(() => window.__zipVisualizerBridge.clockControl('seek', 1.5))
+    await page.waitForFunction(() => Math.abs(window.__zipVisualizerBridge.getClockDiagnostics().currentTime - 1.5) < 0.02, undefined, { timeout: 5000 })
+    await page.evaluate(() => document.fonts.ready)
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => window.setTimeout(resolve, 150)))))
     const state = await page.evaluate(() => window.__zipVisualizerBridge.getVisualizerState())
     if (state.dpr !== dpr) throw new Error(`dpr mismatch: ${String(state.dpr)} !== ${String(dpr)}`)
     const buffer = await page.locator('[data-testid=stage-visualizer-slot]').screenshot({ type: 'png' })

@@ -105,6 +105,15 @@ async function captureScene(page: import('@playwright/test').Page, dpr: number):
   await page.waitForFunction(() => (window as unknown as { __zipVisualizerBridge?: { getVisualizerState: () => { framesDrawn: number } } }).__zipVisualizerBridge!.getVisualizerState().framesDrawn > 0, undefined, { timeout: 15_000 })
   await b.control('pause')
   await page.waitForFunction(() => (window as unknown as { __zipVisualizerBridge?: { getVisualizerState: () => { playing: boolean } } }).__zipVisualizerBridge!.getVisualizerState().playing === false, undefined, { timeout: 5_000 })
+  // DETERMINISM ([107-ADJ 19]): playhead travels between seek and pause —
+  // on a loaded runner it lands well past 1.5 (measured CI SSIM jitter
+  // 0.9575/0.9618 as the playhead line + caption-active-block edge moved).
+  // Re-seek AFTER the pause (paused clocks land exactly) and settle past
+  // any in-flight rAF before the slot screenshot.
+  await b.control('seek', 1.5)
+  await page.waitForFunction(() => Math.abs(((window as unknown as { __zipVisualizerBridge?: { getClockDiagnostics: () => { currentTime: number } } }).__zipVisualizerBridge!.getClockDiagnostics().currentTime) - 1.5) < 0.02, undefined, { timeout: 5_000 })
+  await page.evaluate(() => document.fonts.ready)
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => window.setTimeout(resolve, 150)))))
 
   const state = await b.state()
   expect(state.dpr, `device scale factor must be ${String(dpr)} for this golden`).toBe(dpr)
