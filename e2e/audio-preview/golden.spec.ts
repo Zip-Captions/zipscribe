@@ -15,7 +15,7 @@
 // this spec fails on the committed-file existence check (never on a missing
 // fixture silently skipping).
 import { expect, test } from '@playwright/test'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { REPO_ROOT } from '../../tests/helpers/repo'
 import { bridge, openAudioProject, STAGE_BLOCKS, TONES } from './helpers/bridge'
@@ -146,8 +146,11 @@ test.describe('CC-107.7: visualizer goldens (scripted scene, committed PNGs)', (
         if (ssim < SSIM_MIN) {
           // Diagnostics: the failing pixels ride the test-results artifact
           // (uploads on always()) — compare against the committed golden to
-          // localize the delta without a blind CI round-trip.
-          await testInfo.attach(`golden-actual-dpr${String(dpr)}`, { body: Buffer.from(actual.split(',')[1] ?? '', 'base64'), contentType: 'image/png' })
+          // localize the delta without a blind CI round-trip. (fs-write, NOT
+          // testInfo.attach: body-attachments never touch disk.)
+          const dir = testInfo.outputPath()
+          mkdirSync(dir, { recursive: true })
+          writeFileSync(join(dir, `golden-actual-dpr${String(dpr)}.png`), Buffer.from(actual.split(',')[1] ?? '', 'base64'))
         }
         expect(ssim, `in-page SSIM vs committed golden (dpr ${String(dpr)}); -1 ⇒ dimension mismatch`).toBeGreaterThanOrEqual(SSIM_MIN)
       } finally {
