@@ -83,13 +83,23 @@ async function runDriftLeg(
   const deadline = Date.now() + 13 * 60_000
   await b.control('seek', 0)
   await b.control('play')
+  // A transient stall that the clock's own recovery heals (underrun →
+  // re-fetch → primed, [107-ADJ 15]) must not abort the leg — only a
+  // pause that does NOT resolve within 20 s is a real stall.
+  let pausedSince = 0
   while (Date.now() < deadline) {
     const [diag, ed] = await Promise.all([b.clock(), editor(page).state()])
     if (!diag.paused) {
+      pausedSince = 0
       maxMirrorGap = Math.max(maxMirrorGap, Math.abs(ed.playhead - diag.currentTime) * 1000)
       await page.waitForTimeout(5_000)
-    } else {
+    } else if (pausedSince === 0) {
+      pausedSince = Date.now()
+      await page.waitForTimeout(2_000)
+    } else if (Date.now() - pausedSince > 20_000) {
       break
+    } else {
+      await page.waitForTimeout(2_000)
     }
   }
   await page.evaluate(() => {
@@ -106,6 +116,7 @@ async function runDriftLeg(
   }
   const diag = await b.clock()
   const state = await b.state()
+  console.info(`drift leg ${expectedPath}: ` + JSON.stringify({ endPosition: diag.currentTime, paused: diag.paused, underrunCount: state.underrunCount, bursts: sampler.bursts, maxGapMs: sampler.maxGapMs, energySamples: sampler.energySamples, maxMirrorGapMs: maxMirrorGap }))
   return { endPosition: diag.currentTime, maxMirrorGapMs: maxMirrorGap, sampler, underrunCount: state.underrunCount }
 }
 

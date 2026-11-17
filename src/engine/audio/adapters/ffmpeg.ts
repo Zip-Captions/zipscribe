@@ -295,7 +295,7 @@ let inflight: { key: string; promise: Promise<FfmpegConversion> } | null = null
 
 async function runConversion(file: Blob, key: string, options: OpenFfmpegOptions): Promise<FfmpegConversion> {
   const ffmpeg = await ensureRuntime(options)
-  const bytes = new Uint8Array(await file.arrayBuffer())
+  const bytes = new Uint8Array(await file.arrayBuffer()) // view, not a copy
   sequence += 1
   const input = `zipscribe-in-${sequence}.bin`
   const output = `zipscribe-out-${sequence}.wav`
@@ -313,6 +313,10 @@ async function runConversion(file: Blob, key: string, options: OpenFfmpegOptions
     const ret = await ffmpeg.exec(['-i', input, '-vn', '-map', '0:a:0', '-f', 'wav', '-c:a', 'pcm_f32le', output])
     if (ret !== 0) throw labelled('UNSUPPORTED_MEDIA')
     const wav = await ffmpeg.readFile(output)
+    // [107-ADJ 15] release BOTH MEMFS files before parsing: the 600 s leg's
+    // transient peak (input + output + readFile copy + parsed buffer ≈ 800 MB
+    // in one worker) was killing the decoded drift leg near 135 s.
+    await cleanup()
     if (!(wav instanceof Uint8Array)) throw labelled('UNSUPPORTED_MEDIA')
     const decoded = parseF32Wav(wav)
     if (!decoded) throw labelled('UNSUPPORTED_MEDIA')
