@@ -171,8 +171,13 @@ class RingProcessor extends AudioWorkletProcessor {
     // while the ring drained, and the remainder vanished at enqueueAt).
     if (!front) {
       const queuedFrames = this.queue.reduce((n, e) => n + Math.floor(e.samples.length / this.channels), 0)
-      if (queuedFrames >= 14 * this.mediaRate) {
-        // [107-ADJ 15] tracks the 16 s window with 3 s gate lead
+      // [107-ADJ 16] 16.5 s = the 16 s worker window + slack: a LEGAL
+      // delivery can never reach it (unplayed ≤ window ⇒ queued ≤ 14 s), so
+      // a drop here means a pathological stream (duplicate concurrent job).
+      // A cap at the legal edge silently ate the EOF edge: feedComplete
+      // latches the refill gate shut, so a cap drop near EOF is UNRECOVERABLE
+      // (the 600 s leg lost [590.4, 599.4) that way — one counted underrun).
+      if (queuedFrames >= Math.round(16.5 * this.mediaRate)) {
         // [107-ADJ 15] the cap itself IS the flow control (bounded memory).
         // Deliveries past tail+cap are dropped SILENTLY and harmlessly —
         // they are content the ring already holds or the clock will
