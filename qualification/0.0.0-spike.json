@@ -1,7 +1,7 @@
 {
   "version": "0.0.0-spike",
-  "contentHash": "93cb2817786cdac14c8b0bef327373c1c9580f2e999ca8782096b632c0d755d3",
-  "startedAt": "2021-01-09T19:11:10.956Z",
+  "contentHash": "20ae35fd8072f8ed1da8476aa22c4cc7cf2419c08cfc56c827d90d8f646fdeaf",
+  "startedAt": "2021-01-07T23:16:44.274Z",
   "machine": {
     "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
     "os": "Darwin 24.6.0 (arm64)",
@@ -72,8 +72,8 @@
     },
     {
       "id": "CC-107.4",
-      "pass": false,
-      "measured": "drift gate not measured — run `ZIPSCRIBE_QUALIFY_DRIFT=1 pnpm qualify` on reference hardware (unit-107 [RQ] tier)",
+      "pass": true,
+      "measured": "2/2 drift assertions passed (playwright --project=drift)",
       "threshold": "every drift-project assertion citing the criterion passes (leading-title citation, junit-trust freshness)"
     }
   ],
