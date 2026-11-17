@@ -149,7 +149,7 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
         // [107-ADJ 16] latch only on iterator exhaustion AND a delivered
         // tail at (nearly) the header duration — a window break is just a
         // boundary; the ring may still need the rest of the file.
-        if (data.eof === true && postedEndFrames >= Math.round(duration * sampleRate) - Math.round(0.25 * sampleRate)) feedComplete = true
+        if ((data as { eof?: unknown }).eof === true && postedEndFrames >= Math.round(duration * sampleRate) - Math.round(0.25 * sampleRate)) feedComplete = true
         return
       }
       if (typeof data.startSec !== 'number' || !(data.samples instanceof Float32Array)) return

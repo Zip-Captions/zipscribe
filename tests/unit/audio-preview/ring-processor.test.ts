@@ -177,6 +177,22 @@ describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
     expect(last, 'queued continuation consumed to 2 s').toBeGreaterThanOrEqual(2 * MEDIA_RATE - QUANTUM)
   })
 
+  test('CC-107.4: a sub-threshold tail chunk after exhaustion re-primes (EOF drain resume)', () => {
+    // [107-ADJ 16] the 600 s leg stranded its final 114 frames queue-drained:
+    // 114 < ring/8 (11 025) so 'primed' never re-fired and the clock waited
+    // for a resume cue that EOF could never produce.
+    const node = createNode()
+    node.post({ t: 'chunk', startSec: 0, samples: ramp(0, 1) })
+    node.post({ t: 'play' })
+    pumpTo(node, MEDIA_RATE - 100, 3000)
+    node.pump(400)
+    expect(countOf(node, 'underrun'), 'drained to exhaustion').toBe(1)
+    node.post({ t: 'chunk', startSec: 1, samples: ramp(1, 114 / MEDIA_RATE) })
+    expect(countOf(node, 'primed'), 'any placement after an alert re-primes').toBe(2)
+    const last = pumpTo(node, MEDIA_RATE + 100)
+    expect(last, 'the 114-frame tail is consumed').toBeGreaterThanOrEqual(MEDIA_RATE + 100 - QUANTUM)
+  })
+
   test('CC-107.2: overlapping refill is deduped (never re-appended)', () => {
     const node = createNode()
     node.post({ t: 'chunk', startSec: 0, samples: ramp(0, 2) })

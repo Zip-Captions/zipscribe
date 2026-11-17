@@ -135,7 +135,13 @@ class RingProcessor extends AudioWorkletProcessor {
     this.writeFrame += usable
     this.tailContentFrames += usable
     this.ringCapacityFrames = Math.max(this.ringCapacityFrames, this.writeFrame - this.readFrame)
-    if (!this.primed && this.writeFrame - this.readFrame >= Math.round(this.ringFrames / 8)) {
+    // [107-ADJ 16] The quarter-ring buffer threshold applies to INITIAL
+    // priming only (don't start playback on a threadbare buffer). After an
+    // underrun alert ANY placement re-primes: the file's last chunks can
+    // never reach 250 ms (the 600 s leg stranded its 114-frame tail
+    // queue-drained while the clock waited forever for 'primed'); the
+    // drain itself already proved the buffer is all that exists.
+    if (!this.primed && (this.underrunSent || this.writeFrame - this.readFrame >= Math.round(this.ringFrames / 8))) {
       this.primed = true
       this.underrunSent = false
       this.port.postMessage({ t: 'primed' })
