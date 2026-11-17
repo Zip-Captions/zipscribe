@@ -103,6 +103,54 @@ function pumpTo(node: RingNode, targetFrames: number, cap = 4000): number {
 }
 
 describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
+  test('CC-107.4: 44.1 k stereo burst beyond ring capacity keeps draining during playback (drift-rate regression)', () => {
+    // The exact drift-leg rates: media 44 100, render 48 000 (consumeScale
+    // 0.91875 — step 0/1 per quantum), stereo, 2 s ring vs a 12 s burst.
+    // The real e2e starved at consumed≈2.15 s with the queue full.
+    const RATE = 44_100
+    const node = createNode({ sampleRate: RATE, channels: 2 })
+    for (let c = 0; c < 12; c++) {
+      const n = RATE
+      const samples = new Float32Array(n * 2)
+      for (let i = 0; i < n; i++) {
+        samples[i * 2] = ((c + i / RATE) % 1) * 2 - 1
+        samples[i * 2 + 1] = ((c + i / RATE) % 1) * 2 - 1
+      }
+      node.post({ t: 'chunk', startSec: c, samples })
+    }
+    node.post({ t: 'play' })
+    const last = pumpTo(node, 5 * RATE - 1, 20_000)
+    expect(last, 'consumption passes 5 s across TWO ring-full queue drains').toBeGreaterThanOrEqual(5 * RATE - QUANTUM)
+    expect(countOf(node, 'underrun'), 'zero underruns with a full queue').toBe(0)
+  })
+
+  test('CC-107.4: overlapping double-feed bursts (open + play re-feed) lose no content to the cap', () => {
+    // The real clock opens the feed at project load AND again on play
+    // (needsFeed) — two whole-window bursts of the SAME span interleave
+    // with reads. The queue rides exactly at its 9.00 s cap while the ring
+    // drains; place()'s partial-fill remainder (FRONT re-queue) must
+    // survive the cap or a hole opens (observed e2e at [2.152, 3.0) s).
+    const RATE = 44_100
+    const node = createNode({ sampleRate: RATE, channels: 2 })
+    const burst = (): void => {
+      for (let c = 0; c < 12; c++) {
+        const samples = new Float32Array(RATE * 2)
+        for (let i = 0; i < RATE; i++) {
+          samples[i * 2] = ((c + i / RATE) % 1) * 2 - 1
+          samples[i * 2 + 1] = ((c + i / RATE) % 1) * 2 - 1
+        }
+        node.post({ t: 'chunk', startSec: c, samples })
+      }
+    }
+    burst()
+    node.post({ t: 'play' })
+    node.pump(50)
+    burst() // second feed's whole-window burst, interleaved with playback
+    const last = pumpTo(node, 6 * RATE - 1, 30_000)
+    expect(last, 'consumption reaches 6 s through the double burst').toBeGreaterThanOrEqual(6 * RATE - QUANTUM)
+    expect(countOf(node, 'underrun'), 'no starvation from cap-rejected remainders').toBe(0)
+  })
+
   test('CC-107.2: priming cue at ring/8, sample-accurate consumption, underrun ONCE at exhaustion', () => {
     const node = createNode()
     node.post({ t: 'chunk', startSec: 0, samples: ramp(0, 1) })
@@ -181,7 +229,19 @@ describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
     let feedActive = true
     let consumedSec = 0
     let nextChunkSec = 0
-    const feedEndSec = (): number => Math.min(FILE_SECONDS, postedEndSec + 9)
+    // [107-ADJ 15] worker decode-playback window is fromSec+10; the clock's
+    // 9 s cancel is gone — backpressure is the ring's 'dropped' message.
+    let feedWindowStart = 0
+    const feedEndSec = (): number => Math.min(FILE_SECONDS, feedWindowStart + 10)
+    const restartFeed = (fromSec: number): void => {
+      feedActive = true
+      feedWindowStart = fromSec
+      nextChunkSec = fromSec
+      postedEndSec = fromSec
+      while (postNextChunk()) {
+        /* burst the new window */
+      }
+    }
 
     const postNextChunk = (): boolean => {
       if (nextChunkSec >= feedEndSec()) return false
@@ -193,9 +253,7 @@ describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
     }
 
     // initial whole-file burst window
-    while (postNextChunk()) {
-      /* post until the 9 s window is full */
-    }
+    restartFeed(0)
     node.post({ t: 'play' })
 
     let feedPositionSeen = false
@@ -204,6 +262,7 @@ describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
     let underrunsSeen = 0
     let pausedClock = false
     let primedSeen = 0
+    let droppedSeen = 0
     for (let quanta = 0; quanta < 6000; quanta++) {
       const block = node.pump(1)
       if (consumedSec > 0.1 && consumedSec < FILE_SECONDS - 0.05) {
@@ -217,13 +276,9 @@ describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
         underrunsSeen = underrunMsgs
         pausedClock = true // clock freezes the playhead on stall
         // [107-ADJ 15] the stall carries its own recovery: startFeed cut +
-        // re-request from the frozen time (same shape as the cancel branch).
-        feedActive = true
-        nextChunkSec = consumedSec
-        postedEndSec = consumedSec
-        while (postNextChunk()) {
-          /* burst the new window */
-        }
+        // re-request from the frozen time.
+        restartFeed(consumedSec)
+        feedPositionSeen = false
       }
       if (countOf(node, 'primed') > primedSeen) {
         primedSeen = countOf(node, 'primed')
@@ -235,27 +290,17 @@ describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
         feedPositionSeen = true
         consumedSec = last / MEDIA_RATE
       }
-      // clock rules, in order
-      if (feedPositionSeen && postedEndSec - consumedSec > 9) {
-        feedActive = false
-        nextChunkSec = consumedSec
-        postedEndSec = consumedSec
-        feedActive = true
-        feedPositionSeen = false
-        while (postNextChunk()) {
-          /* burst the new window */
-        }
-        continue
+      // clock rules, in order ([107-ADJ 15]): ring 'dropped' cuts+restarts;
+      // the refill gate resumes an exhausted window.
+      const droppedMsgs = countOf(node, 'dropped')
+      if (droppedMsgs > droppedSeen) {
+        droppedSeen = droppedMsgs
+        if (feedActive && feedPositionSeen && !pausedClock) restartFeed(consumedSec)
       }
       if (!feedActive && feedPositionSeen && consumedSec < FILE_SECONDS - 0.75 && postedEndSec - consumedSec < 1.5) {
-        feedActive = true
-        nextChunkSec = consumedSec
-        postedEndSec = consumedSec
-        while (postNextChunk()) {
-          /* refill */
-        }
+        restartFeed(consumedSec)
       }
-      if (postedEndSec >= FILE_SECONDS) feedActive = false // whole-file iterator exhausted
+      if (nextChunkSec >= feedEndSec() && postedEndSec >= FILE_SECONDS) feedActive = false // iterator exhausted at EOF
       if (consumedSec >= FILE_SECONDS - 0.01) break
       if (process.env.RING_DEBUG && quanta % 200 === 0) console.log('sim q=' + String(quanta) + ' consumed=' + consumedSec.toFixed(3) + ' postedEnd=' + postedEndSec.toFixed(3) + ' feedActive=' + String(feedActive) + ' primed=' + String(countOf(node, 'primed')) + ' underrun=' + String(countOf(node, 'underrun')))
     }

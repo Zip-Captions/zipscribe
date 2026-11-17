@@ -158,8 +158,25 @@ class RingProcessor extends AudioWorkletProcessor {
   }
 
   private enqueueAt(entry: { absStart: number; samples: Float32Array }, front: boolean): void {
-    const queuedFrames = this.queue.reduce((n, e) => n + Math.floor(e.samples.length / this.channels), 0)
-    if (queuedFrames >= 9 * this.mediaRate) return // [107-ADJ 13] tracks the 9 s feed window
+    // [107-ADJ 15] the cap gates NEW (back) deliveries only. A FRONT entry
+    // is place()'s partial-fill remainder being re-queued — already-owned
+    // content; capping it silently opened holes (the 600 s leg lost the
+    // [2.152, 3.0) s span exactly this way: queue sat at the 9.00 s cap
+    // while the ring drained, and the remainder vanished at enqueueAt).
+    if (!front) {
+      const queuedFrames = this.queue.reduce((n, e) => n + Math.floor(e.samples.length / this.channels), 0)
+      if (queuedFrames >= 9 * this.mediaRate) {
+        // [107-ADJ 15] the cap itself IS the flow control (bounded memory).
+        // Deliveries past tail+cap are dropped SILENTLY and harmlessly —
+        // they are content the ring already holds or the clock will
+        // re-request on refill. Two failed triggers precede this line:
+        // the clock's 9 s arithmetic cancel (sat below the natural full
+        // buffer → cancel storm at chunk-arrival rate) and a 'dropped'
+        // message (queue≈cap is the steady state → same storm). The clock's
+        // 1.5 s refill gate keeps the queue refilled as reads drain it.
+        return
+      }
+    }
     if (front) this.queue.unshift(entry)
     else this.queue.push(entry)
   }
@@ -167,6 +184,7 @@ class RingProcessor extends AudioWorkletProcessor {
   private drainQueue(): void {
     while (this.queue.length > 0) {
       const head = this.queue[0]!
+
       const headFrames = Math.floor(head.samples.length / this.channels)
       if (head.absStart + headFrames <= this.tailContentFrames) {
         this.queue.shift()
@@ -174,7 +192,8 @@ class RingProcessor extends AudioWorkletProcessor {
       }
       if (head.absStart > this.tailContentFrames) break
       this.queue.shift()
-      if (!this.place(head.absStart, head.samples)) {
+      const ok = this.place(head.absStart, head.samples)
+      if (!ok) {
         // Ring still full: put it back verbatim and wait for reads to free
         // space (a no-progress place must NEVER be retried in-line).
         this.queue.unshift(head)
@@ -210,6 +229,10 @@ class RingProcessor extends AudioWorkletProcessor {
           // with a non-contiguous head that became unbounded silent
           // read-ahead — the 10-min leg lost 1219 clicks to it.)
           const head = this.queue[0]
+          if ((this as { __dbgCount?: number }).__dbgCount === undefined || ((this as { __dbgCount?: number }).__dbgCount ?? 0) < 6) {
+            ;(this as { __dbgCount?: number }).__dbgCount = ((this as { __dbgCount?: number }).__dbgCount ?? 0) + 1
+            this.port.postMessage({ t: 'dbg', line: `exhaust q=${String(this.queue.length)} head=${String(head?.absStart ?? -1)} headFrames=${String(head ? Math.floor(head.samples.length / this.channels) : -1)} tail=${String(this.tailContentFrames)} w=${String(this.writeFrame)} r=${String(this.readFrame)} rf=${String(this.ringFrames)} primed=${String(this.primed)} anchor=${String(this.anchorFrames)}` })
+          }
           if (this.primed && !this.underrunSent && (!head || head.absStart > this.tailContentFrames)) {
             this.underrunSent = true
             this.primed = false

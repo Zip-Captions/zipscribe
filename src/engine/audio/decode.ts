@@ -195,6 +195,16 @@ function interleaveForFeed(sample: AudioSampleLike, frameOffset = 0, usable = sa
 
 const macrotask = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0))
 
+/** [107-ADJ 15] decode-playback delivers a bounded window, then posts
+ * {t:'end'} on the feed port (the wire's terminal marker, protocol.ts).
+ * Without it the worker streamed the WHOLE file: everything past
+ * ring+queue cap was dropped at the cap and never re-delivered (the clock
+ * believed it delivered), so playback starved every ~11 s — and the old
+ * 9 s clock-side cancel was a broken workaround (below the natural full
+ * buffer → cancel storm). 12 s > ring 2 s + queue 9 s keeps cap drops to
+ * the ≤1 s the clock re-requests on its 1.5 s refill gate. */
+const PLAYBACK_WINDOW_SEC = 12
+
 // --- decodeAudio -------------------------------------------------------------
 
 export function decodeAudio(request: { jobId: string; file: File; ports: MessagePort[] }, deps: DecodeDeps): DecodeJob {
@@ -547,8 +557,10 @@ export function decodeForPlayback(request: { jobId: string; file: File; fromSec:
       }
 
       let sinceYield = 0
+      const windowEndFrame = Math.round((fromSec + PLAYBACK_WINDOW_SEC) * sampleRate)
       for (;;) {
         if (cancelled) break
+        if (absoluteFrame >= windowEndFrame) break // [107-ADJ 15] bounded window
         const next = await iteratorSource.next()
         if (next.done) break
         // [107-ADJ 14] macrotask yield every few samples: the ffmpeg-cache
@@ -610,6 +622,7 @@ export function decodeForPlayback(request: { jobId: string; file: File; fromSec:
         const copy = rest.slice()
         port.postMessage({ startSec: absoluteFrame / sampleRate, samples: copy }, [copy.buffer as Transferable])
       }
+      if (!cancelled) port.postMessage({ t: 'end' }) // [107-ADJ 15] window terminal marker
       if (cancelled) deps.emit({ t: 'job:error', jobId, error: { code: 'CANCELLED', retryable: true } })
       else deps.emit({ t: 'job:done', jobId })
     } catch (error) {

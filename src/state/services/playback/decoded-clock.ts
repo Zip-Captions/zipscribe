@@ -94,11 +94,6 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
   let consumedFrames = 0
   let postedEndFrames = 0
   let feedActive = false
-  // [107-ADJ 14] a fresh feed's `consumedFrames` is STALE until the worklet
-  // posts its first live position (a seek-to-585 before any play measured
-  // the in-flight gap against 0 → bogus cancel + re-request from 0). All
-  // consumed-vs-posted decisions wait for this flag.
-  let feedPositionSeen = false
 
   const cancelFeed = (): void => {
     if (currentJobId !== null) deps.worker.postMessage({ t: 'cancel', jobId: currentJobId })
@@ -125,13 +120,20 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
     }
     if (disposed || currentJobId !== jobId) return
     needsFeed = false
-    feedPositionSeen = false
     postedEndFrames = Math.round(fromSec * sampleRate)
     const channel = new MessageChannel()
     feedPort = channel.port1
     channel.port1.onmessage = (event: MessageEvent<unknown>) => {
-      const data = event.data as { startSec?: unknown; samples?: unknown } | null
-      if (data === null || typeof data.startSec !== 'number' || !(data.samples instanceof Float32Array)) return
+      const data = event.data as { t?: unknown; startSec?: unknown; samples?: unknown } | null
+      if (data === null) return
+      // [107-ADJ 15] the worker's window-terminal marker: the delivered
+      // window is complete — arms the 1.5 s refill gate.
+      if (data.t === 'end') {
+        console.info(`107dbg feed end (postedEnd ${(postedEndFrames / sampleRate).toFixed(2)})`)
+        feedActive = false
+        return
+      }
+      if (typeof data.startSec !== 'number' || !(data.samples instanceof Float32Array)) return
       postToWorklet({ t: 'chunk', startSec: data.startSec, samples: data.samples })
       awaitingAnchor = false
       postedEndFrames = Math.max(postedEndFrames, Math.round(data.startSec * sampleRate) + data.samples.length / deps.channels)
@@ -139,19 +141,12 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
       // 600 s drift legs recorded one worker hiccup beyond the old buffer
       // (single-threaded ffmpeg feed + GC); 1.5 s remaining + 9 s in flight
       // tolerates ~10 s of feed stall.
-      if (feedPositionSeen && postedEndFrames - consumedFrames > 9 * sampleRate) {
-        // Bound memory: cut the stream; refill restarts from the consumed
-        // position (cancel + re-request is inside the pinned wire).
-        // [107-ADJ 13] RESTART NOW, not at the 1.5 s drain: leaving
-        // feedActive false let every in-flight cut drain the ring 9 s→1.5 s
-        // before the position-message gate re-requested — one worker
-        // hiccup past 1.5 s per 10-min leg was the recorded underrun.
-        // Immediate restart from the consumed position keeps ~9 s of slack.
-        cancelFeed()
-        feedActive = false
-        const consumedSec = consumedFrames / sampleRate
-        void startFeed(consumedSec)
-      }
+      // [107-ADJ 15] the 9 s in-flight cancel is GONE: with the ring+queue
+      // holding ~11 s, a cache-hit feed legitimately sits at ~10 s delivered
+      // and the threshold canceled on every chunk arrival (storm measured
+      // at 0.13 s intervals on the drift leg). Backpressure is now the
+      // ring's 'dropped' message — see the port listener below.
+      
     }
     const blob = await blobPromise()
     if (disposed || currentJobId !== jobId) {
@@ -241,10 +236,14 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
               fireEnded()
             }
           }
-          feedPositionSeen = true
           if (!feedActive && !endedLatch && time < duration - 0.75 && postedEndFrames - consumedFrames < 1.5 * sampleRate) {
+            console.info(`107dbg gate refill at ${time.toFixed(2)} (postedEnd ${(postedEndFrames / sampleRate).toFixed(2)})`)
             void startFeed(time)
           }
+        } else if ((msg as { t?: string }).t === 'dbg') {
+          const line = (msg as { line?: unknown }).line
+          if (typeof line === 'string') console.info('107dbg ring ' + line)
+          else console.info('107dbg ring ' + JSON.stringify(msg))
         } else if (msg.t === 'underrun') {
           if (!paused && !endedLatch) {
             paused = true
@@ -261,6 +260,7 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
             // the job + flushes) and re-request [stalled time, +window);
             // place() heals the hole and 'primed' resumes the mirror.
             // Re-requesting at EOF is a no-op — the ended latch already fired.
+            console.info(`107dbg underrun-recover at ${time.toFixed(2)} (postedEnd ${(postedEndFrames / sampleRate).toFixed(2)})`)
             void startFeed(time)
           }
         } else if (msg.t === 'primed') {
