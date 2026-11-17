@@ -133,7 +133,7 @@ test.describe('CC-107.7: visualizer goldens (scripted scene, committed PNGs)', (
   test.skip(process.platform !== 'linux', 'CC-107.7: goldens compare against the pinned linux engine only (font rasterization is platform-specific)')
 
   for (const dpr of [1, 2] as const) {
-    test(`CC-107.7: DPR ${String(dpr)} scripted-spectrum + caption overlay matches the committed golden (SSIM ≥ ${String(SSIM_MIN)})`, async ({ browser }) => {
+    test(`CC-107.7: DPR ${String(dpr)} scripted-spectrum + caption overlay matches the committed golden (SSIM ≥ ${String(SSIM_MIN)})`, async ({ browser }, testInfo) => {
       test.setTimeout(120_000)
       const goldenFile = join(GOLDEN_DIR, `spectrum-overlay-dpr${String(dpr)}.png`)
       expect(existsSync(goldenFile), `golden ${goldenFile} missing — generate with \`corepack pnpm exec node scripts/make-visualizer-goldens.ts\` (linux/pinned engine)`).toBe(true)
@@ -143,6 +143,12 @@ test.describe('CC-107.7: visualizer goldens (scripted scene, committed PNGs)', (
       try {
         const actual = await captureScene(page, dpr)
         const ssim = await pageSsim(page, golden, actual)
+        if (ssim < SSIM_MIN) {
+          // Diagnostics: the failing pixels ride the test-results artifact
+          // (uploads on always()) — compare against the committed golden to
+          // localize the delta without a blind CI round-trip.
+          await testInfo.attach(`golden-actual-dpr${String(dpr)}`, { body: Buffer.from(actual.split(',')[1] ?? '', 'base64'), contentType: 'image/png' })
+        }
         expect(ssim, `in-page SSIM vs committed golden (dpr ${String(dpr)}); -1 ⇒ dimension mismatch`).toBeGreaterThanOrEqual(SSIM_MIN)
       } finally {
         await context.close()
