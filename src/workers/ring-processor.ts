@@ -45,6 +45,11 @@ class RingProcessor extends AudioWorkletProcessor {
   // re-appended), and out-of-order/gapped data is QUEUED (never dropped —
   // dropping over-capacity chunks deadlocks the 6 s-in-flight pacing).
   private tailContentFrames = 0
+  // [107-ADJ 16] highest queued/partially-placed frame end — the dedupe
+  // frontier for back enqueues (bounded from-time refills duplicate the
+  // lead span every ~4 s; without this the duplicates inflate the queue
+  // past its cap and the silent cap drop eats the file's UNIQUE content).
+  private queueEndFrames = 0
   private queue: { absStart: number; samples: Float32Array }[] = []
 
   constructor(options: { processorOptions?: { sampleRate?: number; channels?: number } }) {
@@ -78,6 +83,7 @@ class RingProcessor extends AudioWorkletProcessor {
         this.readFrac = 0
         this.ringCapacityFrames = 0
         this.tailContentFrames = 0
+        this.queueEndFrames = 0
         this.queue = []
       } else if (msg.t === 'rate' && typeof msg.value === 'number' && msg.value > 0) {
         this.rate = msg.value
@@ -99,6 +105,7 @@ class RingProcessor extends AudioWorkletProcessor {
       this.readFrame = this.anchorFrames
       this.writeFrame = this.anchorFrames
       this.tailContentFrames = this.anchorFrames
+      this.queueEndFrames = this.anchorFrames
       this.readFrac = 0
     }
     const absStart = typeof startSec === 'number' ? Math.round(startSec * this.mediaRate) : this.tailContentFrames
@@ -189,8 +196,24 @@ class RingProcessor extends AudioWorkletProcessor {
         return
       }
     }
-    if (front) this.queue.unshift(entry)
-    else this.queue.push(entry)
+    if (front) {
+      this.queue.unshift(entry)
+      this.queueEndFrames = Math.max(this.queueEndFrames, entry.absStart + Math.floor(entry.samples.length / this.channels))
+      return
+    }
+    // [107-ADJ 16] dedupe at enqueue against the covered frontier (ring
+    // tail plus everything already queued): fully covered entries vanish;
+    // straddling ones trim to the frontier. This is what keeps a bounded
+    // from-time refill from pushing UNIQUE content over the cap (place()'s
+    // head-time covered-skip cannot help entries deep in the queue).
+    const covered = Math.max(this.tailContentFrames, this.queueEndFrames)
+    const entryFrames = Math.floor(entry.samples.length / this.channels)
+    if (entry.absStart < covered) {
+      if (entry.absStart + entryFrames <= covered) return
+      entry = { absStart: covered, samples: entry.samples.subarray((covered - entry.absStart) * this.channels) }
+    }
+    this.queue.push(entry)
+    this.queueEndFrames = Math.max(this.queueEndFrames, entry.absStart + Math.floor(entry.samples.length / this.channels))
   }
 
   private drainQueue(): void {

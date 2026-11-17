@@ -177,6 +177,22 @@ describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
     expect(last, 'queued continuation consumed to 2 s').toBeGreaterThanOrEqual(2 * MEDIA_RATE - QUANTUM)
   })
 
+  test('CC-107.4: duplicate back entries are deduped at enqueue so the cap never eats unique content', () => {
+    // [107-ADJ 16] bounded from-time refills redeliver [time, deliveredEnd):
+    // raw enqueue puts 12 s of duplicates behind 12 s of unique content —
+    // over the 16.5 s cap — and the silent drop takes the UNIQUE tail
+    // (observed e2e: the [14,18) span here, 56 counted underruns on the
+    // 600 s leg). With queue-frontier dedupe the unique tail survives.
+    const node = createNode()
+    node.post({ t: 'chunk', startSec: 0, samples: ramp(0, 14) }) // ring 2 s + queue 12 s
+    node.post({ t: 'chunk', startSec: 4, samples: ramp(4, 10) }) // 10 s duplicate → queue 22 s without dedupe
+    node.post({ t: 'chunk', startSec: 14, samples: ramp(14, 4) }) // UNIQUE tail, meets a capped queue
+    node.post({ t: 'play' })
+    const last = pumpTo(node, 18 * MEDIA_RATE - 1, 40_000)
+    expect(last, 'the unique [14,18) tail survives the duplicate burst').toBeGreaterThanOrEqual(18 * MEDIA_RATE - QUANTUM)
+    expect(countOf(node, 'underrun'), 'no starvation').toBe(0)
+  })
+
   test('CC-107.4: a sub-threshold tail chunk after exhaustion re-primes (EOF drain resume)', () => {
     // [107-ADJ 16] the 600 s leg stranded its final 114 frames queue-drained:
     // 114 < ring/8 (11 025) so 'primed' never re-fired and the clock waited

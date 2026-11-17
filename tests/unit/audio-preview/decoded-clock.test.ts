@@ -227,7 +227,7 @@ describe('CC-107.2: decoded clock — FR-107.2/FR-107.6 mechanics (doubles)', ()
     await flushPorts()
     const reqs = rig.worker.requests.filter((r) => r.t === 'decode-playback')
     expect(reqs.length, 'gate re-requests').toBeGreaterThanOrEqual(2)
-    expect(reqs[1]!.fromSec, 'extends from the delivered end (2 s), not the playhead (1 s)').toBeCloseTo(2, 1)
+    expect(reqs[1]!.fromSec, 'bounded from-time window (extending from pe stacks windows)').toBeCloseTo(1, 1)
   })
 
   test('CC-107.4: a delivered window covering EOF does not re-request (feed-complete)', async () => {
