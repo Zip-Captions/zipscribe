@@ -245,6 +245,15 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
             stallPaused = true
             underruns += 1
             deps.onNotice?.('PLAYBACK_STALL')
+            // [107-ADJ 15] the ring posts underrun for a HOLE too (queued
+            // head not contiguous with the tail): the delivered-window
+            // bookkeeping then lies — postedEnd sits far ahead while the
+            // ring starves at the hole, so neither the 1.5 s refill gate
+            // nor the 9 s cancel gate can ever fire. Invalidate the window
+            // so the next position message re-fetches [consumed, +window)
+            // and place() heals the hole (primed resumes the mirror).
+            feedActive = false
+            postedEndFrames = consumedFrames
           }
         } else if (msg.t === 'primed') {
           if (stallPaused && !disposed && !endedLatch) {

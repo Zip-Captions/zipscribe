@@ -195,24 +195,25 @@ class RingProcessor extends AudioWorkletProcessor {
         const available = this.writeFrame - i0
         if (available <= 0) {
           for (let c = 0; c < output.length; c++) output[c]![i] = 0
-          if (this.primed && !this.underrunSent && this.queue.length === 0) {
-            // True exhaustion: nothing to read AND nothing queued. (The old
-            // readFrame>=writeFrame test could never fire — reads pin at
-            // writeFrame-1 — so the clock's underrun-refill was dead code.)
+          // [107-ADJ 15] exhaustion alert, once per drain episode:
+          //   • queue EMPTY  → true exhaustion, the clock latches/ends;
+          //   • queue head not contiguous with tailContentFrames → a HOLE
+          //     (ingest rounding / covered-drop drift). drainQueue can only
+          //     place a head that starts exactly at the tail, so freezing
+          //     here must not go silent — alert the clock and it re-fetches
+          //     [consumed, +window) whose place() starts at the tail, heals
+          //     the hole and re-primes (underrunSent resets there).
+          // A contiguous head never needs this branch: place() capacity is
+          // ringFrames-(writeFrame-readFrame)=ringFrames while the ring is
+          // drained, so drainQueue places it on the very next quantum.
+          // (An earlier fix advanced the read head through holes as silence;
+          // with a non-contiguous head that became unbounded silent
+          // read-ahead — the 10-min leg lost 1219 clicks to it.)
+          const head = this.queue[0]
+          if (this.primed && !this.underrunSent && (!head || head.absStart > this.tailContentFrames)) {
             this.underrunSent = true
             this.primed = false
             this.port.postMessage({ t: 'underrun' })
-          }
-          // [107-ADJ 15] a hole with content QUEUED must not deadlock the
-          // reads: the ring can only place queued frames once reads free
-          // capacity, so at a hole we output silence AND keep the read head
-          // advancing (the queued head is placed as soon as space opens).
-          // Freezing here is what stranded the 600 s drift tail at 593 s.
-          if (this.queue.length > 0) {
-            this.readFrac += stride
-            const holeStep = Math.floor(this.readFrac)
-            this.readFrame += holeStep
-            this.readFrac -= holeStep
           }
           continue
         }
