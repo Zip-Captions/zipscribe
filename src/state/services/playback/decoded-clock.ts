@@ -254,12 +254,14 @@ export function createDecodedMediaClock(deps: DecodedClockDeps): DecodedMediaClo
             // [107-ADJ 15] the ring posts underrun for a HOLE too (queued
             // head not contiguous with the tail): the delivered-window
             // bookkeeping then lies — postedEnd sits far ahead while the
-            // ring starves at the hole, so neither the 1.5 s refill gate
-            // nor the 9 s cancel gate can ever fire. Invalidate the window
-            // so the next position message re-fetches [consumed, +window)
-            // and place() heals the hole (primed resumes the mirror).
-            feedActive = false
-            postedEndFrames = consumedFrames
+            // ring starves at the hole — and while an iterator window is
+            // still in flight feedActive stays true, so neither the 1.5 s
+            // refill gate nor the 9 s cancel gate can ever fire. The stall
+            // must carry its own recovery: cut the feed (startFeed cancels
+            // the job + flushes) and re-request [stalled time, +window);
+            // place() heals the hole and 'primed' resumes the mirror.
+            // Re-requesting at EOF is a no-op — the ended latch already fired.
+            void startFeed(time)
           }
         } else if (msg.t === 'primed') {
           if (stallPaused && !disposed && !endedLatch) {

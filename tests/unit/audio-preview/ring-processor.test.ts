@@ -184,10 +184,7 @@ describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
     const feedEndSec = (): number => Math.min(FILE_SECONDS, postedEndSec + 9)
 
     const postNextChunk = (): boolean => {
-      if (nextChunkSec >= feedEndSec()) {
-        feedActive = false // iterator window exhausted — clock's refill gate needs this
-        return false
-      }
+      if (nextChunkSec >= feedEndSec()) return false
       const dur = Math.min(1, feedEndSec() - nextChunkSec)
       node.post({ t: 'chunk', startSec: nextChunkSec, samples: ramp(nextChunkSec, dur) })
       nextChunkSec += dur
@@ -219,8 +216,14 @@ describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
       if (underrunMsgs > underrunsSeen) {
         underrunsSeen = underrunMsgs
         pausedClock = true // clock freezes the playhead on stall
-        feedActive = false // clock invalidates the delivered window [107-ADJ 15]
+        // [107-ADJ 15] the stall carries its own recovery: startFeed cut +
+        // re-request from the frozen time (same shape as the cancel branch).
+        feedActive = true
+        nextChunkSec = consumedSec
         postedEndSec = consumedSec
+        while (postNextChunk()) {
+          /* burst the new window */
+        }
       }
       if (countOf(node, 'primed') > primedSeen) {
         primedSeen = countOf(node, 'primed')
@@ -252,6 +255,7 @@ describe('CC-107.2: real ring processor (worklet-scope harness)', () => {
           /* refill */
         }
       }
+      if (postedEndSec >= FILE_SECONDS) feedActive = false // whole-file iterator exhausted
       if (consumedSec >= FILE_SECONDS - 0.01) break
       if (process.env.RING_DEBUG && quanta % 200 === 0) console.log('sim q=' + String(quanta) + ' consumed=' + consumedSec.toFixed(3) + ' postedEnd=' + postedEndSec.toFixed(3) + ' feedActive=' + String(feedActive) + ' primed=' + String(countOf(node, 'primed')) + ' underrun=' + String(countOf(node, 'underrun')))
     }
