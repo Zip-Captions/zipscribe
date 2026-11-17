@@ -7,6 +7,7 @@
 // scripted test data only — never transcript/caption content.
 
 import { getAppContext } from '../../app/context'
+import type { FakeAnalyser } from '../../test-support/fake-analyser'
 import type { VisualizerBridgeState, ClockDiagnostics } from '../../app/visualizer-runtime'
 
 interface VisualizerBridge {
@@ -27,6 +28,18 @@ interface VisualizerBridge {
 export function installVisualizerBridge(): void {
   const { visualizer } = getAppContext()
 
+  let scripted: FakeAnalyser | null = null
+
+  async function ensureScripted(create: boolean): Promise<typeof scripted> {
+    if (scripted === null) {
+      if (!create) return null
+      const { createFakeAnalyser } = await import('../../test-support/fake-analyser')
+      scripted = createFakeAnalyser({ fftSize: 4096, sampleRate: 44_100 })
+      visualizer.setScriptedAnalyser(scripted)
+    }
+    return scripted
+  }
+
   const bridge: VisualizerBridge = {
     async ready(): Promise<void> {
       await Promise.resolve()
@@ -35,25 +48,19 @@ export function installVisualizerBridge(): void {
     resetVisualizerDiagnostics: () => visualizer.resetVisualizerDiagnostics(),
     getClockDiagnostics: () => visualizer.getClockDiagnostics(),
     clockControl: (method, arg) => visualizer.clockControl(method, arg),
+    // Per-channel setters over ONE shared fake: clearing one channel must
+    // not drop the other (a `setScriptedWaveform(null)` after
+    // `setScriptedBins(bins)` used to fall draws back to the LIVE graph
+    // analyser — non-deterministic goldens).
     async setScriptedBins(db: number[] | null): Promise<void> {
-      if (db === null) {
-        visualizer.setScriptedAnalyser(null)
-        return
-      }
-      const { createFakeAnalyser } = await import('../../test-support/fake-analyser')
-      const analyser = createFakeAnalyser({ fftSize: 4096, sampleRate: 44_100 })
-      analyser.setFrequencyBins(db)
-      visualizer.setScriptedAnalyser(analyser)
+      const analyser = await ensureScripted(db !== null)
+      if (analyser === null) return
+      analyser.setFrequencyBins(db ?? new Array<number>(analyser.frequencyBinCount).fill(-100))
     },
     async setScriptedWaveform(samples: number[] | null): Promise<void> {
-      if (samples === null) {
-        visualizer.setScriptedAnalyser(null)
-        return
-      }
-      const { createFakeAnalyser } = await import('../../test-support/fake-analyser')
-      const analyser = createFakeAnalyser({ fftSize: 4096, sampleRate: 44_100 })
-      analyser.setTimeDomain(samples)
-      visualizer.setScriptedAnalyser(analyser)
+      const analyser = await ensureScripted(samples !== null)
+      if (analyser === null) return
+      analyser.setTimeDomain(samples ?? new Array<number>(analyser.fftSize).fill(0))
     },
     setMuted: (muted) => visualizer.setMuted(muted),
     readAnalyserEnergy: () => visualizer.readAnalyserEnergy(),

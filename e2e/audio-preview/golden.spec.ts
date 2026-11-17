@@ -14,7 +14,8 @@
 // RED: the golden PNGs are produced by the slice-C generator — until then
 // this spec fails on the committed-file existence check (never on a missing
 // fixture silently skipping).
-import { expect, test } from '@playwright/test'
+import { chromium, expect, test } from '@playwright/test'
+import { execSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { REPO_ROOT } from '../../tests/helpers/repo'
@@ -140,28 +141,38 @@ test.describe('CC-107.7: visualizer goldens (scripted scene, committed PNGs)', (
   test.skip(process.platform !== 'linux', 'CC-107.7: goldens compare against the pinned linux engine only (font rasterization is platform-specific)')
 
   for (const dpr of [1, 2] as const) {
-    test(`CC-107.7: DPR ${String(dpr)} scripted-spectrum + caption overlay matches the committed golden (SSIM ≥ ${String(SSIM_MIN)})`, async ({ browser }, testInfo) => {
+    test(`CC-107.7: DPR ${String(dpr)} scripted-spectrum + caption overlay matches the committed golden (SSIM ≥ ${String(SSIM_MIN)})`, async ({}, testInfo) => {
       test.setTimeout(120_000)
       const goldenFile = join(GOLDEN_DIR, `spectrum-overlay-dpr${String(dpr)}.png`)
       expect(existsSync(goldenFile), `golden ${goldenFile} missing — generate with \`corepack pnpm exec node scripts/make-visualizer-goldens.ts\` (linux/pinned engine)`).toBe(true)
       const golden = `data:image/png;base64,${readFileSync(goldenFile).toString('base64')}`
+      // Launch EXACTLY like the generator (scripts/lib/capture-visualizer-
+      // golden.mjs): pinned rasterizer flags normalize fontconfig hinting/lcd
+      // defaults, which differ between the pinned image and the ubuntu
+      // runner (the residual SSIM gap after the Liberation pin lived entirely
+      // in caption text rows and was STABLE — a rasterization-config delta).
+      const browser = await chromium.launch({ channel: 'chromium', args: ['--font-render-hinting=none', '--force-color-profile=srgb'] })
       const context = await browser.newContext({ deviceScaleFactor: dpr })
       const page = await context.newPage()
       try {
         const actual = await captureScene(page, dpr)
         const ssim = await pageSsim(page, golden, actual)
         if (ssim < SSIM_MIN) {
-          // Diagnostics: the failing pixels ride the test-results artifact
-          // (uploads on always()) — compare against the committed golden to
-          // localize the delta without a blind CI round-trip. (fs-write, NOT
-          // testInfo.attach: body-attachments never touch disk.)
+          // Diagnostics: the failing pixels + the resolved font environment
+          // ride the test-results artifact (uploads on always()). (fs-write,
+          // NOT testInfo.attach: body-attachments never touch disk.)
           const dir = testInfo.outputPath()
           mkdirSync(dir, { recursive: true })
           writeFileSync(join(dir, `golden-actual-dpr${String(dpr)}.png`), Buffer.from(actual.split(',')[1] ?? '', 'base64'))
+          try {
+            const fc = execSync('fc-match "Liberation Sans" && fc-list | grep -i liberation | head -6', { encoding: 'utf8' })
+            writeFileSync(join(dir, `fontenv-dpr${String(dpr)}.txt`), fc)
+          } catch { /* non-linux: no fc tools */ }
         }
         expect(ssim, `in-page SSIM vs committed golden (dpr ${String(dpr)}); -1 ⇒ dimension mismatch`).toBeGreaterThanOrEqual(SSIM_MIN)
       } finally {
         await context.close()
+        await browser.close()
       }
     })
   }

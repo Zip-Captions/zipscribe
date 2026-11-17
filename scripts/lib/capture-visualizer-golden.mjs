@@ -116,7 +116,11 @@ async function captureScene(browser, dpr) {
   }
 }
 
-const browser = await chromium.launch({ channel: 'chromium' })
+// Launch options MUST match e2e/audio-preview/golden.spec.ts (which launches
+// its own chromium with the same pinned rasterizer flags — fontconfig
+// hinting/lcd defaults differ across linux hosts and were the residual
+// caption-text SSIM gap).
+const browser = await chromium.launch({ channel: 'chromium', args: ['--font-render-hinting=none', '--force-color-profile=srgb'] })
 try {
   mkdirSync(OUTPUT_DIR, { recursive: true })
   for (const dpr of [1, 2]) {
