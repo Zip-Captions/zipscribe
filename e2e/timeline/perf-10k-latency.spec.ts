@@ -80,7 +80,7 @@ async function bootAndSeed(page: import('@playwright/test').Page): Promise<void>
   await page.evaluate(SAMPLER)
 }
 
-test.describe('CC-103.4: input→state latency p95 < 16 ms at 10k blocks', () => {
+test.describe('CC-I2.4 CC-103.4: input→state latency p95 < 16 ms at 10k blocks', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:unit')
 
   test('CC-103.4 CC-I2.4: wheel-pan, zoom keys, ⌘+wheel zoom, ruler seek, block click and playhead scrub all stay under p95 16 ms', async ({ page }) => {

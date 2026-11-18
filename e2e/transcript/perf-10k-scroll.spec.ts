@@ -54,7 +54,7 @@ async function transcriptState(page: import('@playwright/test').Page): Promise<R
   return state
 }
 
-test.describe('CC-104.1: 10k-block transcript — ≥ 55 FPS scroll + virtualized row bound', () => {
+test.describe('CC-I2.4 CC-104.1: 10k-block transcript — ≥ 55 FPS scroll + virtualized row bound', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:unit')
 
   test('CC-104.1 CC-I2.4: wheel-scrolling 10k blocks holds ≥ 55 FPS and renders only a bounded window', async ({ page }) => {

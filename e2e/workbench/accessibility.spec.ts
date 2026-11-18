@@ -13,7 +13,7 @@ async function seededShell(page: import('@playwright/test').Page): Promise<void>
   await expect(page.getByTestId('panel-sidebar')).toBeVisible({ timeout: 10_000 })
 }
 
-test.describe('CC-101.5: axe clean + keyboard-only region focus', () => {
+test.describe('CC-I2.8 CC-101.5: axe clean + keyboard-only region focus', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:unit')
 
   test('CC-101.5 CC-I2.8: axe reports 0 critical/serious violations on the shell', async ({ page }) => {

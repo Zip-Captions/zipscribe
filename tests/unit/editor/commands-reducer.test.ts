@@ -93,7 +93,7 @@ describe('CC-102.3: captions-import payload validation (invariants 1–2, 4)', (
   })
 })
 
-describe('CC-102.3: block command validation', () => {
+describe('CC-I2.10 CC-102.3: block command validation', () => {
   test('CC-102.3: unknown blockId is a dangling reference', () => {
     const { app } = createTestApp()
     const before = snapshot(app)
@@ -175,7 +175,7 @@ describe('CC-102.3: block command validation', () => {
   })
 })
 
-describe('CC-102.3: deletions never move media (invariant 9) and never orphan speakers (invariant 4)', () => {
+describe('CC-I2.10 CC-102.3: deletions never move media (invariant 9) and never orphan speakers (invariant 4)', () => {
   test('CC-102.3: block-delete leaves the gap — later blocks keep their times', () => {
     const { app } = createTestApp()
     const before = projectOf(app).blocks.map((b) => [b.id, b.start, b.end])
