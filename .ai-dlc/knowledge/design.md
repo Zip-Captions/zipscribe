@@ -65,9 +65,35 @@ Our deltas (competitor gaps, verified research): transcript **search**, caption 
 - **Transcribe popover**: clicking Transcribe opens a small popover — language (default: last used, else browser language if the model supports it, else auto-detect when the engine supports it), model (size + offline-ready badge), diarize toggle (beta) — then Start. Remembered per settings.
 - **Offline & install (unit-204)**: `Offline` chip appears next to the tier chip when `navigator.onLine` is false or a model-host request fails; tooltip lists what still works. Header `⋯` menu holds "Install app" (only when `beforeinstallprompt` fired; Safari shows Add-to-Dock/Home-Screen instructions instead), "Offline models" (list cached models, sizes, total storage estimate, "Make available offline" / "Remove" per model, "Keep data on this device" → `navigator.storage.persist()` result shown honestly). Update available → toast "New version ready — Reload" after autosave; never auto-reloads.
 - **Bring-your-own captions**: the drop zone and Media tab accept caption files (`.srt .vtt .sbv .ttml .dfxp .xml .ass .ssa .zipscribe.json`) alongside media. Dropping media + captions together creates a project with an imported source track (no transcription). Dropping captions onto an open project opens the **import dialog**: detected format/encoding/language (editable), "Use as: Replace source captions · Add as translation (language) ", speaker-prefix toggle, then the `ImportReport` ("42 overlaps clamped, 3 empty cues dropped, styling removed") before confirming. Imported rows show a subtle "estimated word timing" dotted underline until aligned; "Align to audio" sits in the Subtitles tab toolbar.
+
 - **QC panel**: Subtitles tab filter chip "Issues (n)" lists QC issues grouped by code with plain-language labels ("Too fast to read — 24 chars/sec"); each row jumps to its block; issue dots appear in transcript rows and timeline blocks (`--warning`). Retime tool (toolbar ⋯ → "Shift / stretch timing…"): offset field, or two-point sync (pick block → enter correct time, twice), preview of first/last block times before applying.
 - **Opening files from the OS**: when installed (Chromium), media and `.zipscribe.json` files opened via "Open with Zipscribe" land in the same import flow as drag-and-drop.
 
+## Intent 3 surfaces (unit-200 design pass, 2026-11-18)
+
+Authoritative mockups live in `.ai-dlc/styling-and-export/mockups/` (README is the
+acceptance document for units 201/202/204): preset value tables + 16:9/9:16 renders +
+contrast sheets (`presets/`, `contrast/`), export dialog per tier/state (`export/`),
+offline/install surfaces (`offline/`), and the icon set source (`icons/`, input for
+`@vite-pwa/assets-generator`).
+
+Binding additions from the pass (no new CSS tokens — all surfaces use the existing
+palette):
+
+- **Caption fit rules** (overlay renderer, `engine/export/overlay.ts`): wrap to
+  `maxLinesPerBlock` (`\n` first) → shrink-to-fit to 40 % of `fontSizePct` → grow lines
+  to a hard cap of 5 → never clip/ellipsis; pathological overflow renders at the floor
+  and QC raises `TOO_MUCH_TEXT`. `outlineWidth` is px at 1080p canvas height.
+- **Karaoke highlight** is a solid `highlightColor` swap, no motion (reduced-motion safe
+  by construction); **bold-active** changes weight 700 → 900 only.
+- **Export dialog**: formats are multi-select checkboxes, track is a single radio
+  (source or one translation, `edited`/`stale` chips); the burn-in section is **absent
+  from the DOM** (never merely disabled) when the WebCodecs audio encoder is missing
+  (T3/T4) and for audio-only projects on every tier; progress derives from encoded pts.
+- **Offline models panel** shows the raw `navigator.storage.persist()` result honestly
+  ("granted: no — the browser may evict cached models").
+- **Update toast** surfaces only after autosave flush; `Later` does not auto-reload
+  (`registerType: 'prompt'`).
 ## Keyboard shortcuts (v1 map)
 
 Clipchamp keys verified ✔ (official docs); CapCut has no official list — community keys marked UNVERIFIED and treated as suggestions we validate by feel. Platform modifiers: `⌘` on macOS, `Ctrl` elsewhere.
