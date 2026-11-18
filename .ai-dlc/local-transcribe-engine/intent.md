@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed   # conventions § Intent exit token; closed 2026-11-18: units 01–07 all done; verify:intent local-transcribe-engine exit 0 — all 11 untagged CC-I1 criteria credited (reports/criteria/local-transcribe-engine.md; closure suite PR #22 → 13704e8, CI run 44350224169). Carried: CC-I1.2/CC-I1.3 [RQ] run at release qualify on reference hardware (owner ruling 2026-11-09); Intent-exit mutation baseline + [MANUAL] sign-offs per conventions § Exit gates (release-time items); spike corpus remains PROVISIONAL (synthetic TTS ground truth — cross-engine comparisons only) until owner upgrades fixtures
 workflow: tdd
 created: 2026-10-27
 announcements: [changelog, release-notes]
@@ -37,6 +37,23 @@ Maps to Epic 1 (US 1.1–1.3) of the original product brief, corrected against r
 - [ ] **CC-I1.11** Network drops mid-download → `model:error {code:'NETWORK', retryable:true}`; the partial file is not left in cache; retry resumes cleanly
 - [ ] **CC-I1.12** Offline with no cached model → `OFFLINE_MODEL_MISSING` notice before any job starts (no hang, no spinner forever)
 - [ ] **CC-I1.13** Unsupported codec with ffmpeg fallback unavailable → `job:error {code:'UNSUPPORTED_MEDIA'}`; no partial project created
+
+### Completion status (orchestrator, 2026-11-18) — CLOSED
+
+**All 11 untagged criteria CREDITED** by `verify:intent local-transcribe-engine`
+(exit 0 — "all untagged criteria of intent.md covered (13 total)"; table + counts
+in `reports/criteria/local-transcribe-engine.md`). Before the closure suite the
+intent credited 0–1/13 (evidence existed only as unit-level citations invisible to
+`citationsOf`, and `e2e/intent/` had no spec). Closure suite PR #22 (→ `13704e8`,
+CI run 44350224169): new `e2e/intent/local-transcribe-engine.spec.ts` (CC-I1.5
+production auto-tier under removed `navigator.gpu` + tiny e2e; CC-I1.9 m4a≡mp4
+± 50 ms), `tests/unit/engine/` spike-report-anchor (I1.1) + engine-coverage-gate
+(I1.8 whole-engine 85/75, glue pair excluded per the root coverage block), and
+~20 assertion-preserving leading-citation amendments (incl. the
+`describe › test`-head rule from [107-ADJ 25] — round 1 credited 9/11,
+wrapping describes swallowed the rest). CC-I1.2/CC-I1.3 [RQ]: reference-hardware
+qualify at release (owner ruling 2026-11-09). Process evidence:
+`docs/overnight-reports/intent-1-closure-suite.md`, ledger `[I1-CLOSE]`.
 
 ## Units
 

@@ -1,5 +1,5 @@
 ---
-status: done   # closed 2026-11-18: units 101–108 all done; verify:intent caption-studio-ui 12/12 untagged criteria credited (reports/criteria/caption-studio-ui.md; final unit PR #21 → 058b4c8, CI run 44256219985). Carried: CC-I2.3 export-dialog leg skipped-with-reason until styling-and-export/unit-202 ([107-ADJ 23]); CC-103.6/104.9-style [MANUAL] items per unit reports
+status: completed   # conventions § Intent exit token; closed 2026-11-18: units 101–108 all done; verify:intent caption-studio-ui 12/12 untagged criteria credited (reports/criteria/caption-studio-ui.md; final unit PR #21 → 058b4c8, CI run 44256219985). Carried: CC-I2.3 export-dialog leg skipped-with-reason until styling-and-export/unit-202 ([107-ADJ 23]); CC-103.6/104.9-style [MANUAL] items per unit reports
 workflow: default
 created: 2026-10-27
 announcements: [changelog, release-notes, blog-draft]
