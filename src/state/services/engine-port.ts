@@ -32,7 +32,34 @@ function dispatch<E>(listeners: readonly ((event: E) => void)[], event: E): void
   for (const listener of [...listeners]) listener(event)
 }
 
-export function createWorkerEnginePort(): WorkerEnginePort {
+/** A worker double that swallows every post and never replies (ziptest ASR lane). */
+function nullWorker(): Worker {
+  return {
+    postMessage: () => undefined,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+    terminate: () => undefined,
+    dispatchEvent: () => false,
+    onmessage: null,
+    onmessageerror: null,
+    onerror: null,
+  }
+}
+
+export interface WorkerEnginePortOptions {
+  /**
+   * FR-108 [108-ADJ]: under the strict `ziptest=1` harness the ASR/diarize
+   * lanes never instantiate real workers — every app-level transcribe/align
+   * e2e flow is injection-driven (unit-101 frozen doctrine: `inject*`
+   * dispatches into the SAME listeners), so the real lanes would only race
+   * the scripted events (worker-side MODEL_UNLOADED `job:error` vs mocked
+   * progress/segments). The media worker stays REAL — probes/decodes are
+   * genuine there (CC-106.8). Production passes nothing.
+   */
+  nullAsrDiarizeWorkers?: boolean
+}
+
+export function createWorkerEnginePort(options: WorkerEnginePortOptions = {}): WorkerEnginePort {
   const workers = new Map<WorkerKind, Worker>()
   const mediaListeners: ((event: MediaEvent) => void)[] = []
   const asrListeners: ((event: AsrEvent) => void)[] = []
@@ -44,6 +71,11 @@ export function createWorkerEnginePort(): WorkerEnginePort {
   function workerFor(kind: WorkerKind): Worker {
     const existing = workers.get(kind)
     if (existing !== undefined) return existing
+    if (options.nullAsrDiarizeWorkers === true && (kind === 'asr' || kind === 'diarize')) {
+      const quiet = nullWorker()
+      workers.set(kind, quiet)
+      return quiet
+    }
     const worker = createWorker(kind)
     if (kind === 'media') {
       worker.addEventListener('message', (event) => {
