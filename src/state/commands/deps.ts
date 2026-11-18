@@ -74,4 +74,10 @@ export interface CommandDeps {
   blockizer: Blockizer
   /** Store-generated block ids (split parts, re-flow, import keep ids unique). */
   newBlockId(): string
+  /**
+   * unit-301 EXTENDS (optional, default = available): capability gate for
+   * `translation-add-track` with `origin: 'machine'` (US-301.2). Manual and
+   * imported tracks are allowed on every browser (CC-I4.5).
+   */
+  translationEngineAvailable?(): boolean
 }

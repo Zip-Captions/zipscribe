@@ -58,6 +58,13 @@ export type EngineErrorCode =
   | 'ENCODER_UNSUPPORTED'
   | 'CANCELLED'
   | 'ENGINE_INTERNAL'
+  // unit-301 EXTENDS (architecture.md § protocol, orchestrator contract change
+  // 2026-11-18): translation error codes, FR-301.7 — codes/numbers in detail
+  // only, never content (SECURITY-03).
+  | 'TRANSLATE_FAILED'
+  | 'PAIR_UNAVAILABLE'
+  | 'DOWNLOAD_FAILED'
+  | 'NOT_ALLOWED'
 
 export interface EngineError {
   code: EngineErrorCode

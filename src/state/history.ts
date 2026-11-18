@@ -30,8 +30,8 @@ import type { Project } from '../engine/model'
 import type { MediaClock } from './services/playback/media-clock'
 import type { RafDriver, SyncArbitrator } from './services/playback/arbitrator'
 import { createSyncArbitrator } from './services/playback/arbitrator'
-import { NO_OP_TRANSLATION_RULES } from '../engine/translate/track'
-import { buildEditorCommands, buildUnit104Commands, DEFAULT_BLOCKIZER, NOT_IMPLEMENTED_SPEAKER_ENGINE, type Blockizer, type CommandDeps, type SpeakerEngine } from './commands'
+import { REAL_TRANSLATION_RULES } from '../engine/translate/track'
+import { buildEditorCommands, buildUnit104Commands, buildUnit301Commands, DEFAULT_BLOCKIZER, NOT_IMPLEMENTED_SPEAKER_ENGINE, type Blockizer, type CommandDeps, type SpeakerEngine } from './commands'
 import type { CommandId, CommandPayloads, CommandReject, EditorCommand, BlockEditTextPayload, TransportRatePayload } from './commands'
 import type { EditorStore, EditorUiStateInternal } from './editor'
 import { createInitialEditorState, makeEditorActions } from './editor'
@@ -64,6 +64,8 @@ export interface EditorAppDeps {
   mediaClock?: MediaClock
   speakerEngine?: SpeakerEngine
   translationRules?: import('../engine/translate/track').TranslationRules
+  /** unit-301 EXTENDS (optional): capability gate for machine-origin track adds. */
+  translationEngineAvailable?: () => boolean
   blockizer?: Blockizer
   /** Test composition seam: start from a full project (the production
    * composition root omits it — projects arrive via `project.createProject`). */
@@ -83,6 +85,13 @@ export interface EditorApp {
    *  Unknown id → throws. */
   dispatch<Id extends CommandId>(id: Id, payload: CommandPayloads[Id]): CommandReject | null
   history: EditorHistoryApi
+  /**
+   * unit-301 EXTENDS (FR-301.5): apply machine results (translation session
+   * batches — like transcribe job output) as JOB OUTPUT: the project mutates
+   * with NO history step (temporal paused across the batch). Never for user
+   * commands.
+   */
+  applyWithoutHistory(mutate: (draft: { project: Project | null }) => void): void
   dispose(): void
 }
 
@@ -97,11 +106,16 @@ export function createEditorApp(deps: EditorAppDeps): EditorApp {
   const commandDeps: CommandDeps = {
     clock: deps.clock,
     speakerEngine: deps.speakerEngine ?? NOT_IMPLEMENTED_SPEAKER_ENGINE,
-    translationRules: deps.translationRules ?? NO_OP_TRANSLATION_RULES,
+    // unit-301 composition-root flip (frozen 102 contract § '@engine/translate/
+    // track@102'): the REAL invariant-10 rules are the production default;
+    // NO_OP_TRANSLATION_RULES stays exported from @engine/translate/track for
+    // suites that need the stub explicitly.
+    translationRules: deps.translationRules ?? REAL_TRANSLATION_RULES,
     blockizer: deps.blockizer ?? DEFAULT_BLOCKIZER,
     newBlockId: () => newUuid('blk'),
+    ...(deps.translationEngineAvailable === undefined ? {} : { translationEngineAvailable: deps.translationEngineAvailable }),
   }
-  const commands: readonly EditorCommand[] = [...buildEditorCommands(commandDeps), ...buildUnit104Commands(commandDeps)]
+  const commands: readonly EditorCommand[] = [...buildEditorCommands(commandDeps), ...buildUnit104Commands(commandDeps), ...buildUnit301Commands(commandDeps)]
   const commandsById = new Map<CommandId, EditorCommand>(commands.map((command) => [command.id, command]))
 
   let commitState: (next: EditorRootInternal) => void = () => undefined
@@ -290,6 +304,15 @@ export function createEditorApp(deps: EditorAppDeps): EditorApp {
     getCommand: (id) => commandsById.get(id),
     dispatch,
     history,
+    applyWithoutHistory(mutate) {
+      const temporal = temporalStore()
+      temporal.pause()
+      try {
+        commit((root) => mutate(root))
+      } finally {
+        temporal.resume()
+      }
+    },
     dispose() {
       arbitrator?.dispose()
     },

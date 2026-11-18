@@ -112,9 +112,9 @@ export interface HarnessServer {
   base: string
 }
 
-export async function startHarnessServer(port: number, options: { isolated: boolean; probePath: string }): Promise<HarnessServer> {
+export async function startHarnessServer(port: number, options: { isolated: boolean; probePath: string; configPath?: string }): Promise<HarnessServer> {
   const base = `http://127.0.0.1:${port}`
-  const child = spawn('corepack', ['pnpm', 'exec', 'vite', '--config', 'e2e/asr/fixtures/vite.harness.config.ts', '--port', String(port), '--strictPort'], {
+  const child = spawn('corepack', ['pnpm', 'exec', 'vite', '--config', options.configPath ?? 'e2e/asr/fixtures/vite.harness.config.ts', '--port', String(port), '--strictPort'], {
     cwd: REPO_ROOT,
     env: { ...process.env, CI: '1', NO_COLOR: '1', ...(options.isolated ? { ZIPSCRIBE_ISOLATED: '1' } : {}) },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -133,7 +133,7 @@ export async function startHarnessServer(port: number, options: { isolated: bool
     await new Promise((resolve) => setTimeout(resolve, 250))
   }
   await stopHarnessServer(child)
-  throw new Error(`unit-05 harness vite server (port ${port}) did not start: ${output.slice(-2_000)}`)
+  throw new Error(`harness vite server (port ${port}) did not start: ${output.slice(-2_000)}`)
 }
 
 export async function stopHarnessServer(child: ChildProcess): Promise<void> {

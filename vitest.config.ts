@@ -83,6 +83,10 @@ export default defineConfig({
             // rule as model-coverage/media-coverage (the nested run also excludes
             // this file, so it cannot recurse even when ZIPSCRIBE_CHILD is cleared).
             '**/engine-coverage-gate.test.ts',
+            // unit-301 (CC-301.5): the translate coverage gate spawns a nested
+            // `vitest run` over the translate suites — same child-safety rule;
+            // the nested run also excludes this file so it cannot recurse.
+            '**/translate-coverage-gate.test.ts',
             // unit-04 (CC-04.12, RED phase): the worker wiring proof fails
             // until the builder replaces the unit-01 stub, so it cannot sit in
             // the gate-spawning child (its failure would mask the wiring
