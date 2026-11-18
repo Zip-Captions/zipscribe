@@ -32,8 +32,10 @@ Maps to Epic 2 (US 2.1–2.2) of the original brief + shortcuts/persistence requ
 
 ### Completion status (orchestrator, 2026-11-17)
 
-9/12 criteria have passing leading-cited evidence (e2e/intent/caption-studio-ui.spec.ts
-+ citation amendments in the proving suites; PR #19, CI green). BLOCKED — single root
+9/12 criteria CREDITED by `verify:intent caption-studio-ui` (I2.2/I2.4/I2.5/I2.6/I2.7/
+I2.8/I2.9/I2.10/I2.12 — see reports/criteria/caption-studio-ui.md; PRs #19 + #20, CI green;
+PR #20 moved citations to the JUnit-title head per the unit-106 lesson — citationsOf reads
+only `describe > test` head). BLOCKED — single root
 cause [107-ADJ 24]: the streaming transcribe→blocks commit is unimplemented
 (`src/state/jobs.ts` `startTranscribe` posts `placeholderPcm` — "Follow-up: real stream
 plumbing"), so CC-I2.1, CC-I2.3 and CC-I2.11 are skipped-with-reason in the intent
