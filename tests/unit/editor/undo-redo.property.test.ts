@@ -217,7 +217,7 @@ function applyIntent(t: ReturnType<typeof createTestApp>, intent: Intent, counte
   }
 }
 
-describe('CC-102.1 / US-2.1.4: command undo/redo round-trip (property)', () => {
+describe('CC-I2.6 CC-102.1 / US-2.1.4: command undo/redo round-trip (property)', () => {
   test('CC-102.1 CC-I2.6: ≥ 500 random command sequences (N ≤ 200) undo×N → start, redo×N → final', () => {
     let counter = 0
     fc.assert(
@@ -248,7 +248,7 @@ describe('CC-102.1 / US-2.1.4: command undo/redo round-trip (property)', () => {
   })
 })
 
-describe('FR-102.2: zundo configuration through the history seam', () => {
+describe('CC-I2.6 FR-102.2: zundo configuration through the history seam', () => {
   function renameRun(count: number) {
     const t = createTestApp()
     const start = structuredClone(t.app.project.getState().project)

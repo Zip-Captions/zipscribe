@@ -172,7 +172,7 @@ const WALK_BLOCKS = [
     { text: 'line', start: 4.6, end: 5.0, timing: 'estimated' }], speakerId: 'SPK_2' },
 ]
 
-test.describe('intent: caption-studio-ui completion', () => {
+test.describe('CC-I2.1: import → mocked transcribe → edit → autosave → reload (transcribe-commit leg blocked [107-ADJ 24])', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:intent')
 
   test('CC-I2.1: import → mocked transcribe → text edit + split + merge + retime → autosave → reload byte-equal', async ({ page }) => {
@@ -202,6 +202,10 @@ test.describe('intent: caption-studio-ui completion', () => {
     const after = await snapshotAfterReload(page, before.id)
     expect(after, 'state restored byte-equal after reload').toBe(before.json)
   })
+  })
+
+test.describe('CC-I2.2: vendor.vtt QC → shift → mocked align → autosave → reload byte-equal', () => {
+  test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:intent')
 
   test('CC-I2.2: media + vendor.vtt → import report → QC fix → shift → mocked align → autosave → reload byte-equal', async ({ page }) => {
     test.setTimeout(180_000)
@@ -263,6 +267,10 @@ test.describe('intent: caption-studio-ui completion', () => {
     const after = await snapshotAfterReload(page, before.id)
     expect(after, 'state restored byte-equal after reload').toBe(before.json)
   })
+  })
+
+test.describe('CC-I2.3: audio project — visualizer, mocked transcribe+diarize, sidecar-only export, fallback decode', () => {
+  test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:intent')
 
   test('CC-I2.3: audio project — visualizer renders while playing, mocked transcribe+diarize, edit, export sidecars-only (no burn-in DOM), reload byte-equal', async ({ page }) => {
     test.setTimeout(180_000)
@@ -334,6 +342,10 @@ test.describe('intent: caption-studio-ui completion', () => {
     // The absence half is covered above (no burn-in in the DOM). The positive
     // "offers sidecars" half requires unit-202's capability-gated dialog.
   })
+  })
+
+test.describe('CC-I2.8: keyboard-only walkthrough — open project, run commands, reach export without a mouse', () => {
+  test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:intent')
 
   test('CC-I2.8: keyboard-only walkthrough — open project, run commands via palette/shortcuts, reach export — without a mouse click', async ({ page }) => {
     test.setTimeout(180_000)
@@ -363,6 +375,10 @@ test.describe('intent: caption-studio-ui completion', () => {
     await page.keyboard.press('Enter')
     await expect(page.locator('[data-testid=export-button]'), 'export button is keyboard-reachable and live').toBeEnabled()
   })
+  })
+
+test.describe('CC-I2.11: job:error mid-transcription — editable blocks, coded notice, no modal (blocked [107-ADJ 24])', () => {
+  test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:intent')
 
   test('CC-I2.11: job:error mid-transcription leaves committed blocks editable with a one-line coded notice and no modal', async ({ page }) => {
     test.setTimeout(180_000)

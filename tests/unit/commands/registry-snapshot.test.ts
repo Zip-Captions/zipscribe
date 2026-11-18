@@ -39,7 +39,7 @@ async function loadRegistry(): Promise<{
   return { getCommandBindings: registry.getCommandBindings, getCommandCatalog: registry.getCommandCatalog }
 }
 
-describe('CC-105.1: the design-table snapshot equals the registry (drift = CI fail)', () => {
+describe('CC-I2.5 CC-105.1: the design-table snapshot equals the registry (drift = CI fail)', () => {
   test('CC-105.1: design.md declares exactly the contract rows — the exemption list is EXACT', async ({ skip }) => {
     skip(CHILD, CHILD_REASON)
     const rows = parseDesignShortcutRows(designMarkdown)
@@ -141,7 +141,7 @@ describe('CC-105.1: the design-table snapshot equals the registry (drift = CI fa
   })
 })
 
-describe('FR-105.6: the registry exposes palette/docs JSON', () => {
+describe('CC-I2.5 FR-105.6: the registry exposes palette/docs JSON', () => {
   test('FR-105.6 CC-I2.5: getCommandCatalog is JSON-serializable, covers every id, stable order', async ({ skip }) => {
     skip(CHILD, CHILD_REASON)
     const { getCommandBindings, getCommandCatalog } = await loadRegistry()

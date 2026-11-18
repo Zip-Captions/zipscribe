@@ -43,7 +43,7 @@ afterEach(() => {
   currentDom = null
 })
 
-describe('CC-104.2 (L2): click-word seek · follow-scroll · scroll-intent & edit pause', () => {
+describe('CC-I2.7 CC-104.2 (L2): click-word seek · follow-scroll · scroll-intent & edit pause', () => {
   test('CC-104.2: clicking a word seeks to word.start within ≤ 1 frame and selects the block', async ({ skip }) => {
     skip(CHILD, CHILD_REASON)
     const redaction = createRedactionSpy()

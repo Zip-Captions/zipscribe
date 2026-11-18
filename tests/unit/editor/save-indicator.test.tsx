@@ -61,7 +61,7 @@ afterEach(() => {
   expect(verdict.leaks, 'no canary content reached any console channel').toEqual([])
 })
 
-describe('CC-106.1 (L2): the save-state indicator in the status bar', () => {
+describe('CC-I2.12 CC-106.1 (L2): the save-state indicator in the status bar', () => {
   test('CC-106.1: renders the pinned span contract (testid + polite live region)', async () => {
     redaction = createRedactionSpy()
     const { source } = makeSource({ state: 'idle', lastSavedAt: null, errorCode: null })

@@ -101,7 +101,7 @@ describe('CC-105.4: the ⌘/ overlay — dialog semantics', () => {
   })
 })
 
-describe('CC-105.4: the ⌘/ overlay — filter, grouping, glyphs, coverage', () => {
+describe('CC-I2.5 CC-105.4: the ⌘/ overlay — filter, grouping, glyphs, coverage', () => {
   test('CC-105.4: the live filter narrows rows by label AND by key token', async ({ skip }) => {
     skip(CHILD, CHILD_REASON)
     await mountShell()
