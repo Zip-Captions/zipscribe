@@ -1,5 +1,9 @@
 ---
-status: in-progress
+status: done
+# completed: 2026-11-18 — PR #23 → f242b4a (CI run 44380539185). All 5 CC are [MANUAL]:
+# artifacts complete (mockups/README.md is the acceptance doc; 53 SVGs + contrast math);
+# CC-200.5 owner review PENDING — units 201/202/204 must not start until the owner signs
+# off the mockups incl. the 5 open questions in mockups/README.md § Open questions.
 phase: mvp
 discipline: design
 depends_on: [caption-studio-ui/unit-101-workbench-shell]
