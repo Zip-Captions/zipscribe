@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done   # closed 2026-11-18: units 101–108 all done; verify:intent caption-studio-ui 12/12 untagged criteria credited (reports/criteria/caption-studio-ui.md; final unit PR #21 → 058b4c8, CI run 44256219985). Carried: CC-I2.3 export-dialog leg skipped-with-reason until styling-and-export/unit-202 ([107-ADJ 23]); CC-103.6/104.9-style [MANUAL] items per unit reports
 workflow: default
 created: 2026-10-27
 announcements: [changelog, release-notes, blog-draft]
@@ -44,6 +44,19 @@ FR-104.6 skeleton contract — reverted). These need a stream-plumbing unit (pro
 unit-108: PCM stream wiring, frontier-aware commit, job-error StatusBar notice). The
 export-dialog leg of CC-I2.3 additionally waits on styling-and-export/unit-202
 ([107-ADJ 23]).
+
+### Completion status (orchestrator, 2026-11-18) — CLOSED
+
+**12/12** untagged criteria CREDITED by `verify:intent caption-studio-ui` (exit 0,
+"all untagged criteria of intent.md covered (12 total)"; table + counts in
+`reports/criteria/caption-studio-ui.md`). The [107-ADJ 24] root cause is resolved by
+unit-108 (PR #21 → `058b4c8`): progress-frontier stream-commit service
+(`src/state/services/transcribe-commit.ts`), real PCM decode tee in `jobs.ts`, coded
+job-error StatusBar — intent legs CC-I2.1, CC-I2.3 (aiff round-trip leg) and CC-I2.11
+un-skipped and green (CC-108.7 cited). All units 101–108 `status: done`.
+Carried, intentional: the export-dialog leg of CC-I2.3 stays skipped-with-reason until
+styling-and-export/unit-202 ([107-ADJ 23] — that leg's proof belongs to intent 4's
+suite); `[MANUAL]`/`[RQ]` unit-tier items are recorded per unit report.
 
 ### Failure cases
 - [x] **CC-I2.10** Invalid edit payloads (overlapping retime, empty text on last word, unknown speaker) are rejected by reducers with no state change and no history entry

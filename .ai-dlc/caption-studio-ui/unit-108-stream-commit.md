@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done   # merged (PR #21 → 058b4c8, 2026-11-18T07:4xZ squash); CI quality green run 44256219985 (rounds 1–3: spec-lint status value, prettier, CI-context branch attestation — 108-ADJ 8); gates: lint/typecheck/format/build+bundle 143.4 KB/350 KB; test 1873 pass; verify:unit 8/8 (reports/criteria/unit-108-stream-commit.md); verify:intent caption-studio-ui **12/12** (unblocks CC-I2.1/I2.3/I2.11 — intent closes); DEVIATIONS: no builder subagent (orchestrator implemented, [107-ADJ 17] doctrine), ziptest inert ASR/diarize lanes + gated mediaSource tee + mockTranscribe progress injection + captionOrigin:'imported' on ASR commits (108-ADJ 4–7); local parallel-load e2e flakes CC-05.2/CC-05.3 green re-run isolated (108-ADJ 9)
 phase: mvp
 discipline: frontend
 depends_on: [unit-104-transcript-editor, unit-101-workbench-shell, local-transcribe-engine/unit-04-media-ingest]
