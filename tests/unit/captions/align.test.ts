@@ -160,7 +160,7 @@ function shapeOf(project: Project): unknown {
   )
 }
 
-test('CC-07.3: text and cue count NEVER change under perturbed timings; invariant 1 holds after align (property)', () => {
+test('CC-I1.10 / CC-07.3: text and cue count NEVER change under perturbed timings; invariant 1 holds after align (property)', () => {
   assert(
     property(planArb, (plan: unknown) => {
       const { totalWords, blockCount, shiftCs } = plan as AlignPlan

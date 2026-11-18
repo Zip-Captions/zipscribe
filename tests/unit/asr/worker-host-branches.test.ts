@@ -317,7 +317,7 @@ test('FR-05.1 / FR-05.5 (protocol jobId discrimination): the run relays its own 
 
 // --- FR-05.6 cancel lifecycle corners ---------------------------------------------
 
-test('CC-05.10 / FR-05.6: cancel during the loadModel handshake settles ≤ 2 s; the worker never receives a transcribe request, and a late model:ready cannot resurrect the run', async () => {
+test('CC-I1.4 / CC-05.10 / FR-05.6: cancel during the loadModel handshake settles ≤ 2 s; the worker never receives a transcribe request, and a late model:ready cannot resurrect the run', async () => {
   const h = harness(() => ({ load: 'deferred', duration: 30, windowSec: 10 }))
   const running = h.host.transcribe(transcribeParams('job-handshake'))
   await waitFor(() => h.workers[0]?.hasRequest('loadModel') === true, 'loadModel posted')
@@ -375,7 +375,7 @@ test('FR-05.5 (host options): a host without an onEvent listener completes runs;
   expect(h.workers[0]!.sent[0], 'T1 absent → the plan is the mandatory T2 (architecture § Degradation tiers)').toMatchObject({ t: 'loadModel', model: T2_PLAN.modelId, device: 'wasm' })
 })
 
-test('FR-05.3 lifecycle: dispose() tears the warm (idle) worker down and settles an active run as cancelled; on a pristine host it is a no-op', async () => {
+test('CC-I1.4 / FR-05.3 lifecycle: dispose() tears the warm (idle) worker down and settles an active run as cancelled; on a pristine host it is a no-op', async () => {
   const h = harness(() => ({ duration: 10, windowSec: 5 }), { initialTier: 'T2' })
   const done = await h.host.transcribe(transcribeParams('job-dispose-warm'))
   expect(done.error).toBeUndefined()

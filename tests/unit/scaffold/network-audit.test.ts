@@ -55,7 +55,7 @@ describe('CC-01.6: production wasm is self-hosted and the preview split is real'
     expect(exists('public/wasm'), 'public/wasm/ (FR-1.0.9)').toBe(true)
   })
 
-  test('CC-01.6: the boot config points ONNX Runtime at /wasm/ with numThreads = 1', () => {
+  test('CC-I1.6 / CC-01.6: the boot config points ONNX Runtime at /wasm/ with numThreads = 1', () => {
     // The value is set in src/main.tsx / engine boot glue; grep the product tree.
     const sources = walkFiles('src').filter((file) => /\.(ts|tsx)$/.test(file))
     const text = sources.map((file) => readText(file)).join('\n')
@@ -63,7 +63,7 @@ describe('CC-01.6: production wasm is self-hosted and the preview split is real'
     expect(text, 'env.backends.onnx.wasm.numThreads = 1').toMatch(/numThreads\s*[:=]\s*1\b/)
   })
 
-  test('CC-01.6: production build makes zero CDN requests for wasm', async () => {
+  test('CC-I1.6 / CC-01.6: production build makes zero CDN requests for wasm', async () => {
     const scripts = packageScripts()
     expect(isPlaceholderScript(scripts.preview), `preview = ${scripts.preview ?? '<missing>'}`).toBe(false)
     const build = spawnSync('corepack', ['pnpm', 'run', '--silent', 'build'], { cwd: REPO_ROOT, encoding: 'utf8', timeout: 30_000 })

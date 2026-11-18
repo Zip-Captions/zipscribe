@@ -28,10 +28,18 @@ interface LongTaskRecord {
 export interface AsrRunOptions {
   fixture: string
   modelId: string
-  device: 'wasm' | 'webgpu'
+  /** Explicit tier/device — or omit with `autoTier: true` (CC-I1.5, below). */
+  device?: 'wasm' | 'webgpu'
   language: string | null
-  tier: 'T1' | 'T2'
+  tier?: 'T1' | 'T2'
   recycleEveryNWindows?: number
+  /**
+   * Intent-1 CC-I1.5 (L5): select tier/device through the PRODUCTION main-thread
+   * capability path (`probeDeviceCapability`, src/app/ports.ts) with zero
+   * user configuration — the exact code the app runs on first launch. With
+   * `navigator.gpu` removed by the spec, this must come out T2/wasm by itself.
+   */
+  autoTier?: boolean
 }
 
 export interface AsrRunSummary {
@@ -44,7 +52,12 @@ export interface AsrRunSummary {
   segmentCount: number
   wordCount: number
   blocks: { start: number; end: number; text: string }[]
+  /** Word tokens with timings (CC-I1.9 m4a≡mp4 word-delta comparison). */
+  words: { start: number; end: number; text: string }[]
   hypothesis: string
+  /** Populated on every run; the AUTO value is meaningful with autoTier (CC-I1.5). */
+  selectedTier?: 'T1' | 'T2' | 'T3'
+  selectedDevice?: 'wasm' | 'webgpu'
   eventSummary: { t: string; code?: string; notice?: string }[]
   runWallMs: number
 }
@@ -150,6 +163,30 @@ async function runTranscription(options: AsrRunOptions): Promise<AsrRunSummary> 
   const { createAsrWorkerHost } = (await import(/* @vite-ignore */ workerHostUrl)) as typeof import('@engine/asr/worker-host')
   const { blockize } = (await import(/* @vite-ignore */ blockizeUrl)) as typeof import('@engine/asr/blockize')
 
+  // Tier/device resolution. autoTier (CC-I1.5) goes through the PRODUCTION
+  // capability path (probeDeviceCapability) with zero user configuration —
+  // T3 collapses to the harness's wasm target; a T4 probe throws codes/reasons
+  // only (SECURITY-03). Explicit runs simply echo their chosen values.
+  let tier = options.tier
+  let device = options.device
+  let selectedTier: AsrRunSummary['selectedTier']
+  let selectedDevice: AsrRunSummary['selectedDevice']
+  if (options.autoTier) {
+    if (tier !== undefined || device !== undefined) throw new Error('autoTier run must not pass an explicit tier/device')
+    const portsUrl = new URL('../../../src/app/ports.ts', import.meta.url).href
+    const { probeDeviceCapability } = (await import(/* @vite-ignore */ portsUrl)) as { probeDeviceCapability(): Promise<{ tier: 'T1' | 'T2' | 'T3' | 'T4'; reasons: string[] }> }
+    const snapshot = await probeDeviceCapability()
+    if (snapshot.tier === 'T4') throw new Error(`capability BLOCKED (T4): ${snapshot.reasons.join(',') || 'UNSPECIFIED'}`)
+    selectedTier = snapshot.tier === 'T1' ? 'T1' : 'T2'
+    selectedDevice = snapshot.tier === 'T1' ? 'webgpu' : 'wasm'
+    tier = selectedTier
+    device = selectedDevice
+  } else {
+    if (tier === undefined || device === undefined) throw new Error('run requires tier+device or autoTier: true')
+    selectedTier = tier
+    selectedDevice = device
+  }
+
   const started = Date.now()
   const file = await fetchFixture(options.fixture)
   const { buffer } = await decodeToTransfer(file)
@@ -157,8 +194,8 @@ async function runTranscription(options: AsrRunOptions): Promise<AsrRunSummary> 
   const events: AsrEvent[] = []
   const host = createAsrWorkerHost({
     createWorker: () => wrapWorker(new Worker('/src/workers/asr.worker.ts', { type: 'module' })),
-    tiers: { T1: { modelId: options.modelId, device: options.device }, T2: { modelId: options.modelId, device: 'wasm' } },
-    initialTier: options.tier,
+    tiers: { T1: { modelId: options.modelId, device }, T2: { modelId: options.modelId, device: 'wasm' } },
+    initialTier: tier,
     recycleEveryNWindows: options.recycleEveryNWindows,
     onEvent: (event) => events.push(event),
   })
@@ -185,6 +222,9 @@ async function runTranscription(options: AsrRunOptions): Promise<AsrRunSummary> 
     segmentCount: segments.length,
     wordCount: words.length,
     blocks,
+    words: words.map((word) => ({ start: word.start, end: word.end, text: word.text })),
+    selectedTier,
+    selectedDevice,
     hypothesis: words.map((word) => word.text).join(' '),
     eventSummary: events.map((event) => ({
       t: event.t,

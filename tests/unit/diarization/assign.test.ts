@@ -198,7 +198,7 @@ gated('CC-06.1 CC-06.4 CC-06.6: FR-06.3 deps.ts seam — majoritySpeakerId / rea
 })
 
 gated('CC-06.4 CC-06.6: US-1.3.2 pure mutation APIs — golden-tested (pure coverage)', () => {
-  test('CC-06.4: renameSpeaker updates the label everywhere — ids untouched (golden)', async () => {
+  test('CC-I1.7 / CC-06.4: renameSpeaker updates the label everywhere — ids untouched (golden)', async () => {
     const { renameSpeaker } = await loadAssign()
     const input = golden<{ project: Project; args: { speakerId: string; label: string } }>('rename-speaker.in.json')
     const expected = golden<Project>('rename-speaker.out.json')
@@ -210,7 +210,7 @@ gated('CC-06.4 CC-06.6: US-1.3.2 pure mutation APIs — golden-tested (pure cove
     expect(out, 'pure: not the same object').not.toBe(project)
   })
 
-  test('CC-06.4: reassign changes ONLY the range words + resulting block majority (golden)', async () => {
+  test('CC-I1.7 / CC-06.4: reassign changes ONLY the range words + resulting block majority (golden)', async () => {
     const { reassign } = await loadAssign()
     const input = golden<{ project: Project; args: { blockId: string; wordRange: readonly [number, number]; toId: string } }>('reassign.in.json')
     const expected = golden<Project>('reassign.out.json')

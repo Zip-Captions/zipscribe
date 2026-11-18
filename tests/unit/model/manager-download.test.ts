@@ -22,7 +22,7 @@ function errorsWithCode(events: ModelManagerEvent[], code: string): ModelManager
 }
 
 describe('CC-03.5: network drop mid-download', () => {
-  test('CC-03.5: stream drops mid-download → model:error NETWORK retryable, NO partial cache entry', async () => {
+  test('CC-I1.11 / CC-03.5: stream drops mid-download → model:error NETWORK retryable, NO partial cache entry', async () => {
     const scene = await createManagerScenario({ id: 'drop-mid@55555555', fileSizes: [4096, 8192, 4096] })
     const droppedUrl = scene.made.modelUrls[1] as string
     scene.fetch.streamFailUrls.add(droppedUrl)
@@ -52,7 +52,7 @@ describe('CC-03.5: network drop mid-download', () => {
     expect(scene.handle.store.stored.size, 'no entries — not even for files that completed before the drop').toBe(0)
   })
 
-  test('CC-03.5: retry after drop completes (retryable:true is honest)', async () => {
+  test('CC-I1.11 / CC-03.5: retry after drop completes (retryable:true is honest)', async () => {
     const scene = await createManagerScenario({ id: 'retry-drop@77777777', fileSizes: [4096, 8192] })
     const brokenUrl = scene.made.modelUrls[0] as string
     scene.fetch.failUrls.add(brokenUrl)

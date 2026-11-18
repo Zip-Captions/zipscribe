@@ -24,7 +24,7 @@ function configText(): string {
 }
 
 describe('CC-01.11: coverage thresholds gate `pnpm test`', () => {
-  test('CC-01.11: vitest.config.ts configures engine 85/75 and state 80 thresholds', () => {
+  test('CC-I1.8 / CC-01.11: vitest.config.ts configures engine 85/75 and state 80 thresholds', () => {
     // Builder half first: without CI the gate never runs.
     expect(ciWorkflowText(), '.github/workflows/ci.yml exists').not.toBe('')
     const config = configText()
@@ -34,7 +34,7 @@ describe('CC-01.11: coverage thresholds gate `pnpm test`', () => {
     expect(config, 'state lines 80').toMatch(/(lines\s*:\s*80)/)
   })
 
-  test('CC-01.11: dropping engine coverage below 85% fails `pnpm test`', () => {
+  test('CC-I1.8 / CC-01.11: dropping engine coverage below 85% fails `pnpm test`', () => {
     // CI must run the suite with the coverage gate turned on.
     expect(ciWorkflowText(), 'CI workflow runs pnpm test with --coverage').toMatch(/test[^#\n]*--coverage/)
     if (isChildRun()) return

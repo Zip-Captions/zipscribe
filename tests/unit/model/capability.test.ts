@@ -40,7 +40,7 @@ describe('CC-03.2: probeCapabilities tier matrix over fake envs', () => {
     expect(caps.online).toBe(true)
   })
 
-  test('CC-03.2: T2 — no navigator.gpu at all (device must come out as wasm)', async () => {
+  test('CC-I1.5 / CC-03.2: T2 — no navigator.gpu at all (device must come out as wasm)', async () => {
     const caps = await probeCapabilities(envWith(undefined))
     expect(caps.tier).toBe('T2')
     expect(caps.webgpuAdapter).toBe(false)

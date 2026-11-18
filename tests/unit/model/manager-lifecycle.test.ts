@@ -91,7 +91,7 @@ describe('CC-03.2: blocked state publishes reasons and attempts zero downloads',
 })
 
 describe('US-03.1 / US-1.1.3: offline notice and honest progress (engine seam, L2)', () => {
-  test('US-03.1: offline + uncached → OFFLINE_MODEL_MISSING notice immediately, no fetch attempted', async () => {
+  test('CC-I1.12 / US-03.1: offline + uncached → OFFLINE_MODEL_MISSING notice immediately, no fetch attempted', async () => {
     let online = true
     const scene = await createManagerScenario({ id: 'offline-miss@89898989', fileSizes: [4096], online: () => online })
     online = false

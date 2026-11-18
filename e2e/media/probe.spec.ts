@@ -34,7 +34,7 @@ test.describe('CC-04.4: audio-only probe and CC-04.5: unsupported media', () => 
 
   for (const key of AUDIO_FIXTURES) {
     const manifest = loadManifest().files[key]
-    test(`CC-04.4: ${key} probes as audio with zero video dimensions`, async ({ page }) => {
+    test(`CC-I1.9 / CC-04.4: ${key} probes as audio with zero video dimensions`, async ({ page }) => {
       const asset = (await page.evaluate(
         async ({ url, forcedPath }) => {
           const harness = (globalThis as unknown as { __zipscribeMediaHarness: { decodeFile(url: string, options: unknown): Promise<{ events: { t: string; asset?: unknown }[] }> } }).__zipscribeMediaHarness
@@ -64,7 +64,7 @@ test.describe('CC-04.4: audio-only probe and CC-04.5: unsupported media', () => 
     })
   }
 
-  test('CC-04.4: cover-art MP3/M4A (id3/itunes art) still probe as audio, not video', async ({ page }) => {
+  test('CC-I1.9 / CC-04.4: cover-art MP3/M4A (id3/itunes art) still probe as audio, not video', async ({ page }) => {
     // `fmt-30s.mp3` and `fmt-30s.m4a` are the matrix members that carry
     // attached art/tags; the assertion above already covers them, this test
     // names the requirement explicitly.
@@ -80,7 +80,7 @@ test.describe('CC-04.4: audio-only probe and CC-04.5: unsupported media', () => 
     }
   })
 
-  test('CC-04.5: not-audio.mp3 → UNSUPPORTED_MEDIA and no asset/project', async ({ page }) => {
+  test('CC-I1.13 / CC-04.5: not-audio.mp3 → UNSUPPORTED_MEDIA and no asset/project', async ({ page }) => {
     const result = (await page.evaluate(async (url) => {
       const harness = (globalThis as unknown as { __zipscribeMediaHarness: { decodeFile(url: string, options: unknown): Promise<{ events: { t: string; code?: string; asset?: unknown }[] }> } }).__zipscribeMediaHarness
       return harness.decodeFile(url, {})

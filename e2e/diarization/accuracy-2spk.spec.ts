@@ -61,7 +61,7 @@ test.describe('CC-06.1: 2-speaker accuracy ≥ 85 % / DER-style ≤ 20 % (3-run 
     expect(runs.length, 'two contiguous runs (speaker switch happens exactly once)').toBe(2)
   })
 
-  test('CC-06.1: 3-run median word accuracy ≥ 85 % and DER-style ≤ 20 %', async ({ page }) => {
+  test('CC-I1.7 / CC-06.1: 3-run median word accuracy ≥ 85 % and DER-style ≤ 20 %', async ({ page }) => {
     assertDiarModelCachePresent()
     const gt = JSON.parse(readFileSync(join(REPO_ROOT, 'fixtures/harness/ground-truth/speech-2spk-2min.json'), 'utf8')) as GtFile
     const words: GtWord[] = gt.words.map((w) => ({ start: w.start, end: w.end, speaker: w.speaker as string }))

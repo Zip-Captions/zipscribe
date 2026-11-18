@@ -78,6 +78,11 @@ export default defineConfig({
             // unit-04 (CC-04.14): the scoped engine/audio coverage gate spawns
             // a nested `vitest run` — same child-safety rule as coverage-gate.
             '**/media-coverage.test.ts',
+            // intent-1 closure (CC-I1.8): the whole-engine coverage gate spawns
+            // a nested `vitest run` over the provider suites — same child-safety
+            // rule as model-coverage/media-coverage (the nested run also excludes
+            // this file, so it cannot recurse even when ZIPSCRIBE_CHILD is cleared).
+            '**/engine-coverage-gate.test.ts',
             // unit-04 (CC-04.12, RED phase): the worker wiring proof fails
             // until the builder replaces the unit-01 stub, so it cannot sit in
             // the gate-spawning child (its failure would mask the wiring

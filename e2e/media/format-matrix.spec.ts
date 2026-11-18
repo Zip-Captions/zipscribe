@@ -77,7 +77,7 @@ test.describe('CC-04.2: unit-04 audio format matrix, native set (real decode in 
   })
 
   for (const key of nativeSet()) {
-    test(`CC-04.2: ${key} decodes via the ${pathFor('chromium', key)} path to spec`, async ({ page }) => {
+    test(`CC-I1.9 / CC-04.2: ${key} decodes via the ${pathFor('chromium', key)} path to spec`, async ({ page }) => {
       const record = await page.evaluate(async (url) => {
         const harness = (globalThis as unknown as { __zipscribeMediaHarness: { decodeFile(url: string): Promise<unknown> } }).__zipscribeMediaHarness
         return harness.decodeFile(url)
@@ -134,7 +134,7 @@ test.describe('CC-04.3: unit-04 audio format matrix, fallback set (real decode i
 
   const parityKeys = new Set(handBuiltPayloadSet())
   for (const key of fallbackSet()) {
-    test(`CC-04.3: ${key} decodes via the ffmpeg path to spec`, async ({ page }) => {
+    test(`CC-I1.9 / CC-04.3: ${key} decodes via the ffmpeg path to spec`, async ({ page }) => {
       const record = await page.evaluate(async (url) => {
         const harness = (globalThis as unknown as { __zipscribeMediaHarness: { decodeFile(url: string, options: unknown): Promise<unknown> } }).__zipscribeMediaHarness
         return harness.decodeFile(url, { forcedPath: 'ffmpeg', ffmpegMode: 'film' })

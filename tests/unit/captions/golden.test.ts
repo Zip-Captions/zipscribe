@@ -54,7 +54,7 @@ const CASES: GoldenCase[] = [
 
 for (const testCase of CASES) {
   const stem = testCase.fixture.replace('captions/', '')
-  test(`CC-07.1: golden ${stem} — blocks + ImportReport byte-equal (canonical)`, async () => {
+  test(`CC-I1.10 / CC-07.1: golden ${stem} — blocks + ImportReport byte-equal (canonical)`, async () => {
     const project = makeProject({ duration: 30 })
     const { project: imported, report } = await importCaptions(project, captionFile(testCase.fixture), { as: testCase.as ?? 'source' })
     const expected = readJsonFile<Golden>(`fixtures/golden/captions/${stem}.expected.json`)

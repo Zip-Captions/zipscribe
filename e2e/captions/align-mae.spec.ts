@@ -145,7 +145,7 @@ test.describe('CC-07.3: caption↔ASR alignment honest word-timing MAE vs spike 
     if (server) await stopHarnessServer(server.child)
   })
 
-  test('CC-07.3: aligned caption words over senate-veterans-2min.mp4 stay within 1.5× the spike word-timing MAE baseline', async ({ page }) => {
+  test('CC-I1.10 / CC-07.3: aligned caption words over senate-veterans-2min.mp4 stay within 1.5× the spike word-timing MAE baseline', async ({ page }) => {
     const { value: baseline, source } = spikeTinyWordTimingMaeBaseline()
     const groundTruth = (JSON.parse(readFileSync(join(REPO_ROOT, `fixtures/harness/ground-truth/${CORPUS_CLIP}.json`), 'utf8')) as { words: GroundTruthWord[] }).words
     const captionTokens = vttCueTokens(`fixtures/captions/${CORPUS_CLIP}-blocked.vtt`)
