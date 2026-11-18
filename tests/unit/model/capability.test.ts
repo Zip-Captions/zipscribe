@@ -31,7 +31,7 @@ const adapterReject = {
     Promise.reject(new Error('adapter request failed (simulated)')),
 }
 
-describe('CC-03.2: probeCapabilities tier matrix over fake envs', () => {
+describe('CC-I1.5 / CC-03.2: probeCapabilities tier matrix over fake envs', () => {
   test('CC-03.2: T1 — navigator.gpu with a usable adapter', async () => {
     const caps = await probeCapabilities(envWith({ gpu: adapterOk }))
     expect(caps.tier).toBe('T1')
@@ -40,7 +40,7 @@ describe('CC-03.2: probeCapabilities tier matrix over fake envs', () => {
     expect(caps.online).toBe(true)
   })
 
-  test('CC-03.2: T2 — no navigator.gpu at all (device must come out as wasm)', async () => {
+  test('CC-I1.5 / CC-03.2: T2 — no navigator.gpu at all (device must come out as wasm)', async () => {
     const caps = await probeCapabilities(envWith(undefined))
     expect(caps.tier).toBe('T2')
     expect(caps.webgpuAdapter).toBe(false)

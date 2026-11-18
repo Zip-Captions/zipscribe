@@ -231,7 +231,7 @@ test('FR-05.5: host accepts both PcmSource kinds', async () => {
   portChannel.port2.close()
 })
 
-test('CC-05.10 / FR-05.6: cancel ≤ 2 s keeps partial blocks, tears the worker down cleanly, discards the in-flight window', async () => {
+test('CC-I1.4 / CC-05.10 / FR-05.6: cancel ≤ 2 s keeps partial blocks, tears the worker down cleanly, discards the in-flight window', async () => {
   const h = harness(() => ({ duration: 600, windowSec: 5 }), { initialTier: 'T2' })
   const running = h.host.transcribe(transcribeParams('job-cancel'))
   await waitFor(() => h.events.some((e) => e.t === 'job:segments'), 'at least one committed window before cancel')

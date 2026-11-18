@@ -83,7 +83,7 @@ function strays(): string[] {
   return existsSync(dir) ? readdirSync(dir).filter((name) => name.includes('.tmp-')) : []
 }
 
-describe('adversarial: models:fetch cache integrity', () => {
+describe('CC-I1.11: adversarial — models:fetch cache integrity', () => {
   test('ADVERSARIAL FR-1.0.12: clean fetch writes the verified file into the cache', () => {
     const bytes = cacheBytes()
     if (!bytes) return
@@ -95,7 +95,7 @@ describe('adversarial: models:fetch cache integrity', () => {
     expect(strays(), 'no .tmp- residue may persist after a successful fetch').toEqual([])
   })
 
-  test('ADVERSARIAL FR-1.0.12 / CC-I1.11 discipline: a corrupted cache entry is refetched, never trusted', () => {
+  test('CC-I1.11: ADVERSARIAL FR-1.0.12 discipline — a corrupted cache entry is refetched, never trusted', () => {
     const bytes = cacheBytes()
     if (!bytes) return
     writeFileSync(dest, Buffer.from('{"poisoned":1}'))
@@ -104,7 +104,7 @@ describe('adversarial: models:fetch cache integrity', () => {
     expect(readFileSync(dest).equals(bytes), 'poisoned bytes must be replaced with the verified payload').toBe(true)
   })
 
-  test('ADVERSARIAL FR-1.0.12 / CC-I1.11: network drop mid-fetch exits non-zero and leaves NO file at the cache path', () => {
+  test('CC-I1.11: ADVERSARIAL FR-1.0.12 — network drop mid-fetch exits non-zero and leaves NO file at the cache path', () => {
     const bytes = cacheBytes()
     if (!bytes) return
     writeFileSync(dest, Buffer.from('{"poisoned":1}'))

@@ -248,7 +248,7 @@ async function readEvents(page: Page): Promise<{ t: string; phase?: string; code
 
 // --- the criteria ------------------------------------------------------------
 
-test('CC-03.3: cache-hit reload makes ZERO requests to any model_hosts origin (route spy)', async ({ page }) => {
+test('CC-I1.6 / CC-03.3: cache-hit reload makes ZERO requests to any model_hosts origin (route spy)', async ({ page }) => {
   const plan = makePlan('e2e-cache-hit@deadbeef', [8192, 16_384])
   const counters: Counters = { modelHost: 0 }
   await wireRoutes(page, plan, counters)
@@ -300,7 +300,7 @@ test('CC-03.3: context.setOffline(true) + cached model → load succeeds without
   await context.setOffline(false)
 })
 
-test('CC-03.3: offline + UNCACHED → OFFLINE_MODEL_MISSING notice within 1 s, zero fetch attempts', async ({ page, context }) => {
+test('CC-I1.12 / CC-03.3: offline + UNCACHED → OFFLINE_MODEL_MISSING notice within 1 s, zero fetch attempts', async ({ page, context }) => {
   const plan = makePlan('e2e-offline-miss@feedface', [8192])
   const counters: Counters = { modelHost: 0 }
   await wireRoutes(page, plan, counters)

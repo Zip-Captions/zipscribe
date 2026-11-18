@@ -32,7 +32,7 @@ async function runDiar(page: import('@playwright/test').Page, fixture: string): 
   return page.evaluate((options) => (globalThis as unknown as { __zipscribeDiarHarness: { runDiarize(o: typeof options): Promise<DiarRunSummary> } }).__zipscribeDiarHarness.runDiarize(options), { fixture })
 }
 
-test.describe('CC-06.1: 2-speaker accuracy ≥ 85 % / DER-style ≤ 20 % (3-run median)', () => {
+test.describe('CC-I1.7 / CC-06.1: 2-speaker accuracy ≥ 85 % / DER-style ≤ 20 % (3-run median)', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e`')
   test.use({ baseURL: `http://127.0.0.1:${PORT}` })
   test.setTimeout(20 * 60_000)
@@ -61,7 +61,7 @@ test.describe('CC-06.1: 2-speaker accuracy ≥ 85 % / DER-style ≤ 20 % (3-run 
     expect(runs.length, 'two contiguous runs (speaker switch happens exactly once)').toBe(2)
   })
 
-  test('CC-06.1: 3-run median word accuracy ≥ 85 % and DER-style ≤ 20 %', async ({ page }) => {
+  test('CC-I1.7 / CC-06.1: 3-run median word accuracy ≥ 85 % and DER-style ≤ 20 %', async ({ page }) => {
     assertDiarModelCachePresent()
     const gt = JSON.parse(readFileSync(join(REPO_ROOT, 'fixtures/harness/ground-truth/speech-2spk-2min.json'), 'utf8')) as GtFile
     const words: GtWord[] = gt.words.map((w) => ({ start: w.start, end: w.end, speaker: w.speaker as string }))
