@@ -59,7 +59,7 @@ export function sourceHash(text: string): string {
     hash ^= text.charCodeAt(i)
     hash = Math.imul(hash, 0x01000193) >>> 0
   }
-  return `h${hash.toString(16)}`
+  return `h${text.length.toString(36)}.${hash.toString(16)}`
 }
 
 export function isStale(entry: TranslationEntry, blockText: string): boolean {

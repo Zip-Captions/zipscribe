@@ -79,9 +79,10 @@ function installScriptedApis(): void {
       return {
         async translate(input: string) {
           translateCalls += 1
-          // Real API is async; yielding the loop here is the honest shape of
+          // The criterion's API profile (CC-301.3: mocked latency 30–300 ms).
+          // Real async API work + yielding the loop is the honest shape of
           // what the session must not turn into a synchronous burst.
-          await new Promise((r) => setTimeout(r, 0))
+          await new Promise((r) => setTimeout(r, 30 + Math.random() * 60))
           return `fr:${input}`
         },
         destroy() {
@@ -109,10 +110,16 @@ function installScriptedApis(): void {
   }
 }
 
+// Pre-import the modules under test AT BOOT so the first run() (inside the
+// long-task watch window) never pays vite dev-server transform cost — a
+// transform spike is page-context work unrelated to the session and would
+// flake the gate.
+const modulesReady = Promise.all([import('@engine/translate/chrome-translator'), import('@engine/translate/session'), import('@engine/translate/track')])
+
 async function run(options: TranslateRunOptions): Promise<TranslateRunSummary> {
   const base: TranslateRunSummary = { ok: false, planned: 0, translated: 0, passThrough: 0, failed: 0, cancelled: false, entriesApplied: 0, translateCalls: 0 }
   try {
-    const [{ createChromeTranslationEngine }, { createTranslationSession }, { applyEntries }] = await Promise.all([import('@engine/translate/chrome-translator'), import('@engine/translate/session'), import('@engine/translate/track')])
+    const [{ createChromeTranslationEngine }, { createTranslationSession }, { applyEntries }] = await modulesReady
     installScriptedApis()
     translateCalls = 0
     const speakers = [speaker('SPK_1', 'Speaker 1', '#4c8dff')]

@@ -63,6 +63,24 @@ function primaryTag(bcp47: string): string {
   return bcp47.toLowerCase().split('-')[0] ?? bcp47.toLowerCase()
 }
 
+/**
+ * Pass-through match (FR-301.6). Primary tags must agree; when the TARGET
+ * carries a script subtag (e.g. 'zh-Hant') the DETECTED tag must carry the
+ * same script — a Simplified-detected block is not evidence that the text
+ * is already Traditional, so it gets translated, not passed through.
+ */
+function passThroughMatch(detected: string, target: string): boolean {
+  if (primaryTag(detected) !== primaryTag(target)) return false
+  const scriptOf = (tag: string): string | undefined =>
+    tag
+      .toLowerCase()
+      .split('-')
+      .find((s) => s.length === 4)
+  const targetScript = scriptOf(target)
+  if (targetScript === undefined) return true
+  return scriptOf(detected) === targetScript
+}
+
 export function createTranslationSession(engine: TranslationEngine, deps: SessionDeps = {}): TranslationSession {
   const scheduler = deps.scheduler ?? defaultScheduler
   /** generation counter: any newer run (e.g. target-language switch) discards older in-flight results. */
@@ -179,7 +197,7 @@ export function createTranslationSession(engine: TranslationEngine, deps: Sessio
         detected = guess?.language ?? ''
         detectCache.set(detectKey, detected)
       }
-      if (detected !== '' && primaryTag(detected) === primaryTag(language)) {
+      if (detected !== '' && passThroughMatch(detected, language)) {
         batch.push(entry({ text: block.text, status: 'translated', hash: sourceHash(block.text) }))
         stats.passThrough++
         done++
@@ -188,6 +206,9 @@ export function createTranslationSession(engine: TranslationEngine, deps: Sessio
         continue
       }
 
+      // Attempt budget: MAX_ATTEMPTS per block PER RUN (the plan gate keeps
+      // persisted-`failed` blocks out once 3 attempts were recorded); a
+      // re-run after cancel may attempt a still-under-budget block again.
       let translated: string | null = null
       let attemptsUsed = 0
       let lastCode = 'TRANSLATE_FAILED'
@@ -235,7 +256,7 @@ export function createTranslationSession(engine: TranslationEngine, deps: Sessio
 
   return {
     run,
-    attemptsFor: (language) => attemptsByLang.get(language) ?? new Map(),
+    attemptsFor: (language) => new Map(attemptsByLang.get(language) ?? new Map()),
     dispose: () => {
       disposed = true
       generation++

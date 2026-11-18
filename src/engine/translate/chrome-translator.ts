@@ -14,7 +14,7 @@
 //
 // SECURITY-03: throws EngineError with codes + error NAME only — never text.
 
-import { translateError, type EnsurePairResult, type EngineAvailability, type LanguageGuess, type PairAvailability, type TranslationEngine } from './engine'
+import { translateError, TranslationError, type EnsurePairResult, type EngineAvailability, type LanguageGuess, type PairAvailability, type TranslationEngine } from './engine'
 
 // Minimal surface of the built-in APIs we consume (DOM lib doesn't define them yet).
 interface TranslatorMonitor {
@@ -118,14 +118,15 @@ export function createChromeTranslationEngine(): TranslationEngine {
     if (availability === 'downloadable' && !userActivationActive()) {
       throw translateError('NOT_ALLOWED', false, 'NO_USER_ACTIVATION')
     }
+    const apiRef = translator
     const key = pairKey(source, target)
     const existing = pending.get(key)
     // Pending-create dedupe: join an in-flight create unless this is a
     // user-initiated request and the pending one is background (never join).
     if (existing !== undefined && !(userInitiated && !existing.initiated)) return existing.promise
-    const promise = (async () => {
+    async function create(): Promise<TranslatorInstance> {
       try {
-        const instance = await translator.create({
+        const instance = await apiRef.create({
           sourceLanguage: source,
           targetLanguage: target,
           ...(onProgress === undefined
@@ -139,6 +140,10 @@ export function createChromeTranslationEngine(): TranslationEngine {
                 },
               }),
         })
+        // Last create wins the slot; a superseded sibling (only possible
+        // when the join rule forced a second same-pair create) must not
+        // leak outside the LRU map undisposed.
+        drop(key)
         instances.set(key, instance)
         evictIfNeeded()
         touch(key)
@@ -146,11 +151,17 @@ export function createChromeTranslationEngine(): TranslationEngine {
       } catch (error) {
         throw translateError(availability === 'downloading' || availability === 'downloadable' ? 'DOWNLOAD_FAILED' : 'TRANSLATE_FAILED', true, `CREATE:${safeNameToken(errorName(error))}`)
       } finally {
-        pending.delete(key)
+        // Only clear OUR pending entry: a same-key request that started
+        // while this create was in flight installs its own (the join rule
+        // keeps user-initiated off a background pending) — deleting blindly
+        // would expose a race window where a third request duplicates the
+        // create and one instance leaks outside the LRU map.
+        if (pending.get(key)?.promise === created) pending.delete(key)
       }
-    })()
-    pending.set(key, { promise, initiated: userInitiated })
-    return promise
+    }
+    const created = create()
+    pending.set(key, { promise: created, initiated: userInitiated })
+    return created
   }
 
   function drop(key: string): void {
@@ -194,6 +205,9 @@ export function createChromeTranslationEngine(): TranslationEngine {
       const key = pairKey(source, target)
       touch(key)
       let instance = instances.get(key)
+      // Runs are gesture-originated (the user pressed Translate); a
+      // background-class create would let a pending download absorb this
+      // call and never translate (zip-captions join rule).
       if (instance === undefined) instance = await createInstance(source, target, true)
       try {
         const result = await instance.translate(text)
@@ -204,11 +218,13 @@ export function createChromeTranslationEngine(): TranslationEngine {
         }
         return result
       } catch (error) {
-        // Strict semantics + UnknownError recovery (zip-captions): destroy the
-        // (possibly poisoned) instance; the next attempt rebuilds it.
         drop(key)
         if (signal.aborted || errorName(error) === 'AbortError') throw translateError('CANCELLED', false, 'ABORTED')
-        if ((error as { code?: unknown })?.code !== undefined) throw error // our own CANCELLED from above, verbatim
+        // Only OUR OWN errors (e.g. the CANCELLED above) pass through
+        // verbatim. DOMException — the real API's rejection type — always
+        // exposes a legacy numeric `code`, so a property check would let raw
+        // browser objects cross the sanitizing boundary (M1 review fix).
+        if (error instanceof TranslationError) throw error
         throw translateError('TRANSLATE_FAILED', true, safeNameToken(errorName(error)))
       }
     },

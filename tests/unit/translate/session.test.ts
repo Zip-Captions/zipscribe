@@ -194,7 +194,7 @@ describe('CC-301.1: generation counter and cancellation', () => {
     expect(newEntries.length, 'newer run delivers its batches').toBeGreaterThan(0)
   })
 
-  test('CC-301.1: cancel via AbortSignal stops delivery ≤ 500 ms; in-flight resolves discard', async () => {
+  test('CC-301.1: cancel via AbortSignal stops observing ≤ 500 ms; in-flight resolves discard', async () => {
     let resolvePending: (value: string) => void = () => undefined
     const script = scriptedEngine({
       translate: () => new Promise<string>((resolve) => (resolvePending = resolve)),
@@ -203,20 +203,44 @@ describe('CC-301.1: generation counter and cancellation', () => {
     const project = projectWith(40)
     const controller = new AbortController()
     const delivered: unknown[] = []
-    const started = performance.now()
     const run = session.run(project, 'fr', { signal: controller.signal, onEntries: (b) => delivered.push(...b) })
-    await Promise.resolve()
+    // let the run reach its first in-flight engine call (real cancel happens
+    // mid-translation, not at t=0), THEN abort and time from THERE.
+    for (let i = 0; i < 50 && script.calls.length === 0; i++) await new Promise((r) => setTimeout(r, 0))
+    expect(script.calls.length, 'run reached the engine before the cancel').toBe(1)
+    const abortAt = performance.now()
     controller.abort()
-    const stopAt = performance.now()
+    // FR-301.3 envelope: the API itself settles — bounded in-flight latency.
     resolvePending('fr:late')
     const stats = await run
+    const settleMs = performance.now() - abortAt
     expect(stats.cancelled, 'cancelled').toBe(true)
-    expect(stopAt - started, 'stop decision within 500 ms of abort').toBeLessThan(500)
+    expect(settleMs, 'session stops observing within 500 ms of the abort').toBeLessThan(500)
+    expect(script.calls.length, 'NO further engine call after the abort').toBe(1)
     expect(stats.discarded, 'late batch discarded (never reached onEntries)').toBeGreaterThan(0)
-    const deliveredAfterAbort = delivered.length
-    resolvePending('fr:late2')
-    await Promise.resolve()
-    expect(delivered.length, 'nothing delivered after abort').toBe(deliveredAfterAbort)
+    expect(delivered.length, 'nothing delivered after abort').toBe(0)
+  })
+
+  test('CC-301.1: pass-through respects the script subtag (zh-Hant ≠ zh-Hans, FR-301.6)', async () => {
+    const cases: { detected: string; target: string; passThrough: boolean }[] = [
+      { detected: 'zh-hant', target: 'zh-Hant', passThrough: true },
+      { detected: 'zh-hans', target: 'zh-Hant', passThrough: false },
+      { detected: 'zh', target: 'zh-Hant', passThrough: false },
+      { detected: 'zh-hans', target: 'zh', passThrough: true },
+      { detected: 'en', target: 'zh-Hant', passThrough: false },
+    ]
+    for (const c of cases) {
+      const script = scriptedEngine({ detected: new Map<string, string>([['sentence number 0', c.detected]]) })
+      const session = createTranslationSession(script.engine, { scheduler: immediate })
+      const stats = await session.run(projectWith(1), c.target)
+      if (c.passThrough) {
+        expect(stats.passThrough, `${c.detected} → ${c.target} passes through`).toBe(1)
+        expect(script.calls.length, 'no engine call').toBe(0)
+      } else {
+        expect(stats.translated, `${c.detected} → ${c.target} gets translated`).toBe(1)
+        expect(stats.passThrough, 'never passed through').toBe(0)
+      }
+    }
   })
 
   test('CC-301.1: background run against a downloadable pair starts no download and translates nothing', async () => {

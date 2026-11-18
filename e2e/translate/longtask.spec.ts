@@ -24,7 +24,9 @@ let server: HarnessServer | undefined
 test.describe('CC-301.3: the translation session never blocks the main thread', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e`')
   test.use({ baseURL: `http://127.0.0.1:${PORT}` })
-  test.setTimeout(5 * 60_000)
+  // 1000 sequential scripted translates at the criterion's 30–90 ms
+  // per-call profile (within the stated 30–300 ms envelope) ≈ 1 min.
+  test.setTimeout(6 * 60_000)
 
   test.beforeAll(async () => {
     server = await startHarnessServer(PORT, { isolated: false, probePath: '/e2e/translate/fixtures/harness.html', configPath: 'e2e/translate/fixtures/vite.harness.config.ts' })

@@ -478,8 +478,9 @@ declare module '@state/history' {
     speakerEngine?: SpeakerEngine
     translationRules?: TranslationRules
     /** EXTENDS (unit-301, 2026-11-18): composition seam for the
-     *  translation-add-track availability gate (production default =
-     *  unavailable; tests inject a fake). */
+     *  translation-add-track availability gate — the production
+     *  composition root injects the real adapter check; absent ⇒ treated
+     *  as available (tests inject to exercise both branches). */
     translationEngineAvailable?: () => boolean
     blockizer?: Blockizer
     /** Test composition seam: start from a full project (the production

@@ -107,28 +107,46 @@ describe('CC-301.1: session edge paths', () => {
     expect(session.attemptsFor('fr').get('blk_0')).toBe(1)
   })
 
-  test('CC-301.1: text cache evicts beyond 500 entries (FIFO)', async () => {
+  test('CC-301.1: text cache caps at 500 with FIFO eviction (FR-301.6)', async () => {
     const distinct = 560
-    const p = sampleProject({
-      language: 'en',
-      blocks: Array.from({ length: distinct }, (_, i) => block(`blk_${i}`, i * 0.5, i * 0.5 + 0.4, 'SPK_1', [word(`cache text ${i}`, i * 0.5, i * 0.5 + 0.4)])),
-      speakers: SPEAKERS,
-      translations: [{ language: 'fr', origin: 'machine', engine: 'chrome-translator', entries: {} }],
-    })
+    const allBlocks = Array.from({ length: distinct }, (_, i) => block(`blk_${i}`, i * 0.5, i * 0.5 + 0.4, 'SPK_1', [word(`cache text ${i}`, i * 0.5, i * 0.5 + 0.4)]))
+    const projOf = (blocks: typeof allBlocks): ReturnType<typeof sampleProject> =>
+      sampleProject({
+        language: 'en',
+        blocks: structuredClone(blocks),
+        speakers: SPEAKERS,
+        translations: [{ language: 'fr', origin: 'machine', engine: 'chrome-translator', entries: {} }],
+      })
     const calls: string[] = []
-    const engine = engineStub({ translate: async (_s, _t, text) => {
-      calls.push(text)
-      return `fr:${text}`
-    } })
+    const engine = engineStub({
+      translate: async (_s, _t, text) => {
+        calls.push(text)
+        return `fr:${text}`
+      },
+    })
     const session = createTranslationSession(engine, { scheduler: async () => undefined })
-    const stats = await session.run(p, 'fr')
-    expect(stats.translated).toBe(distinct)
-    expect(calls.length, 'every distinct text fetched (cap did not corrupt results)').toBe(distinct)
-    // second run over a REPEAT of the first 500 must still translate identically (cache or engine — no errors)
-    const repeat = structuredClone(p)
-    repeat.translations[0]!.entries = {}
-    const stats2 = await session.run(repeat, 'fr')
-    expect(stats2.translated).toBe(distinct)
+    const runRange = async (from: number, to: number) => {
+      const before = calls.length
+      const stats = await session.run(projOf(allBlocks.slice(from, to)), 'fr')
+      return { fetched: calls.length - before, stats }
+    }
+
+    // Run 1: every distinct text crosses the engine once; the FIFO evicts
+    // the first 60 at the 500-entry cap.
+    const r1 = await runRange(0, distinct)
+    expect(r1.fetched).toBe(distinct)
+    expect(r1.stats.translated).toBe(distinct)
+    // Run 2 — TAIL (most recently inserted): full hits, zero engine calls
+    // (proves retention, and that the cap did not drop the recent set).
+    expect((await runRange(distinct - 10, distinct)).fetched, 'recent tail stays cached').toBe(0)
+    // Run 3 — HEAD (the FIFO victims): all 10 refetch (proves the 500 cap
+    // evicted exactly the oldest). Their re-insertion evicts blocks 60–69.
+    expect((await runRange(0, 10)).fetched, 'FIFO-evicted head refetches').toBe(10)
+    // Run 4 — blocks 60–69: just evicted to make room → refetch (proves
+    // FIFO victim ORDER, not just that eviction happens).
+    expect((await runRange(60, 70)).fetched, 'FIFO pops oldest first').toBe(10)
+    // Run 5 — tail again: still resident (the eviction storm never touched it).
+    expect((await runRange(distinct - 10, distinct)).fetched, 'tail never evicted').toBe(0)
   })
 
   test('CC-301.1: abort while awaiting detection → cancelled, nothing delivered', async () => {

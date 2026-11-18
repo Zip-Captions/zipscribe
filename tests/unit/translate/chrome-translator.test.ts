@@ -443,3 +443,64 @@ describe('CC-301.1: translate-time abort and detector paths', () => {
     engine.dispose()
   })
 })
+
+describe('CC-301.1: real-API rejection shapes (M1/M3 review fixes)', () => {
+  test('FR-301.2: DOMException rejections are sanitized — never re-thrown raw, retry stays armed', async () => {
+    const h = installFakeTranslator()
+    const engine = createChromeTranslationEngine()
+    await engine.translate('en', 'fr', 'warm', new AbortController().signal)
+    const poisoned = h.instances[0]!
+    poisoned.translate = async () => {
+      // DOMException — the real API's rejection type — ALWAYS exposes the
+      // legacy numeric `.code`; it must not be mistaken for our own error.
+      throw new DOMException('browser-internal message CANARY-never-log', 'UnknownError')
+    }
+    const error = (await engine.translate('en', 'fr', 'boom', new AbortController().signal).catch((e: unknown) => e)) as { code?: string; retryable?: boolean; detail?: string } & Error
+    expect(error.code, 'sanitized to EngineError shape').toBe('TRANSLATE_FAILED')
+    expect(error.retryable, 'retry stays armed → the session 3-attempt loop engages').toBe(true)
+    expect(error.detail).toBe('UNKNOWN')
+    expect(JSON.stringify(error) + error.message).not.toContain('CANARY')
+    expect(poisoned.destroyed, 'poisoned instance destroyed').toBe(true)
+    const rebuilt = await engine.translate('en', 'fr', 'again', new AbortController().signal)
+    expect(rebuilt, 'UnknownError rebuild path reached').toBe('tr:again')
+    engine.dispose()
+  })
+
+  test('FR-301.2: a foreign error carrying a numeric `code` is still sanitized', async () => {
+    const h = installFakeTranslator()
+    const engine = createChromeTranslationEngine()
+    await engine.translate('en', 'fr', 'warm', new AbortController().signal)
+    h.instances[0]!.translate = async () => {
+      const error = Object.assign(new Error('legacy'), { name: 'DataCloneError', code: 25 })
+      throw error
+    }
+    await expect(engine.translate('en', 'fr', 'boom', new AbortController().signal)).rejects.toMatchObject({ code: 'TRANSLATE_FAILED', retryable: true, detail: 'API' })
+    engine.dispose()
+  })
+
+  test('CC-301.1: background/user create race — pending slot owned per-create, third request joins, no instance leaks', async () => {
+    const h = installFakeTranslator({ availability: 'downloading', blockCreates: true })
+    const engine = createChromeTranslationEngine()
+    const background = engine.ensurePair('en', 'fr', { userInitiated: false })
+    await flush(() => h.pending.length === 1)
+    const user = engine.ensurePair('en', 'fr', { userInitiated: true })
+    await flush(() => h.pending.length === 2)
+    let bgDestroyed = false
+    let userDestroyed = false
+    const bgInstance = { translate: async (t: string) => t, destroy: () => void (bgDestroyed = true) }
+    const userInstance = { translate: async (t: string) => t, destroy: () => void (userDestroyed = true) }
+    h.pending[0]!.resolve(bgInstance as never)
+    await background
+    // the background create's finally must NOT have cleared the USER pending —
+    // a third request in this window joins the user create, no third create.
+    const third = engine.ensurePair('en', 'fr', { userInitiated: true })
+    await new Promise((r) => setTimeout(r, 0))
+    expect(h.creates.length, 'background + user only — third joined, no duplicate create').toBe(2)
+    h.pending[1]!.resolve(userInstance as never)
+    await Promise.all([user, third])
+    expect(bgDestroyed, 'superseded sibling destroyed, not leaked outside the LRU map').toBe(true)
+    expect(userDestroyed, 'winning instance still live').toBe(false)
+    engine.dispose()
+    expect(userDestroyed, 'and disposed with the engine').toBe(true)
+  })
+})
