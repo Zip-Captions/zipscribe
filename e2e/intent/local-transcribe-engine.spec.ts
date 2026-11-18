@@ -55,6 +55,10 @@ async function runHarness(page: import('@playwright/test').Page, options: Record
 
 test.describe('CC-I1.5: WebGPU-less auto-selection completes a tiny transcription e2e with no user configuration', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e`')
+  // One worker for this file's real-whisper runs: two concurrent wasm transcriptions
+  // measurably pushed the CI 2-core p95 of e2e/timeline/perf-10k-latency (retry-pass
+  // guard, Actions run 44344972278). Serial keeps at most one whisper burst live.
+  test.describe.configure({ mode: 'serial' })
   test.use({ baseURL: `http://127.0.0.1:${PORT}` })
   test.setTimeout(15 * 60_000)
 
@@ -82,6 +86,7 @@ test.describe('CC-I1.5: WebGPU-less auto-selection completes a tiny transcriptio
 
 test.describe('CC-I1.9: m4a and mp4 twins transcribe to the same blocks (± 50 ms per word)', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e`')
+  test.describe.configure({ mode: 'serial' })
   test.use({ baseURL: `http://127.0.0.1:${PORT}` })
   test.setTimeout(25 * 60_000)
 
