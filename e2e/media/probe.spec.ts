@@ -15,7 +15,7 @@ import {
 
 const AUDIO_FIXTURES = [...nativeSet(), ...fallbackSet()]
 
-test.describe('CC-04.4: audio-only probe and CC-04.5: unsupported media', () => {
+test.describe('CC-I1.9 / CC-I1.13 / CC-04.4: audio-only probe and CC-04.5: unsupported media', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:unit')
   // Specs run against the Playwright webServer (build + preview on 4310,
   // vite.config.ts `publicDir: fixtures`); the harness page is prebuilt into

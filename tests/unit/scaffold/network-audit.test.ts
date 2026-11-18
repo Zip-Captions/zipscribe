@@ -50,7 +50,7 @@ async function stopPreview(handle: ServerHandle | undefined): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 300))
 }
 
-describe('CC-01.6: production wasm is self-hosted and the preview split is real', () => {
+describe('CC-I1.6 / CC-01.6: production wasm is self-hosted and the preview split is real', () => {
   test('CC-01.6: runtime wasm is copied into public/wasm/ at build time', () => {
     expect(exists('public/wasm'), 'public/wasm/ (FR-1.0.9)').toBe(true)
   })

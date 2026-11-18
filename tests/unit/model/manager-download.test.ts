@@ -21,7 +21,7 @@ function errorsWithCode(events: ModelManagerEvent[], code: string): ModelManager
   return eventsOf(events, 'model:error').filter((event) => (event as { error: { code: string } }).error.code === code)
 }
 
-describe('CC-03.5: network drop mid-download', () => {
+describe('CC-I1.11 / CC-03.5: network drop mid-download', () => {
   test('CC-I1.11 / CC-03.5: stream drops mid-download → model:error NETWORK retryable, NO partial cache entry', async () => {
     const scene = await createManagerScenario({ id: 'drop-mid@55555555', fileSizes: [4096, 8192, 4096] })
     const droppedUrl = scene.made.modelUrls[1] as string

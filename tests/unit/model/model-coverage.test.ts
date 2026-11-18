@@ -28,7 +28,7 @@ interface CoverageSummary {
   [file: string]: unknown
 }
 
-describe('CC-03.8: engine/model coverage gate ≥ 85%', () => {
+describe('CC-I1.8 / CC-03.8: engine/model coverage gate ≥ 85%', () => {
   test('CC-I1.8 / CC-03.8: `vitest run tests/unit/model` with coverage scoped to src/engine/model/** clears lines 85 / branches 75', () => {
     // Child run (ZIPSCRIBE_CHILD=1 — the gates scaffold's nested suite):
     // excluded in vitest.config.ts and stands down here (no re-spawn).

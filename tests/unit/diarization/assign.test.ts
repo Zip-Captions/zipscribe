@@ -197,7 +197,7 @@ gated('CC-06.1 CC-06.4 CC-06.6: FR-06.3 deps.ts seam — majoritySpeakerId / rea
   })
 })
 
-gated('CC-06.4 CC-06.6: US-1.3.2 pure mutation APIs — golden-tested (pure coverage)', () => {
+gated('CC-I1.7 / CC-06.4 CC-06.6: US-1.3.2 pure mutation APIs — golden-tested (pure coverage)', () => {
   test('CC-I1.7 / CC-06.4: renameSpeaker updates the label everywhere — ids untouched (golden)', async () => {
     const { renameSpeaker } = await loadAssign()
     const input = golden<{ project: Project; args: { speakerId: string; label: string } }>('rename-speaker.in.json')

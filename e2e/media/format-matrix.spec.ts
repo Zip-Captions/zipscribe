@@ -59,7 +59,7 @@ import {
 // leading-citation provenance rule (citationsOf): an ID merely discussed after
 // prose does not credit a criterion. Assertions are unchanged by this shape.
 
-test.describe('CC-04.2: unit-04 audio format matrix, native set (real decode in Chromium)', () => {
+test.describe('CC-I1.9 / CC-04.2: unit-04 audio format matrix, native set (real decode in Chromium)', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:unit')
   // Specs run against the Playwright webServer (build + preview on 4310,
   // vite.config.ts `publicDir: fixtures`); the harness page is prebuilt into
@@ -115,7 +115,7 @@ test.describe('CC-04.2: unit-04 audio format matrix, native set (real decode in 
 
 })
 
-test.describe('CC-04.3: unit-04 audio format matrix, fallback set (real decode in Chromium)', () => {
+test.describe('CC-I1.9 / CC-04.3: unit-04 audio format matrix, fallback set (real decode in Chromium)', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:unit')
   // Specs run against the Playwright webServer (build + preview on 4310,
   // vite.config.ts `publicDir: fixtures`); the harness page is prebuilt into

@@ -83,7 +83,7 @@ function strays(): string[] {
   return existsSync(dir) ? readdirSync(dir).filter((name) => name.includes('.tmp-')) : []
 }
 
-describe('adversarial: models:fetch cache integrity', () => {
+describe('CC-I1.11: adversarial — models:fetch cache integrity', () => {
   test('ADVERSARIAL FR-1.0.12: clean fetch writes the verified file into the cache', () => {
     const bytes = cacheBytes()
     if (!bytes) return

@@ -23,7 +23,7 @@ function configText(): string {
   return ['vitest.config.ts', 'vitest.config.mts', 'vitest.config.js'].filter((file) => exists(file)).map((file) => readText(file)).join('\n')
 }
 
-describe('CC-01.11: coverage thresholds gate `pnpm test`', () => {
+describe('CC-I1.8 / CC-01.11: coverage thresholds gate `pnpm test`', () => {
   test('CC-I1.8 / CC-01.11: vitest.config.ts configures engine 85/75 and state 80 thresholds', () => {
     // Builder half first: without CI the gate never runs.
     expect(ciWorkflowText(), '.github/workflows/ci.yml exists').not.toBe('')

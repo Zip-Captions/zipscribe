@@ -31,7 +31,7 @@ const adapterReject = {
     Promise.reject(new Error('adapter request failed (simulated)')),
 }
 
-describe('CC-03.2: probeCapabilities tier matrix over fake envs', () => {
+describe('CC-I1.5 / CC-03.2: probeCapabilities tier matrix over fake envs', () => {
   test('CC-03.2: T1 — navigator.gpu with a usable adapter', async () => {
     const caps = await probeCapabilities(envWith({ gpu: adapterOk }))
     expect(caps.tier).toBe('T1')
