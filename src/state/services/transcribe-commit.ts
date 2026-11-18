@@ -79,10 +79,7 @@ export function createTranscribeCommitService(deps: { jobs: JobsStore; editorApp
     const dispatchBatch = (batch: readonly RawSegment[]): boolean => {
       if (active === null) return false
       const blocks = batch.map(toBlock)
-      const reject = editorApp.dispatch(
-        'captions-import',
-        active.replaced ? { blocks, replace: false } : { blocks, replace: true, speakers: [ASR_SPEAKER] },
-      )
+      const reject = editorApp.dispatch('captions-import', active.replaced ? { blocks, replace: false } : { blocks, replace: true, speakers: [ASR_SPEAKER] })
       if (reject === null) active.replaced = true
       return reject === null
     }

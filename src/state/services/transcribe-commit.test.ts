@@ -115,7 +115,15 @@ function createModelCache(): ModelCachePort {
 }
 
 function segment(start: number, end: number, word: string): RawSegment {
-  return { start, end, text: `${word} one`, words: [{ text: word, start, end: start + (end - start) / 2 }, { text: 'one', start: start + (end - start) / 2, end }] }
+  return {
+    start,
+    end,
+    text: `${word} one`,
+    words: [
+      { text: word, start, end: start + (end - start) / 2 },
+      { text: 'one', start: start + (end - start) / 2, end },
+    ],
+  }
 }
 
 interface Harness {
@@ -141,7 +149,7 @@ function harness(options: { mediaSource?: () => Promise<File> } = {}): Harness {
     app,
     commit,
     blocks: () => (app.project.getState().project as Project).blocks,
-  steps: () => app.history.undoCount() - 1,
+    steps: () => app.history.undoCount() - 1,
     start: (mode = 'replace', diarize = false) => {
       jobs.startTranscribe({ language: 'en', modelId: MODEL, diarize, mode })
       const jobId = jobs.getState().running?.jobId
@@ -176,8 +184,14 @@ describe('CC-108.2: progress-frontier commit — no progress means no commit (fr
       h.engine.emitAsr({ t: 'job:segments', jobId, segments: [segment(0.4, 2.6, 'first'), segment(3, 5, 'second')] })
       h.engine.emitAsr({ t: 'job:progress', jobId, processedSec: 2.6, totalSec: 120 })
       const afterFirst = h.blocks()
-      expect(afterFirst.map((b) => b.start), 'only the frontier segment committed').toEqual([0.4])
-      expect(afterFirst[0]!.words.every((w) => w.timing === 'asr'), 'committed words are asr-timed').toBe(true)
+      expect(
+        afterFirst.map((b) => b.start),
+        'only the frontier segment committed',
+      ).toEqual([0.4])
+      expect(
+        afterFirst[0]!.words.every((w) => w.timing === 'asr'),
+        'committed words are asr-timed',
+      ).toBe(true)
       expect(afterFirst[0]!.speakerId).toBe('SPK_1')
       expect((h.app.project.getState().project as Project).speakers.map((s) => s.id)).toContain('SPK_1')
       h.engine.emitAsr({ t: 'job:progress', jobId, processedSec: 5.0, totalSec: 120 })
@@ -192,7 +206,19 @@ describe('CC-108.2: progress-frontier commit — no progress means no commit (fr
     const h = harness()
     try {
       const seeded = h.app.dispatch('captions-import', {
-        blocks: [{ id: 'blk_seed', start: 0, end: 1, text: 'stale vendor', words: [{ text: 'stale', start: 0, end: 0.5 }, { text: 'vendor', start: 0.5, end: 1 }], speakerId: 'SPK_9' }],
+        blocks: [
+          {
+            id: 'blk_seed',
+            start: 0,
+            end: 1,
+            text: 'stale vendor',
+            words: [
+              { text: 'stale', start: 0, end: 0.5 },
+              { text: 'vendor', start: 0.5, end: 1 },
+            ],
+            speakerId: 'SPK_9',
+          },
+        ],
         speakers: [{ id: 'SPK_9', label: 'Vendor', color: '#fff' }],
         replace: true,
       })
@@ -200,7 +226,10 @@ describe('CC-108.2: progress-frontier commit — no progress means no commit (fr
       const jobId = h.start()
       h.engine.emitAsr({ t: 'job:segments', jobId, segments: [segment(0, 2, 'fresh')] })
       h.engine.emitAsr({ t: 'job:progress', jobId, processedSec: 2, totalSec: 120 })
-      expect(h.blocks().map((b) => b.id), 'the imported source track was replaced').not.toContain('blk_seed')
+      expect(
+        h.blocks().map((b) => b.id),
+        'the imported source track was replaced',
+      ).not.toContain('blk_seed')
       expect(h.blocks()).toHaveLength(1)
     } finally {
       h.dispose()
@@ -238,7 +267,10 @@ describe('CC-108.4: job:error and cancel hold what was committed and never flush
       expect(committed).toHaveLength(1)
       const stepsBefore = h.steps()
       h.engine.emitAsr({ t: 'job:error', jobId, error: { code: 'ENGINE_INTERNAL', retryable: false } })
-      expect(h.blocks().map((b) => b.id), 'the committed block survived the error').toEqual(committed.map((b) => b.id))
+      expect(
+        h.blocks().map((b) => b.id),
+        'the committed block survived the error',
+      ).toEqual(committed.map((b) => b.id))
       h.engine.emitAsr({ t: 'job:segments', jobId, segments: [segment(6, 7, 'stray')] })
       h.engine.emitAsr({ t: 'job:done', jobId })
       expect(h.blocks(), 'post-error segments and a stray done never commit').toHaveLength(1)
@@ -270,7 +302,19 @@ describe('CC-108.5: align jobs never commit through the service', () => {
     const h = harness()
     try {
       h.app.dispatch('captions-import', {
-        blocks: [{ id: 'blk_a', start: 0, end: 2, text: 'keep me', words: [{ text: 'keep', start: 0, end: 1 }, { text: 'me', start: 1, end: 2 }], speakerId: 'SPK_1' }],
+        blocks: [
+          {
+            id: 'blk_a',
+            start: 0,
+            end: 2,
+            text: 'keep me',
+            words: [
+              { text: 'keep', start: 0, end: 1 },
+              { text: 'me', start: 1, end: 2 },
+            ],
+            speakerId: 'SPK_1',
+          },
+        ],
         speakers: [{ id: 'SPK_1', label: 'Speaker 1', color: '#4c8dff' }],
         replace: true,
       })
@@ -278,7 +322,10 @@ describe('CC-108.5: align jobs never commit through the service', () => {
       h.engine.emitAsr({ t: 'job:progress', jobId, processedSec: 60, totalSec: 120 })
       h.engine.emitAsr({ t: 'job:segments', jobId, segments: [segment(0, 2, 'keep')] })
       h.engine.emitAsr({ t: 'job:done', jobId })
-      expect(h.blocks().map((b) => b.id), 'align never appends streamed segments').toEqual(['blk_a'])
+      expect(
+        h.blocks().map((b) => b.id),
+        'align never appends streamed segments',
+      ).toEqual(['blk_a'])
     } finally {
       h.dispose()
     }
@@ -304,7 +351,10 @@ describe('CC-108.1: real stream plumbing — decode tee + stream PcmSource when 
       expect(decode!.t === 'decode' && decode!.ports, 'tee: asr + diarize ports').toHaveLength(2)
       h.jobs.cancel()
       const decodeJobId = (h.engine.mediaRequests.find((r) => r.t === 'decode') as { jobId: string }).jobId
-      expect(h.engine.mediaRequests.some((r) => r.t === 'cancel' && r.jobId === decodeJobId), 'the decode job is cancelled too').toBe(true)
+      expect(
+        h.engine.mediaRequests.some((r) => r.t === 'cancel' && r.jobId === decodeJobId),
+        'the decode job is cancelled too',
+      ).toBe(true)
     } finally {
       h.dispose()
     }
