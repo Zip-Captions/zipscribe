@@ -99,6 +99,14 @@ export interface StartTranscribeOptions {
 export interface JobsStore {
   getState(): JobsState
   subscribe(listener: () => void): () => void
+  /**
+   * FR-108.1 EXTENDS (additive — the frozen unit-101 members are untouched):
+   * a raw engine-event tap fired BEFORE the slice folds the event, so
+   * state-layer bridges (the stream-commit service) correlate against the
+   * same pre-event `running` the slice itself filters on. Protocol objects
+   * verbatim — never logged, never content-derived (SECURITY-03).
+   */
+  onEngineEvent(listener: (event: MediaEvent | AsrEvent) => void): () => void
   setCapability(capability: CapabilitySnapshot): void
   setTierNotice(notice: Notice | null): void
   startTranscribe(options: StartTranscribeOptions): void
@@ -130,10 +138,13 @@ function sizeLabel(approxBytes: number): string {
   return `${approxBytes} B`
 }
 
-// Transcribe/diarize PCM arrives from the media worker's decode tee once the
-// app wiring lands (worker-registry + pcm-broker); the frozen contract's
-// startTranscribe posts loadModel → transcribe directly, so the request is
-// typed with an empty transfer buffer. Follow-up: real stream plumbing.
+// FR-108.2 (unit-108): the real stream. With the composition root's
+// `mediaSource` dep wired, startTranscribe posts `transcribe` with a
+// MessagePort stream source and follows (after the blob resolves) with a
+// `decode` request carrying the tee ports — the media worker's decode tee
+// (protocol.ts) delivers 16 kHz PcmChunks to the ASR (and diarize) workers.
+// WITHOUT the dep (every frozen jsdom/node suite, the ziptest harness) the
+// frozen contract's empty transfer buffer is posted byte-identically.
 function placeholderPcm(): PcmSource {
   return { kind: 'transfer', buffer: new ArrayBuffer(0) }
 }
@@ -149,7 +160,7 @@ function sortByStart(segments: RawSegment[]): RawSegment[] {
  * `transcribe` (sampleRate 16000, language as given) and — when `diarize` —
  * one `diarize` request with the SAME jobId.
  */
-export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCachePort }): JobsStore {
+export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCachePort; mediaSource?: () => Promise<File> }): JobsStore {
   const store = createStore<JobsState>()(immer(() => structuredClone(INITIAL_STATE)))
 
   // jobId of the most recent startTranscribe, sticky across done/cancel. The
@@ -158,7 +169,57 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
   // (frozen L1 `job:segments accumulate` + L2 streaming pins).
   let lastStartedJobId: string | null = null
 
+  // FR-108.2: the decode job riding each transcribe job (media-worker tee).
+  // Tracked so cancel/displacement stops the decode alongside the ASR job.
+  const decodeJobIdByJobId = new Map<string, string>()
+
+  /**
+   * FR-108.2: open the stream tee for a job: one MessageChannel for the ASR
+   * consumer and (when diarize) a second for the diarize consumer; port1s go
+   * to the media worker's `decode` tee (own decode jobId — its progress/done
+   * never correlates with the running ASR job), port2s ride the worker
+   * requests. The `transcribe` post happens immediately (the worker buffers
+   * chunks until decode delivers them); `decode` follows the blob resolution.
+   * Returns the stream sources to post, or null without the mediaSource dep
+   * (frozen placeholder path).
+   */
+  function openPcmStream(jobId: string, diarize: boolean): { asr: PcmSource; diarizePcm: PcmSource } | null {
+    if (deps.mediaSource === undefined) return null
+    const asrChannel = new MessageChannel()
+    const ports: MessagePort[] = [asrChannel.port1]
+    let diarizePcm: PcmSource = placeholderPcm()
+    if (diarize) {
+      const diarizeChannel = new MessageChannel()
+      ports.push(diarizeChannel.port1)
+      diarizePcm = { kind: 'stream', port: diarizeChannel.port2 }
+    }
+    const decodeJobId = newJobId()
+    decodeJobIdByJobId.set(jobId, decodeJobId)
+    void deps
+      .mediaSource()
+      .then((file) => {
+        deps.engine.postMedia({ t: 'decode', jobId: decodeJobId, file, ports })
+      })
+      .catch(() => {
+        // No preview blob (relink pending): the stream simply never delivers —
+        // the job stays cancellable, nothing logs (SECURITY-03).
+      })
+    return { asr: { kind: 'stream', port: asrChannel.port2 }, diarizePcm }
+  }
+
+  function cancelDecodeFor(jobId: string): void {
+    const decodeJobId = decodeJobIdByJobId.get(jobId)
+    if (decodeJobId === undefined) return
+    decodeJobIdByJobId.delete(jobId)
+    deps.engine.postMedia({ t: 'cancel', jobId: decodeJobId })
+  }
+
+  // FR-108.1: raw-event taps (the stream-commit bridge) — notified BEFORE the
+  // fold so they correlate on the same pre-event `running` the slice uses.
+  const engineTaps: ((event: MediaEvent | AsrEvent) => void)[] = []
+
   const handleEvent = (event: MediaEvent | AsrEvent): void => {
+    for (const tap of [...engineTaps]) tap(event)
     switch (event.t) {
       case 'job:progress':
         store.setState((state) => {
@@ -242,6 +303,13 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
   return {
     getState: store.getState,
     subscribe: store.subscribe,
+    onEngineEvent(listener: (event: MediaEvent | AsrEvent) => void): () => void {
+      engineTaps.push(listener)
+      return () => {
+        const index = engineTaps.indexOf(listener)
+        if (index >= 0) engineTaps.splice(index, 1)
+      }
+    },
     setCapability(capability: CapabilitySnapshot): void {
       store.setState((state) => {
         state.capability = capability
@@ -271,11 +339,15 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
         deps.engine.postAsr({ t: 'cancel', jobId: displaced.jobId })
         deps.engine.postDiarize({ t: 'cancel', jobId: displaced.jobId })
         deps.engine.postMedia({ t: 'cancel', jobId: displaced.jobId })
+        cancelDecodeFor(displaced.jobId)
       }
       deps.engine.postAsr({ t: 'loadModel', model: options.modelId, device })
-      deps.engine.postAsr({ t: 'transcribe', jobId, pcm: placeholderPcm(), sampleRate: 16000, language: options.language })
+      // FR-108.2: stream pcm when the composition root wired a media source;
+      // the frozen placeholder transfer otherwise.
+      const stream = openPcmStream(jobId, options.diarize)
+      deps.engine.postAsr({ t: 'transcribe', jobId, pcm: stream?.asr ?? placeholderPcm(), sampleRate: 16000, language: options.language })
       if (options.diarize) {
-        deps.engine.postDiarize({ t: 'diarize', jobId, pcm: placeholderPcm(), sampleRate: 16000 })
+        deps.engine.postDiarize({ t: 'diarize', jobId, pcm: stream?.diarizePcm ?? placeholderPcm(), sampleRate: 16000 })
       }
     },
     cancel(): void {
@@ -284,6 +356,7 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
       deps.engine.postAsr({ t: 'cancel', jobId: running.jobId })
       deps.engine.postDiarize({ t: 'cancel', jobId: running.jobId })
       deps.engine.postMedia({ t: 'cancel', jobId: running.jobId })
+      cancelDecodeFor(running.jobId)
       store.setState((state) => {
         state.running = null
       })

@@ -15,13 +15,17 @@ export function App(): ReactNode {
 
   useEffect(() => {
     let mounted = true
-    void createAppContext()
+    // The STRICT ziptest gate, read once: the same flag that installs the
+    // e2e bridges also keeps the composition root's ASR/diarize lanes inert
+    // (FR-108 [108-ADJ] — the mocked-worker e2e doctrine).
+    const ziptest = new URLSearchParams(window.location.search).get('ziptest') === '1'
+    void createAppContext({ ziptest })
       .then(async (created) => {
         // E2E-only bridges (unit-101/unit-102 frozen contracts): STRICT
         // `ziptest=1` query check + lazy imports, so neither bridge reaches
         // the initial bundle and production users (who never set the flag)
         // never load them. No bridge module self-installs on import.
-        if (new URLSearchParams(window.location.search).get('ziptest') === '1') {
+        if (ziptest) {
           const [{ installWorkbenchBridge }, { installEditorBridge }, { installTimelineBridge }, { installTranscriptBridge }, { installPersistenceBridge }, { installVisualizerBridge }] = await Promise.all([
             import('./ui/testing/workbench-bridge'),
             import('./ui/testing/editor-bridge'),

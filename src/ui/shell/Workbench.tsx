@@ -498,6 +498,9 @@ export function SaveStateIndicator({ persistence }: { persistence: SaveStateSour
 // cache otherwise. Numbers and codes only. The unit-106 EXTENDS nests the
 // save-state indicator (own polite live region) INSIDE the frozen unit-101
 // footer; without the injected seam the footer renders byte-identically.
+// FR-108.3 (unit-108) EXTENDS: a running/late `job:error` renders exactly one
+// coded line (US-2.2.x / CC-I2.11) — the EngineError CODE only, never
+// `detail` (SECURITY-03), never a modal; cleared by the next job start.
 function StatusBar({ jobsState, persistence }: { jobsState: JobsState; persistence?: SaveStateSource }): ReactNode {
   const percent = jobsState.progress !== null && jobsState.progress.totalSec > 0 ? `${Math.round((jobsState.progress.processedSec / jobsState.progress.totalSec) * 100)}%` : 'Idle'
   const model = jobsState.running === null ? 'no model' : jobsState.running.kind === 'align' ? 'aligning' : 'transcribing'
@@ -505,6 +508,7 @@ function StatusBar({ jobsState, persistence }: { jobsState: JobsState; persisten
   return (
     <footer data-testid="status-bar" role="status" aria-live="polite" className="ws-status">
       {`${percent} · ${model} · ${tier} · ${cacheCopy(jobsState)}`}
+      {jobsState.error !== null && <span data-testid="job-error">{jobsState.error.code}</span>}
       {persistence !== undefined && <SaveStateIndicator persistence={persistence} />}
     </footer>
   )

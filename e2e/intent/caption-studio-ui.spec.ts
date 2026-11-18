@@ -105,7 +105,9 @@ async function mockTranscribe(page: import('@playwright/test').Page, segments: S
   const jobId = await page.evaluate(() => (window as unknown as { __zipTranscriptBridge: TranscriptBridge }).__zipTranscriptBridge.getTranscriptState().runningJobId)
   if (jobId === null) throw new Error('transcribe job never started')
   await page.evaluate((p) => {
-    const w = window as unknown as { __zipWorkbenchBridge?: { injectAsrEvent(event: { t: string; jobId: string; segments?: unknown[] }): void } }
+    const w = window as unknown as { __zipWorkbenchBridge?: { injectAsrEvent(event: { t: string; jobId: string; segments?: unknown[]; processedSec?: number; totalSec?: number }): void } }
+    const frontier = Math.max(...p.segs.map((seg) => seg.end)) + 0.5
+    w.__zipWorkbenchBridge?.injectAsrEvent({ t: 'job:progress', jobId: p.id, processedSec: frontier, totalSec: 120 })
     w.__zipWorkbenchBridge?.injectAsrEvent({ t: 'job:segments', jobId: p.id, segments: p.segs })
     w.__zipWorkbenchBridge?.injectAsrEvent({ t: 'job:done', jobId: p.id })
   }, { id: jobId, segs: segments })
@@ -172,13 +174,12 @@ const WALK_BLOCKS = [
     { text: 'line', start: 4.6, end: 5.0, timing: 'estimated' }], speakerId: 'SPK_2' },
 ]
 
-test.describe('CC-I2.1: import → mocked transcribe → edit → autosave → reload (transcribe-commit leg blocked [107-ADJ 24])', () => {
+test.describe('CC-108.7 CC-I2.1: import → mocked transcribe → edit → autosave → reload', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:intent')
 
   test('CC-I2.1: import → mocked transcribe → text edit + split + merge + retime → autosave → reload byte-equal', async ({ page }) => {
     test.setTimeout(180_000)
-    test.skip(true, '[107-ADJ 24] blocked: the streaming transcribe→blocks commit is NOT implemented (src/state/jobs.ts placeholderPcm "Follow-up: real stream plumbing"); mocked job:segments stay in the streaming pane per the frozen unit-104 FR-104.6 contract. A Transcript-level commit was tried and correctly rejected by those frozen suites.')
-    await boot(page)
+      await boot(page)
     await openMedia(page, MEDIA_ASSET, SRC)
     await openSubtitlesTab(page)
     await mockTranscribe(page, TWO_SEGMENTS)
@@ -257,7 +258,7 @@ test.describe('CC-I2.2: vendor.vtt QC → shift → mocked align → autosave �
     const jobId = await page.evaluate(() => (window as unknown as { __zipTranscriptBridge: TranscriptBridge }).__zipTranscriptBridge.getTranscriptState().runningJobId)
     if (jobId === null) throw new Error('align job never started')
     await page.evaluate(([id]) => {
-      const w = window as unknown as { __zipWorkbenchBridge?: { injectAsrEvent(event: { t: string; jobId: string; segments?: unknown[] }): void } }
+      const w = window as unknown as { __zipWorkbenchBridge?: { injectAsrEvent(event: { t: string; jobId: string; segments?: unknown[]; processedSec?: number; totalSec?: number }): void } }
       w.__zipWorkbenchBridge?.injectAsrEvent({ t: 'job:segments', jobId: id, segments: [{ start: 1.0, end: 2.3, text: 'café au lait', words: [{ text: 'café', start: 1.0, end: 1.5 }, { text: 'au', start: 1.6, end: 1.9 }, { text: 'lait', start: 2.0, end: 2.3 }] }] })
       w.__zipWorkbenchBridge?.injectAsrEvent({ t: 'job:done', jobId: id })
     }, [jobId] as const)
@@ -269,13 +270,12 @@ test.describe('CC-I2.2: vendor.vtt QC → shift → mocked align → autosave �
   })
   })
 
-test.describe('CC-I2.3: audio project — visualizer, mocked transcribe+diarize, sidecar-only export, fallback decode', () => {
+test.describe('CC-108.7 CC-I2.3: audio project — visualizer, mocked transcribe+diarize, sidecar-only export, fallback decode', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:intent')
 
   test('CC-I2.3: audio project — visualizer renders while playing, mocked transcribe+diarize, edit, export sidecars-only (no burn-in DOM), reload byte-equal', async ({ page }) => {
     test.setTimeout(180_000)
-    test.skip(true, '[107-ADJ 24] blocked: the streaming transcribe→blocks commit is NOT implemented (src/state/jobs.ts placeholderPcm "Follow-up: real stream plumbing"); mocked job:segments stay in the streaming pane per the frozen unit-104 FR-104.6 contract. A Transcript-level commit was tried and correctly rejected by those frozen suites.')
-    await boot(page)
+      await boot(page)
     await openMedia(page, SPEECH_2SPK.asset, SPEECH_2SPK.src)
     await openSubtitlesTab(page)
 
@@ -317,8 +317,7 @@ test.describe('CC-I2.3: audio project — visualizer, mocked transcribe+diarize,
 
   test('CC-I2.3: fallback-path file (fmt-30s.aiff) plays decoded and survives the same round trip', async ({ page }) => {
     test.setTimeout(180_000)
-    test.skip(true, '[107-ADJ 24] blocked: the streaming transcribe→blocks commit is NOT implemented (src/state/jobs.ts placeholderPcm "Follow-up: real stream plumbing"); mocked job:segments stay in the streaming pane per the frozen unit-104 FR-104.6 contract. A Transcript-level commit was tried and correctly rejected by those frozen suites.')
-    await boot(page)
+      await boot(page)
     await openMedia(page, AIFF_DECODED.asset, AIFF_DECODED.src)
     await openSubtitlesTab(page)
     await page.evaluate(() => {
@@ -377,13 +376,12 @@ test.describe('CC-I2.8: keyboard-only walkthrough — open project, run commands
   })
   })
 
-test.describe('CC-I2.11: job:error mid-transcription — editable blocks, coded notice, no modal (blocked [107-ADJ 24])', () => {
+test.describe('CC-108.7 CC-I2.11: job:error mid-transcription — editable blocks, coded notice, no modal', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:intent')
 
   test('CC-I2.11: job:error mid-transcription leaves committed blocks editable with a one-line coded notice and no modal', async ({ page }) => {
     test.setTimeout(180_000)
-    test.skip(true, '[107-ADJ 24] blocked: the streaming transcribe→blocks commit is NOT implemented (src/state/jobs.ts placeholderPcm "Follow-up: real stream plumbing"); mocked job:segments stay in the streaming pane per the frozen unit-104 FR-104.6 contract. A Transcript-level commit was tried and correctly rejected by those frozen suites.')
-    await boot(page)
+      await boot(page)
     await openMedia(page, MEDIA_ASSET, SRC)
     await openSubtitlesTab(page)
 
@@ -394,12 +392,13 @@ test.describe('CC-I2.11: job:error mid-transcription — editable blocks, coded 
     const jobId = await page.evaluate(() => (window as unknown as { __zipTranscriptBridge: TranscriptBridge }).__zipTranscriptBridge.getTranscriptState().runningJobId)
     if (jobId === null) throw new Error('transcribe job never started')
     await page.evaluate((p) => {
-      const w = window as unknown as { __zipWorkbenchBridge?: { injectAsrEvent(event: { t: string; jobId: string; segments?: unknown[]; error?: unknown }): void } }
+      const w = window as unknown as { __zipWorkbenchBridge?: { injectAsrEvent(event: { t: string; jobId: string; segments?: unknown[]; processedSec?: number; totalSec?: number; error?: unknown }): void } }
+      w.__zipWorkbenchBridge?.injectAsrEvent({ t: 'job:progress', jobId: p.id, processedSec: 3.0, totalSec: 120 })
       w.__zipWorkbenchBridge?.injectAsrEvent({ t: 'job:segments', jobId: p.id, segments: p.segs })
     }, { id: jobId, segs: TWO_SEGMENTS.slice(0, 1) })
     await expect(page.locator('[data-testid=transcript-row]'), 'the committed segment survived').toHaveCount(1)
     await page.evaluate(([id]) => {
-      const w = window as unknown as { __zipWorkbenchBridge?: { injectAsrEvent(event: { t: string; jobId: string; segments?: unknown[]; error?: unknown }): void } }
+      const w = window as unknown as { __zipWorkbenchBridge?: { injectAsrEvent(event: { t: string; jobId: string; segments?: unknown[]; processedSec?: number; totalSec?: number; error?: unknown }): void } }
       w.__zipWorkbenchBridge?.injectAsrEvent({ t: 'job:error', jobId: id, error: { code: 'DECODE_FAILED', retryable: false } })
     }, [jobId] as const)
 

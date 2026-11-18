@@ -21,6 +21,8 @@ import { createEngineCaptionImportPort } from '../state/services/caption-import'
 import type { CaptionImportPort } from '../state/services/caption-import'
 import { createWorkerEnginePort } from '../state/services/engine-port'
 import type { WorkerEnginePort } from '../state/services/engine-port'
+import { createTranscribeCommitService } from '../state/services/transcribe-commit'
+import type { TranscribeCommitService } from '../state/services/transcribe-commit'
 import { createPersistenceService } from '../state/services/persistence'
 import type { LoadedProject, PanelState, PersistenceDeps, PersistenceService, RelinkOutcome } from '../state/services/persistence'
 import { createExportService } from '../state/services/export'
@@ -100,6 +102,12 @@ export interface AppContext {
   detectAndOpenProjectFile(file: File): Promise<boolean>
   /** FR-106.5: the Workbench's active sidebar tab (panelState.activeTab source). */
   setActiveTab(tab: PanelState['activeTab']): void
+  /**
+   * FR-108.1 (unit-108): the stream-commit service (progress-frontier commit
+   * of streamed `job:segments` into project blocks). Wired once here; the
+   * Transcript itself never commits (frozen FR-104.6).
+   */
+  transcribeCommit: TranscribeCommitService
 }
 
 let pending: Promise<AppContext> | null = null
@@ -152,14 +160,47 @@ async function openProductionFilePicker(): Promise<File | null> {
   })
 }
 
-export function createAppContext(): Promise<AppContext> {
-  pending ??= buildAppContext()
+export interface AppContextOptions {
+  /**
+   * Strict `ziptest=1` (App.tsx's frozen bridge gate): the ASR/diarize worker
+   * lanes stay inert (FR-108 [108-ADJ] — injection-driven e2e doctrine) and
+   * the real-stream `mediaSource` dep is not wired (unit-101/102 frozen
+   * mocked-worker flows stay deterministic). Production passes false.
+   */
+  ziptest?: boolean
+}
+
+export function createAppContext(options: AppContextOptions = {}): Promise<AppContext> {
+  pending ??= buildAppContext(options)
   return pending
 }
 
-async function buildAppContext(): Promise<AppContext> {
-  const engine = createWorkerEnginePort()
-  const jobs = createJobsStore({ engine, modelCache: createProductionModelCache() })
+async function buildAppContext(options: AppContextOptions): Promise<AppContext> {
+  const ziptest = options.ziptest === true
+  const engine = createWorkerEnginePort({ nullAsrDiarizeWorkers: ziptest })
+  const jobs = createJobsStore({
+    engine,
+    modelCache: createProductionModelCache(),
+    ...(ziptest
+      ? {}
+      : {
+          // FR-108.2: the real stream — the stage's current media becomes a
+          // File for the media worker's decode tee (unit-107
+          // blobForCurrentSource precedent: fetch → named File, mediabunny
+          // sniffs by EXTENSION; the name never enters any log — SECURITY-03).
+          mediaSource: async (): Promise<File> => {
+            const url = stage.getMediaSource()
+            if (url === null) throw new Error('NO_MEDIA_SOURCE')
+            const asset = editorApp.project.getState().project?.asset ?? null
+            const name = asset?.name ?? url.split('/').pop() ?? 'media'
+            const type = asset === null ? '' : `${asset.kind === 'audio' ? 'audio' : 'video'}/${asset.container}`
+            const response = await fetch(url)
+            if (!response.ok) throw new Error('MEDIA_FETCH_FAILED')
+            const blob = await response.blob()
+            return new File([blob], name, { type })
+          },
+        }),
+  })
   const settings = await createSettingsStore({ storage: createLocalStorageSettings() })
 
   // Slice C editor core: ONE project truth (the 101-frozen ProjectStore the
@@ -417,6 +458,11 @@ async function buildAppContext(): Promise<AppContext> {
   // the production wiring (unit-102's scripted fake stays the test double).
   const exportService = createExportService({ engine: createExportWorkerPort(), newJobId })
 
+  // FR-108.1 (unit-108): the ONE stream-commit bridge. It taps raw engine
+  // events through the jobs store (fired before the slice folds them) and
+  // subscribes for the start/cancel transitions — never a Transcript concern.
+  const transcribeCommit = createTranscribeCommitService({ jobs, editorApp })
+
   engine.onMediaEvent((event) => {
     if (event.t !== 'media:probed') return
     const url = previewUrlByProbeJobId.get(event.jobId) ?? null
@@ -452,6 +498,7 @@ async function buildAppContext(): Promise<AppContext> {
     persistence,
     persistenceDeps,
     exportService,
+    transcribeCommit,
     applyLoadedProject,
     relinkAfterOpen,
     replaceRelinkedMedia,
