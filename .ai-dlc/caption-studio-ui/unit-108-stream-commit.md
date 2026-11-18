@@ -1,5 +1,5 @@
 ---
-status: building
+status: in-progress
 phase: mvp
 discipline: frontend
 depends_on: [unit-104-transcript-editor, unit-101-workbench-shell, local-transcribe-engine/unit-04-media-ingest]
