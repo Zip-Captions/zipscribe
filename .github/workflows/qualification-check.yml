@@ -28,6 +28,6 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: corepack pnpm install --frozen-lockfile
+      - run: corepack pnpm install --frozen-lockfile --onnxruntime-node-install-cuda=skip
       - name: Verify the release qualification artifact
         run: node scripts/qualification-check.ts
