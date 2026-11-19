@@ -81,8 +81,8 @@ questions in `mockups/README.md` § Open questions still await answers.
 
 `mockups/review.html` — self-contained on-screen review wrapper (all 55 SVGs inlined,
 spec chips, zoom/theme/font controls, WCAG table, open-question answer boxes +
-CC-200.5 sign-off block persisted in the browser). Chromium-verified: 57→58 inlined SVGs (58 after t4-why-expanded)
-(icons shown dark+light), 54 artifact figures, no console errors, deterministic
+CC-200.5 sign-off block persisted in the browser). Chromium-verified: 58 inlined SVGs
+(icons shown dark+light), 55 artifact figures, no console errors, deterministic
 regeneration. Recommended way to do the CC-200.5 pass.
 
 ## Design revision 2 — owner round-2 + CC-200.5 decisions (2026-11-19)
