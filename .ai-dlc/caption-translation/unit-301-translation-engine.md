@@ -1,5 +1,13 @@
 ---
-status: in-progress
+status: done
+# completed: 2026-11-18 — PR #24 → 30b4f67 (CI run 44434157228 all green). Reviewers:
+# R1 CHANGES_REQUESTED (M1 DOMException passthrough defeat of retry+sanitization, M2
+# unfalsifiable cancel timing, M3 pending-slot race/instance leak, M4 composition root
+# never wired the availability gate; minors m3/m6/m7 + nits) — all FIXED in d46c88d +
+# 1a92b17; R2 APPROVE (both R2 minors applied: TDZ-safe pending identity + ready-flag
+# after pre-import). CC-301.4 [MANUAL] owner Chrome-desktop real-API check PENDING —
+# checklist in docs/overnight-reports/unit-301.md (does NOT gate unit-302's code, but
+# gate the intent's I4 closure).
 phase: mvp
 discipline: dev
 depends_on: [local-transcribe-engine/unit-01-scaffold-quality-gates, caption-studio-ui/unit-102-editor-core-playback]
