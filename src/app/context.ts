@@ -20,6 +20,7 @@ import type { CaptionImportResult, ImportCaptionsService, IntakeService } from '
 import { createEngineCaptionImportPort } from '../state/services/caption-import'
 import type { CaptionImportPort } from '../state/services/caption-import'
 import { createWorkerEnginePort } from '../state/services/engine-port'
+import { createChromeTranslationEngine } from '../engine/translate/chrome-translator'
 import type { WorkerEnginePort } from '../state/services/engine-port'
 import { createTranscribeCommitService } from '../state/services/transcribe-commit'
 import type { TranscribeCommitService } from '../state/services/transcribe-commit'
@@ -236,11 +237,17 @@ async function buildAppContext(options: AppContextOptions): Promise<AppContext> 
     },
     frame: (dtMs: number): void => baseRafs.frame(dtMs),
   }
+  // US-301.2 capability gate (boot-cached — API presence cannot change within
+  // a session): `translation-add-track { origin: 'machine' }` is refused on
+  // browsers without the built-in Translator. Manual/imported tracks stay
+  // allowed everywhere (CC-I4.5).
+  let translationAvailable: boolean | undefined
   const editorApp = createEditorApp({
     clock: { now: () => Date.now() },
     rafs,
     mediaClock: router,
     speakerEngine: DEFAULT_COMMAND_DEPS.speakerEngine,
+    translationEngineAvailable: () => (translationAvailable ??= createChromeTranslationEngine().isAvailable().available),
   })
   const stage = createStageController({
     onAttachElement: (element) => {

@@ -1,7 +1,8 @@
 // FR-102.1 (L1): every block command routes the invariant-10 translation
-// rules through the injectable seam — and the FR-102.1 production DEFAULT is
-// the NO_OP stub until unit-301: the same commands must leave the
-// `translations` tracks byte-identical.
+// rules through the injectable seam. The FR-102.1 production DEFAULT was the
+// NO_OP stub until unit-301 (which flipped the composition root to
+// REAL_TRANSLATION_RULES — see tests/unit/translate/invariant10.property.test.ts);
+// the stub behaviour stays provable here via explicit injection.
 import { describe, expect, test } from 'vitest'
 import { createEditorApp } from '@state/history'
 import { NO_OP_TRANSLATION_RULES } from '@engine/translate/track@102'
@@ -74,10 +75,10 @@ describe('FR-102.1: block commands route the invariant-10 rules through the seam
   })
 })
 
-describe('FR-102.1: the NO_OP production stub keeps translations byte-identical', () => {
-  test('FR-102.1: with the default rules, split/merge/delete/retime change NO translation byte', () => {
+describe('FR-102.1: the NO_OP stub (explicitly injected) keeps translations byte-identical', () => {
+  test('FR-102.1: with the stub rules injected, split/merge/delete/retime change NO translation byte', () => {
     const project = projectWithTranslations()
-    const app = rawApp(project)
+    const app = rawApp(project, NO_OP_TRANSLATION_RULES)
     const before = structuredClone(project.translations)
 
     expect(app.dispatch('block-split', { blockId: 'blk_a', at: 1.5 })).toBeNull()
@@ -85,7 +86,7 @@ describe('FR-102.1: the NO_OP production stub keeps translations byte-identical'
     expect(app.dispatch('block-delete', { blockId: 'blk_c' })).toBeNull()
     expect(app.dispatch('block-edit-text', { blockId: 'blk_b', text: 'changed' })).toBeNull()
 
-    expect(app.project.getState().project?.translations, 'FR-102.1: the stub leaves every track untouched until unit-301').toEqual(before)
+    expect(app.project.getState().project?.translations, 'FR-102.1: the stub leaves every track untouched').toEqual(before)
   })
 
   test('FR-102.1: NO_OP_TRANSLATION_RULES is the identity on a detached project (stub contract)', () => {
@@ -98,14 +99,32 @@ describe('FR-102.1: the NO_OP production stub keeps translations byte-identical'
     expect(detached, 'every hook is a no-op').toEqual(untouched)
   })
 
-  test('FR-102.1 (invariant 10): retiming never marks stale and never drops entries (102: no-op preserves)', () => {
+  test('FR-102.1 (invariant 10): retiming never marks stale and never drops entries', () => {
     const project = projectWithTranslations()
-    const app = rawApp(project)
+    const app = rawApp(project, NO_OP_TRANSLATION_RULES)
     expect(app.dispatch('block-retime', { blockId: 'blk_a', start: 1 })).toBeNull()
     expect(app.dispatch('block-retime', { blockId: 'blk_c', end: 7.5 })).toBeNull()
     const track = app.project.getState().project?.translations[0]
     expect(track?.entries['blk_a']?.status, 'no silent stale marking').toBe('translated')
     expect(track?.entries['blk_c']?.status, 'edited status preserved').toBe('edited')
     expect(track?.entries['blk_a']?.sourceHash).toBe('hash_a1')
+  })
+})
+
+describe('unit-301 flip: the production DEFAULT rules are the REAL invariant-10 rules', () => {
+  test('CC-301.2 (composition): delete deletes the entry, split seeds the empty stale entry by DEFAULT', () => {
+    const app = rawApp(projectWithTranslations())
+    expect(app.dispatch('block-delete', { blockId: 'blk_c' })).toBeNull()
+    let track = app.project.getState().project?.translations[0]
+    expect(track?.entries['blk_c'], 'FR-102.1 flip: default rules delete the entry (invariant 10)').toBeUndefined()
+
+    expect(app.dispatch('block-split', { blockId: 'blk_a', at: 1.5 })).toBeNull()
+    track = app.project.getState().project?.translations[0]
+    const parts = (app.project.getState().project?.blocks ?? []).filter((b) => b.start === 0.5 || b.start >= 1.4)
+    expect(parts.length, 'split produced two parts').toBeGreaterThanOrEqual(2)
+    const ids = parts.map((b) => b.id)
+    expect(track?.entries['blk_a'], 'source id entry is never left dangling').toBeUndefined()
+    expect(ids.some((id) => track?.entries[id] !== undefined), 'first part keeps an entry').toBe(true)
+    expect(ids.some((id) => track?.entries[id]?.text === '' && track?.entries[id]?.sourceHash === 'stale'), 'second part gets the empty stale entry').toBe(true)
   })
 })

@@ -6,6 +6,8 @@
 // `FakeEnginePort`. Plus the fake `TranslationEngine` (Intent 4 reuse):
 // architecture § Translation engine / zip-captions ADR-013 shape.
 import type { AsrEvent, DiarizeEvent, EngineError, ExportEvent, ExportRequest, ExportSettings, JobEvent, MediaEvent, ModelId } from '@engine/protocol@102'
+import type { TranslationEngine } from '@engine/translate/engine'
+
 import type { TranslationEntry } from '@engine/model@102'
 import type { ExportWorkerPort } from '@state/services/export'
 
@@ -85,30 +87,28 @@ export function progressScript(jobId: string, totalSec: number, steps: number, d
   return events
 }
 
-/** Scripted `TranslationEngine` (Intent 4 reuse; architecture § Translation
- *  engine — zip-captions ADR-013 surface). Deterministic dictionary + canned
+/** Scripted `TranslationEngine` (unit-301 alignment: implements the canonical
+ *  seam in `src/engine/translate/engine.ts` — architecture § Translation
+ *  engine, zip-captions ADR-013 surface). Deterministic dictionary + canned
  *  failure codes; never touches the network or the real Translator API. */
-export interface TranslationEngine {
-  availability(language: string): 'available' | 'downloadable' | 'unsupported'
-  ensurePair(source: string, target: string): Promise<void>
-  translate(texts: readonly string[], target: string): Promise<(TranslationEntry | { error: EngineError })[]>
-  detectLanguage(text: string): Promise<string | null>
-  dispose(): void
-}
-
 export interface FakeTranslationEngine extends TranslationEngine {
   readonly translateCalls: { texts: readonly string[]; target: string }[]
-  readonly ensurePairCalls: [string, string][]
-  /** When set, the next `translate` answers every entry with this error. */
+  readonly ensurePairCalls: [string, string, boolean][]
+  /** When set, `translate` rejects with this error until cleared. */
   nextFailure: EngineError | null
+  /** When set, `ensurePair` resolves 'downloadable' for this target. */
+  downloadableTarget: string | null
+  readonly disposed: boolean
 }
 
-export function createFakeTranslationEngine(options: { available?: readonly string[]; unsupported?: readonly string[] } = {}): FakeTranslationEngine {
+export function createFakeTranslationEngine(options: { available?: readonly string[]; unsupported?: readonly string[]; detectedLanguage?: string | null; detectConfidence?: number; availableApi?: boolean } = {}): FakeTranslationEngine {
   const available = new Set(options.available ?? ['fr', 'es'])
   const unsupported = new Set(options.unsupported ?? ['zh-Hant'])
   const translateCalls: { texts: readonly string[]; target: string }[] = []
-  const ensurePairCalls: [string, string][] = []
+  const ensurePairCalls: [string, string, boolean][] = []
   let nextFailure: EngineError | null = null
+  let downloadableTarget: string | null = null
+  let disposed = false
   return {
     get translateCalls() {
       return translateCalls
@@ -122,23 +122,40 @@ export function createFakeTranslationEngine(options: { available?: readonly stri
     set nextFailure(value: EngineError | null) {
       nextFailure = value
     },
-    availability: (language) => (unsupported.has(language) ? 'unsupported' : available.has(language) ? 'available' : 'downloadable'),
-    ensurePair: async (source, target) => {
-      ensurePairCalls.push([source, target])
+    get downloadableTarget() {
+      return downloadableTarget
+    },
+    set downloadableTarget(value: string | null) {
+      downloadableTarget = value
+    },
+    get disposed() {
+      return disposed
+    },
+    isAvailable: () => (options.availableApi === false ? { available: false as const, reason: 'browser' as const } : { available: true as const }),
+    availability: async (_source, target) => (unsupported.has(target) ? ('unavailable' as const) : downloadableTarget === target ? ('downloadable' as const) : available.has(target) ? ('available' as const) : ('downloadable' as const)),
+    ensurePair: async (source, target, opts) => {
+      ensurePairCalls.push([source, target, opts.userInitiated])
       if (unsupported.has(target)) {
-        const error: EngineError = { code: 'ENGINE_INTERNAL', retryable: false, detail: `PAIR_UNSUPPORTED:${target}` }
-        throw error
+        throw { code: 'PAIR_UNAVAILABLE', retryable: false, detail: `PAIR_UNSUPPORTED:${target}` } satisfies EngineError
       }
+      if (downloadableTarget === target) {
+        // zip-captions pattern: background request neither downloads nor throws.
+        if (!opts.userInitiated) return 'downloadable' as const
+        opts.onProgress?.(100)
+        downloadableTarget = null
+        return 'ready' as const
+      }
+      return 'ready' as const
     },
-    translate: async (texts, target) => {
-      translateCalls.push({ texts, target })
-      if (nextFailure !== null) return texts.map(() => ({ error: nextFailure as EngineError }))
-      // Deterministic non-content transform: prefixed codes. The result is
-      // canned test data — real translation lands with unit-301.
-      return texts.map((text) => ({ text: `fr:${text}`.slice(0, 120), status: 'translated' as const, sourceHash: `hash_${text.length}` }))
+    translate: async (source, target, text, _signal) => {
+      translateCalls.push({ texts: [text], target })
+      if (nextFailure !== null) throw nextFailure
+      return `${target[0] ?? 'x'}:${text}`.slice(0, 120)
     },
-    detectLanguage: async () => 'en',
-    dispose: () => undefined,
+    detectLanguage: async () => (options.detectedLanguage === undefined || options.detectedLanguage === null ? null : { language: options.detectedLanguage, confidence: options.detectConfidence ?? 0.95 }),
+    dispose: () => {
+      disposed = true
+    },
   }
 }
 

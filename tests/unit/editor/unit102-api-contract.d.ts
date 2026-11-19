@@ -477,6 +477,11 @@ declare module '@state/history' {
     mediaClock?: MediaClock
     speakerEngine?: SpeakerEngine
     translationRules?: TranslationRules
+    /** EXTENDS (unit-301, 2026-11-18): composition seam for the
+     *  translation-add-track availability gate — the production
+     *  composition root injects the real adapter check; absent ⇒ treated
+     *  as available (tests inject to exercise both branches). */
+    translationEngineAvailable?: () => boolean
     blockizer?: Blockizer
     /** Test composition seam: start from a full project (the production
      *  composition root omits it — projects arrive via `project.createProject`). */
@@ -496,6 +501,9 @@ declare module '@state/history' {
      *  Unknown id → throws. */
     dispatch<Id extends CommandId>(id: Id, payload: CommandPayloads[Id]): CommandReject | null
     history: EditorHistoryApi
+    /** EXTENDS (unit-301, 2026-11-18): mutate the project WITHOUT creating an
+     *  undo step (job output, like the unit-104 transcribe stream). */
+    applyWithoutHistory(mutate: (draft: { project: Project | null }) => void): void
     dispose(): void
   }
 
@@ -567,6 +575,10 @@ declare module '@state/services/playback/arbitrator' {
     readonly playing: boolean
     readonly loop: [Seconds, Seconds] | null
     readonly playhead: Seconds
+    /** EXTENDS (post-102, 2026-11-18 — first typed consumer is the unit-301
+     *  apply service): single-clock-reader guard — the element-truth read
+     *  proxies `clock.currentTime()` (CC-102.5). */
+    clockTime(): Seconds
     /** Scrub session (US-2.1.5): `scrubTo` seeks (paused, no autoplay);
      *  `endScrub` resumes the PRE-scrub play state at the scrub position
      *  WITHOUT issuing another `clock.seek` (the release never double-seeks). */
@@ -836,5 +848,49 @@ declare module '@state/history' {
      *  (same reject/throw/undo-step semantics as above). Overload form so the
      *  pre-104 `CommandId` generic is untouched. */
     dispatch<Id extends CommandId104>(id: Id, payload: CommandPayloads[Id]): CommandReject | null
+  }
+}
+
+declare module '@state/commands' {
+  /** The four unit-301 command ids (EXTENDS, 2026-11-18 — same overload
+   *  pattern as the unit-104 block above; real shapes in
+   *  src/state/commands/types.ts). Unknown ids still throw on dispatch. */
+  export type CommandId301 = 'translation-add-track' | 'translation-remove-track' | 'translation-edit-entry' | 'translation-mark-reviewed'
+
+  export interface TranslationAddTrackPayload301 {
+    /** BCP-47 tag, e.g. 'fr', 'zh-Hant'. */
+    language: string
+    origin: 'machine' | 'imported' | 'manual'
+  }
+  export interface TranslationRemoveTrackPayload301 {
+    language: string
+  }
+  export interface TranslationEditEntryPayload301 {
+    language: string
+    blockId: string
+    text: string
+  }
+  export interface TranslationMarkReviewedPayload301 {
+    language: string
+    blockId: string
+  }
+
+  export interface CommandPayloads {
+    'translation-add-track': TranslationAddTrackPayload301
+    'translation-remove-track': TranslationRemoveTrackPayload301
+    'translation-edit-entry': TranslationEditEntryPayload301
+    'translation-mark-reviewed': TranslationMarkReviewedPayload301
+  }
+}
+
+declare module '@state/history' {
+  import type { CommandId301, CommandPayloads, CommandReject } from '@state/commands'
+
+  export interface EditorApp {
+    /** EXTENDS (unit-301): the four translation ids dispatch through the
+     *  SAME `dispatch` semantics (reject ⇒ null-change, no history step;
+     *  accept ⇒ one step EXCEPT machine-entry writes, which arrive via
+     *  `applyWithoutHistory` and never touch the timeline). */
+    dispatch<Id extends CommandId301>(id: Id, payload: CommandPayloads[Id]): CommandReject | null
   }
 }

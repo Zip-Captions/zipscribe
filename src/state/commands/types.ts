@@ -40,6 +40,12 @@ export type CommandId =
   | 'speaker-split'
   | 'replace-text'
   | 'captions-align-apply'
+  // unit-301 EXTENDS (CONTRACT.md § Commands — additive, same discipline as
+  // unit-104): the translation track-maintenance table.
+  | 'translation-add-track'
+  | 'translation-remove-track'
+  | 'translation-edit-entry'
+  | 'translation-mark-reviewed'
 
 export interface BlockSplitPayload {
   blockId: string
@@ -173,6 +179,24 @@ export interface CaptionsAlignApplyPayload {
   asrWords: readonly AsrWordInput[]
 }
 
+export interface TranslationAddTrackPayload {
+  /** BCP-47 tag, e.g. 'fr', 'zh-Hant'. */
+  language: string
+  origin: 'machine' | 'imported' | 'manual'
+}
+export interface TranslationRemoveTrackPayload {
+  language: string
+}
+export interface TranslationEditEntryPayload {
+  language: string
+  blockId: string
+  text: string
+}
+export interface TranslationMarkReviewedPayload {
+  language: string
+  blockId: string
+}
+
 export interface CommandPayloads {
   'block-split': BlockSplitPayload
   'block-merge': BlockMergePayload
@@ -205,6 +229,11 @@ export interface CommandPayloads {
   'speaker-split': SpeakerSplitPayload
   'replace-text': ReplaceTextPayload
   'captions-align-apply': CaptionsAlignApplyPayload
+  // unit-301 EXTENDS (additive).
+  'translation-add-track': TranslationAddTrackPayload
+  'translation-remove-track': TranslationRemoveTrackPayload
+  'translation-edit-entry': TranslationEditEntryPayload
+  'translation-mark-reviewed': TranslationMarkReviewedPayload
 }
 
 /** SECURITY-03: code + structural token (an id or a number) only. */
@@ -230,6 +259,11 @@ export type CommandRejectCode =
   | 'OUT_OF_MEDIA'
   | 'LOOP_RANGE_INVALID'
   | 'RATE_INVALID'
+  // unit-301 EXTENDS (additive; codes + structural token only, SECURITY-03).
+  | 'TRANSLATION_TRACK_EXISTS'
+  | 'TRANSLATION_TRACK_ABSENT'
+  | 'TRANSLATION_ENTRY_ABSENT'
+  | 'TRANSLATION_ENGINE_UNAVAILABLE'
 
 export interface CommandReject {
   code: CommandRejectCode

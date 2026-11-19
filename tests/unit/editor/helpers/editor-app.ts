@@ -34,6 +34,14 @@ export interface TestAppOptions {
    * against the resulting project state, not call records.
    */
   speakerEngine?: SpeakerEngine
+  /**
+   * unit-301: override the invariant-10 rules (default = the production REAL
+   * rules via the composition root; the recording spy below still records
+   * only when it is the injected instance — i.e. when this option is unset).
+   */
+  translationRules?: import('../../../../src/engine/translate/track').TranslationRules
+  /** unit-301: capability gate seam for `translation-add-track` (machine origin). */
+  translationEngineAvailable?: () => boolean
 }
 
 export interface TestApp {
@@ -79,7 +87,8 @@ export function createTestApp(options: TestAppOptions = {}): TestApp {
     rafs,
     mediaClock: mediaClock ?? undefined,
     speakerEngine: options.speakerEngine ?? speakerEngine,
-    translationRules,
+    translationRules: options.translationRules ?? translationRules,
+    ...(options.translationEngineAvailable === undefined ? {} : { translationEngineAvailable: options.translationEngineAvailable }),
     blockizer: pairBlockizer,
     initialProject: options.project ?? sampleProject(),
   })

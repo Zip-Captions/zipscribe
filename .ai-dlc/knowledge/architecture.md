@@ -141,7 +141,8 @@ type EngineErrorCode =
   | 'MODEL_UNLOADED' | 'CACHE_CORRUPT' | 'NETWORK' | 'QUOTA_EXCEEDED'
   | 'GPU_OOM' | 'SESSION_LOST' | 'DECODE_STALL' | 'DIAR_SESSION_LOST'
   | 'UNSUPPORTED_MEDIA' | 'FFMPEG_REQUIRED' | 'ENCODER_UNSUPPORTED'
-  | 'CANCELLED' | 'ENGINE_INTERNAL';
+  | 'CANCELLED' | 'ENGINE_INTERNAL'
+  | 'TRANSLATE_FAILED' | 'PAIR_UNAVAILABLE' | 'DOWNLOAD_FAILED' | 'NOT_ALLOWED';
 interface EngineError { code: EngineErrorCode; retryable: boolean; detail?: string } // detail: codes/numbers only — NEVER content (SECURITY-03)
 type NoticeCode = 'TIER_DOWNGRADE' | 'MULTI_TRACK' | 'FFMPEG_FALLBACK' | 'WORKER_RECYCLED' | 'OFFLINE_MODEL_MISSING' | 'PLAYBACK_STALL' | 'PREVIEW_UNSUPPORTED';
 interface Notice { code: NoticeCode; params?: Record<string, string | number> }  // UI maps code → copy

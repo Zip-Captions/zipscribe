@@ -74,4 +74,13 @@ export interface CommandDeps {
   blockizer: Blockizer
   /** Store-generated block ids (split parts, re-flow, import keep ids unique). */
   newBlockId(): string
+  /**
+   * unit-301 EXTENDS: capability gate for `translation-add-track` with
+   * `origin: 'machine'` (US-301.2) — the production composition root
+   * (src/app/context.ts) injects the real adapter availability check.
+   * ABSENT ⇒ treated as available (an unwired consumer cannot lock itself
+   * out; tests inject to exercise both branches). Manual and imported
+   * tracks are allowed on every browser (CC-I4.5).
+   */
+  translationEngineAvailable?(): boolean
 }

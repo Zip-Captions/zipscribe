@@ -38,6 +38,13 @@ declare module '@engine/protocol' {
     | 'ENCODER_UNSUPPORTED'
     | 'CANCELLED'
     | 'ENGINE_INTERNAL'
+    // unit-301 EXTENDS (orchestrator contract change 2026-11-18, architecture.md
+    // § protocol): translation error codes, FR-301.7 — additive like every
+    // frozen-table EXTENDS before it.
+    | 'TRANSLATE_FAILED'
+    | 'PAIR_UNAVAILABLE'
+    | 'DOWNLOAD_FAILED'
+    | 'NOT_ALLOWED'
 
   export interface EngineError {
     code: EngineErrorCode

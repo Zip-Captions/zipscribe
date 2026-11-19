@@ -3,8 +3,10 @@
 // (clock, speaker engine, translation rules, blockizer, id source) is
 // injected via `CommandDeps` (`buildEditorCommands`, used by
 // `createEditorApp`). The module-level `getEditorCommands()`/`getCommand()`
-// expose the PRODUCTION default FROZEN table (NO-OP translation rules until
-// unit-301, unit-05 blockizer, unit-06 `src/engine/diarize/assign` speaker
+// expose the PRODUCTION default FROZEN table (REAL invariant-10 translation
+// rules since unit-301 — the composition-root flip the frozen 102 contract
+// pre-authorised; NO_OP_TRANSLATION_RULES remains exported for suites that
+// need the stub explicitly, unit-05 blockizer, unit-06 `src/engine/diarize/assign` speaker
 // functions per the frozen CONTRACT.md re-point). unit-104 EXTENDS
 // (CONTRACT.md § Commands — unit-104 EXTENDS): the frozen 26-command table
 // above stays FROZEN and UNCHANGED; the four new ids are built by
@@ -12,7 +14,7 @@
 // (`createEditorApp` dispatches 26 + 4 = 30).
 
 import { newUuid } from '../ids'
-import { NO_OP_TRANSLATION_RULES } from '../../engine/translate/track'
+import { REAL_TRANSLATION_RULES } from '../../engine/translate/track'
 import { majoritySpeakerId, reassignWords, mergeSpeakers, splitSpeaker } from '../../engine/diarize/assign'
 import { DEFAULT_BLOCKIZER, type CommandDeps } from './deps'
 import type { CommandId, EditorCommand } from './types'
@@ -47,6 +49,10 @@ import { createSpeakerMergeCommand } from './speaker-merge'
 import { createSpeakerSplitCommand } from './speaker-split'
 import { createReplaceTextCommand } from './replace-text'
 import { createCaptionsAlignApplyCommand } from './captions-align-apply'
+import { createTranslationAddTrackCommand } from './translation-add-track'
+import { createTranslationRemoveTrackCommand } from './translation-remove-track'
+import { createTranslationEditEntryCommand } from './translation-edit-entry'
+import { createTranslationMarkReviewedCommand } from './translation-mark-reviewed'
 
 export * from './types'
 export { deriveBlockText } from './derive-text'
@@ -95,6 +101,13 @@ export function buildUnit104Commands(deps: CommandDeps): readonly EditorCommand[
   return [createSpeakerMergeCommand(deps), createSpeakerSplitCommand(deps), createReplaceTextCommand(deps), createCaptionsAlignApplyCommand(deps)]
 }
 
+/** unit-301 EXTENDS (CONTRACT.md § Commands, additive — the frozen 26 + 104's
+ * four stay untouched): the translation track-maintenance table (FR-301.5).
+ * APPENDED by the composition (`createEditorApp` dispatches 26 + 4 + 4 = 34). */
+export function buildUnit301Commands(deps: CommandDeps): readonly EditorCommand[] {
+  return [createTranslationAddTrackCommand(deps), createTranslationRemoveTrackCommand(deps), createTranslationEditEntryCommand(deps), createTranslationMarkReviewedCommand(deps)]
+}
+
 export const DEFAULT_COMMAND_DEPS: CommandDeps = {
   clock: { now: () => Date.now() },
   // CONTRACT.md § speaker-* family (frozen re-point clause, unit-06 merged):
@@ -111,7 +124,7 @@ export const DEFAULT_COMMAND_DEPS: CommandDeps = {
     mergeSpeakers: (project, from, into) => mergeSpeakers(project, into, from),
     splitSpeaker,
   },
-  translationRules: NO_OP_TRANSLATION_RULES,
+  translationRules: REAL_TRANSLATION_RULES,
   blockizer: DEFAULT_BLOCKIZER,
   newBlockId: () => newUuid('blk'),
 }
