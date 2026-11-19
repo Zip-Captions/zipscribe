@@ -52,3 +52,27 @@ geometry audit passes (no text outside canvas).
 - unit-204: manifest `monochrome` entry points at the committed monochrome glyph.
 - Consider committing the generator to `scripts/` if the owner wants mockups regenerated
   in CI (out of scope for a design pass; kept in `.night/` for now).
+
+## Design revision 1 — broadcast-box caption container (PR #25 → ffa8f9c, 2026-11-18)
+
+Owner flagged `contrast/broadcast-box.svg`: glyphs overflowed the rounded box
+(padding ignored the corner arcs). Regenerated all affected artifacts:
+
+- **Boxes size from a worst-case bold width model** (0.72 em/char — covers
+  Inter/SF Bold in any viewer) and pad each side `max(0.55em, rx + 0.35em)`,
+  so glyphs always clear the corner arcs — the box may look roomier than the
+  preview font; it is sized for YOUR font.
+- Contrast-sheet box corner radius was a fixed 6 on a ~13 px pill (corners
+  bit into the glyph band) → `min(6, 0.30 × boxH)`; box height 1.8 → 2.05 em
+  (descender clearance).
+- Caption fit for boxed presets now wraps at a box-aware budget, keeping the
+  whole box inside the frame at full font size (16x9-long stays at fs 15.1).
+- Incidental render accuracy: weight-aware word metrics (bold 0.62 em, caps
+  +0.08) — bold-active word no longer collides with its successor.
+- Verification: chromium pixel audit (glyph ink vs rounded-corner geometry +
+  box-vs-frame containment) 8/8 pairs, 0 violations; xmllint clean.
+
+Re-review focus for CC-200.5: `mockups/presets/broadcast-box/*` (6 renders)
+and `mockups/contrast/broadcast-box.svg`. Nothing else moved except
+bold-word spacing in karaoke/bold-lower renders (accuracy fix). The 5 open
+questions in `mockups/README.md` § Open questions still await answers.
