@@ -76,3 +76,11 @@ Re-review focus for CC-200.5: `mockups/presets/broadcast-box/*` (6 renders)
 and `mockups/contrast/broadcast-box.svg`. Nothing else moved except
 bold-word spacing in karaoke/bold-lower renders (accuracy fix). The 5 open
 questions in `mockups/README.md` § Open questions still await answers.
+
+## Review page (2026-11-19)
+
+`mockups/review.html` — self-contained on-screen review wrapper (all 53 SVGs inlined,
+spec chips, zoom/theme/font controls, WCAG table, open-question answer boxes +
+CC-200.5 sign-off block persisted in the browser). Chromium-verified: 57 inlined SVGs
+(icons shown dark+light), 54 artifact figures, no console errors, deterministic
+regeneration. Recommended way to do the CC-200.5 pass.
