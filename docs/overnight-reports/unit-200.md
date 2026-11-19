@@ -40,7 +40,7 @@ none outside approved list (generator is scratch-only tooling).
 
 ## Measurements
 
-54 SVG artifacts (24 preset renders, 4 contrast sheets, 15 export wireframes, 8 offline
+55 SVG artifacts (24 preset renders, 4 contrast sheets, 16 export wireframes, 8 offline
 wireframes, 3 icons). Contrast: min 10.10 (text), min 4.51 (non-text). All xmllint-clean;
 geometry audit passes (no text outside canvas).
 
@@ -79,8 +79,32 @@ questions in `mockups/README.md` § Open questions still await answers.
 
 ## Review page (2026-11-19)
 
-`mockups/review.html` — self-contained on-screen review wrapper (all 54 SVGs inlined,
+`mockups/review.html` — self-contained on-screen review wrapper (all 55 SVGs inlined,
 spec chips, zoom/theme/font controls, WCAG table, open-question answer boxes +
 CC-200.5 sign-off block persisted in the browser). Chromium-verified: 57 inlined SVGs
 (icons shown dark+light), 54 artifact figures, no console errors, deterministic
 regeneration. Recommended way to do the CC-200.5 pass.
+
+## Design revision 2 — owner round-2 + CC-200.5 decisions (2026-11-19)
+
+Owner round-2 feedback (all three reports were real defects, now fixed): karaoke
+9x16-long clipped (worst-case width model for wrap/shrink; never-clip outranks the
+40 % floor in mockups — app spec per README §1 unchanged); broadcast-box uneven
+word spacing (lines are now single <text> + <tspan> with natural font spacing);
+wireframe element overlaps (T1/T2 SRT-vs-Track rows, T3/T4/audio stale-chip vs
+notes, offline tooltip re-anchored under the Offline chip w/ pointer, plus
+success-saved-fsa note, Safari instructions, 'not cached' chip — found by the new
+overlap probe). Every text-bearing artifact now embeds the production Inter latin
+subset (@fontsource/inter 400/700 via fontTools) as data: @font-face — mockups
+render as the app renders.
+
+CC-200.5 decisions (owner, same day): karaoke highlight keeps accent blue with ALL
+colors as theme palette tokens (dark/light-switcher-proof); broadcast box gains a
+1 px border-subtle edge; karaoke marginVPct 45 (optical center); update toast
+re-surfaces once per session; T4 “Why?” expanded state shown
+(export/t4-why-expanded.svg). Contract proposal for knowledge/design.md palette:
+add tokens gold #ffd166 and text-on-solid #ffffff; caption colors map to existing
+tokens (bg-app outline, bg-panel box, border-subtle edge, accent highlight).
+
+Gates this round: geometry audit 0 violations; overlap probe 0 across 51+ wires;
+verify-review incl. README-vs-page decisions parity; xmllint clean.
