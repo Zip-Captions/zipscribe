@@ -36,7 +36,7 @@ none (CaptionStyle used verbatim; fit rules are renderer behavior, not contract 
 
 ## Dependencies
 
-none outside approved list (generator is scratch-only tooling).
+@fontsource/inter (devDependency; design tooling — Inter subset embedding in mockup SVGs via gitignored .night generators; added to settings.yml approved_dependencies.dev by the orchestrator 2026-11-19; fontTools used via system python, not a package dep).
 
 ## Measurements
 
@@ -81,7 +81,7 @@ questions in `mockups/README.md` § Open questions still await answers.
 
 `mockups/review.html` — self-contained on-screen review wrapper (all 55 SVGs inlined,
 spec chips, zoom/theme/font controls, WCAG table, open-question answer boxes +
-CC-200.5 sign-off block persisted in the browser). Chromium-verified: 57 inlined SVGs
+CC-200.5 sign-off block persisted in the browser). Chromium-verified: 57→58 inlined SVGs (58 after t4-why-expanded)
 (icons shown dark+light), 54 artifact figures, no console errors, deterministic
 regeneration. Recommended way to do the CC-200.5 pass.
 

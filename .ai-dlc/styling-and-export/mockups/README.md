@@ -174,7 +174,8 @@ the tables in this README; re-running it reproduces these files byte-for-byte. T
 sizes in preset renders use the fit rules of §1 (mock text is the same three samples
 across all presets). Fonts: every text-bearing artifact embeds the production-Inter
 latin subset (400/700, from `@fontsource/inter`, subsetting via fontTools) as a
-`data:` `@font-face` — mockups now render exactly as the app will, no local font
-install needed (production ships the same subset per `knowledge/design.md`).
+`data:` `@font-face` — mockups render in the production UI font, no local font
+install needed (the handful of JetBrains Mono timecode labels in export/offline wires
+use system fallback in mockups) (production ships the same subset per `knowledge/design.md`).
 Mockup fits guarantee zero clipping (the shrink loop may go below the §1 40 % floor
 for pathological samples; the app renderer keeps the floor + `TOO_MUCH_TEXT` QC per §1).
