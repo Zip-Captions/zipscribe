@@ -27,8 +27,9 @@ is a spec bug.
 | `outlineWidth` | 3 | 0 | 2 | 1.5 |
 | `backgroundColor` | — | `#15181d` | — | — |
 | `backgroundOpacity` | 0 | 0.82 | 0 | 0 |
+| `boxEdge` | — | 1 px `border-subtle` @ 90 % | — | — |
 | `position` | center | bottom | bottom | bottom |
-| `marginVPct` | 42 | 6 | 8 | 5 |
+| `marginVPct` | 45 | 6 | 8 | 5 |
 | `alignment` | center | center | center | center |
 | `maxLinesPerBlock` | 2 | 3 | 2 | 3 |
 | `highlightMode` | karaoke | none | bold-active | none |
@@ -37,7 +38,12 @@ is a spec bug.
 
 `outlineWidth` unit: px at 1080p canvas height (scales with canvas height, not font size).
 `marginVPct` is the block edge inset from the frame edge in % of canvas height; for
-`position: 'center'` it is the inset of the block **top** (karaoke hero sits mid-frame).
+`position: 'center'` it places the block's **vertical center** on that % of canvas
+height (karaoke hero at 45 % = optically centered, owner decision 2026-11-19).
+Caption colors are **palette tokens only** (owner decision 2026-11-19, dark/light-theme
+proof): `outlineColor` = `--bg-app`, `backgroundColor` = `--bg-panel`, `boxEdge` =
+`--border-subtle`, `highlightColor` = `--accent` (karaoke) / `--gold` (broadcast box),
+text = `--text-primary` / solid-on-accent `#ffffff`. No ad-hoc CSS overrides.
 
 Renders — each preset × `{16x9, 9x16}` × `{short, long, wrapped}` samples, on a
 mid-grey `#808080` frame (worst case for both dark and light text):
@@ -96,6 +102,7 @@ WebCodecs).
 | `t2-default.svg` | T2: burn-in offered, honest "CPU-bound" hint | gating keys off WebCodecs encoders, not GPU |
 | `t3-sidecars-only.svg` | T3: MP4 section **absent from DOM** (CC-I3.4) | e2e asserts the row does not exist |
 | `t4-sidecars-only.svg` | T4: same absence + plain-language reason row | no transcript text in reason (SECURITY-03) |
+| `t4-why-expanded.svg` | T4 reason row expanded via “Why?” (active link + detail panel) | static local text; capability not setting; sidecars unaffected; no transcript text (SECURITY-03) |
 | `t1-audio-project.svg` | audio project on any tier: no burn-in anywhere (CC-I3.5) | aspect selector hidden here and in Style tab |
 | `tracks-selection.svg` | source + translation radios, `edited`/`stale` chips | one track per run; stale = sourceHash mismatch |
 | `burnin-progress-cancel.svg` | progress strip Demux→Decode→Composite→Encode→Mux, frame ticker, cancel confirm | progress from encoded pts, never playhead; partial file never written |
@@ -121,7 +128,7 @@ Dialog invariants: formats are checkboxes (multi-select), track is a radio
 | `install-chromium.svg` | ⋯ menu "Install app…" when `beforeinstallprompt` fired | launches native prompt |
 | `install-safari.svg` | ⋯ menu → step-by-step instructions | no fake install button on WebKit |
 | `install-installed.svg` | already-installed state | item disabled as "Installed ✓" in standalone |
-| `update-toast.svg` | "New version ready — Reload" | only after autosave flushed; never auto-reloads (`registerType:'prompt'`) |
+| `update-toast.svg` | "New version ready — Reload" | only after autosave flushed; never auto-reloads (`registerType:'prompt'`); “Later” dismisses per session, toast **re-surfaces once on next launch** until reloaded (owner decision 2026-11-19) |
 | `transcribe-offline-missing.svg` | popover fails fast `OFFLINE_MODEL_MISSING` | Start disabled, code + modelId only, no network attempt |
 | `os-file-open.svg` | installed PWA OS file-open lands in import drop zone | manifest `file_handlers` covers media + `.zipscribe.json` |
 | `icons/app-icon-512.svg` | base icon "any" (1024/512 source) | input for `@vite-pwa/assets-generator` |
@@ -134,34 +141,41 @@ chevron, accent `#4c8dff` on `--bg-app`. The generator spec (`pwaAssets` config)
 hand-tuned variants because auto-padding cannot keep the caption bars inside the safe
 zone.
 
-## Open questions for owner review (CC-200.5)
+## Owner decisions (CC-200.5, 2026-11-19)
 
-1. Karaoke `highlightColor` = accent blue `#4c8dff` vs a warmer `#ffd166` — blue is on-brand,
-   gold is closer to the CapCut reference look. Mockups use blue.
-2. Broadcast box keeps a 0.82-opacity box with no outline (`outlineWidth: 0`) — contrast
-   math passes, but over white-frame content the box edge may vanish; alternative is a
-   1 px outline on the box (not the text).
-3. `marginVPct: 42` for karaoke puts the hero block slightly above true center (optical
-   center for shorts). Confirm placement or move to `45`.
-4. Update toast offers `Later` forever or should it re-surface once per session?
-   Mockup shows no re-surface rule.
-5. T4 reason row is one static sentence; should "Why?" expand the encoder-missing detail
-   (mock shows the link, no expanded state)?
+1. Karaoke `highlightColor` = accent blue `#4c8dff` — **Decision: keep the app
+   accent**, and every mockup/app color comes from the theme palette tokens only
+   (no custom CSS overrides) so a dark/light theme switcher can drive them later.
+2. Broadcast box edge over white-frame content — **Decision: 1 px outline on the
+   box rect** (`--border-subtle` @ 90 %), not on the text. Applied to mockups.
+3. Karaoke `marginVPct` — **Decision: 45**, block vertically centered on the 45 %
+   line (optically centered for shorts). Applied to mockups.
+4. Update toast “Later” — **Decision: re-surface once per session**; next launch
+   shows it again until the update is reloaded. Never auto-reloads.
+5. T4 reason row “Why?” — **Decision: expanded state is shown** —
+   `export/t4-why-expanded.svg` (static local text: missing WebCodecs AudioEncoder,
+   browser capability not a setting, sidecars unaffected, check is local).
 
 ## Review page
 
-`review.html` — self-contained on-screen review wrapper: all 54 SVGs inlined with
+`review.html` — self-contained on-screen review wrapper: all 55 SVGs inlined with
 preset spec chips, zoom / page-theme / font controls, WCAG table, the open questions
 with answer boxes and a CC-200.5 sign-off block (state saved per browser via
 localStorage). Open it directly in a browser; it is generated from this README + the
 SVG files by the same scratch generator (`gen-review.mjs`) and is not the source of
-truth. “Inter (as in app)” uses a locally installed Inter; production ships the
-self-hosted subset regardless.
+truth. Artifacts embed a subsetting of the production Inter (latin subset of
+`@fontsource/inter`, 400/700) as a `data:` `@font-face`, so they render in the
+production font in any browser; the page's font toggle switches to system fallback.
 
 ## Provenance
 
 Generated deterministically by a scratch generator (`.night/gen200/`, gitignored) from
 the tables in this README; re-running it reproduces these files byte-for-byte. Text
 sizes in preset renders use the fit rules of §1 (mock text is the same three samples
-across all presets). Fonts: Inter via system fallback in mockups; production ships the
-self-hosted subset per `knowledge/design.md`.
+across all presets). Fonts: every text-bearing artifact embeds the production-Inter
+latin subset (400/700, from `@fontsource/inter`, subsetting via fontTools) as a
+`data:` `@font-face` — mockups render in the production UI font, no local font
+install needed (the handful of JetBrains Mono timecode labels in export/offline wires
+use system fallback in mockups) (production ships the same subset per `knowledge/design.md`).
+Mockup fits guarantee zero clipping (the shrink loop may go below the §1 40 % floor
+for pathological samples; the app renderer keeps the floor + `TOO_MUCH_TEXT` QC per §1).

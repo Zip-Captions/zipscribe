@@ -49,7 +49,7 @@ stack:
 approved_dependencies:
   runtime: [react, react-dom, zustand, immer, zundo, "@tanstack/react-virtual", mediabunny, "@huggingface/transformers", "@ffmpeg/ffmpeg", "@ffmpeg/core", idb, workbox-window]
   runtime_conditional: [sherpa-onnx (only if unit-02 adopts engine B), cactus needle.wasm (only if unit-02 adopts engine C and passes network audit)]
-  dev: [vite, "@vitejs/plugin-react", vite-plugin-pwa, "@vite-pwa/assets-generator", typescript, vitest, "@vitest/coverage-v8", jsdom, "@testing-library/react", "@testing-library/user-event", fake-indexeddb, fast-check, "@playwright/test", "@axe-core/playwright", "@stryker-mutator/core", "@stryker-mutator/vitest-runner", eslint, typescript-eslint, prettier, tailwindcss, ffmpeg-static, "@lhci/cli", wrangler]
+  dev: [vite, "@vitejs/plugin-react", vite-plugin-pwa, "@vite-pwa/assets-generator", typescript, vitest, "@vitest/coverage-v8", jsdom, "@testing-library/react", "@testing-library/user-event", fake-indexeddb, fast-check, "@playwright/test", "@axe-core/playwright", "@stryker-mutator/core", "@stryker-mutator/vitest-runner", eslint, typescript-eslint, prettier, tailwindcss, ffmpeg-static, "@lhci/cli", wrangler, "@fontsource/inter", fonttools]  # @fontsource/inter + fontTools (python, system): unit-200 mockup font subsetting (design tooling, gitignored .night generators); no runtime impact
 
 version_pins:
   # Pins are contract. Migration requires an explicit unit that changes this block.
