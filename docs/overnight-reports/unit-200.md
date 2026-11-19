@@ -40,7 +40,7 @@ none outside approved list (generator is scratch-only tooling).
 
 ## Measurements
 
-53 SVG artifacts (24 preset renders, 4 contrast sheets, 15 export wireframes, 8 offline
+54 SVG artifacts (24 preset renders, 4 contrast sheets, 15 export wireframes, 8 offline
 wireframes, 3 icons). Contrast: min 10.10 (text), min 4.51 (non-text). All xmllint-clean;
 geometry audit passes (no text outside canvas).
 
@@ -79,7 +79,7 @@ questions in `mockups/README.md` § Open questions still await answers.
 
 ## Review page (2026-11-19)
 
-`mockups/review.html` — self-contained on-screen review wrapper (all 53 SVGs inlined,
+`mockups/review.html` — self-contained on-screen review wrapper (all 54 SVGs inlined,
 spec chips, zoom/theme/font controls, WCAG table, open-question answer boxes +
 CC-200.5 sign-off block persisted in the browser). Chromium-verified: 57 inlined SVGs
 (icons shown dark+light), 54 artifact figures, no console errors, deterministic

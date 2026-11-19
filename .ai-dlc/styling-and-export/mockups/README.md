@@ -150,7 +150,7 @@ zone.
 
 ## Review page
 
-`review.html` — self-contained on-screen review wrapper: all 53 SVGs inlined with
+`review.html` — self-contained on-screen review wrapper: all 54 SVGs inlined with
 preset spec chips, zoom / page-theme / font controls, WCAG table, the open questions
 with answer boxes and a CC-200.5 sign-off block (state saved per browser via
 localStorage). Open it directly in a browser; it is generated from this README + the
