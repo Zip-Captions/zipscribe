@@ -155,13 +155,18 @@ preset spec chips, zoom / page-theme / font controls, WCAG table, the open quest
 with answer boxes and a CC-200.5 sign-off block (state saved per browser via
 localStorage). Open it directly in a browser; it is generated from this README + the
 SVG files by the same scratch generator (`gen-review.mjs`) and is not the source of
-truth. “Inter (as in app)” uses a locally installed Inter; production ships the
-self-hosted subset regardless.
+truth. Artifacts embed a subsetting of the production Inter (latin subset of
+`@fontsource/inter`, 400/700) as a `data:` `@font-face`, so they render in the
+production font in any browser; the page's font toggle switches to system fallback.
 
 ## Provenance
 
 Generated deterministically by a scratch generator (`.night/gen200/`, gitignored) from
 the tables in this README; re-running it reproduces these files byte-for-byte. Text
 sizes in preset renders use the fit rules of §1 (mock text is the same three samples
-across all presets). Fonts: Inter via system fallback in mockups; production ships the
-self-hosted subset per `knowledge/design.md`.
+across all presets). Fonts: every text-bearing artifact embeds the production-Inter
+latin subset (400/700, from `@fontsource/inter`, subsetting via fontTools) as a
+`data:` `@font-face` — mockups now render exactly as the app will, no local font
+install needed (production ships the same subset per `knowledge/design.md`).
+Mockup fits guarantee zero clipping (the shrink loop may go below the §1 40 % floor
+for pathological samples; the app renderer keeps the floor + `TOO_MUCH_TEXT` QC per §1).
