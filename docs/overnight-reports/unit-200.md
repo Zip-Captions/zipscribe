@@ -95,8 +95,7 @@ wireframe element overlaps (T1/T2 SRT-vs-Track rows, T3/T4/audio stale-chip vs
 notes, offline tooltip re-anchored under the Offline chip w/ pointer, plus
 success-saved-fsa note, Safari instructions, 'not cached' chip — found by the new
 overlap probe). Every text-bearing artifact now embeds the production Inter latin
-subset (@fontsource/inter 400/700 via fontTools) as data: @font-face — mockups
-render as the app renders.
+subset (@fontsource/inter 400/700 via fontTools) as data: @font-face — mockups render in the production UI font (mono timecode labels aside).
 
 CC-200.5 decisions (owner, same day): karaoke highlight keeps accent blue with ALL
 colors as theme palette tokens (dark/light-switcher-proof); broadcast box gains a
