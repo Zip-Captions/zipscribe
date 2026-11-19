@@ -148,6 +148,16 @@ zone.
 5. T4 reason row is one static sentence; should "Why?" expand the encoder-missing detail
    (mock shows the link, no expanded state)?
 
+## Review page
+
+`review.html` — self-contained on-screen review wrapper: all 54 SVGs inlined with
+preset spec chips, zoom / page-theme / font controls, WCAG table, the open questions
+with answer boxes and a CC-200.5 sign-off block (state saved per browser via
+localStorage). Open it directly in a browser; it is generated from this README + the
+SVG files by the same scratch generator (`gen-review.mjs`) and is not the source of
+truth. “Inter (as in app)” uses a locally installed Inter; production ships the
+self-hosted subset regardless.
+
 ## Provenance
 
 Generated deterministically by a scratch generator (`.night/gen200/`, gitignored) from
