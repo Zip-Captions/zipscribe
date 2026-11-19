@@ -29,7 +29,7 @@ interface Harness {
   detectorAvailable: boolean
 }
 
-function installFakeTranslator(options: { availability?: string; blockCreates?: boolean; blockDetectorCreate?: boolean; createRejects?: { name?: string; value?: unknown }; detector?: boolean; detectResults?: { detectedLanguage: string; confidence: number }[]; userAgent?: string; userActivation?: boolean } = {}): Harness {
+function installFakeTranslator(options: { availability?: string; blockCreates?: boolean; blockDetectorCreate?: boolean; createRejects?: { name?: string; value?: unknown }; createThrowsSyncWith?: { name: string }; detector?: boolean; detectResults?: { detectedLanguage: string; confidence: number }[]; userAgent?: string; userActivation?: boolean } = {}): Harness {
   const harness: Harness = { instances: [], creates: [], pending: [], pendingDetector: [], api: null, detectorAvailable: options.detector ?? false }
   const availability = options.availability ?? 'available'
   const g = globalThis as Record<string, unknown>
@@ -54,7 +54,18 @@ function installFakeTranslator(options: { availability?: string; blockCreates?: 
     async availability() {
       return availability
     },
-    async create(init: CreateRecord) {
+    // NOT an async method on the create path: `createThrowsSyncWith` must be
+    // able to throw BEFORE the first suspension (hostile-API hardening).
+    create(init: CreateRecord): Promise<FakeInstance> {
+      if (options.createThrowsSyncWith !== undefined) {
+        const error = new Error('sync explosion')
+        error.name = options.createThrowsSyncWith.name
+        throw error
+      }
+      return createAsync(init)
+    },
+  }
+  const createAsync = async (init: CreateRecord): Promise<FakeInstance> => {
       harness.creates.push(init)
       const instance = makeInstance()
       if (options.blockCreates === true) {
@@ -72,9 +83,8 @@ function installFakeTranslator(options: { availability?: string; blockCreates?: 
           harness.creates[harness.creates.length - 1]!.emitProgress = (loaded: number, total: number) => cb({ loaded, total })
         },
       })
-      harness.instances.push(instance)
-      return instance
-    },
+    harness.instances.push(instance)
+    return instance
   }
   if (harness.detectorAvailable) {
     g.LanguageDetector = {
@@ -502,5 +512,17 @@ describe('CC-301.1: real-API rejection shapes (M1/M3 review fixes)', () => {
     expect(userDestroyed, 'winning instance still live').toBe(false)
     engine.dispose()
     expect(userDestroyed, 'and disposed with the engine').toBe(true)
+  })
+})
+
+describe('CC-301.1: hostile-API sync throw (TDZ hardening)', () => {
+  test('FR-301.2: create throwing SYNCHRONOUSLY yields a sanitized EngineError and no pending-slot poison', async () => {
+    installFakeTranslator({ createThrowsSyncWith: { name: 'DataCloneError' } })
+    const engine = createChromeTranslationEngine()
+    await expect(engine.ensurePair('en', 'fr', { userInitiated: true })).rejects.toMatchObject({ code: 'TRANSLATE_FAILED', retryable: true, detail: 'CREATE:API' })
+    // The poisoned pair must stay usable: a second call produces the SAME
+    // sanitized error (never a stale ReferenceError, never a hang).
+    await expect(engine.ensurePair('en', 'fr', { userInitiated: true })).rejects.toMatchObject({ code: 'TRANSLATE_FAILED', retryable: true, detail: 'CREATE:API' })
+    engine.dispose()
   })
 })

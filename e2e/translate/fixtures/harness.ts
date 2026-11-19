@@ -147,4 +147,9 @@ async function run(options: TranslateRunOptions): Promise<TranslateRunSummary> {
 
 const harness = { run, startLongTaskWatch, stopLongTaskWatch }
 ;(globalThis as Record<string, unknown>).__zipscribeTranslateHarness = harness
-;(globalThis as Record<string, unknown>).__zipscribeTranslateHarnessReady = true
+// Ready only once the boot pre-import has settled — otherwise a spec's
+// three quick round-trips could start the long-task watch while vite dev
+// transforms are still in flight.
+void modulesReady.then(() => {
+  ;(globalThis as Record<string, unknown>).__zipscribeTranslateHarnessReady = true
+})

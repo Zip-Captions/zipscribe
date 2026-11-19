@@ -124,6 +124,11 @@ export function createChromeTranslationEngine(): TranslationEngine {
     // Pending-create dedupe: join an in-flight create unless this is a
     // user-initiated request and the pending one is background (never join).
     if (existing !== undefined && !(userInitiated && !existing.initiated)) return existing.promise
+    // Identity slot (not the promise variable) so the `finally` is safe even
+    // if `apiRef.create` throws SYNCHRONOUSLY — the async body then runs its
+    // finally before the promise binding exists (TDZ), and an identity
+    // comparison against the not-yet-installed slot simply skips the delete.
+    const slot: { promise: Promise<TranslatorInstance> } = { promise: undefined as unknown as Promise<TranslatorInstance> }
     async function create(): Promise<TranslatorInstance> {
       try {
         const instance = await apiRef.create({
@@ -156,12 +161,12 @@ export function createChromeTranslationEngine(): TranslationEngine {
         // keeps user-initiated off a background pending) — deleting blindly
         // would expose a race window where a third request duplicates the
         // create and one instance leaks outside the LRU map.
-        if (pending.get(key)?.promise === created) pending.delete(key)
+        if (pending.get(key)?.promise === slot.promise) pending.delete(key)
       }
     }
-    const created = create()
-    pending.set(key, { promise: created, initiated: userInitiated })
-    return created
+    slot.promise = create()
+    pending.set(key, { promise: slot.promise, initiated: userInitiated })
+    return slot.promise
   }
 
   function drop(key: string): void {
