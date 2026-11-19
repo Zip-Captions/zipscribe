@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: corepack pnpm install --frozen-lockfile --onnxruntime-node-install-cuda=skip
+      - run: corepack pnpm install --frozen-lockfile
       - run: corepack pnpm lint
       - run: corepack pnpm typecheck
       # Test prerequisites BEFORE vitest (mirrors ci.yml F1/F4 ordering —

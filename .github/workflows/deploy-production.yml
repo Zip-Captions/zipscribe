@@ -33,7 +33,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: corepack pnpm install --frozen-lockfile --onnxruntime-node-install-cuda=skip
+      - run: corepack pnpm install --frozen-lockfile
       - run: corepack pnpm lint
       - run: corepack pnpm typecheck
       # Test prerequisites BEFORE vitest (mirrors ci.yml F1/F4 ordering —
@@ -91,7 +91,7 @@ jobs:
           fi
           echo "rolling production back to ${PREV_TAG}"
           git worktree add ../rollback "${PREV_TAG}"
-          ( cd ../rollback && corepack pnpm install --frozen-lockfile --onnxruntime-node-install-cuda=skip && corepack pnpm build )
+          ( cd ../rollback && corepack pnpm install --frozen-lockfile && corepack pnpm build )
           corepack pnpm exec wrangler pages deploy ../rollback/dist --project-name zipscribe --branch main | tee rollback.log
       - name: open incident issue on failed smoke
         # REVIEW round-2 R2-4: `env.GH_TOKEN != ''` here was evaluator-dependent

@@ -34,7 +34,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: corepack pnpm install --frozen-lockfile --onnxruntime-node-install-cuda=skip
+      - run: corepack pnpm install --frozen-lockfile
       - name: L0 — lint
         run: corepack pnpm lint
       - name: L0 — typecheck
@@ -106,7 +106,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: corepack pnpm install --frozen-lockfile --onnxruntime-node-install-cuda=skip
+      - run: corepack pnpm install --frozen-lockfile
       - name: regenerate committed fixtures + checksum/license verification
         run: |
           corepack pnpm fixtures
@@ -130,7 +130,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: corepack pnpm install --frozen-lockfile --onnxruntime-node-install-cuda=skip
+      - run: corepack pnpm install --frozen-lockfile
       # Ship the exact artifact the quality job gated — no rebuild here
       # (conventions § CI/CD: "the deploy job ships the exact dist/ artifact
       # that the same run tested").
