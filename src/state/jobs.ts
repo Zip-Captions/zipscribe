@@ -107,6 +107,9 @@ export interface JobsState {
   pendingConfirmDownload: PendingModelDownload | null
   /** FR-302.1: per-language translation job state, keyed by BCP-47 target. */
   translation: Record<string, TranslationJobState>
+  /** FR-302.1: whether the built-in Translator is usable here — drives the
+   *  Languages-section gating copy. Set by `refreshAvailability`. */
+  translationSupport: 'unknown' | 'supported' | 'unsupported'
 }
 
 export interface StartTranscribeOptions {
@@ -165,6 +168,7 @@ const INITIAL_STATE: JobsState = {
   notices: [],
   pendingConfirmDownload: null,
   translation: {},
+  translationSupport: 'unknown',
 }
 
 function sizeLabel(approxBytes: number): string {
@@ -472,7 +476,22 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
     },
     async refreshAvailability(source, languages): Promise<void> {
       const engine = deps.translation?.engine
-      if (engine === undefined || !engine.isAvailable().available) return
+      const supported = engine !== undefined && engine.isAvailable().available
+      store.setState((state) => {
+        state.translationSupport = engine === undefined ? 'unknown' : supported ? 'supported' : 'unsupported'
+      })
+      if (!supported || engine === undefined) {
+        // Gating path: no built-in Translator — every picker option is honest
+        // "Unavailable" and the section renders the gating copy instead.
+        store.setState((state) => {
+          for (const target of languages) {
+            const slot = state.translation[target]
+            if (slot === undefined) state.translation[target] = { language: target, status: 'idle', availability: 'unavailable', progress: null, error: null }
+            else slot.availability = 'unavailable'
+          }
+        })
+        return
+      }
       const results = await Promise.all(
         languages.map(async (target) => {
           const availability = await engine.availability(source, target)

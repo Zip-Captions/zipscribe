@@ -40,6 +40,7 @@ import { useTransportCommands } from '../commands/useTransportCommands'
 import { formatTimecode } from '../format'
 import { Timeline } from '../timeline/Timeline'
 import { Transcript } from '../transcript/Transcript'
+import { LanguagesSection } from '../translate/LanguagesSection'
 import { StyleTab } from '../style/StyleTab'
 import type { Capabilities } from '../../engine/model/capability'
 import type { SidecarTrack, SpeakerLabelMode } from '../../engine/export/cue-model'
@@ -872,6 +873,7 @@ export function Workbench(props: WorkbenchProps): ReactNode {
                   <TranscriptPane segments={jobsState.segments} />
                   {/* Unit-104 slice B: the transcript panel mounts ALONGSIDE the unit-101 streaming pane (the frozen streaming-segment-row contract stays mounted where the 101 suites pin it). Needs the editor app + the rAF driver, else the reserved streaming-only view renders. */}
                   {transport !== undefined && transport.rafs !== undefined && <Transcript app={transport.app} rafs={transport.rafs} jobs={jobs} settings={settings} />}
+                  {transport !== undefined && <LanguagesSection app={transport.app} jobs={jobs} />}
                 </div>
               )}
               {tab === 'media' && (

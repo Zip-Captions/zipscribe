@@ -103,6 +103,7 @@ const IDLE_JOBS_STATE: JobsState = {
   notices: [],
   pendingConfirmDownload: null,
   translation: {},
+  translationSupport: 'unknown',
 }
 const IDLE_JOBS: Readable<JobsState> = { getState: () => IDLE_JOBS_STATE, subscribe: () => () => undefined }
 
