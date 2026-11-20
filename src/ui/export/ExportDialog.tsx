@@ -34,6 +34,7 @@ export function ExportDialog(props: ExportDialogProps): React.JSX.Element | null
   const [format, setFormat] = useState<SidecarFormat>('srt')
   const [track, setTrack] = useState<SidecarTrack>('source')
   const [speakerLabels, setSpeakerLabels] = useState<SpeakerLabelMode>('off')
+  const [burnInTrack, setBurnInTrack] = useState<SidecarTrack>('source')
   const heights = resolutionChoices(snapshot.asset.height || 1080)
   const fpsOptions = fpsChoices(snapshot.asset.fps || 30)
   const [height, setHeight] = useState<number>(heights[0] ?? 1080)
@@ -112,6 +113,19 @@ export function ExportDialog(props: ExportDialogProps): React.JSX.Element | null
           >
             Save {format.toUpperCase()}
           </button>
+          <button
+            type="button"
+            className="zip-export-secondary"
+            data-testid="sidecar-all"
+            disabled={snapshot.translations.length === 0}
+            onClick={() => {
+              // US-302.3: every language, one file per track (source + each
+              // translation), named `{slug}.{lang}.{ext}` by the save seam.
+              for (const t of tracks) onSidecar({ format, track: t, speakerLabels })
+            }}
+          >
+            Export all languages
+          </button>
         </section>
 
         {gate.mode === 'full' ? (
@@ -148,6 +162,24 @@ export function ExportDialog(props: ExportDialogProps): React.JSX.Element | null
                       {f}
                     </option>
                   ))}
+              </select>
+            </label>
+            </div>
+            <div className="zip-export-row">
+              <label className="zip-export-label">
+                Track
+                <select
+                  data-testid="burnin-track"
+                  value={burnInTrack}
+                  onChange={(e) => {
+                    setBurnInTrack(e.target.value)
+                  }}
+                >
+                  {tracks.map((t) => (
+                    <option key={t} value={t}>
+                      {t === 'source' ? `Source${snapshot.language ? ` (${snapshot.language})` : ''}` : t}
+                    </option>
+                  ))}
                 </select>
               </label>
             </div>
@@ -157,7 +189,7 @@ export function ExportDialog(props: ExportDialogProps): React.JSX.Element | null
               data-testid="burnin-start"
               onClick={() => {
                 const width = Math.round((height * (snapshot.asset.width || 16)) / (snapshot.asset.height || 9))
-                onBurnIn({ format: 'mp4-burn-in', width: width % 2 === 0 ? width : width + 1, height, fps, track: 'source' })
+                onBurnIn({ format: 'mp4-burn-in', width: width % 2 === 0 ? width : width + 1, height, fps, track: burnInTrack })
               }}
             >
               Export MP4
