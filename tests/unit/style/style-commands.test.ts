@@ -119,7 +119,7 @@ describe('CC-201.3: style-preset', () => {
 
   test('CC-201.3: unknown preset id rejected with the id token', () => {
     const { app } = createTestApp()
-    expect(app.dispatch('style-preset', { presetId: 'nope' })).toEqual({ code: 'INVALID_PAYLOAD', token: 'nope' })
+    expect(app.dispatch('style-preset', { presetId: 'nope' })).toEqual({ code: 'INVALID_PAYLOAD', token: 'presetId' })
   })
 
   test('CC-201.7: preset registry ids match the unit-200 spec, every field explicit', () => {

@@ -95,7 +95,7 @@ export function StageMedia({ app, stage, asset, canvasHostRef, overlayRenderer, 
       host,
       getProject: () => app.project.getState().project,
       subscribe: (cb) => (app.arbitrator === null ? () => undefined : app.arbitrator.subscribe(cb)),
-      renderer: overlayRenderer ?? createCaptionOverlayRenderer({ host, speakerPalette }),
+      renderer: overlayRenderer ?? createCaptionOverlayRenderer({ host, speakerPalette, boxEdgeColor: () => getComputedStyle(document.documentElement).getPropertyValue('--border-subtle').trim() || 'rgba(42,47,56,0.9)' }),
     })
     const content = isAudio ? null : { width: asset.width, height: asset.height }
     const fit = (): void => {

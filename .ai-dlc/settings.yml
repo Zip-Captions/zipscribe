@@ -49,7 +49,7 @@ stack:
 approved_dependencies:
   runtime: [react, react-dom, zustand, immer, zundo, "@tanstack/react-virtual", mediabunny, "@huggingface/transformers", "@ffmpeg/ffmpeg", "@ffmpeg/core", idb, workbox-window]
   runtime_conditional: [sherpa-onnx (only if unit-02 adopts engine B), cactus needle.wasm (only if unit-02 adopts engine C and passes network audit)]
-  dev: [vite, "@vitejs/plugin-react", vite-plugin-pwa, "@vite-pwa/assets-generator", typescript, vitest, "@vitest/coverage-v8", jsdom, "@testing-library/react", "@testing-library/user-event", fake-indexeddb, fast-check, "@playwright/test", "@axe-core/playwright", "@stryker-mutator/core", "@stryker-mutator/vitest-runner", eslint, typescript-eslint, prettier, tailwindcss, ffmpeg-static, "@lhci/cli", wrangler, "@fontsource/inter", fonttools]  # @fontsource/inter + fontTools (python, system): unit-200 mockup font subsetting (design tooling, gitignored .night generators); no runtime impact
+  dev: [vite, "@vitejs/plugin-react", vite-plugin-pwa, "@vite-pwa/assets-generator", typescript, vitest, "@vitest/coverage-v8", jsdom, "@testing-library/react", "@testing-library/user-event", fake-indexeddb, fast-check, "@playwright/test", "@axe-core/playwright", "@stryker-mutator/core", "@stryker-mutator/vitest-runner", eslint, typescript-eslint, prettier, tailwindcss, ffmpeg-static, "@lhci/cli", wrangler, "@fontsource/inter", "@fontsource/archivo", "@fontsource/jetbrains-mono", "@fontsource/anton", "@fontsource/bebas-neue", "@fontsource/oswald", "@fontsource/poppins", fonttools]  # @fontsource/* + fontTools (python, system): unit-200 mockup font subsetting + unit-201 bundled-face pipeline (scripts/merge-fonts.py); dev-time only — the committed OFL subsets under public/fonts/ are what ships; no runtime impact
 
 version_pins:
   # Pins are contract. Migration requires an explicit unit that changes this block.
@@ -125,3 +125,5 @@ operations:
     - https://huggingface.co
     - https://*.hf.co          # HF xet/LFS CDN redirects, e.g. us.aws.cdn.hf.co (observed 2026-10-27)
     - https://*.huggingface.co # legacy cdn-lfs hosts
+    - https://fonts.googleapis.com # unit-201 FR-201.4: Google Fonts OPT-IN only (per-face toggle; never automatic) — US-3.1.1 authorizes the remote path
+    - https://fonts.gstatic.com    # font binaries referenced by the googleapis css2 stylesheets

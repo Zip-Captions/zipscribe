@@ -154,8 +154,14 @@ export function StyleTab({ app }: StyleTabProps): ReactNode {
               type="checkbox" checked={remoteOn[family] ?? false}
               onChange={e => {
                 const on = e.target.checked
-                setRemoteOn(prev => ({ ...prev, [family]: on }))
-                if (on) void enableRemoteFont(family)
+                if (!on) {
+                  setRemoteOn(prev => ({ ...prev, [family]: false }))
+                  return
+                }
+                // reflect the RESULT — a failed remote load never shows as enabled
+                void enableRemoteFont(family).then(ok => {
+                  setRemoteOn(prev => ({ ...prev, [family]: ok }))
+                })
               }}
             />
             <span>{family}</span>

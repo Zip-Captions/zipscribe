@@ -86,6 +86,7 @@ export function installStyleBridge(): void {
         width,
         height,
         speakerPalette: speakerPalette(),
+        boxEdgeColor: getComputedStyle(document.documentElement).getPropertyValue('--border-subtle').trim() || 'rgba(42,47,56,0.9)',
         safe: safeMargins(project.outputAspect),
       })
       const blob = await canvas.convertToBlob({ type: 'image/png' })

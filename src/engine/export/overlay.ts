@@ -95,9 +95,10 @@ function breakWord(ctx: PaintCtx, word: string, maxW: number): string[] {
 function wrap(ctx: PaintCtx, text: string, maxW: number): Line[] {
   const lines: Line[] = []
   let cur: string[] = []
+  let curWordStart = 0
   const flush = (wordIdxEnd: number): void => {
     if (cur.length) {
-      lines.push({ text: cur.join(' '), wordFrom: -1, wordTo: wordIdxEnd })
+      lines.push({ text: cur.join(' '), wordFrom: curWordStart, wordTo: wordIdxEnd })
       cur = []
     }
   }
@@ -107,24 +108,22 @@ function wrap(ctx: PaintCtx, text: string, maxW: number): Line[] {
     for (const raw of para.split(' ')) {
       if (raw === '') continue
       if (measure(ctx, raw) > maxW) {
-        flush(wordIdx + 1)
-        for (const piece of breakWord(ctx, raw, maxW)) lines.push({ text: piece, wordFrom: -1, wordTo: wordIdx + 1 })
+        flush(wordIdx)
+        // a hard-broken word shares ONE word range across its fragments —
+        // the active word highlights on every fragment (no drift for the
+        // lines after it)
+        for (const piece of breakWord(ctx, raw, maxW)) lines.push({ text: piece, wordFrom: wordIdx, wordTo: wordIdx + 1 })
       } else if (cur.length && measure(ctx, `${cur.join(' ')} ${raw}`) > maxW) {
-        flush(wordIdx + 1)
+        flush(wordIdx)
         cur = [raw]
-      } else cur.push(raw)
+        curWordStart = wordIdx
+      } else {
+        if (cur.length === 0) curWordStart = wordIdx
+        cur.push(raw)
+      }
       wordIdx += 1
     }
     flush(wordIdx)
-  }
-  // word ranges: recompute contiguously over the space-joined original
-  const words = text.split('\n').join(' ').split(' ').filter(w => w !== '')
-  let wi = 0
-  for (const line of lines) {
-    const n = line.text.split(' ').length
-    line.wordFrom = wi
-    line.wordTo = Math.min(wi + n, words.length)
-    wi += n
   }
   return lines
 }

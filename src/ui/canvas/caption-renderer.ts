@@ -33,6 +33,9 @@ const TOKEN_REMAP: readonly (readonly [string, string])[] = [
   ['#4c8dff', '--accent'],
   ['#ffd166', '--gold'],
   ['#e8eaed', '--text-primary'],
+  // '#ffffff' deliberately NOT remapped: it is simultaneously the base text
+  // color and the karaoke highlight color (highlight must stay on-solid in
+  // both themes); resolveStyle cannot tell the two roles apart.
 ]
 
 function resolveThemeColors(style: CaptionStyle): CaptionStyle {

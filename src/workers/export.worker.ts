@@ -23,7 +23,7 @@ function registerBundledFonts(): void {
   const FontFaceCtor = scope.FontFace
   const fonts = scope.fonts
   if (FontFaceCtor === undefined || fonts === undefined) return
-  for (const face of BUNDLED_FONT_FACES) {
+  for (const face of BUNDLED_FONT_FACES.filter(f => !f.lazy)) {
     // worker scope has fetch; load() resolves on the worker event loop
     void new FontFaceCtor(face.family, `url(${face.url})`, { weight: String(face.weight) }).load()
       .then(loaded => fonts.add(loaded))

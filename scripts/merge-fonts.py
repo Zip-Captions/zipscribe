@@ -20,6 +20,12 @@ def merge_pair(pkg, weight, dest_dir):
     merger = merge.Merger()
     font = merger.merge([a, b])
     font.flavor = 'woff2'
+    # byte-stability (golden doctrine): pin the head timestamps and disable
+    # fontTools' save-time modified-recalc, so re-running `pnpm fonts` on
+    # unchanged sources is a no-op diff
+    font.recalcTimestamp = False
+    font['head'].created = 3_689_212_800  # 2026-11-19 00:00:00 UTC
+    font['head'].modified = 3_689_212_800
     font.save(merged)
     return os.path.getsize(merged)
 

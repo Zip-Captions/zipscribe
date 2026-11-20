@@ -115,8 +115,9 @@ export function createStylePresetCommand(deps: CommandDeps): EditorCommand<'styl
     reduce(state: EditorRootState, payload: StylePresetPayload): CommandReject | null {
       const project = state.project as Project | null
       if (project === null) return reject('INVALID_PAYLOAD', 'NO_PROJECT')
+      if (!Object.hasOwn(CAPTION_PRESETS, payload.presetId)) return reject('INVALID_PAYLOAD', 'presetId')
       const preset = CAPTION_PRESETS[payload.presetId as PresetId]
-      if (preset === undefined) return reject('INVALID_PAYLOAD', payload.presetId)
+      if (preset === undefined) return reject('INVALID_PAYLOAD', 'presetId')
       const next = structuredClone(preset.patch)
       if (isDeepEqualStyle(project.style, next)) return null
       project.style = next
