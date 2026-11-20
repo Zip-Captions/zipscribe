@@ -40,6 +40,7 @@ import { useTransportCommands } from '../commands/useTransportCommands'
 import { formatTimecode } from '../format'
 import { Timeline } from '../timeline/Timeline'
 import { Transcript } from '../transcript/Transcript'
+import { StyleTab } from '../style/StyleTab'
 import { CaptionImportDialog } from '../transcript/CaptionImportDialog'
 import { ProjectList } from './ProjectList'
 import { StageMedia } from './StageMedia'
@@ -126,9 +127,10 @@ const TABS: readonly { id: SidebarTab; label: string }[] = [
   { id: 'style', label: 'Style' },
 ]
 
-// FR-2.0.3 feature flag: the styling surface is Intent 3 (unit-302) — the tab
-// renders the reserved placeholder while disabled.
-const STYLE_TAB_ENABLED = false
+// unit-201: the styling surface SHIPPED (unit-200 design signed off
+// 2026-11-19). The flag stays as the documented kill-switch seam for the
+// reserved placeholder path (FR-2.0.3).
+const STYLE_TAB_ENABLED = true
 
 const TIER_LABEL: Record<Tier, string> = { T1: 'GPU', T2: 'CPU', T3: 'Limited', T4: 'Limited' }
 
@@ -736,7 +738,7 @@ export function Workbench(props: WorkbenchProps): ReactNode {
               )}
               {tab === 'style' && (
                 <div role="tabpanel" id="tabpanel-style" aria-labelledby="tab-style" className="ws-tabpanel">
-                  <p className="ws-empty">{STYLE_TAB_ENABLED ? 'Styling surface arrives with Intent 3 (unit-302).' : 'Styling arrives in Intent 3.'}</p>
+                  {STYLE_TAB_ENABLED && transport !== undefined ? <StyleTab app={transport.app} /> : <p className="ws-empty">Styling arrives in Intent 3.</p>}
                 </div>
               )}
             </section>

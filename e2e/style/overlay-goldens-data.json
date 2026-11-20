@@ -1,0 +1,17 @@
+{
+  "samples": {
+    "short": { "text": "welcome back", "words": [["welcome", 0, 1.2], ["back", 1.2, 2.4]] },
+    "long": { "text": "thanks! today we are looking at three different ways to export your captions including the burned in video option for social platforms", "words": null },
+    "wrapped": { "text": "so the first thing\nyou want to try\nis the preset library", "words": null }
+  },
+  "presets": ["karaoke", "broadcast-box", "bold-lower", "minimal"],
+  "aspects": { "16x9": { "width": 480, "height": 270, "aspect": "16:9" }, "9x16": { "width": 270, "height": 480, "aspect": "9:16" } },
+  "dprs": [1, 2],
+  "playhead": 0.6,
+  "rtl": {
+    "language": "ar",
+    "text": "مرحبا بالعالم هذا اختبار للعناوين",
+    "width": 480,
+    "height": 270
+  }
+}

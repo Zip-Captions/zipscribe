@@ -1288,6 +1288,496 @@
       "channels": null,
       "expectedPath": null
     },
+    "golden/style/bold-lower-long-16x9-dpr1.png": {
+      "sha256": "77e6d6dadf9389aeb142bdb2c7488c9954afbb42a06a703d45e1c2f48d582837",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/bold-lower-long-16x9-dpr2.png": {
+      "sha256": "ccae13a945243a124807d8822cd37ee88d8fa0f3d5d99058f101b3c4101b67d1",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/bold-lower-long-9x16-dpr1.png": {
+      "sha256": "b36b7a328dc682c1d228bc35426566dad24617ab65b13c5ce78fbc30136b2295",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/bold-lower-long-9x16-dpr2.png": {
+      "sha256": "e5baf221ded5294c91a2ec6034f6d59f69094e750b3e61a12db54244d3df8718",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/bold-lower-short-16x9-dpr1.png": {
+      "sha256": "729be2c51f017fa75045d6823d5098af9566e5de508c4171bc586bdbcca1e69b",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/bold-lower-short-16x9-dpr2.png": {
+      "sha256": "99b903bbbc9457e7c22ecc542e39a2c3b55fcc50e9774d54efb6eeb86ea6d2fd",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/bold-lower-short-9x16-dpr1.png": {
+      "sha256": "6255bc692c8c5cb76a6af8a924c649d16c43ae52705a8d7af3b779ab6e3b958d",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/bold-lower-short-9x16-dpr2.png": {
+      "sha256": "ecb1d724afc9a9da155f85d56f99b6107c9314c9f2999a6c2646c02dc4c5c065",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/bold-lower-wrapped-16x9-dpr1.png": {
+      "sha256": "e74dc819582e953195eedebabe41570f404a476b01c771b83465e0fe17002b75",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/bold-lower-wrapped-16x9-dpr2.png": {
+      "sha256": "3a8e447226e30d0d8a5bab83d3c40562d6b302cfee807ca59f7dacd28119ca7d",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/bold-lower-wrapped-9x16-dpr1.png": {
+      "sha256": "47c98f9e2d229cf739a87d2c5070c6ca5ffdbac95d7fb611d86d0987580cde11",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/bold-lower-wrapped-9x16-dpr2.png": {
+      "sha256": "cf98b3086c53727b9ce6ffaed9515b0e08611ed449b7c7bed732f9eeb825c1e9",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/broadcast-box-long-16x9-dpr1.png": {
+      "sha256": "c14e14f4dedd27f54cdea7e94bbbd00cb81dd9c6e5e9c2748f86ed8e13052e9b",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/broadcast-box-long-16x9-dpr2.png": {
+      "sha256": "c4086328eec6d850d6ae9883f40da103d5557ae64ada778619b5bc44c2016906",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/broadcast-box-long-9x16-dpr1.png": {
+      "sha256": "f3590b6f27e3fb3c5efc08a4897677d3951d752330af45f9867a9c40d45f12a5",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/broadcast-box-long-9x16-dpr2.png": {
+      "sha256": "5745536950e2cbfeb084719e4d54560eac8d7f3bc49fb31afd4c26f008cdfe10",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/broadcast-box-short-16x9-dpr1.png": {
+      "sha256": "02e7bd09b055f826d2831cd5378f42eb7e69ca7d34c113ad03a026aa7760c2ba",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/broadcast-box-short-16x9-dpr2.png": {
+      "sha256": "c22d329dbba62b0c5bf351159dd8421f2564182888d797fc232d1833d4ec1a90",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/broadcast-box-short-9x16-dpr1.png": {
+      "sha256": "d826fcd3c58d009770db2e3d05981185de366f2a9c14a61e5d0525eb10205fbe",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/broadcast-box-short-9x16-dpr2.png": {
+      "sha256": "0dce5f37d9715b859736d239a9aa45e47ce17a9130240977311c3925eb64d121",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/broadcast-box-wrapped-16x9-dpr1.png": {
+      "sha256": "928c073eb159457642d29daff9b773325e3cc64da4286be034a67410f1772b28",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/broadcast-box-wrapped-16x9-dpr2.png": {
+      "sha256": "08780d653b63d865b3bb48af96bb6e6ab2ce26ae647a09063ab04798af20cfd9",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/broadcast-box-wrapped-9x16-dpr1.png": {
+      "sha256": "b5ab694d4b046d0c9c88ebebe023534068ea8905303689e5357aa267332c8d58",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/broadcast-box-wrapped-9x16-dpr2.png": {
+      "sha256": "4537638ef9e6565d329836eb231f8e0514d8e5a2bf6d62f9008140d77cb57e15",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/karaoke-long-16x9-dpr1.png": {
+      "sha256": "fd05cdeb20e185105c19260c802fbe6b974a99b24182d33c7c53d95cba7179b7",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/karaoke-long-16x9-dpr2.png": {
+      "sha256": "b07184c3ec9d5516b1cd5c6f1a9277de016b2ac313bb33304ec9f491f28eec2b",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/karaoke-long-9x16-dpr1.png": {
+      "sha256": "46cb2a1d7e2c3bdcfd1a9d41a84144601dafb04999291750bf3efedf078dde06",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/karaoke-long-9x16-dpr2.png": {
+      "sha256": "c4b6d3c5c45a7cfbd7b5ece4af18eec214f40ddb6ba98932384d68f73c82c04f",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/karaoke-short-16x9-dpr1.png": {
+      "sha256": "8d01ef2ba252c2c1916ce3d121cd9ecf623d1587be682ea12dd963ff7498dfa3",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/karaoke-short-16x9-dpr2.png": {
+      "sha256": "8600631250590b488fd0becf43334bd5ca9f2e96f615be31130085d356d2f0f0",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/karaoke-short-9x16-dpr1.png": {
+      "sha256": "12d4e0727a295b1f19f8c26afbc0a567068b1825ddd7e801d5cd8f3cd776e12e",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/karaoke-short-9x16-dpr2.png": {
+      "sha256": "e4772383b3bd0920474fa9058f845e0cf99596c5d1f4057c8f3266b6d73b84b1",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/karaoke-wrapped-16x9-dpr1.png": {
+      "sha256": "6d4c40228a93ad536b8e46b1a427ae1573d27c8920a64450bb770450f6973573",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/karaoke-wrapped-16x9-dpr2.png": {
+      "sha256": "1d25854222d4dee7772a03db9c18a46c8390b3159c54c2327c4c91668c1a94e2",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/karaoke-wrapped-9x16-dpr1.png": {
+      "sha256": "5953003da73256af7281b3df6ee7e0f0318247a4377aaebc2ac95c4af1391370",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/karaoke-wrapped-9x16-dpr2.png": {
+      "sha256": "654c94ba03d3515088229502ee259ce52a6e611e5e6d9f082fa9f1d7b0b7c02e",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/minimal-long-16x9-dpr1.png": {
+      "sha256": "636967b3e2621c0563d6d0a39ac9bbbce5bbcfe2ace4ab39b9898454d8fd6529",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/minimal-long-16x9-dpr2.png": {
+      "sha256": "d71a516e27a87a235faa0088e9b3a32dfde875bf74f2ad95734d9ff2682c13ff",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/minimal-long-9x16-dpr1.png": {
+      "sha256": "d6b77c98a3683ec2d5904294e457ddff0d7bd76e9e9de5fe7e64b98de989fe71",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/minimal-long-9x16-dpr2.png": {
+      "sha256": "bc23ae8afb085777ca70eb84eaa73295c812a00d4fbe46cf915c8a7ffe63ded3",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/minimal-short-16x9-dpr1.png": {
+      "sha256": "b591617ea5e530254d4fa601735baefa1084d05d6ac1847d19f16c234de660ac",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/minimal-short-16x9-dpr2.png": {
+      "sha256": "4ff424fb7309693d312154dcd5f227bf730ac526ad74fd83bb231dd40c00d7db",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/minimal-short-9x16-dpr1.png": {
+      "sha256": "514e9237098fdf8605e63a44c509120e7606d3896dfecefa7952d46b2a48d2a1",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/minimal-short-9x16-dpr2.png": {
+      "sha256": "3c407751e975a0feb65796dfd023a8d7c2f168c31e7cd9d9e3ea4214850e9882",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/minimal-wrapped-16x9-dpr1.png": {
+      "sha256": "94b2291079a5bcb7de8e6a3c2c02e7a07150785f588aba75f1d8f476cf174481",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/minimal-wrapped-16x9-dpr2.png": {
+      "sha256": "dba34bc8d4dde882484abe493f0ddf4fbcb08fcae716555c7980423a54832b67",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/minimal-wrapped-9x16-dpr1.png": {
+      "sha256": "66c3230c026cc58cf37df6d7d135c4f3aff2c87d75bf794be953967674b8477e",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/minimal-wrapped-9x16-dpr2.png": {
+      "sha256": "49174eba25b68bb9dfffc8ec673fee80afeb64dcc308237673fb337c432028b8",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
+    "golden/style/rtl-ar-dpr2.png": {
+      "sha256": "e06d70d3ebe0ae1a27da54982b98ebc0e4df0cfc0ac40a5230d3351c9fea5617",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (overlay goldens rendered by scripts/make-style-goldens.ts in the pinned engine — unit-201 CC-201.1)"
+    },
     "golden/timeline/viewport-mapping.json": {
       "sha256": "7ac5209ac6f2623adfe9d7677dfef5996d14b618b48630730ea6660ab617e659",
       "duration": null,
@@ -1359,7 +1849,7 @@
       "expectedPath": null
     },
     "golden/visualizer/spectrum-overlay-dpr1.png": {
-      "sha256": "fdb85d71002e421f6d56298539a07c868fa68d5e1be552e9e51140ce08a42a79",
+      "sha256": "0a140e59c6d66fdd607830fefd6b5f2237ac3071f86ba30de52ac22403410af7",
       "duration": null,
       "kind": "golden",
       "language": null,
@@ -1369,7 +1859,7 @@
       "license": "CC0-1.0 (visualizer goldens rendered by scripts/make-visualizer-goldens.ts in the pinned engine — unit-107 CC-107.7)"
     },
     "golden/visualizer/spectrum-overlay-dpr2.png": {
-      "sha256": "fc108bdf32d8acc608943531791163b65d0376f72bcd78b647a0e2b55094ea61",
+      "sha256": "f7bae7a915f0000d840c23e6595af01d7d409c2a036f14fd66543e676a572631",
       "duration": null,
       "kind": "golden",
       "language": null,

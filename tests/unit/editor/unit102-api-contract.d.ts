@@ -894,3 +894,21 @@ declare module '@state/history' {
     dispatch<Id extends CommandId301>(id: Id, payload: CommandPayloads[Id]): CommandReject | null
   }
 }
+
+declare module '@state/commands' {
+  /** The three unit-201 command ids (EXTENDS, 2026-11-19 — same overload
+   *  pattern as the 104/301 blocks; real shapes in
+   *  src/state/commands/types.ts). */
+  export type CommandId201 = 'style-patch' | 'style-preset' | 'output-aspect-set'
+}
+
+declare module '@state/history' {
+  import type { CommandId201, CommandPayloads, CommandReject } from '@state/commands'
+
+  export interface EditorApp {
+    /** EXTENDS (unit-201): style-slice + aspect ids dispatch through the
+     *  SAME `dispatch` semantics (reject ⇒ null-change, no history step;
+     *  accept ⇒ exactly one undo step — FR-201.2). */
+    dispatch<Id extends CommandId201>(id: Id, payload: CommandPayloads[Id]): CommandReject | null
+  }
+}

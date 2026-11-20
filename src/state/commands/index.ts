@@ -25,6 +25,7 @@ import { createBlockRetimeCommand } from './block-retime'
 import { createBlockEditTextCommand } from './block-edit-text'
 import { createBlockDeleteCommand } from './block-delete'
 import { createBlockDeleteCloseGapCommand } from './block-delete-close-gap'
+import { createStylePatchCommand, createStylePresetCommand, createOutputAspectSetCommand } from './style'
 import { createCaptionsRetimeAllCommand } from './captions-retime-all'
 import { createCaptionsReflowCommand } from './captions-reflow'
 import { createCaptionsImportCommand } from './captions-import'
@@ -106,6 +107,12 @@ export function buildUnit104Commands(deps: CommandDeps): readonly EditorCommand[
  * APPENDED by the composition (`createEditorApp` dispatches 26 + 4 + 4 = 34). */
 export function buildUnit301Commands(deps: CommandDeps): readonly EditorCommand[] {
   return [createTranslationAddTrackCommand(deps), createTranslationRemoveTrackCommand(deps), createTranslationEditEntryCommand(deps), createTranslationMarkReviewedCommand(deps)]
+}
+
+/** unit-201 EXTENDS (CONTRACT.md § Commands, additive): the style slice +
+ * aspect selector. Composition dispatches 26 + 4 + 4 + 3 = 37. */
+export function buildUnit201Commands(deps: CommandDeps): readonly EditorCommand[] {
+  return [createStylePatchCommand(deps), createStylePresetCommand(deps), createOutputAspectSetCommand(deps)]
 }
 
 export const DEFAULT_COMMAND_DEPS: CommandDeps = {

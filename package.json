@@ -32,7 +32,8 @@
     "verify:intent": "node scripts/verify-criteria.ts intent",
     "models:fetch": "node scripts/models-fetch.ts",
     "qualify": "node scripts/qualify.ts",
-    "eval:run": "node tools/eval/harness.mjs"
+    "eval:run": "node tools/eval/harness.mjs",
+    "fonts": "node scripts/copy-fonts.ts"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -55,7 +56,13 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
+    "@fontsource/anton": "^5.3.0",
+    "@fontsource/archivo": "^5.3.0",
+    "@fontsource/bebas-neue": "^5.3.0",
     "@fontsource/inter": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/oswald": "^5.3.0",
+    "@fontsource/poppins": "^5.3.0",
     "@playwright/test": "1.64.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.8",

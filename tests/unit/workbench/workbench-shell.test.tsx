@@ -34,7 +34,11 @@ describe('CC-101.1: workbench layout primitives', () => {
     expect(sidebarHandle.getAttribute('role'), 'sidebar resize handle is a separator').toBe('separator')
     expect(screen.getByTestId('resize-handle-timeline').getAttribute('role')).toBe('separator')
     expect(screen.getByTestId('preview-canvas-layer'), 'stage reserves the Intent-3 canvas overlay layer').toBeTruthy()
-    expect(screen.getByTestId('tab-style').textContent, 'Style tab is the Intent-3 placeholder (FR-2.0.3)').toMatch(/Intent 3/)
+    // unit-201 shipped the styling surface (CC-200.5 signed 2026-11-19): the
+    // Intent-3 badge is gone and the tab renders the real panel.
+    expect(screen.getByTestId('tab-style').textContent, 'Style tab no longer carries the Intent-3 badge').toBe('Style')
+    fireEvent.click(screen.getByTestId('tab-style'))
+    expect(document.getElementById('tabpanel-style'), 'style tabpanel renders (panel when transport is mounted)').toBeTruthy()
   })
 
   test('CC-101.1: setPanelSize enforces minimums and persists the clamped size to the settings storage seam', async () => {

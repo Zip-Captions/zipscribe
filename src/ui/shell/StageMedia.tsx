@@ -20,7 +20,9 @@ import type { EditorApp } from '../../state/history'
 import type { StageController, StageNoticeCode } from '../../app/stage'
 import type { VisualizerRuntime } from '../../app/visualizer-runtime'
 import { VISUALIZER_CSS_SIZE } from '../../app/visualizer-runtime'
-import { createOverlayLayer, NO_OP_OVERLAY_RENDERER } from '../canvas/overlay'
+import { createCaptionOverlayRenderer } from '../canvas/caption-renderer'
+import { speakerPalette } from '../transcript/palette'
+import { createOverlayLayer } from '../canvas/overlay'
 import type { OverlayRenderer } from '../canvas/overlay'
 import { TransportBar } from './TransportBar'
 import { cycleRate } from '../commands/useTransportCommands'
@@ -93,7 +95,8 @@ export function StageMedia({ app, stage, asset, canvasHostRef, overlayRenderer, 
       host,
       getProject: () => app.project.getState().project,
       subscribe: (cb) => (app.arbitrator === null ? () => undefined : app.arbitrator.subscribe(cb)),
-      renderer: overlayRenderer ?? NO_OP_OVERLAY_RENDERER,
+      renderer:
+        overlayRenderer ?? createCaptionOverlayRenderer({ host, speakerPalette, boxEdgeColor: () => getComputedStyle(document.documentElement).getPropertyValue('--border-subtle').trim() || 'rgba(42,47,56,0.9)' }),
     })
     const content = isAudio ? null : { width: asset.width, height: asset.height }
     const fit = (): void => {

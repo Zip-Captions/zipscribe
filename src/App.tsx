@@ -1,3 +1,4 @@
+import { ensureDefaultFonts } from './ui/style/fonts'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Workbench } from './ui/shell/Workbench'
@@ -19,6 +20,7 @@ export function App(): ReactNode {
     // e2e bridges also keeps the composition root's ASR/diarize lanes inert
     // (FR-108 [108-ADJ] — the mocked-worker e2e doctrine).
     const ziptest = new URLSearchParams(window.location.search).get('ziptest') === '1'
+    void ensureDefaultFonts()
     void createAppContext({ ziptest })
       .then(async (created) => {
         // E2E-only bridges (unit-101/unit-102 frozen contracts): STRICT
@@ -26,20 +28,23 @@ export function App(): ReactNode {
         // the initial bundle and production users (who never set the flag)
         // never load them. No bridge module self-installs on import.
         if (ziptest) {
-          const [{ installWorkbenchBridge }, { installEditorBridge }, { installTimelineBridge }, { installTranscriptBridge }, { installPersistenceBridge }, { installVisualizerBridge }] = await Promise.all([
-            import('./ui/testing/workbench-bridge'),
-            import('./ui/testing/editor-bridge'),
-            import('./ui/testing/timeline-bridge'),
-            import('./ui/testing/transcript-bridge'),
-            import('./ui/testing/persistence-bridge'),
-            import('./ui/testing/visualizer-bridge'),
-          ])
+          const [{ installWorkbenchBridge }, { installEditorBridge }, { installTimelineBridge }, { installTranscriptBridge }, { installPersistenceBridge }, { installVisualizerBridge }, { installStyleBridge }] =
+            await Promise.all([
+              import('./ui/testing/workbench-bridge'),
+              import('./ui/testing/editor-bridge'),
+              import('./ui/testing/timeline-bridge'),
+              import('./ui/testing/transcript-bridge'),
+              import('./ui/testing/persistence-bridge'),
+              import('./ui/testing/visualizer-bridge'),
+              import('./ui/testing/style-bridge'),
+            ])
           installWorkbenchBridge()
           installEditorBridge()
           installTimelineBridge()
           installTranscriptBridge()
           installPersistenceBridge()
           installVisualizerBridge()
+          installStyleBridge()
         }
         if (mounted) setContext(created)
       })

@@ -31,7 +31,7 @@ import type { MediaClock } from './services/playback/media-clock'
 import type { RafDriver, SyncArbitrator } from './services/playback/arbitrator'
 import { createSyncArbitrator } from './services/playback/arbitrator'
 import { REAL_TRANSLATION_RULES } from '../engine/translate/track'
-import { buildEditorCommands, buildUnit104Commands, buildUnit301Commands, DEFAULT_BLOCKIZER, NOT_IMPLEMENTED_SPEAKER_ENGINE, type Blockizer, type CommandDeps, type SpeakerEngine } from './commands'
+import { buildEditorCommands, buildUnit104Commands, buildUnit301Commands, buildUnit201Commands, DEFAULT_BLOCKIZER, NOT_IMPLEMENTED_SPEAKER_ENGINE, type Blockizer, type CommandDeps, type SpeakerEngine } from './commands'
 import type { CommandId, CommandPayloads, CommandReject, EditorCommand, BlockEditTextPayload, TransportRatePayload } from './commands'
 import type { EditorStore, EditorUiStateInternal } from './editor'
 import { createInitialEditorState, makeEditorActions } from './editor'
@@ -115,7 +115,7 @@ export function createEditorApp(deps: EditorAppDeps): EditorApp {
     newBlockId: () => newUuid('blk'),
     ...(deps.translationEngineAvailable === undefined ? {} : { translationEngineAvailable: deps.translationEngineAvailable }),
   }
-  const commands: readonly EditorCommand[] = [...buildEditorCommands(commandDeps), ...buildUnit104Commands(commandDeps), ...buildUnit301Commands(commandDeps)]
+  const commands: readonly EditorCommand[] = [...buildEditorCommands(commandDeps), ...buildUnit104Commands(commandDeps), ...buildUnit301Commands(commandDeps), ...buildUnit201Commands(commandDeps)]
   const commandsById = new Map<CommandId, EditorCommand>(commands.map((command) => [command.id, command]))
 
   let commitState: (next: EditorRootInternal) => void = () => undefined
