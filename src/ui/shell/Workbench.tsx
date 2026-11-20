@@ -580,6 +580,10 @@ export function Workbench(props: WorkbenchProps): ReactNode {
   const [importReport, setImportReport] = useState<ImportReport | null>(null)
   // FR-104.9 (slice D): the caption file whose import dialog is open.
   const [captionDrop, setCaptionDrop] = useState<File | null>(null)
+  // US-302.4 escape hatch: the Languages section "Import translation file"
+  // button drives a hidden caption picker feeding the same import dialog, whose
+  // "Add as translation" mode handles the track. Absent port → stays a no-op.
+  const translationImportRef = useRef<HTMLInputElement | null>(null)
   // unit-202: export dialog (lazy chunk, FR-202.7), in-flight burn-in run
   // (US-3.2.3 progress + cancel), and the completion toast sentence.
   const [exportOpen, setExportOpen] = useState(false)
@@ -873,7 +877,19 @@ export function Workbench(props: WorkbenchProps): ReactNode {
                   <TranscriptPane segments={jobsState.segments} />
                   {/* Unit-104 slice B: the transcript panel mounts ALONGSIDE the unit-101 streaming pane (the frozen streaming-segment-row contract stays mounted where the 101 suites pin it). Needs the editor app + the rAF driver, else the reserved streaming-only view renders. */}
                   {transport !== undefined && transport.rafs !== undefined && <Transcript app={transport.app} rafs={transport.rafs} jobs={jobs} settings={settings} />}
-                  {transport !== undefined && <LanguagesSection app={transport.app} jobs={jobs} />}
+                  {transport !== undefined && (
+                    <LanguagesSection
+                      app={transport.app}
+                      jobs={jobs}
+                      onImportTranslation={
+                        transport.captionImport !== undefined
+                          ? () => {
+                              translationImportRef.current?.click()
+                            }
+                          : undefined
+                      }
+                    />
+                  )}
                 </div>
               )}
               {tab === 'media' && (
@@ -971,6 +987,18 @@ export function Workbench(props: WorkbenchProps): ReactNode {
           }}
         />
       )}
+      <input
+        ref={translationImportRef}
+        type="file"
+        accept=".srt,.vtt,.ass,.ssa"
+        data-testid="translation-file-input"
+        style={{ display: 'none' }}
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          if (file !== undefined) setCaptionDrop(file)
+          event.target.value = ''
+        }}
+      />
     </div>
   )
 }
