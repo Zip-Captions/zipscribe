@@ -101,3 +101,16 @@ inside the pinned engine (mcr.microsoft.com/playwright:v1.64.1-noble — CI-
 equivalent linux). The golden spec compares on linux only (font
 rasterization is platform-specific; see [107-ADJ 9] in golden.spec.ts).
 Never re-bless from an unpinned environment or by hand.
+
+## style/ — unit-201 overlay goldens (CC-201.1)
+
+4 presets × 3 sample captions × {16:9, 9:16} × DPR {1,2} + one RTL track
+golden, rendered by the SHARED renderer (`src/engine/export/overlay.ts`)
+through the ziptest style bridge. Generate ONLY via
+`node scripts/make-style-goldens.ts` (docker
+`mcr.microsoft.com/playwright:v1.64.1-noble`, CI-equivalent engine — font
+rasterization is engine-stable, never re-bless from an unpinned host).
+Frame inputs: `e2e/style/overlay-goldens-data.json`; preset styles are read
+LIVE from `src/engine/style/presets.ts` via the bridge (no drift possible).
+Comparison: in-page 8×8-block luma SSIM ≥ 0.98 in
+`e2e/style/overlay-golden.spec.ts` (linux-gated, like the visualizer suite).
