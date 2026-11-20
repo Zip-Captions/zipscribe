@@ -47,6 +47,7 @@ import type { ReactVirtualizerOptions } from '@tanstack/react-virtual'
 import type { CaptionBlock, Seconds, Speaker } from '../../engine/model'
 import { checkCaptions } from '../../engine/captions/qc'
 import type { QcIssue, QcIssueCode } from '../../engine/captions/qc'
+import { isRtlTrack } from '../../engine/export/cue-model'
 import type { EditorApp } from '../../state/history'
 import type { JobsStore, JobsState } from '../../state/jobs'
 import { defaultModelForTier } from '../../state/jobs'
@@ -199,11 +200,14 @@ export function Transcript(props: TranscriptProps): ReactElement {
 
   const project = useStoreValue(app.project, (state) => state.project)
   const selection = useStoreValue(app.editor, (state) => state.selection)
+  const viewMode = useStoreValue(app.editor, (state) => state.viewMode)
+  const activeLanguage = useStoreValue(app.editor, (state) => state.activeLanguage)
   const running = useStoreValue(jobsStore, (state) => state.running)
   const progress = useStoreValue(jobsStore, (state) => state.progress)
   const segments = useStoreValue(jobsStore, (state) => state.segments)
 
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null)
+  const [editingTranslationBlockId, setEditingTranslationBlockId] = useState<string | null>(null)
   const [popoverBlockId, setPopoverBlockId] = useState<string | null>(null)
   const [hiddenLocal, setHiddenLocal] = useState<readonly string[]>([])
   // FR-104.8 (slice D): the Issues (n) filter toggle, the retime dialog and
@@ -394,6 +398,13 @@ export function Transcript(props: TranscriptProps): ReactElement {
       }),
       registerCommandHandler('qc.previous-issue', () => {
         getQcIssueCursor()?.previousIssue()
+      }),
+      // FR-302.5 / US-302.2: ⌘⇧L cycles source → translation → side-by-side.
+      // Candidates are the project's track languages (frozen binding lives in
+      // the command registry; the panel owns the handler while mounted).
+      registerCommandHandler('translate.cycle-view', () => {
+        const langs = app.project.getState().project?.translations.map((t) => t.language) ?? []
+        app.editor.cycleViewMode(langs)
       }),
     ]
     return () => {
@@ -875,6 +886,14 @@ export function Transcript(props: TranscriptProps): ReactElement {
             const editing = editingBlockId === block.id
             const label = speakerLabel(speakers, block.speakerId)
             const color = speakers.find((speaker) => speaker.id === block.speakerId)?.color
+            // FR-302.2 / US-302.2: view-mode columns + the active track entry.
+            const activeTrack = viewMode !== 'source' && activeLanguage !== null ? project?.translations.find((t) => t.language === activeLanguage) : undefined
+            const showSource = viewMode === 'source' || viewMode === 'split'
+            const showTranslation = activeTrack !== undefined && activeLanguage !== null
+            const entry = activeTrack?.entries[block.id]
+            const stale = entry !== undefined && activeTrack !== undefined && issuesByBlock.get(block.id)?.some((i) => i.code === 'TRANSLATION_STALE' && i.track === activeTrack.language) === true
+            const editingTranslation = editingTranslationBlockId === block.id
+            const badge = entry === undefined ? null : entry.status === 'failed' ? 'Failed' : stale ? 'Stale' : entry.status === 'edited' ? 'Edited' : 'Machine-translated'
             return (
               <div
                 key={item.key}
@@ -933,46 +952,98 @@ export function Transcript(props: TranscriptProps): ReactElement {
                   )}
                 </span>
                 {issuesByBlock.has(block.id) && <span data-testid="transcript-issue-dot" className="ts-issue-dot" aria-hidden="true" title="This block has quality-check issues" />}
-                {editing ? (
-                  // FR-104.4 in-place editor — the slice-C editable-allowlist
-                  // component (src/ui/transcript/editable/, conventions §
-                  // onKeyDown allowlist) owns Enter/Shift+Enter/Esc/IME; the
-                  // commit dispatches ONLY `block-edit-text` here (FR-104.4).
-                  <BlockEditor
-                    initialText={block.text}
-                    onSubmit={(text) => {
-                      app.dispatch('block-edit-text', { blockId: block.id, text })
-                      setEditingBlockId(null)
-                    }}
-                    onCancel={() => {
-                      setEditingBlockId(null)
-                    }}
-                  />
-                ) : (
-                  <span data-testid="transcript-row-text" className="ts-text">
-                    {block.words.map((word, wordIndex) => (
-                      <Fragment key={wordIndex}>
-                        <span
-                          data-testid="transcript-word"
-                          data-word-index={wordIndex}
-                          data-timing={word.timing ?? 'asr'}
-                          className={word.timing === 'estimated' ? 'ts-word ts-word-estimated' : 'ts-word'}
+                {showSource &&
+                  (editing ? (
+                    // FR-104.4 in-place editor — the slice-C editable-allowlist
+                    // component (src/ui/transcript/editable/, conventions §
+                    // onKeyDown allowlist) owns Enter/Shift+Enter/Esc/IME; the
+                    // commit dispatches ONLY `block-edit-text` here (FR-104.4).
+                    <BlockEditor
+                      initialText={block.text}
+                      onSubmit={(text) => {
+                        app.dispatch('block-edit-text', { blockId: block.id, text })
+                        setEditingBlockId(null)
+                      }}
+                      onCancel={() => {
+                        setEditingBlockId(null)
+                      }}
+                    />
+                  ) : (
+                    <span data-testid="transcript-row-text" className="ts-text">
+                      {block.words.map((word, wordIndex) => (
+                        <Fragment key={wordIndex}>
+                          <span
+                            data-testid="transcript-word"
+                            data-word-index={wordIndex}
+                            data-timing={word.timing ?? 'asr'}
+                            className={word.timing === 'estimated' ? 'ts-word ts-word-estimated' : 'ts-word'}
+                            onClick={(event) => {
+                              seekTo(word.start, block.id, event)
+                            }}
+                            onDoubleClick={(event) => {
+                              event.stopPropagation()
+                              setEditingBlockId(block.id)
+                            }}
+                          >
+                            {highlightWordParts(word.text, matchesByBlock.get(block.id)?.get(wordIndex), activeMatch)}
+                          </span>
+                          {wordIndex < block.words.length - 1 ? ' ' : ''}
+                        </Fragment>
+                      ))}
+                      {block.confidence !== undefined && <span data-testid="transcript-confidence-dot" className="ts-confidence-dot" aria-hidden="true" title={`Confidence ${Math.round(block.confidence * 100)}%`} />}
+                    </span>
+                  ))}
+                {showTranslation &&
+                  activeLanguage !== null &&
+                  activeTrack !== undefined &&
+                  (editingTranslation ? (
+                    // FR-302.2 translation edit — the same allowlist editor,
+                    // committed through ONLY `translation-edit-entry`.
+                    <BlockEditor
+                      initialText={entry?.text ?? ''}
+                      onSubmit={(text) => {
+                        app.dispatch('translation-edit-entry', { language: activeLanguage, blockId: block.id, text })
+                        setEditingTranslationBlockId(null)
+                      }}
+                      onCancel={() => {
+                        setEditingTranslationBlockId(null)
+                      }}
+                    />
+                  ) : (
+                    <>
+                      <span
+                        data-testid="transcript-translation-text"
+                        className="ts-text ts-translation-text"
+                        dir={isRtlTrack(activeTrack.language) ? 'rtl' : 'ltr'}
+                        lang={activeTrack.language}
+                        onDoubleClick={(event) => {
+                          event.stopPropagation()
+                          setEditingTranslationBlockId(block.id)
+                        }}
+                      >
+                        {entry?.text ?? ''}
+                      </span>
+                      {badge !== null && (
+                        <span data-testid="transcript-translation-badge" className={`ts-translation-badge ts-translation-badge-${badge.toLowerCase()}`}>
+                          {badge}
+                        </span>
+                      )}
+                      {stale && (
+                        <button
+                          type="button"
+                          data-testid="transcript-mark-reviewed"
+                          className="ts-row-action"
+                          aria-label="Mark this translation as reviewed"
                           onClick={(event) => {
-                            seekTo(word.start, block.id, event)
-                          }}
-                          onDoubleClick={(event) => {
                             event.stopPropagation()
-                            setEditingBlockId(block.id)
+                            app.dispatch('translation-mark-reviewed', { language: activeTrack.language, blockId: block.id })
                           }}
                         >
-                          {highlightWordParts(word.text, matchesByBlock.get(block.id)?.get(wordIndex), activeMatch)}
-                        </span>
-                        {wordIndex < block.words.length - 1 ? ' ' : ''}
-                      </Fragment>
-                    ))}
-                    {block.confidence !== undefined && <span data-testid="transcript-confidence-dot" className="ts-confidence-dot" aria-hidden="true" title={`Confidence ${Math.round(block.confidence * 100)}%`} />}
-                  </span>
-                )}
+                          Mark as reviewed
+                        </button>
+                      )}
+                    </>
+                  ))}
                 <button
                   type="button"
                   data-testid="transcript-close-gap"
