@@ -66,6 +66,7 @@ export function App(): ReactNode {
       intake={context.intake}
       transport={{ app: context.editorApp, stage: context.stage, rafs: context.rafs, captionImport: context.captionImport, visualizer: context.visualizer }}
       persistence={context.persistence}
+      exportDeps={{ exportService: context.exportService, getSourceBlob: (projectId) => context.getSourceBlob(projectId) }}
       onTabChange={(tab) => {
         context.setActiveTab(tab)
       }}

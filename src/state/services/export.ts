@@ -41,6 +41,32 @@ export function createExportService(deps: { engine: ExportWorkerPort; newJobId()
       const subscribers = new Set<(event: ExportEvent) => void>()
       let cancelled = false
 
+      // CC-202.4 second line of defence (the dialog gate is the first): a
+      // burn-in request for an AUDIO snapshot never reaches the worker.
+      // The handle exists only to deliver the typed rejection.
+      if (frozenSnapshot.asset.kind === 'audio') {
+        const rejection: ExportEvent = {
+          t: 'job:error',
+          jobId,
+          error: { code: 'ENCODER_UNSUPPORTED', retryable: false, detail: 'audio-project burn-in' },
+        }
+        queueMicrotask(() => {
+          for (const listener of [...subscribers]) listener(rejection)
+        })
+        return {
+          jobId,
+          subscribe: (cb) => {
+            subscribers.add(cb)
+            return () => {
+              subscribers.delete(cb)
+            }
+          },
+          cancel: () => {
+            cancelled = true
+          },
+        }
+      }
+
       deps.engine.postExport({ t: 'export', jobId, snapshot: frozenSnapshot, file, settings })
       const detach = deps.engine.onExportEvent((event) => {
         if (event.jobId !== jobId) return
