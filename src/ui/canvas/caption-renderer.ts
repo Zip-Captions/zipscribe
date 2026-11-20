@@ -73,6 +73,7 @@ export function createCaptionOverlayRenderer(deps: CaptionRendererDeps): Overlay
     if (ctx === null) return
     ctx.setTransform(1, 0, 0, 1, 0, 0)
     ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0) // drawCaptions works in CSS px
     const t = lastPlayhead
     const visible = lastProject.blocks.filter(b => b.start <= t && t < b.end)
     if (visible.length === 0) return

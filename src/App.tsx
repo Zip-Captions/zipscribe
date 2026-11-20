@@ -1,3 +1,4 @@
+import { ensureDefaultFonts } from './ui/style/fonts'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Workbench } from './ui/shell/Workbench'
@@ -19,6 +20,7 @@ export function App(): ReactNode {
     // e2e bridges also keeps the composition root's ASR/diarize lanes inert
     // (FR-108 [108-ADJ] — the mocked-worker e2e doctrine).
     const ziptest = new URLSearchParams(window.location.search).get('ziptest') === '1'
+    void ensureDefaultFonts()
     void createAppContext({ ziptest })
       .then(async (created) => {
         // E2E-only bridges (unit-101/unit-102 frozen contracts): STRICT
