@@ -70,7 +70,7 @@ Notes on crediting:
    (`tests/unit/export/burn-in-pacing.test.ts`, 4 cases: first tick, ≥ 900 ms
    cadence, forced final) and the e2e rate check is conditional on runs
    > 2.5 s; the cancel leg now runs on speech-10min (≥ 12 s encode floor) so
-   the mid-flight click is deterministic.
+   > the mid-flight click is deterministic.
 4. **T4 dialog leg (CC-202.3)** — the boot gate blocks a resolved-T4 device
    ("can't run on this device" screen), so the requirements-copy state is
    exercised the only way it is reachable in a booted app: the conservative
@@ -89,7 +89,7 @@ Notes on crediting:
    is `tests/unit/editor/contract.test.ts`. Coverage thresholds untouched
    (engine 85/75, state 80, perFile) — reviewer confirmed byte-for-byte.
 7. **Cancel-ack contract widening** — `ExportHandle.cancel(): void →
-   Promise<void>` (source-compatible) so the run row clears on the worker's
+Promise<void>` (source-compatible) so the run row clears on the worker's
    terminal flush-ack and "cancel ≤ 2 s" is falsifiable (reviewer R1-H1).
    Recorded as a contract change (below).
 
