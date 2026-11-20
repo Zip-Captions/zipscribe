@@ -39,7 +39,7 @@ afterEach(cleanup)
 
 describe('US-302.4: import as translation', () => {
   test('US-302.4: Add-as-translation creates an imported track and fills matched entries', async () => {
-    if (CHILD) return test.skip(true, CHILD_REASON)
+    if (CHILD) return
     installDomStubs()
     const spy = createRedactionSpy()
     const t = createTestApp({ project: baseProject() })
@@ -71,7 +71,7 @@ describe('US-302.4: import as translation', () => {
   })
 
   test('US-302.4: surplus cues beyond the source blocks are reported unmatched', async () => {
-    if (CHILD) return test.skip(true, CHILD_REASON)
+    if (CHILD) return
     installDomStubs()
     const spy = createRedactionSpy()
     const t = createTestApp({ project: baseProject() })

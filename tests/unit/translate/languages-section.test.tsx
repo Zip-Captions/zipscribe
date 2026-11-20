@@ -67,7 +67,7 @@ afterEach(() => {
 
 describe('FR-302.1: Languages section picker + add', () => {
   test('US-302.1: Add-language opens a picker listing targets with availability badges', async () => {
-    if (CHILD) return test.skip(true, CHILD_REASON)
+    if (CHILD) return
     const spy = createRedactionSpy()
     const { dispose } = await mount()
     await act(async () => {
@@ -87,7 +87,7 @@ describe('FR-302.1: Languages section picker + add', () => {
   })
 
   test('FR-302.1: adding a Ready language creates the machine track and translates it (inside the click)', async () => {
-    if (CHILD) return test.skip(true, CHILD_REASON)
+    if (CHILD) return
     const spy = createRedactionSpy()
     const { app, dispose } = await mount()
     await act(async () => {
@@ -107,7 +107,7 @@ describe('FR-302.1: Languages section picker + add', () => {
 
 describe('FR-302.1: cancel + translate controls', () => {
   test('FR-302.1: a running language exposes Cancel which aborts the run', async () => {
-    if (CHILD) return test.skip(true, CHILD_REASON)
+    if (CHILD) return
     const spy = createRedactionSpy()
     const { app, jobs, dispose } = await mount({}, {
       translate: (_s, _t, text, signal) =>
@@ -137,7 +137,7 @@ describe('FR-302.1: cancel + translate controls', () => {
 
 describe('US-302.1: unsupported-browser gating', () => {
   test('US-302.1: an unsupported browser shows gating copy + import + manual escape hatches', async () => {
-    if (CHILD) return test.skip(true, CHILD_REASON)
+    if (CHILD) return
     const spy = createRedactionSpy()
     const { dispose } = await mount({ availableApi: false, unsupported: ['fr', 'es'] })
     const gating = document.querySelector('[data-testid="languages-gating"]')
@@ -153,7 +153,7 @@ describe('US-302.1: unsupported-browser gating', () => {
   })
 
   test('US-302.1: Add empty track (manual) creates a manual-origin track', async () => {
-    if (CHILD) return test.skip(true, CHILD_REASON)
+    if (CHILD) return
     const spy = createRedactionSpy()
     const { app, dispose } = await mount({ availableApi: false, unsupported: ['fr', 'es'] })
     const manual = document.querySelector('[data-testid="languages-manual"]') as HTMLButtonElement | null

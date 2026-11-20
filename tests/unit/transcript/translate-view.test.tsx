@@ -76,7 +76,7 @@ function texts(testId: string): string[] {
 
 describe('FR-302.2: ⌘⇧L cycles the transcript view mode', () => {
   test('CC-302.2: cycle advances source → translation → split → source', async () => {
-    if (CHILD) return test.skip(true, CHILD_REASON)
+    if (CHILD) return
     const { app, dispose } = await mount(translationProject())
     expect(app.editor.getState().viewMode).toBe('source')
     act(() => dispatchCommand('translate.cycle-view'))
@@ -90,7 +90,7 @@ describe('FR-302.2: ⌘⇧L cycles the transcript view mode', () => {
   })
 
   test('FR-302.2: source view shows source words and no translation column', async () => {
-    if (CHILD) return test.skip(true, CHILD_REASON)
+    if (CHILD) return
     const { dispose } = await mount(translationProject())
     expect(texts('transcript-row-text').join(' ')).toContain('alpha')
     expect(document.querySelectorAll('[data-testid="transcript-translation-text"]').length).toBe(0)
@@ -98,7 +98,7 @@ describe('FR-302.2: ⌘⇧L cycles the transcript view mode', () => {
   })
 
   test('US-302.2: translation view shows the active track text; split shows both', async () => {
-    if (CHILD) return test.skip(true, CHILD_REASON)
+    if (CHILD) return
     const { app, dispose } = await mount(translationProject())
     act(() => {
       app.editor.setViewMode('translation')
@@ -115,7 +115,7 @@ describe('FR-302.2: ⌘⇧L cycles the transcript view mode', () => {
 
 describe('CC-302.3: translation text carries the script direction', () => {
   test('CC-302.3: Arabic rows render dir=rtl + lang; Latin rows render dir=ltr', async () => {
-    if (CHILD) return test.skip(true, CHILD_REASON)
+    if (CHILD) return
     const { app, dispose } = await mount(translationProject())
     act(() => {
       app.editor.setViewMode('translation')
@@ -135,7 +135,7 @@ describe('CC-302.3: translation text carries the script direction', () => {
 
 describe('US-302.2: per-entry status badges + review', () => {
   test('US-302.2: Machine-translated / Edited / Failed badges render from entry status', async () => {
-    if (CHILD) return test.skip(true, CHILD_REASON)
+    if (CHILD) return
     const { app, dispose } = await mount(translationProject())
     act(() => {
       app.editor.setViewMode('translation')
@@ -149,7 +149,7 @@ describe('US-302.2: per-entry status badges + review', () => {
   })
 
   test('US-302.2: a stale entry renders Stale and Mark-as-reviewed dispatches the command', async () => {
-    if (CHILD) return test.skip(true, CHILD_REASON)
+    if (CHILD) return
     const { app, dispose } = await mount(translationProject())
     const dispatched: Array<{ type: string; payload: unknown }> = []
     const realDispatch = app.dispatch.bind(app)
