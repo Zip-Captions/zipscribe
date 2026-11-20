@@ -248,7 +248,7 @@ interface ExportWorkerPort {
 }
 interface ExportHandle {
   subscribe(cb: (event: ExportEvent) => void): () => void
-  cancel(): void // posts the cancel for this jobId (idempotent)
+  cancel(): Promise<void> // posts the cancel for this jobId (idempotent); resolves on the worker's terminal flush-ack (unit-202 widening)
   readonly jobId: string
 }
 interface ExportService {

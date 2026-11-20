@@ -195,7 +195,10 @@ scope.onmessage = (event: MessageEvent<ExportRequest>) => {
   // resolves once canceled and makes execute() throw ConversionCanceledError.
   // The ack rides cancel()'s own resolution — the authoritative bounded-stop
   // signal — with the execute()-reject path as backstop (both guarded).
-  void job.conversion.cancel().then(() => ackCancel(job, request.jobId))
+  void job.conversion
+    .cancel()
+    .then(() => ackCancel(job, request.jobId))
+    .catch(() => ackCancel(job, request.jobId)) // rejecting cancel(): fall through to the same exactly-once ack
 }
 
 const DEFAULT_SPEAKER_PALETTE: readonly string[] = ['#4c8dff', '#e5534b', '#4ab871', '#d29922', '#a371f7', '#3fb9b0', '#db61a2', '#8b949e']
