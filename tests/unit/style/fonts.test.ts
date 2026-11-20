@@ -70,9 +70,30 @@ describe('CC-201.4: bundled fonts', () => {
   test('CC-201.4: remote opt-in uses display:swap and only fires on explicit call', async () => {
     await ensureDefaultFonts()
     expect(loaded.some(l => l.includes('fonts.googleapis.com'))).toBe(false)
+    const fetchCalls: string[] = []
+    vi.stubGlobal('fetch', (input: RequestInfo | URL) => {
+      fetchCalls.push(String(input))
+      return Promise.resolve({
+        ok: true,
+        text: async () => "@font-face{font-family:'Anton';src:url(https://fonts.gstatic.com/s/anton/v25/a.woff2) format('woff2'),url(https://fonts.gstatic.com/s/anton/v25/b.woff2) format('woff2')}",
+      } as Response)
+    })
     const ok = await enableRemoteFont('Anton')
     expect(ok).toBe(true)
-    expect(loaded.some(l => l.includes('fonts.googleapis.com'))).toBe(true)
+    expect(fetchCalls[0]).toContain('fonts.googleapis.com')
+    expect(loaded.some(l => l.includes('https://fonts.gstatic.com/s/anton/v25/b.woff2')), 'FontFace src is the resolved gstatic woff2, not the css URL').toBe(true)
+    expect(loaded.some(l => l.includes('css2?family=Anton')), 'the stylesheet URL never reaches FontFace').toBe(false)
+    vi.unstubAllGlobals()
+  })
+
+  test('CC-201.4: remote opt-in fails softly on http error and on css without font urls', async () => {
+    vi.stubGlobal('fetch', () => Promise.resolve({ ok: false, text: async () => '' } as Response))
+    expect(await enableRemoteFont('Anton')).toBe(false)
+    vi.stubGlobal('fetch', () => Promise.resolve({ ok: true, text: async () => '@font-face{src:local("nope")}' } as Response))
+    expect(await enableRemoteFont('Bebas Neue')).toBe(false)
+    vi.stubGlobal('fetch', () => Promise.reject(new Error('NETWORK_DOWN')))
+    expect(await enableRemoteFont('Oswald')).toBe(false)
+    vi.unstubAllGlobals()
   })
 
   test('CC-201.4: unknown remote family fails softly', async () => {

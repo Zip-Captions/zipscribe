@@ -3,6 +3,9 @@
 // The bundled woff2s are served by the app origin (self); everything else is
 // hard-aborted.
 import { expect, test } from '@playwright/test'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { REPO_ROOT } from '../../tests/helpers/repo'
 
 test.describe('CC-201.4: bundled fonts offline + remote opt-in', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e`')
@@ -73,6 +76,40 @@ test.describe('CC-201.4: bundled fonts offline + remote opt-in', () => {
       const ok = await page.evaluate(async () => await (window as unknown as { __zipStyleTest: { enableRemoteFont: (f: string) => Promise<boolean> } }).__zipStyleTest.enableRemoteFont('Anton'))
       expect(ok, 'remote opt-in fails softly when the network is gone').toBe(false)
       expect(remoteAttempts, 'remote attempted only after explicit opt-in').toBeGreaterThan(0)
+    } finally {
+      await context.close()
+    }
+  })
+
+  test('CC-201.4: opt-in remote load succeeds when the css2 + gstatic bytes are served (real woff2)', async ({ browser }) => {
+    test.setTimeout(90_000)
+    const context = await browser.newContext()
+    const woff2 = readFileSync(join(REPO_ROOT, 'public', 'fonts', 'display', 'anton-latin-all-400.woff2')).toString('base64')
+    let cssRequests = 0
+    let binaryRequests = 0
+    await context.route('https://fonts.googleapis.com/**', route => {
+      cssRequests += 1
+      void route.fulfill({
+        status: 200,
+        contentType: 'text/css',
+        body: "@font-face{font-family:'Anton';font-style:normal;font-weight:400;src:url(https://fonts.gstatic.com/s/anton/v25/stub.woff2) format('woff2')}",
+      })
+    })
+    await context.route('https://fonts.gstatic.com/**', route => {
+      binaryRequests += 1
+      void route.fulfill({ status: 200, contentType: 'font/woff2', body: Buffer.from(woff2, 'base64') })
+    })
+    const page = await context.newPage()
+    try {
+      await page.goto('http://127.0.0.1:4310/?ziptest=1')
+      await page.waitForFunction(() => (window as unknown as { __zipStyleTest?: unknown }).__zipStyleTest !== undefined, undefined, { timeout: 20_000 })
+      expect(cssRequests, 'no remote css fetch before opt-in').toBe(0)
+      const ok = await page.evaluate(async () => await (window as unknown as { __zipStyleTest: { enableRemoteFont: (f: string) => Promise<boolean> } }).__zipStyleTest.enableRemoteFont('Anton'))
+      expect(ok, 'opt-in succeeds with served bytes').toBe(true)
+      expect(cssRequests, 'exactly one css2 fetch').toBe(1)
+      expect(binaryRequests, 'the resolved gstatic woff2 was fetched').toBe(1)
+      const loaded = await page.evaluate(() => (window as unknown as { __zipStyleTest: { fontLoaded: (f: string, w: number) => boolean } }).__zipStyleTest.fontLoaded('Anton', 400))
+      expect(loaded, 'remote face registered in FontFaceSet').toBe(true)
     } finally {
       await context.close()
     }

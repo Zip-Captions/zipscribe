@@ -85,7 +85,17 @@ export async function enableRemoteFont(family: string): Promise<boolean> {
   const spec = BUNDLED_FONT_FACES.find(f => f.family === family)
   if (remote === undefined || spec === undefined) return false
   try {
-    await addFace({ ...spec, lazy: false }, remote)
+    // FontFace src must be a FONT resource — the css2 stylesheet URL cannot
+    // be one (the loader never parses CSS). Fetch the css2 text and resolve
+    // the gstatic woff2 binaries its @font-face rules reference.
+    const res = await fetch(remote)
+    if (!res.ok) return false
+    const css = await res.text()
+    const urls = [...css.matchAll(/url\((https:\/\/fonts\.gstatic\.com\/[^)\s]+\.woff2)\)/g)]
+      .map(m => m[1])
+      .filter((u): u is string => u !== undefined)
+    if (urls.length === 0) return false
+    await addFace({ ...spec, lazy: false }, urls[urls.length - 1])
     return true
   } catch {
     registered.delete(`${spec.family}:${spec.weight}`)
