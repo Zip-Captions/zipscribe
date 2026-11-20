@@ -213,11 +213,11 @@ test.describe('CC-202.2: burn-in MP4 (chromium)', () => {
     await expect(page.getByTestId('export-dialog')).toBeVisible()
     await page.getByTestId('burnin-start').click()
     await expect(page.getByTestId('export-progress')).toBeVisible()
-    // wait until the run is visibly in flight (not a pre-start race)
-    await page.waitForFunction(() => {
-      const m = /([\d.]+) s \/ [\d.]+ s/.exec(document.querySelector('[data-testid=export-progress]')?.textContent ?? '')
-      return m !== null && Number(m[1]) > 0
-    }, undefined, { timeout: 10_000 }).catch(() => undefined)
+    // Cancel fires the INSTANT the run row appears — no progress>0 wait.
+    // A 600 s encode takes ≥12 s (measured) so the run is certainly in
+    // flight; waiting for progress ticks instead races a fast pipeline
+    // under full-suite load and can cancel an already-finished run
+    // (the toast then reads 'Download', not 'CANCELLED').
     await page.getByTestId('export-cancel').click()
     const t0 = Date.now()
     await expect(page.getByTestId('export-progress')).toHaveCount(0, { timeout: 2000 })
