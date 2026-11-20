@@ -11,11 +11,27 @@
 // diagnostic NUMBERS cross here; nothing logs content.
 
 import { getAppContext } from '../../app/context'
-import type { CaptionBlock, MediaAsset } from '../../engine/model'
+import type { CaptionBlock, MediaAsset, TranslationEntry } from '../../engine/model'
+import { applyEntries } from '../../engine/translate/track'
 import type { CommandId, CommandPayloads } from '../../state/commands'
 
 interface EditorBridge {
   openProjectWithMedia(asset: MediaAsset, srcUrl: string, blocks?: readonly CaptionBlock[]): void
+  /** unit-202 (CC-202.2 e2e): register burn-in input bytes for the project. */
+  setExportMedia(bytes: ArrayBuffer, type: string): Promise<void>
+  /** unit-202 (CC-202.5 e2e): deterministic project name for golden filenames. */
+  setProjectName(name: string): void
+  /** unit-202 (CC-202.5 e2e): pin the source language (the probe normally owns it). */
+  setProjectLanguage(language: string): void
+  /** unit-202 (CC-202.5 e2e): seed a translation track (same engine path the
+   *  FR-301.5 apply service uses — applyWithoutHistory, never undo steps). */
+  seedTranslation(language: string, entries: Record<string, TranslationEntry>): void
+  /** unit-202 (CC-202.5 e2e): install an exact blocks+speakers snapshot for
+   *  the serializer golden compare. The committed sidecar fixture carries
+   *  reducer-illegal word/text escape-matrix data BY DESIGN (it tests the
+   *  serializers, not the reducer), so it rides the same applyWithoutHistory
+   *  path the translation seed uses; reducer legality is L1's job. */
+  seedBlocks(blocks: readonly unknown[], speakers: readonly unknown[]): void
   command(id: string, payload?: unknown): { code: string } | null
   getEditorState(): {
     playhead: number
@@ -32,7 +48,8 @@ interface EditorBridge {
 }
 
 export function installEditorBridge(): void {
-  const { editorApp, stage, mediaClock } = getAppContext()
+  const appContext = getAppContext()
+  const { editorApp, stage, mediaClock } = appContext
   let scrubbing = false
 
   const bridge: EditorBridge = {
@@ -50,6 +67,32 @@ export function installEditorBridge(): void {
       scrubbing = false
       mediaClock.resetSeekCount()
       stage.setMediaSource(srcUrl)
+    },
+    async setExportMedia(bytes: ArrayBuffer, type: string): Promise<void> {
+      const id = editorApp.project.getState().project?.id
+      if (id === undefined) throw new Error('setExportMedia: no project')
+      await appContext.setSourceBlob(id, new Blob([bytes], { type }))
+    },
+    setProjectName(name: string): void {
+      editorApp.project.setProjectName(name)
+    },
+    setProjectLanguage(language: string): void {
+      editorApp.applyWithoutHistory((draft) => {
+        if (draft.project !== null) draft.project.language = language
+      })
+    },
+    seedBlocks(blocks: readonly unknown[], speakers: readonly unknown[]): void {
+      editorApp.applyWithoutHistory((draft) => {
+        if (draft.project === null) return
+        draft.project.blocks = blocks as never
+        draft.project.speakers = speakers as never
+      })
+    },
+    seedTranslation(language: string, entries: Record<string, TranslationEntry>): void {
+      const updates = Object.entries(entries).map(([blockId, entry]) => ({ blockId, entry }))
+      editorApp.applyWithoutHistory((draft) => {
+        if (draft.project !== null) applyEntries(draft.project, language, updates)
+      })
     },
     command(id: string, payload?: unknown): { code: string } | null {
       // `captions-import` convenience (perf-seed chunking): speaker ids the

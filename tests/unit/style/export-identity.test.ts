@@ -43,10 +43,12 @@ describe('CC-201.2: export stub consumes the shared renderer', () => {
     expect(lines).toContain('identity check')
   })
 
-  test('CC-201.2: the export worker imports the probe-frame entry and registers bundled faces (FR-201.4)', () => {
+  test('CC-201.2: the export worker consumes the shared renderer and registers bundled faces (FR-201.4, FR-202.3)', () => {
     const src = readFileSync(join(REPO_ROOT, 'src/workers/export.worker.ts'), 'utf8')
-    expect(src).toMatch(/renderProbeFrame/)
-    expect(src).toMatch(/probe-frame/)
+    // the ONE painter is imported from the shared engine module (post-202 the
+    // burn-in draws video + captions itself; probe-frame remains the stub path)
+    expect(src).toMatch(/drawCaptions/)
+    expect(src).toMatch(/export\/overlay/)
     expect(src).toMatch(/fonts\.add/)
     expect(src).toMatch(/BUNDLED_FONT_FACES/)
     expect(src).toMatch(/new OffscreenCanvas/)

@@ -201,6 +201,13 @@ export default defineConfig({
       exclude: [
         '**/*.test.ts',
         '**/*.test.tsx',
+        // prose under coverage.include (unit-102 CONTRACT freeze docs): the
+        // v8 provider's uncovered-file sweep hands non-JS sources to rollup's
+        // parser — a PARSE_ERROR that Node 24 surfaces as a non-zero exit
+        // (Node 22 tolerated it; CI run 44688026691 shows the same error
+        // passing). Markdown is not measurable code; its content gate is
+        // tests/unit/editor/contract.test.ts, not the coverage table.
+        '**/*.md',
         'src/engine/**/adapters/**',
         'src/workers/**',
         // unit-102 (slice A, child only): RETIRED at slice B — the transport

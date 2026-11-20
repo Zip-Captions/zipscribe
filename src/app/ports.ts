@@ -6,7 +6,7 @@
 
 import { createModelCache } from '../engine/model/cache'
 import { probeCapabilities } from '../engine/model/capability'
-import type { CapabilityEnv } from '../engine/model/capability'
+import type { Capabilities, CapabilityEnv } from '../engine/model/capability'
 import type { ModelId } from '../engine/protocol'
 import type { CapabilitySnapshot, ModelCachePort } from '../state/jobs'
 import type { SettingsStorage } from '../state/settings'
@@ -98,4 +98,11 @@ function environmentFromGlobals(): CapabilityEnv {
 export async function probeDeviceCapability(): Promise<CapabilitySnapshot> {
   const caps = await probeCapabilities(environmentFromGlobals())
   return { tier: caps.tier, reasons: caps.reasons }
+}
+
+/** unit-202 (FR-202.2): the FULL capability record (encoder flags intact) for
+ *  the export dialog's burn-in gate. The jobs store keeps the tier-shaped
+ *  snapshot only (unit-03 frozen) — the flags ride this separate read. */
+export async function probeFullCapability(): Promise<Capabilities> {
+  return probeCapabilities(environmentFromGlobals())
 }

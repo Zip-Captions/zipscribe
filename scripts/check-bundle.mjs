@@ -89,6 +89,18 @@ for (const chunk of [...initial].sort()) {
   counted.push({ chunk, gzip: bytes })
 }
 
+// CC-202.7 (unit-202): the export surface must exist AS lazy chunks — the
+// dialog, the sidecar service and the burn-in worker (mediabunny inside) are
+// dynamic imports, never in the initial graph.
+const assets = readdirSync(join(dist, 'assets'))
+for (const probe of [/^ExportDialog-[^/]+\.js$/, /^export-sidecar-[^/]+\.js$/, /^export\.worker-[^/]+\.js$/]) {
+  const found = assets.filter((a) => probe.test(a)).map((a) => `assets/${a}`)
+  if (found.length === 0) fail(`CC-202.7: no lazy chunk matching ${probe} — the export surface must be code-split (FR-202.7)`)
+  for (const f of found) {
+    if (initial.has(f)) fail(`CC-202.7: ${f} is statically reachable from the entry — export must be lazy (FR-202.7)`)
+  }
+}
+
 for (const { chunk, gzip } of counted) {
   console.log(`  ${chunk}  ${(gzip / 1024).toFixed(1)} KB gzip`)
 }

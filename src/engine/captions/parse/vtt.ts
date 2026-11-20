@@ -30,7 +30,11 @@ function extractVoice(cueText: string): string | undefined {
   const match = VOICE_TAG.exec(cueText)
   if (!match?.[1]) return undefined
   // `<v Speaker.class>` — the name is everything before the first '.'.
-  const name = match[1].split('.')[0]!.trim()
+  // WebVTT cue text carries character references throughout (W3C WebVTT
+  // spec), so the voice name decodes like the cue text does (unit-202
+  // round-trip: exported `<v Guest &amp; Co>` must parse back to
+  // `Guest & Co`).
+  const name = decodeEntities(match[1].split('.')[0]!.trim())
   return name === '' ? undefined : name
 }
 

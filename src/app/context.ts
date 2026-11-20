@@ -91,6 +91,13 @@ export interface AppContext {
    * the provider lands here). Thin — no UI consumes it yet (Intent 3).
    */
   exportService: ExportService
+  /** unit-202 FR-202.3: the media BYTES behind the current project (burn-in
+   *  input). Memory map first, then the FR-106 blob cache; never re-fetched
+   *  over the network. */
+  getSourceBlob(projectId: string): Promise<Blob | null>
+  /** unit-202 (ziptest bridge): register the export-input bytes for a
+   *  project (memory + blob cache). */
+  setSourceBlob(projectId: string, blob: Blob): Promise<void>
   /** FR-106.5: apply a loaded reopen context (editor load, history reset, panel restore, blob-cache attach). */
   applyLoadedProject(loaded: LoadedProject): void
   /** FR-106.4: post-open relink; a 'silent' outcome attaches the file (stage + blob cache). */
@@ -346,6 +353,25 @@ async function buildAppContext(options: AppContextOptions): Promise<AppContext> 
   // DB_OPEN_FAILED — never a boot failure, never a console line.
   void persistence.open().catch(() => undefined)
 
+  const sourceBlobs = new Map<string, Blob>()
+
+  async function getSourceBlob(projectId: string): Promise<Blob | null> {
+    const mem = sourceBlobs.get(projectId)
+    if (mem !== undefined) return mem
+    try {
+      const cached = await persistence.getMediaBlob(projectId)
+      if (cached !== null) sourceBlobs.set(projectId, cached)
+      return cached
+    } catch {
+      return null
+    }
+  }
+
+  async function setSourceBlob(projectId: string, blob: Blob): Promise<void> {
+    sourceBlobs.set(projectId, blob)
+    await persistence.cacheMediaBlob(projectId, blob)
+  }
+
   function attachObjectUrl(blobOrFile: Blob): void {
     try {
       stage.setMediaSource(URL.createObjectURL(blobOrFile))
@@ -505,6 +531,8 @@ async function buildAppContext(options: AppContextOptions): Promise<AppContext> 
     persistence,
     persistenceDeps,
     exportService,
+    getSourceBlob,
+    setSourceBlob,
     transcribeCommit,
     applyLoadedProject,
     relinkAfterOpen,

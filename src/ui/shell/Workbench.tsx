@@ -12,13 +12,13 @@
 // SECURITY-03: transcript/segment text is rendered verbatim (it is the user's
 // own content on screen) but NEVER reaches a console channel — logging carries
 // codes and numbers only, which is what the canary-redaction suites assert.
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { createElement, useCallback, useEffect, useId, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
-import type { DragEvent as ReactDragEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import type { ComponentType, DragEvent as ReactDragEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual'
 import type { Range, ReactVirtualizerOptions } from '@tanstack/react-virtual'
-import type { Notice, RawSegment, Tier } from '../../engine/protocol'
-import type { MediaAsset } from '../../engine/model'
+import type { ExportSettings, Notice, RawSegment, Tier } from '../../engine/protocol'
+import type { MediaAsset, ProjectSnapshot } from '../../engine/model'
 import { defaultModelForTier } from '../../state/jobs'
 import type { JobsState, JobsStore } from '../../state/jobs'
 import type { SettingsStore, WorkbenchSettings } from '../../state/settings'
@@ -41,6 +41,12 @@ import { formatTimecode } from '../format'
 import { Timeline } from '../timeline/Timeline'
 import { Transcript } from '../transcript/Transcript'
 import { StyleTab } from '../style/StyleTab'
+import type { Capabilities } from '../../engine/model/capability'
+import type { SidecarTrack, SpeakerLabelMode } from '../../engine/export/cue-model'
+import type { SidecarFormat } from '../../state/services/export-sidecar'
+import type { ExportHandle, ExportService } from '../../state/services/export'
+import type { ExportDialogProps } from '../export/ExportDialog'
+import { probeFullCapability } from '../../app/ports'
 import { CaptionImportDialog } from '../transcript/CaptionImportDialog'
 import { ProjectList } from './ProjectList'
 import { StageMedia } from './StageMedia'
@@ -58,12 +64,21 @@ export interface WorkbenchTransport {
   visualizer?: VisualizerRuntime
 }
 
+/** unit-202 (FR-202.1/.2/.3): the export dependencies, injected by the
+ *  composition root (App.tsx). Optional — frozen mounts (101–107 suites)
+ *  keep the button inert, exactly like the pre-202 placeholder. */
+export interface ExportDeps {
+  exportService: ExportService
+  getSourceBlob(projectId: string): Promise<Blob | null>
+}
+
 export interface WorkbenchProps {
   jobs: JobsStore
   settings: SettingsStore
   project: ProjectStore
   intake: IntakeService
   transport?: WorkbenchTransport
+  exportDeps?: ExportDeps
   /**
    * Unit-106 slice B EXTENDS (optional — every frozen 101/102/103/104 mount
    * path is untouched): the persistence service behind the status-bar
@@ -535,7 +550,7 @@ function BlockedScreen({ reasons }: { reasons: readonly string[] }): ReactNode {
 }
 
 export function Workbench(props: WorkbenchProps): ReactNode {
-  const { jobs, settings, project, intake, transport, persistence, onOpenProject, relinkMismatch = null, onRelinkKeep, onRelinkReplace, interceptProjectFile, onTabChange } = props
+  const { jobs, settings, project, intake, transport, persistence, exportDeps, onOpenProject, relinkMismatch = null, onRelinkKeep, onRelinkReplace, interceptProjectFile, onTabChange } = props
 
   useCommands(settings)
   useTransportCommands(transport?.app)
@@ -564,6 +579,15 @@ export function Workbench(props: WorkbenchProps): ReactNode {
   const [importReport, setImportReport] = useState<ImportReport | null>(null)
   // FR-104.9 (slice D): the caption file whose import dialog is open.
   const [captionDrop, setCaptionDrop] = useState<File | null>(null)
+  // unit-202: export dialog (lazy chunk, FR-202.7), in-flight burn-in run
+  // (US-3.2.3 progress + cancel), and the completion toast sentence.
+  const [exportOpen, setExportOpen] = useState(false)
+  const [exportDialog, setExportDialog] = useState<ComponentType<ExportDialogProps> | null>(null)
+  const [exportRun, setExportRun] = useState<{ jobId: string; snapshotVersion: number; processedSec: number; totalSec: number; cancelling: boolean } | null>(null)
+  const exportCancellingRef = useRef(false)
+  const [exportToast, setExportToast] = useState<string | null>(null)
+  const exportHandleRef = useRef<ExportHandle | null>(null)
+  const [exportCaps, setExportCaps] = useState<Capabilities | null>(null)
   // The FR-102.6 overlay canvas mounts INSIDE the reserved canvas layer (the
   // host node stays unit-101's).
   const canvasHostRef = useRef<HTMLDivElement | null>(null)
@@ -593,6 +617,74 @@ export function Workbench(props: WorkbenchProps): ReactNode {
         setToastCodes(['INTAKE_FAILED'])
       })
     }
+  }
+
+  function openExport(): void {
+    setExportOpen(true)
+    if (exportDialog === null) {
+      void import('../export/ExportDialog').then((m) => {
+        setExportDialog(() => m.ExportDialog)
+      })
+    }
+  }
+
+  function buildSnapshot(): ProjectSnapshot | null {
+    if (currentProject === null) return null
+    return { ...structuredClone(currentProject), snapshotVersion: currentProject.updatedAt }
+  }
+
+  async function onSidecarExport(opts: { format: SidecarFormat; track: SidecarTrack; speakerLabels: SpeakerLabelMode }): Promise<void> {
+    const snapshot = buildSnapshot()
+    if (snapshot === null) return
+    const [{ exportSidecar }, { saveBlob }] = await Promise.all([import('../../state/services/export-sidecar'), import('../export/save-file')])
+    const result = exportSidecar(snapshot, opts)
+    const outcome = await saveBlob(result.blob, result.filename, result.mime)
+    if (outcome.via === 'cancelled') return
+    setExportToast(outcome.via === 'picker' ? `Saved to ${outcome.fileName}` : 'Download')
+  }
+
+  function dialogCapabilities(): Capabilities {
+    if (exportCaps !== null) return exportCaps
+    // probe pending: conservative requirements view until the flags exist
+    return { tier: 'T4', webgpuAdapter: false, wasmSimd: false, audioDecoder: false, audioEncoder: false, videoEncoder: false, deviceMemGB: null, online: true, reasons: [] }
+  }
+
+  function onBurnIn(settings: ExportSettings): void {
+    const snapshot = buildSnapshot()
+    if (snapshot === null || exportDeps === undefined || currentProject === null) return
+    // the run row (progress + cancel) lives behind the backdrop — the dialog
+    // hands off to it.
+    setExportOpen(false)
+    const assetName = currentProject.asset.name
+    void (async () => {
+      const blob = await exportDeps.getSourceBlob(currentProject.id)
+      if (blob === null) {
+        setExportToast('MEDIA_UNAVAILABLE')
+        return
+      }
+      const file = new File([blob], assetName, { type: `video/${currentProject.asset.container ?? 'mp4'}` })
+      const handle = exportDeps.exportService.start(snapshot, file, settings)
+      exportHandleRef.current = handle
+      exportCancellingRef.current = false
+      setExportRun({ jobId: handle.jobId, snapshotVersion: snapshot.snapshotVersion, processedSec: 0, totalSec: snapshot.asset.duration, cancelling: false })
+      handle.subscribe((event) => {
+        if (event.t === 'job:progress') {
+          setExportRun((prev) => (prev === null || prev.jobId !== event.jobId ? prev : { ...prev, processedSec: event.processedSec, totalSec: event.totalSec }))
+        } else if (event.t === 'export:result') {
+          void (async () => {
+            const { saveBlob } = await import('../export/save-file')
+            const out = await saveBlob(event.blob, `${assetName.replace(/\.[^.]+$/, '')}.mp4`, 'video/mp4')
+            setExportToast(out.via === 'cancelled' ? 'Download cancelled' : out.via === 'picker' ? `Saved to ${out.fileName}` : 'Download')
+          })()
+        } else if (event.t === 'job:error') {
+          setExportToast(event.error.code)
+          setExportRun(null)
+          exportHandleRef.current = null
+        } else if (event.t === 'job:done') {
+          // keep the row until the save settles; cleared by toast expiry effect
+        }
+      })
+    })()
   }
 
   // Always-on: the whole shell accepts drops (FR-2.0.3 Media-tab re-import
@@ -682,10 +774,74 @@ export function Workbench(props: WorkbenchProps): ReactNode {
           </button>
           {popoverOpen && currentProject !== null && <TranscribePopover jobs={jobs} jobsState={jobsState} hasCaptions={currentProject.blocks.length > 0} />}
         </span>
-        <button type="button" data-testid="export-button" className="ws-button" disabled={!project.hasBlocks()}>
+        <button
+          type="button"
+          data-testid="export-button"
+          className="ws-button"
+          disabled={!project.hasBlocks()}
+          onClick={() => {
+            openExport()
+            void probeFullCapability()
+              .then(setExportCaps)
+              .catch(() => undefined)
+          }}
+        >
           Export
         </button>
       </header>
+      {exportRun !== null && (
+        <div className="ws-export-progress" data-testid="export-progress" role="status">
+          <span data-testid="export-snapshot-version">snapshot v{exportRun.snapshotVersion}</span>
+          <span>
+            {Math.round((exportRun.processedSec / Math.max(exportRun.totalSec, 0.001)) * 100)}% · {exportRun.processedSec.toFixed(1)} s / {exportRun.totalSec.toFixed(1)} s
+          </span>
+          <button
+            type="button"
+            data-testid="export-cancel"
+            className="ws-button"
+            disabled={exportRun.cancelling}
+            onClick={() => {
+              // CC-202.6: the row stays mounted until the worker ACKS the
+              // cancel with its terminal event (the service resolves the
+              // cancel promise on job:done/job:error after the encoder
+              // flush) — the e2e "cancel ≤ 2 s" measures that flush.
+              if (exportCancellingRef.current) return
+              const handle = exportHandleRef.current
+              exportHandleRef.current = null
+              exportCancellingRef.current = true
+              setExportToast('CANCELLED')
+              if (handle === null) {
+                setExportRun(null)
+                return
+              }
+              setExportRun((prev) => (prev === null ? null : { ...prev, cancelling: true }))
+              void handle.cancel().finally(() => {
+                setExportRun((prev) => (prev !== null && prev.jobId === handle.jobId ? null : prev))
+              })
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+      {exportToast !== null && (
+        <div data-testid="export-toast" role="status" className="ws-toast">
+          {exportToast}
+        </div>
+      )}
+      {exportOpen && exportDialog !== null && currentProject !== null
+        ? createElement(exportDialog, {
+            snapshot: buildSnapshot() ?? { ...structuredClone(currentProject), snapshotVersion: currentProject.updatedAt },
+            capabilities: dialogCapabilities(),
+            onClose: () => {
+              setExportOpen(false)
+            },
+            onSidecar: (opts: { format: SidecarFormat; track: SidecarTrack; speakerLabels: SpeakerLabelMode }) => {
+              void onSidecarExport(opts)
+            },
+            onBurnIn,
+          })
+        : null}
       {importReport !== null && <ImportReportBanner report={importReport} />}
       <main className="ws-body">
         {!settingsState.collapsed.sidebar && (

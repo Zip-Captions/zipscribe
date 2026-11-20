@@ -623,8 +623,18 @@ declare module '@state/services/export' {
 
   export interface ExportHandle {
     subscribe(cb: (event: ExportEvent) => void): () => void
-    /** Posts the `cancel` request for the handle's jobId (idempotent). */
-    cancel(): void
+    /**
+     * Posts the `cancel` request for the handle's jobId (idempotent — every
+     * call returns the same promise).
+     * UNIT-202 CONTRACT CHANGE (orchestrator-approved, review R1-H1): the
+     * return type widened `void → Promise<void>` (source-compatible for all
+     * void-consumers). The promise resolves on the worker's terminal event
+     * after the encoder flush, so the run row measures the REAL cancel
+     * (CC-202.6 "cancel ≤ 2 s" must be falsifiable — optimistic UI removal
+     * would make it un-provable). architecture.md documents only the worker
+     * `cancel` message; this member was never frozen there.
+     */
+    cancel(): Promise<void>
     readonly jobId: string
   }
 

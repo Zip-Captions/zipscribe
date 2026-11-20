@@ -1274,6 +1274,286 @@
       "channels": null,
       "expectedPath": null
     },
+    "golden/sidecars/audio-source-off.json": {
+      "sha256": "ce0cb274d9432b7faf5d81990054c75d33ed06da093b5232d72ea7d0b4ec02ec",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/audio-source-off.srt": {
+      "sha256": "19f3f513f0e82107a4f90a525cd6b283a1daf60b1524c407c56c079ad78a63f0",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/audio-source-off.tsv": {
+      "sha256": "1fade8710f1a401adc891b87bb56ac4ad5fd47d6502e0f8a9aea1a0bba89a7bb",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/audio-source-off.vtt": {
+      "sha256": "10c384deaa721c0b13fb17b0973e00e8da429f17cc553224778236ba403d3802",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/json-ar.json": {
+      "sha256": "6843274697620b85b05a7b0ac55052d9004d5589f13645ec88dc0be5f391ca3c",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/json-fr.json": {
+      "sha256": "824e611da21b02a95b82f5bbce9c7e49bda1715073660b722bcf9a4b62f455b6",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/json-source.json": {
+      "sha256": "ce0cb274d9432b7faf5d81990054c75d33ed06da093b5232d72ea7d0b4ec02ec",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/srt-ar-off.srt": {
+      "sha256": "656ba5c0349a255913fa925d52d8758d2e33f85fa7f48df08f8dfed82843b642",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/srt-ar-prefix.srt": {
+      "sha256": "0e16be79a078067ed933c92f83ec191a07ec7eef1b904fa0ea27339226e25170",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/srt-fr-off.srt": {
+      "sha256": "37ceb952ff98a92dff74f7775a6f11efac96f44567c6ad620eb54d29c05b3ae0",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/srt-fr-prefix.srt": {
+      "sha256": "26b60e785dc021940bb4ed4ab23a2aef828c3cde555dd78a6c3354cbab6ffaeb",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/srt-source-off.srt": {
+      "sha256": "19f3f513f0e82107a4f90a525cd6b283a1daf60b1524c407c56c079ad78a63f0",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/srt-source-prefix.srt": {
+      "sha256": "de067fa00d8da156eb3c9e731f8fe6a1bb382e0a3ceb60189e513b338b804b8e",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/tsv-ar-off.tsv": {
+      "sha256": "48158c34004bbb191029421d0b020a107088f7e3f056221f1341cc9f92cb00f0",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/tsv-ar-prefix.tsv": {
+      "sha256": "78c7fa95e59d18aae696ba710e3fc0d6b2486405750e5e53fb9042f3d8894866",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/tsv-fr-off.tsv": {
+      "sha256": "65c856e58ed5f1928a02dbb35619378e831168d3cc354b0a4a6a1dbdb3d9fb99",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/tsv-fr-prefix.tsv": {
+      "sha256": "075dc609d2c7cc32e961d677a576dca63cf9d2846d0678f42e8b5e46a31de19d",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/tsv-source-off.tsv": {
+      "sha256": "1fade8710f1a401adc891b87bb56ac4ad5fd47d6502e0f8a9aea1a0bba89a7bb",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/tsv-source-prefix.tsv": {
+      "sha256": "328d6a08d1001184e578ede78ea97f097faa0a32ae0bc9fe6f1093a33a447f14",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/vtt-ar-off.vtt": {
+      "sha256": "17a56361a88f645129131565a3e0dfd4f5f70b84b6c78f838d269c0b61c062b2",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/vtt-ar-prefix.vtt": {
+      "sha256": "4a01299e0999f28d233b26c1225968c2e7f55be508ab2c0948fc5ed930ed5bbc",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/vtt-ar-voice.vtt": {
+      "sha256": "dd11164d7c06567ca26ead6d73aea02f43a50343920ba77d038edbd14a904da1",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/vtt-fr-off.vtt": {
+      "sha256": "b5145b1fb236fcffc76b871c29dd1217b7099243be2ec9148b90affa32e77fb2",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/vtt-fr-prefix.vtt": {
+      "sha256": "3f2576bf1be31a9d12eb01f2ac04be8ffd44e302dc00e288bee6a48f54897a29",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/vtt-fr-voice.vtt": {
+      "sha256": "07cc3bf708935982558acd310f288fb944d74e7c7481337957b05e4c33b157e8",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/vtt-source-off.vtt": {
+      "sha256": "10c384deaa721c0b13fb17b0973e00e8da429f17cc553224778236ba403d3802",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/vtt-source-prefix.vtt": {
+      "sha256": "424542fda3a96682c6e2378f2f6f3323b2b671d0a1984ebaa5f02158641063e8",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
+    "golden/sidecars/vtt-source-voice.vtt": {
+      "sha256": "a92bcea9db627e276c56ca5b098f8a26a7414f2aac029265b50e4aac32a9ece6",
+      "duration": null,
+      "kind": "golden",
+      "language": null,
+      "category": null,
+      "groundTruth": null,
+      "generated": false,
+      "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
+    },
     "golden/speech-22k.wav": {
       "sha256": "50320020cb28db020a2af1784b7967929c33ffacedc2f43e68e9b5c4b101f46b",
       "duration": null,

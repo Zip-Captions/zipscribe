@@ -1,0 +1,5 @@
+start	end	speaker	text
+0.500	3.250	Host	[Host]: ‫مرحبا‬
+4.000	7.500	Guest & Co	[Guest & Co]: ‫مرحبا بالعالم & <نص>‬
+9.000	11.000	Host	[Host]: ‫سطر زمني‬
+13.000	15.125	Caller	[Caller]: ‫اقتباس‬
