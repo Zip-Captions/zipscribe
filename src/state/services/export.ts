@@ -22,8 +22,14 @@ export interface ExportWorkerPort {
 
 export interface ExportHandle {
   subscribe(cb: (event: ExportEvent) => void): () => void
-  /** Posts the `cancel` request for the handle's jobId (idempotent). */
-  cancel(): void
+  /**
+   * Posts the `cancel` request for the handle's jobId (idempotent — every
+   * call returns the same promise). Resolves when the worker ACKNOWLEDGES
+   * the cancel with its terminal event (job:done flush-ack / job:error), so
+   * callers keep the run row mounted for the real encoder flush (CC-202.6);
+   * a 4 s watchdog resolves it as a last resort so the row can never stick.
+   */
+  cancel(): Promise<void>
   readonly jobId: string
 }
 
@@ -39,7 +45,6 @@ export function createExportService(deps: { engine: ExportWorkerPort; newJobId()
       const jobId = deps.newJobId()
       const frozenSnapshot = structuredClone(snapshot)
       const subscribers = new Set<(event: ExportEvent) => void>()
-      let cancelled = false
 
       // CC-202.4 second line of defence (the dialog gate is the first): a
       // burn-in request for an AUDIO snapshot never reaches the worker.
@@ -61,9 +66,7 @@ export function createExportService(deps: { engine: ExportWorkerPort; newJobId()
               subscribers.delete(cb)
             }
           },
-          cancel: () => {
-            cancelled = true
-          },
+          cancel: () => Promise.resolve(),
         }
       }
 
@@ -72,6 +75,11 @@ export function createExportService(deps: { engine: ExportWorkerPort; newJobId()
         if (event.jobId !== jobId) return
         for (const listener of [...subscribers]) listener(event)
       })
+
+      // CC-202.6: the cancel promise resolves on the worker's terminal event
+      // (flush-ack), never earlier. Watchdog at 4 s so a dead worker cannot
+      // pin the run row forever.
+      let cancelPromise: Promise<void> | null = null
 
       return {
         jobId,
@@ -82,10 +90,25 @@ export function createExportService(deps: { engine: ExportWorkerPort; newJobId()
           }
         },
         cancel: () => {
-          if (cancelled) return
-          cancelled = true
-          detach()
+          if (cancelPromise !== null) return cancelPromise
           deps.engine.postExport({ t: 'cancel', jobId })
+          cancelPromise = new Promise<void>((resolve) => {
+            let settled = false
+            const finish = (): void => {
+              if (settled) return
+              settled = true
+              ack()
+              clearTimeout(timer)
+              detach()
+              resolve()
+            }
+            const ack = deps.engine.onExportEvent((event) => {
+              if (event.jobId === jobId && (event.t === 'job:done' || event.t === 'job:error')) finish()
+            })
+            const timer = setTimeout(finish, 4_000)
+            timer.unref?.()
+          })
+          return cancelPromise
         },
       }
     },

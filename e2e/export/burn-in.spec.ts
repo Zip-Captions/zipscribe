@@ -76,7 +76,7 @@ async function capturePreviewAt(page: import('@playwright/test').Page, t: number
   await page.waitForFunction(
     (time) => {
       const w = window as unknown as { __zipEditorBridge?: { getEditorState(): { playhead: number } } }
-      return Math.abs((w.__zipEditorBridge?.getEditorState().playhead ?? -1) - time) < 0.15
+      return Math.abs((w.__zipEditorBridge?.getEditorState().playhead ?? -1) - time) < 0.04
     },
     t,
     { timeout: 10_000 },

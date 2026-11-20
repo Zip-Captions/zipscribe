@@ -69,6 +69,34 @@ describe('CC-202.6: snapshot isolation + cancel', () => {
     expect(port.requests.filter(r => r.t === 'cancel')).toHaveLength(1)
   })
 
+  test('CC-202.6: the cancel promise resolves only on the worker flush-ack', async () => {
+    const port = createFakeExportPort()
+    const svc = createExportService({ engine: port, newJobId: () => 'job-ack' })
+    const handle = svc.start(videoSnapshot(), FILE, SETTINGS)
+    let acked = false
+    const settled = handle.cancel().then(() => {
+      acked = true
+    })
+    await Promise.resolve()
+    expect(acked, 'no resolve before the worker terminal event').toBe(false)
+    port.emit({ t: 'job:progress', jobId: 'job-ack', processedSec: 1, totalSec: 2 })
+    await Promise.resolve()
+    expect(acked, 'progress is not an ack — the row survives until the flush lands').toBe(false)
+    port.emit({ t: 'job:done', jobId: 'job-ack' })
+    await settled
+    expect(acked).toBe(true)
+  })
+
+  test('CC-202.6: job:error acks too; repeat cancels share one promise', async () => {
+    const port = createFakeExportPort()
+    const svc = createExportService({ engine: port, newJobId: () => 'job-err' })
+    const handle = svc.start(videoSnapshot(), FILE, SETTINGS)
+    const first = handle.cancel()
+    expect(handle.cancel()).toBe(first)
+    port.emit({ t: 'job:error', jobId: 'job-err', error: { code: 'ENGINE_INTERNAL', retryable: false, detail: 'x' } })
+    await first
+  })
+
   test('events are jobId-filtered (foreign jobIds ignored)', () => {
     const port = createFakeExportPort()
     const svc = createExportService({ engine: port, newJobId: () => 'mine' })

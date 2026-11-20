@@ -583,7 +583,8 @@ export function Workbench(props: WorkbenchProps): ReactNode {
   // (US-3.2.3 progress + cancel), and the completion toast sentence.
   const [exportOpen, setExportOpen] = useState(false)
   const [exportDialog, setExportDialog] = useState<ComponentType<ExportDialogProps> | null>(null)
-  const [exportRun, setExportRun] = useState<{ jobId: string; snapshotVersion: number; processedSec: number; totalSec: number } | null>(null)
+  const [exportRun, setExportRun] = useState<{ jobId: string; snapshotVersion: number; processedSec: number; totalSec: number; cancelling: boolean } | null>(null)
+  const exportCancellingRef = useRef(false)
   const [exportToast, setExportToast] = useState<string | null>(null)
   const exportHandleRef = useRef<ExportHandle | null>(null)
   const [exportCaps, setExportCaps] = useState<Capabilities | null>(null)
@@ -664,7 +665,8 @@ export function Workbench(props: WorkbenchProps): ReactNode {
       const file = new File([blob], assetName, { type: `video/${currentProject.asset.container ?? 'mp4'}` })
       const handle = exportDeps.exportService.start(snapshot, file, settings)
       exportHandleRef.current = handle
-      setExportRun({ jobId: handle.jobId, snapshotVersion: snapshot.snapshotVersion, processedSec: 0, totalSec: snapshot.asset.duration })
+      exportCancellingRef.current = false
+      setExportRun({ jobId: handle.jobId, snapshotVersion: snapshot.snapshotVersion, processedSec: 0, totalSec: snapshot.asset.duration, cancelling: false })
       handle.subscribe((event) => {
         if (event.t === 'job:progress') {
           setExportRun((prev) => (prev === null || prev.jobId !== event.jobId ? prev : { ...prev, processedSec: event.processedSec, totalSec: event.totalSec }))
@@ -797,13 +799,25 @@ export function Workbench(props: WorkbenchProps): ReactNode {
             type="button"
             data-testid="export-cancel"
             className="ws-button"
+            disabled={exportRun.cancelling}
             onClick={() => {
-              // the worker stays silent after a cancel (no CANCELLED event is
-              // emitted post-flush), so the UI closes its own run row here.
-              exportHandleRef.current?.cancel()
+              // CC-202.6: the row stays mounted until the worker ACKS the
+              // cancel with its terminal event (the service resolves the
+              // cancel promise on job:done/job:error after the encoder
+              // flush) — the e2e "cancel ≤ 2 s" measures that flush.
+              if (exportCancellingRef.current) return
+              const handle = exportHandleRef.current
               exportHandleRef.current = null
-              setExportRun(null)
+              exportCancellingRef.current = true
               setExportToast('CANCELLED')
+              if (handle === null) {
+                setExportRun(null)
+                return
+              }
+              setExportRun((prev) => (prev === null ? null : { ...prev, cancelling: true }))
+              void handle.cancel().finally(() => {
+                setExportRun((prev) => (prev !== null && prev.jobId === handle.jobId ? null : prev))
+              })
             }}
           >
             Cancel

@@ -1475,7 +1475,7 @@
       "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
     },
     "golden/sidecars/vtt-ar-prefix.vtt": {
-      "sha256": "630a34c6b592940c9db5a1e3e37c0872b3cea2d218809cb6ab8a87225070eabb",
+      "sha256": "4a01299e0999f28d233b26c1225968c2e7f55be508ab2c0948fc5ed930ed5bbc",
       "duration": null,
       "kind": "golden",
       "language": null,
@@ -1505,7 +1505,7 @@
       "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
     },
     "golden/sidecars/vtt-fr-prefix.vtt": {
-      "sha256": "dbe41978be4826445daacee5ecf8a15c9d8a23dbfbab580b9ef843af501fbdcc",
+      "sha256": "3f2576bf1be31a9d12eb01f2ac04be8ffd44e302dc00e288bee6a48f54897a29",
       "duration": null,
       "kind": "golden",
       "language": null,
@@ -1535,7 +1535,7 @@
       "license": "CC0-1.0 (test-author-authored in-repo goldens — unit-202 CC-202.1/CC-202.5; serializer output over the self-authored fixture in tests/unit/export/helpers/sidecar-fixture.ts)"
     },
     "golden/sidecars/vtt-source-prefix.vtt": {
-      "sha256": "92969f7dbc494f992519b51c6ad1f4eb5611b6d23de236f39ee5e3d23f8b57d6",
+      "sha256": "424542fda3a96682c6e2378f2f6f3323b2b671d0a1984ebaa5f02158641063e8",
       "duration": null,
       "kind": "golden",
       "language": null,

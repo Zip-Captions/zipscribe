@@ -20,6 +20,7 @@ import { toJson } from '@engine/export/json'
 import { parseSrt } from '@engine/captions/parse/srt'
 import { parseVtt } from '@engine/captions/parse/vtt'
 import { parseZipscribeJson } from '@engine/captions/parse/json'
+import { vttEscape } from '@engine/export/cue-model'
 import type { CaptionBlock, CaptionStyle, MediaAsset, ProjectSnapshot } from '@engine/model'
 
 declare module 'fast-check' {
@@ -88,6 +89,32 @@ test('CC-202.1: VTT vtt-voice mode — voice extracted, text clean', async () =>
   const parsed = await parseVtt(toVtt(snap, { track: 'source', speakerLabels: 'vtt-voice' }))
   expect(parsed.cues[0]?.voice).toBe('Ann')
   expect(parsed.cues[0]?.text).toBe(canon(block.text))
+})
+
+// Review R1-M2 (unit-202): speaker labels carry user text. Both label modes
+// must survive the round trip — the label is escaped on the way out and the
+// parser decodes entities (including inside `<v …>`) on the way back.
+const MARKUP_LABEL = 'Guest & <Co> "x"'
+
+test('CC-202.1: VTT vtt-voice round trip with a markup-bearing label', async () => {
+  const block: CaptionBlock = { id: 'b', start: 1, end: 2, text: 'ok', words: [], speakerId: 'SPK_2' }
+  const snap = snapWith([block], [{ id: 'SPK_2', label: MARKUP_LABEL, color: '#fff' }])
+  const parsed = await parseVtt(toVtt(snap, { track: 'source', speakerLabels: 'vtt-voice' }))
+  expect(parsed.cues[0]?.voice, 'voice name decodes entities back to the label').toBe(MARKUP_LABEL)
+  expect(parsed.cues[0]?.text).toBe('ok')
+})
+
+test('CC-202.1: VTT prefix mode — label escaped, no raw markup, text exact after strip', async () => {
+  const block: CaptionBlock = { id: 'b', start: 1, end: 2, text: 'plain text', words: [], speakerId: 'SPK_2' }
+  const snap = snapWith([block], [{ id: 'SPK_2', label: MARKUP_LABEL, color: '#fff' }])
+  const vtt = toVtt(snap, { track: 'source', speakerLabels: 'prefix' })
+  expect(vtt).toContain(`[${vttEscape(MARKUP_LABEL)}]: `)
+  expect(vtt, 'a label never injects raw markup').not.toContain('<Co>')
+  const parsed = await parseVtt(vtt)
+  expect(parsed.cues[0]?.text).toBe(`[${MARKUP_LABEL}]: plain text`)
+  // the prefix is an export-side convention (not WebVTT spec): strip it and
+  // the cue text is byte-exact.
+  expect(parsed.cues[0]?.text.replace(/^\[[^\]]*\]: /, '')).toBe('plain text')
 })
 
 test('CC-202.1: JSON → parseZipscribeJson blocks exact, language declared', async () => {

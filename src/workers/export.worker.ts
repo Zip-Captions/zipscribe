@@ -125,7 +125,10 @@ async function runExportInner(request: Extract<ExportRequest, { t: 'export' }>, 
     },
   })
   job.conversion = conversion
-  if (job.cancelled) return
+  if (job.cancelled) {
+    post({ t: 'job:done', jobId }) // cancel-ack: the UI run row clears on this event
+    return
+  }
   if (!conversion.isValid) {
     post({ t: 'job:error', jobId, error: { code: 'UNSUPPORTED_MEDIA', retryable: false, detail: 'conversion-invalid' } })
     return
@@ -136,13 +139,23 @@ async function runExportInner(request: Extract<ExportRequest, { t: 'export' }>, 
   try {
     await conversion.execute()
   } catch (err) {
-    if (job.cancelled) return
+    if (job.cancelled) {
+      // conversion.cancel() made execute() reject — the flush has now landed.
+      // This is the CC-202.6 cancel-ack: the run row clears on THIS event,
+      // so the e2e "cancel ≤ 2 s" measures the encoder flush, not optimistic
+      // UI removal.
+      post({ t: 'job:done', jobId })
+      return
+    }
     const name = err instanceof Error ? err.name : 'unknown'
     const encoder = name === 'NotSupportedError' || name === 'EncodingError'
     post({ t: 'job:error', jobId, error: { code: encoder ? 'ENCODER_UNSUPPORTED' : 'ENGINE_INTERNAL', retryable: !encoder, detail: name } })
     return
   }
-  if (job.cancelled) return
+  if (job.cancelled) {
+    post({ t: 'job:done', jobId }) // cancel-ack (race: cancelled after execute succeeded)
+    return
+  }
   pacer.finish()
   const buffer = output.target.buffer
   if (buffer === null) {

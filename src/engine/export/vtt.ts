@@ -10,7 +10,7 @@ export function toVtt(snapshot: ProjectSnapshot, options: SidecarOptions): strin
   const chunks: string[] = []
   cues.forEach((cue, i) => {
     const text = wrapRtl(vttEscape(blockText(cue.text)), rtl)
-    const head = options.speakerLabels !== 'off' && cue.speaker !== null ? (options.speakerLabels === 'vtt-voice' ? `<v ${vttEscape(cue.speaker)}>` : `[${cue.speaker}]: `) : ''
+    const head = options.speakerLabels !== 'off' && cue.speaker !== null ? (options.speakerLabels === 'vtt-voice' ? `<v ${vttEscape(cue.speaker)}>` : `[${vttEscape(cue.speaker)}]: `) : ''
     const body = head === '' ? text : `${head}${text}`
     chunks.push(`cue-${String(i + 1)}\n${timeCode(cue.start, '.')} --> ${timeCode(cue.end, '.')}\n${body}`)
   })
