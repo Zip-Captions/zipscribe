@@ -4,7 +4,7 @@
 // overlay matches the LIVE preview at 10 word-boundary frames at SSIM ≥ 0.99.
 // CC-202.6: cancel lands ≤ 2 s.
 import { expect, test } from '@playwright/test'
-import { cleanScratch, extractFrame, mediaInfo, openExportProject, scratchPath, SAMPLE_TIMES, SPEECH_2MIN_ASSET, TAXI_ASSET, TAXI_DURATION, EXPORT_BLOCKS } from './helpers/export-harness'
+import { cleanScratch, extractFrame, mediaInfo, openExportProject, scratchPath, SAMPLE_TIMES, SPEECH_10MIN_ASSET, SPEECH_2MIN_ASSET, TAXI_ASSET, TAXI_DURATION, EXPORT_BLOCKS } from './helpers/export-harness'
 
 const SSIM_MIN = 0.99
 
@@ -191,8 +191,24 @@ test.describe('CC-202.2: burn-in MP4 (chromium)', () => {
     if (wallMs > 2500) expect(distinct.length).toBeGreaterThanOrEqual(3)
   })
 
+  // speech-10min, NOT speech-2min: the 2-min encode finishes in ~1.3 s on a
+  // warm pipeline (90× realtime observed) and the run can COMPLETE before
+  // the click lands — cancelling a finished run is not CC-202.6.
   test('CC-202.6: cancel lands within 2 s', async ({ page }) => {
-    await openSpeech(page)
+    await page.addInitScript(() => {
+      Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true })
+    })
+    await page.goto('/?ziptest=1')
+    await page.waitForFunction(() => Boolean((window as unknown as { __zipEditorBridge?: unknown }).__zipEditorBridge), undefined, { timeout: 20_000 })
+    await page.evaluate(async ([asset, src, blocks]: [Record<string, unknown>, string, unknown[]]) => {
+      const w = window as unknown as { __zipEditorBridge?: { openProjectWithMedia(a: unknown, s: string): void; seedBlocks(b: readonly unknown[], sp: readonly unknown[]): void; setExportMedia(by: ArrayBuffer, t: string): Promise<void> } }
+      const b = w.__zipEditorBridge
+      if (b === undefined) throw new Error('bridge missing')
+      b.openProjectWithMedia(asset, src)
+      b.seedBlocks(blocks, [{ id: 'SPK_1', label: 'Speaker 1', color: '#4c8dff' }])
+      const res = await fetch(src)
+      await b.setExportMedia(await res.arrayBuffer(), 'video/mp4')
+    }, [SPEECH_10MIN_ASSET, '/fixtures/speech-10min.mp4', EXPORT_BLOCKS] as [Record<string, unknown>, string, unknown[]])
     await page.getByTestId('export-button').click()
     await expect(page.getByTestId('export-dialog')).toBeVisible()
     await page.getByTestId('burnin-start').click()

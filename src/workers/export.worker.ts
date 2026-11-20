@@ -48,6 +48,15 @@ const fontsReady = registerBundledFonts()
 interface ActiveJob {
   conversion: Conversion | null
   cancelled: boolean
+  /** Exactly-once guard for the CC-202.6 cancel-ack (job:done after cancel). */
+  acked: boolean
+}
+
+/** Post the terminal cancel-ack once — the run row clears on this event. */
+function ackCancel(job: ActiveJob, jobId: string): void {
+  if (job.acked) return
+  job.acked = true
+  post({ t: 'job:done', jobId })
 }
 
 const active = new Map<string, ActiveJob>()
@@ -126,7 +135,7 @@ async function runExportInner(request: Extract<ExportRequest, { t: 'export' }>, 
   })
   job.conversion = conversion
   if (job.cancelled) {
-    post({ t: 'job:done', jobId }) // cancel-ack: the UI run row clears on this event
+    ackCancel(job, jobId)
     return
   }
   if (!conversion.isValid) {
@@ -140,11 +149,10 @@ async function runExportInner(request: Extract<ExportRequest, { t: 'export' }>, 
     await conversion.execute()
   } catch (err) {
     if (job.cancelled) {
-      // conversion.cancel() made execute() reject — the flush has now landed.
-      // This is the CC-202.6 cancel-ack: the run row clears on THIS event,
-      // so the e2e "cancel ≤ 2 s" measures the encoder flush, not optimistic
-      // UI removal.
-      post({ t: 'job:done', jobId })
+      // Backstop ack (the cancel() promise is the primary): execute() has
+      // now rejected with ConversionCanceledError, flush landed. The row
+      // clears on THIS ack, so "cancel ≤ 2 s" measures the real flush.
+      ackCancel(job, jobId)
       return
     }
     const name = err instanceof Error ? err.name : 'unknown'
@@ -153,7 +161,7 @@ async function runExportInner(request: Extract<ExportRequest, { t: 'export' }>, 
     return
   }
   if (job.cancelled) {
-    post({ t: 'job:done', jobId }) // cancel-ack (race: cancelled after execute succeeded)
+    ackCancel(job, jobId)
     return
   }
   pacer.finish()
@@ -169,7 +177,7 @@ async function runExportInner(request: Extract<ExportRequest, { t: 'export' }>, 
 scope.onmessage = (event: MessageEvent<ExportRequest>) => {
   const request = event.data
   if (request.t === 'export') {
-    const job: ActiveJob = { conversion: null, cancelled: false }
+    const job: ActiveJob = { conversion: null, cancelled: false, acked: false }
     active.set(request.jobId, job)
     void runExport(request, job).finally(() => {
       active.delete(request.jobId)
@@ -179,7 +187,15 @@ scope.onmessage = (event: MessageEvent<ExportRequest>) => {
   const job = active.get(request.jobId)
   if (job === undefined) return
   job.cancelled = true
-  void job.conversion?.cancel() // bounded flush; execute() then rejects — suppressed via cancelled flag
+  if (job.conversion === null) {
+    ackCancel(job, request.jobId) // cancelled before init: nothing to flush
+    return
+  }
+  // Docs (mediabunny.dev/guide/converting-media-files § Canceling): cancel()
+  // resolves once canceled and makes execute() throw ConversionCanceledError.
+  // The ack rides cancel()'s own resolution — the authoritative bounded-stop
+  // signal — with the execute()-reject path as backstop (both guarded).
+  void job.conversion.cancel().then(() => ackCancel(job, request.jobId))
 }
 
 const DEFAULT_SPEAKER_PALETTE: readonly string[] = ['#4c8dff', '#e5534b', '#4ab871', '#d29922', '#a371f7', '#3fb9b0', '#db61a2', '#8b949e']
