@@ -11,7 +11,7 @@
 // outlineWidth is px at 1080p canvas height; bold-active is weight-only
 // (700→900); karaoke is a solid highlightColor swap (no motion).
 
-import type { CaptionBlock, CaptionStyle, OutputAspect, Seconds } from '../model'
+import type { CaptionBlock, CaptionStyle, OutputAspect, Project, Seconds } from '../model'
 
 export interface SafeMargins {
   /** usable caption width as a fraction of canvas width (rest split L/R) */
@@ -38,9 +38,26 @@ export function safeMargins(aspect: OutputAspect): SafeMargins {
   return SAFE_MARGINS[aspect]
 }
 
+/** Display blocks for the requested overlay track (FR-302.3): the source
+ *  track maps identity; a translation track replaces each source block's
+ *  text with its entry (same style rules; block-level highlight only —
+ *  translations own no word timings). Missing/failed entries are absent
+ *  (cue-model parity: buildCues skips them too). */
+export function displayBlocksForTrack(project: Pick<Project, 'blocks' | 'translations'>, track: string): CaptionBlock[] {
+  if (track === 'source') return project.blocks
+  const t = project.translations.find((x) => x.language === track)
+  if (t === undefined) return []
+  const out: CaptionBlock[] = []
+  for (const b of project.blocks) {
+    const entry = t.entries[b.id]
+    if (entry === undefined || entry.status === 'failed') continue
+    out.push({ ...b, text: entry.text, words: [] })
+  }
+  return out
+}
+
 export interface OverlayFrame {
-  /** blocks visible at `time` (caller-filtered; may temporally overlap) */
-  blocks: CaptionBlock[]
+  /** blocks visible at `time` (caller-filtered; may temporally overlap) */  blocks: CaptionBlock[]
   time: Seconds
   style: CaptionStyle
   /** 'source', or a translation track's BCP-47 language (block-level render).

@@ -72,7 +72,7 @@ function requestFixture(): ExportRequest {
     jobId: 'job-1',
     snapshot,
     file: new File(['abc'], 'media.mp4', { type: 'video/mp4' }),
-    settings: { format: 'mp4-burn-in', width: 1280, height: 720, fps: 25 },
+    settings: { format: 'mp4-burn-in', width: 1280, height: 720, fps: 25, track: 'source' },
   }
 }
 
@@ -99,7 +99,7 @@ describe('export worker port (FR-102.7 provider, unit-106)', () => {
       const second: ExportEvent[] = []
       port.onExportEvent((event) => first.push(event))
       port.onExportEvent((event) => second.push(event))
-      port.postExport({ t: 'export', jobId: 'job-1', snapshot: {} as never, file: new File(['x'], 'a.mp4'), settings: { format: 'mp4-burn-in', width: 1, height: 1, fps: 1 } })
+      port.postExport({ t: 'export', jobId: 'job-1', snapshot: {} as never, file: new File(['x'], 'a.mp4'), settings: { format: 'mp4-burn-in', width: 1, height: 1, fps: 1, track: 'source' } })
       const done: ExportEvent = { t: 'job:done', jobId: 'job-1' }
       ;(FakeWorker.created[0] as FakeWorker).emit(done)
       expect(first).toEqual([done])

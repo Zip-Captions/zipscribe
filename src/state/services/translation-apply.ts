@@ -14,7 +14,7 @@ import type { TranslationEngine } from '../../engine/translate/engine'
 import { translateError } from '../../engine/translate/engine'
 import { createTranslationSession, type RunStats, type SessionRunOptions, type TranslationSession } from '../../engine/translate/session'
 import { applyEntries } from '../../engine/translate/track'
-import type { EditorApp } from '../history'
+import type { EditorApp } from '@state/history'
 
 export interface TranslationApplyService {
   session: TranslationSession

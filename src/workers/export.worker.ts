@@ -13,7 +13,7 @@
 // Cancel: the active Conversion is cancel()d (encoder flush is bounded —
 // CC-202.6 measures ≤ 2 s in e2e). Progress ≥ 1 Hz via createProgressPacer.
 import { ALL_FORMATS, BlobSource, BufferTarget, Conversion, Input, Mp4OutputFormat, Output } from 'mediabunny'
-import { drawCaptions, safeMargins } from '../engine/export/overlay'
+import { drawCaptions, safeMargins, displayBlocksForTrack } from '../engine/export/overlay'
 import { createProgressPacer } from '../engine/export/burn-in-pacing'
 import { BUNDLED_FONT_FACES } from '../engine/style/fonts-manifest'
 import type { ExportEvent, ExportRequest } from '../engine/protocol'
@@ -92,6 +92,10 @@ async function runExportInner(request: Extract<ExportRequest, { t: 'export' }>, 
   const pacer = createProgressPacer(totalSec, (processedSec, total) => {
     post({ t: 'job:progress', jobId, processedSec, totalSec: total })
   })
+  // FR-302.3: the overlay track (source identity, or a translation track's
+  // per-block text — block-level highlight only). Computed once per export.
+  const track = settings.track
+  const displayBlocks = displayBlocksForTrack(snapshot, track)
   // mediabunny's onProgress is coarse (per-track milestones) — the ≥ 1 Hz
   // guarantee (US-3.2.2) rides the frame hook below (frames/fps).
   let framesProcessed = 0
@@ -118,10 +122,10 @@ async function runExportInner(request: Extract<ExportRequest, { t: 'export' }>, 
         sample.drawWithFit(c, { fit: 'fill' })
         const t = sample.timestamp
         drawCaptions(c, {
-          blocks: snapshot.blocks.filter((b) => b.start <= t && t < b.end),
+          blocks: displayBlocks.filter((b) => b.start <= t && t < b.end),
           time: t,
           style: snapshot.style,
-          track: 'source',
+          track,
           width,
           height,
           speakerPalette: DEFAULT_SPEAKER_PALETTE,

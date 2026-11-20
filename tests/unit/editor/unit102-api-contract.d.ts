@@ -405,25 +405,32 @@ declare module '@state/editor' {
   /** EVERY field is UI-only (FR-102.2 `undoable:false`): zundo `partialize`
    *  keeps `{ project }` only, so no editor mutation ever creates a history
    *  step and undo/redo never move the playhead or selection. */
-  export interface EditorUiState {
-    playhead: Seconds
-    playing: boolean
-    rate: number
-    loop: [Seconds, Seconds] | null
-    selection: Selection
-    searchOpen: boolean
-  }
+   export interface EditorUiState {
+     playhead: Seconds
+     playing: boolean
+     rate: number
+     loop: [Seconds, Seconds] | null
+     selection: Selection
+     searchOpen: boolean
+     /** FR-302.2 (unit-302 EXTENDS, additive): UI-only transcript view mode + the active translation track. */
+     viewMode: import('@state/editor').TranscriptViewMode
+     activeLanguage: string | null
+   }
 
-  export interface EditorStore {
-    getState(): EditorUiState
-    subscribe(listener: () => void): () => void
-    setPlayhead(t: Seconds): void
-    setPlaying(playing: boolean): void
-    setRate(rate: number): void
-    setLoop(loop: [Seconds, Seconds] | null): void
-    setSelection(selection: Selection): void
-    setSearchOpen(open: boolean): void
-  }
+   export interface EditorStore {
+     getState(): EditorUiState
+     subscribe(listener: () => void): () => void
+     setPlayhead(t: Seconds): void
+     setPlaying(playing: boolean): void
+     setRate(rate: number): void
+     setLoop(loop: [Seconds, Seconds] | null): void
+     setSelection(selection: Selection): void
+     setSearchOpen(open: boolean): void
+     /** FR-302.2 (unit-302 EXTENDS, additive): view-mode / active-language setters + the ⌘⇧L cycle. */
+     setViewMode(mode: import('@state/editor').TranscriptViewMode): void
+     setActiveLanguage(language: string | null): void
+     cycleViewMode(candidates?: readonly string[]): void
+   }
 
   export function createEditorStore(): EditorStore
 

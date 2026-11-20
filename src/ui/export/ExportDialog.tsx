@@ -157,7 +157,7 @@ export function ExportDialog(props: ExportDialogProps): React.JSX.Element | null
               data-testid="burnin-start"
               onClick={() => {
                 const width = Math.round((height * (snapshot.asset.width || 16)) / (snapshot.asset.height || 9))
-                onBurnIn({ format: 'mp4-burn-in', width: width % 2 === 0 ? width : width + 1, height, fps })
+                onBurnIn({ format: 'mp4-burn-in', width: width % 2 === 0 ? width : width + 1, height, fps, track: 'source' })
               }}
             >
               Export MP4

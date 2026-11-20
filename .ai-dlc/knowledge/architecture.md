@@ -192,7 +192,7 @@ type DiarizeRequest =
 type DiarizeEvent = JobEvent | ModelEvent | { t: 'diar:frames'; jobId: string; frames: DiarFrames };
 
 // export.worker
-interface ExportSettings { format: 'mp4-burn-in'; width: number; height: number; fps: number }
+interface ExportSettings { format: 'mp4-burn-in'; width: number; height: number; fps: number; track: string } // track: 'source' sentinel or a translation track's BCP-47 language (FR-302.3, unit-302) — block-level highlight only
 type ExportRequest = { t: 'export'; jobId: string; snapshot: ProjectSnapshot; file: File; settings: ExportSettings } | { t: 'cancel'; jobId: string };
 type ExportEvent = JobEvent | { t: 'export:result'; jobId: string; blob: Blob };
 ```

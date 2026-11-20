@@ -138,6 +138,10 @@ export interface ExportSettings {
   width: number
   height: number
   fps: number
+  /** FR-302.3 (unit-302): 'source' sentinel or a translation track's BCP-47 language —
+   *  the overlay draws that track's text (block-level highlight only). Typed as
+   *  plain string; 'source' is the reserved sentinel (OverlayFrame.track parity). */
+  track: string
 }
 
 export type ExportRequest = { t: 'export'; jobId: string; snapshot: ProjectSnapshot; file: File; settings: ExportSettings } | { t: 'cancel'; jobId: string }
