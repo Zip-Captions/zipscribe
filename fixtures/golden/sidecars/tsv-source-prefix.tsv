@@ -1,0 +1,6 @@
+start	end	speaker	text
+0.500	3.250	Host	[Host]: welcome & goodbye
+4.000	7.500	Guest & Co	"[Guest & Co]: tab	here
+second <line>"
+9.000	11.000	Host	"[Host]: 00:00:09,000 --> 00:00:11,000"
+13.000	15.125	Caller	"[Caller]: quote ""and"" comma"

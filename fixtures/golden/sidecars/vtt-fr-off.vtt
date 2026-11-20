@@ -1,0 +1,14 @@
+WEBVTT
+
+cue-1
+00:00:00.500 --> 00:00:03.250
+bienvenue et au revoir
+
+cue-2
+00:00:04.000 --> 00:00:07.500
+tabulation ici
+ligne &lt;deux&gt;
+
+cue-3
+00:00:09.000 --> 00:00:11.000
+ligne de minutage

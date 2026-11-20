@@ -114,3 +114,12 @@ Frame inputs: `e2e/style/overlay-goldens-data.json`; preset styles are read
 LIVE from `src/engine/style/presets.ts` via the bridge (no drift possible).
 Comparison: in-page 8×8-block luma SSIM ≥ 0.98 in
 `e2e/style/overlay-golden.spec.ts` (linux-gated, like the visualizer suite).
+
+## sidecars/ — unit-202 sidecar goldens (CC-202.1/CC-202.5)
+
+Byte-exact SRT/VTT/JSON/TSV serializer output (4 formats × escape/label
+matrix × {source, fr, ar} + audio-project set). Pure serializer bytes —
+platform-independent, no docker. Re-bless ONLY with
+`GOLDEN=1 corepack pnpm vitest run tests/unit/export/sidecar-goldens`
+and only when a serializer change justifies it (golden churn in a PR diff
+is a review finding otherwise).

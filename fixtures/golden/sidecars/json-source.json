@@ -1,0 +1,106 @@
+{
+  "zipscribe": 1,
+  "language": "en",
+  "blocks": [
+    {
+      "id": "b1",
+      "start": 0.5,
+      "end": 3.25,
+      "text": "welcome & goodbye",
+      "words": [
+        {
+          "text": "welcome",
+          "start": 0.5,
+          "end": 1.5
+        },
+        {
+          "text": "&",
+          "start": 1.6,
+          "end": 1.8
+        },
+        {
+          "text": "goodbye",
+          "start": 2,
+          "end": 3.25
+        }
+      ],
+      "speakerId": "SPK_1"
+    },
+    {
+      "id": "b2",
+      "start": 4,
+      "end": 7.5,
+      "text": "tab\there\nsecond <line>",
+      "words": [
+        {
+          "text": "tab",
+          "start": 4,
+          "end": 5
+        },
+        {
+          "text": "here",
+          "start": 5,
+          "end": 6
+        },
+        {
+          "text": "second",
+          "start": 6,
+          "end": 6.7
+        },
+        {
+          "text": "<line>",
+          "start": 6.7,
+          "end": 7.5
+        }
+      ],
+      "speakerId": "SPK_2"
+    },
+    {
+      "id": "b3",
+      "start": 9,
+      "end": 11,
+      "text": "00:00:09,000 --> 00:00:11,000",
+      "words": [
+        {
+          "text": "marker",
+          "start": 9,
+          "end": 11
+        }
+      ],
+      "speakerId": "SPK_1"
+    },
+    {
+      "id": "b4",
+      "start": 13,
+      "end": 15.125,
+      "text": "quote \"and\" comma",
+      "words": [
+        {
+          "text": "quote",
+          "start": 13,
+          "end": 14
+        },
+        {
+          "text": "quoted",
+          "start": 14,
+          "end": 15.125
+        }
+      ],
+      "speakerId": "SPK_3"
+    }
+  ],
+  "speakers": [
+    {
+      "id": "SPK_1",
+      "label": "Host"
+    },
+    {
+      "id": "SPK_2",
+      "label": "Guest & Co"
+    },
+    {
+      "id": "SPK_3",
+      "label": "Caller"
+    }
+  ]
+}
