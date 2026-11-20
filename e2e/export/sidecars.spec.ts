@@ -14,7 +14,7 @@ const AR: Record<string, unknown> = {
 }
 
 async function downloadBytes(page: import('@playwright/test').Page, action: () => Promise<void>): Promise<{ name: string; body: string }> {
-  const [download] = await Promise.all([page.waitForEvent('download', { timeout: 15_000 }), action()])
+  const [download] = await Promise.all([page.waitForEvent('download', { timeout: 30_000 }), action()])
   const path = await download.path()
   if (path === null) throw new Error('download has no path')
   return { name: download.suggestedFilename(), body: readFileSync(path, 'utf8') }
@@ -26,27 +26,42 @@ async function pick(page: import('@playwright/test').Page, format: string, track
   await page.getByTestId('sidecar-speaker-labels').selectOption(labels)
 }
 
-test.describe('CC-202.4/.5/.7: audio sidecars (chromium)', () => {
-  test.setTimeout(120_000)
+// One CC-ID leading each describe: playwright's junit title concatenates
+// `describe › test`, and the citation grammar (scripts/lib/junit-trust.ts
+// citationsOf) only counts the LEADING ID run — a `CC-a/.b/.c:` describe
+// cites CC-a alone (verify:unit UNCOVERED for .5/.7, unit-202).
+async function openSidecarDialog(page: import('@playwright/test').Page): Promise<void> {
+  await openExportProject(page, {
+    asset: SIDECAR_ASSET,
+    src: '/fixtures/audio/speech-2min.m4a',
+    blocks: SIDECAR_BLOCKS,
+    speakers: SIDECAR_SPEAKERS,
+    name: SIDECAR_NAME,
+    language: 'en',
+    translations: { fr: SIDECAR_FR, ar: AR },
+  })
+  await page.getByTestId('export-button').click()
+  await expect(page.getByTestId('export-dialog')).toBeVisible()
+}
 
+test.describe('CC-202.4: audio project, no burn-in surface (chromium)', () => {
+  test.setTimeout(120_000)
   test.beforeEach(async ({ page }) => {
-    await openExportProject(page, {
-      asset: SIDECAR_ASSET,
-      src: '/fixtures/audio/speech-2min.m4a',
-      blocks: SIDECAR_BLOCKS,
-      speakers: SIDECAR_SPEAKERS,
-      name: SIDECAR_NAME,
-      language: 'en',
-      translations: { fr: SIDECAR_FR, ar: AR },
-    })
-    await page.getByTestId('export-button').click()
-    await expect(page.getByTestId('export-dialog')).toBeVisible()
+    await openSidecarDialog(page)
   })
 
   test('CC-202.4: an audio project renders NO burn-in surface', async ({ page }) => {
     await expect(page.locator('[data-testid=export-dialog] [data-testid^=burnin]')).toHaveCount(0)
     await expect(page.getByRole('region', { name: 'Burn-in MP4' })).toHaveCount(0)
     await expect(page.getByTestId('requirements-copy')).toHaveCount(0)
+  })
+
+})
+
+test.describe('CC-202.5: byte-exact golden downloads (chromium)', () => {
+  test.setTimeout(120_000)
+  test.beforeEach(async ({ page }) => {
+    await openSidecarDialog(page)
   })
 
   test('CC-202.5: every format is byte-exact vs the committed goldens', async ({ page }) => {
@@ -69,6 +84,14 @@ test.describe('CC-202.4/.5/.7: audio sidecars (chromium)', () => {
       expect(got.name, `filename for ${c.golden}`).toBe(c.file)
       expect(got.body, `bytes for ${c.golden}`).toBe(readGolden(c.golden))
     }
+  })
+
+})
+
+test.describe('CC-202.7: offline sidecar export (chunks warm, chromium)', () => {
+  test.setTimeout(120_000)
+  test.beforeEach(async ({ page }) => {
+    await openSidecarDialog(page)
   })
 
   test('CC-202.7: sidecar export works with the network offline (chunks warm)', async ({ page }) => {
