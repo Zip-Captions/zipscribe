@@ -46,6 +46,11 @@ export type CommandId =
   | 'translation-remove-track'
   | 'translation-edit-entry'
   | 'translation-mark-reviewed'
+  // unit-201 EXTENDS (CONTRACT.md § Commands — additive, same discipline as
+  // unit-104/301): the style slice (FR-201.2) + aspect selector (FR-201.6).
+  | 'style-patch'
+  | 'style-preset'
+  | 'output-aspect-set'
 
 export interface BlockSplitPayload {
   blockId: string
@@ -234,9 +239,24 @@ export interface CommandPayloads {
   'translation-remove-track': TranslationRemoveTrackPayload
   'translation-edit-entry': TranslationEditEntryPayload
   'translation-mark-reviewed': TranslationMarkReviewedPayload
+  // unit-201 EXTENDS (additive).
+  'style-patch': StylePatchPayload
+  'style-preset': StylePresetPayload
+  'output-aspect-set': OutputAspectSetPayload
 }
 
 /** SECURITY-03: code + structural token (an id or a number) only. */
+// unit-201 EXTENDS payloads (FR-201.2/201.6).
+export interface StylePatchPayload {
+  patch: Partial<import('../../engine/model').CaptionStyle>
+}
+export interface StylePresetPayload {
+  presetId: string
+}
+export interface OutputAspectSetPayload {
+  aspect: import('../../engine/model').OutputAspect
+}
+
 export type CommandRejectCode =
   | 'INVALID_PAYLOAD'
   | 'BLOCKS_UNSORTED'

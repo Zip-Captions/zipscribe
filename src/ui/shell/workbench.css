@@ -28,6 +28,7 @@ body,
   --accent: #4c8dff;
   --accent-strong: #2f6fe0;
   --accent-soft: rgba(76, 141, 255, 0.14);
+  --gold: #ffd166; /* unit-200 design pass (owner decision Q1): broadcast-box highlight token */
   --danger: #e5534b;
   --success: #4ab871;
   --warning: #d9a03f;
@@ -42,6 +43,7 @@ body,
 :root[data-theme='light'] {
   --bg-app: #f7f8fa;
   --bg-panel: #ffffff;
+  --gold: #9a7418;
   --bg-raised: #eef0f3;
   --bg-overlay: #e4e7eb;
   --border-subtle: #d5d9df;
@@ -598,3 +600,17 @@ body,
 ::selection {
   background: var(--selection);
 }
+
+/* ── unit-201 style tab ─────────────────────────────────────────────── */
+.ws-style-panel { display: flex; flex-direction: column; gap: 8px; padding: 4px 2px; }
+.ws-style-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; }
+.ws-style-label { font-size: 12px; color: var(--text-secondary); }
+.ws-style-range-wrap { display: flex; align-items: center; gap: 6px; }
+.ws-style-value { font-size: 11px; color: var(--text-secondary); min-width: 34px; text-align: right; }
+.ws-style-note { font-size: 11px; color: var(--text-disabled); margin: 2px 0; }
+.ws-style-remote { border-top: 1px solid var(--border-subtle); padding-top: 8px; }
+.ws-style-remote-row { display: flex; gap: 6px; align-items: center; font-size: 12px; margin: 2px 0; }
+.ws-style-contrast { display: flex; gap: 6px; align-items: center; font-size: 11px; color: var(--text-secondary); }
+.ws-preset-gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ws-preset-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; background: var(--bg-raised, var(--bg-panel)); border: 1px solid var(--border-subtle); border-radius: 6px; cursor: pointer; color: var(--text-primary); font-size: 11px; }
+.ws-preset-thumb { border-radius: 4px; background: #808080; }
