@@ -32,6 +32,13 @@ interface EditorBridge {
    *  serializers, not the reducer), so it rides the same applyWithoutHistory
    *  path the translation seed uses; reducer legality is L1's job. */
   seedBlocks(blocks: readonly unknown[], speakers: readonly unknown[]): void
+  /** unit-302 (CC-302.2/.3 e2e): drive the transcript view switcher through the
+   *  SAME editor actions the ⌘⇧L handler uses (no synthetic DOM writes). */
+  setView(mode: 'source' | 'translation' | 'split', language?: string): void
+  /** unit-302 (CC-302.1 e2e): how many entries a translation track holds (the
+   *  virtualized transcript only renders visible rows, so row-fill is asserted
+   *  through state). */
+  getTranslationEntryCount(language: string): number
   command(id: string, payload?: unknown): { code: string } | null
   getEditorState(): {
     playhead: number
@@ -42,6 +49,8 @@ interface EditorBridge {
     clockTime: number
     seekCount: number
     videoReady: boolean
+    viewMode: 'source' | 'translation' | 'split'
+    activeLanguage: string | null
   }
   scrubTo(time: number): void
   releaseScrub(): void
@@ -88,6 +97,14 @@ export function installEditorBridge(): void {
         draft.project.speakers = speakers as never
       })
     },
+    setView(mode: 'source' | 'translation' | 'split', language?: string): void {
+      editorApp.editor.setViewMode(mode)
+      if (language !== undefined) editorApp.editor.setActiveLanguage(language)
+    },
+    getTranslationEntryCount(language: string): number {
+      const track = editorApp.project.getState().project?.translations.find((t) => t.language === language)
+      return track === undefined ? 0 : Object.keys(track.entries).length
+    },
     seedTranslation(language: string, entries: Record<string, TranslationEntry>): void {
       const updates = Object.entries(entries).map(([blockId, entry]) => ({ blockId, entry }))
       editorApp.applyWithoutHistory((draft) => {
@@ -127,6 +144,8 @@ export function installEditorBridge(): void {
         clockTime: editorApp.arbitrator === null ? 0 : editorApp.arbitrator.clockTime(),
         seekCount: mediaClock.seekCount,
         videoReady: stage.isVideoReady(),
+        viewMode: editor.viewMode,
+        activeLanguage: editor.activeLanguage,
       }
     },
     scrubTo(time: number): void {

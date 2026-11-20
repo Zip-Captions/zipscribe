@@ -112,6 +112,12 @@ export function LanguagesSection({ app, jobs, onImportTranslation, source }: Lan
         </button>
       </header>
 
+      {/* US-302.1: a polite live region announces run progress (label + percent,
+          never transcript text — SECURITY-03). One region for the whole section. */}
+      <div data-testid="languages-live" role="status" aria-live="polite" className="lang-live">
+        {liveAnnouncement(state.translation, tracked)}
+      </div>
+
       {state.translationSupport === 'unsupported' && (
         <div data-testid="languages-gating" role="note" className="lang-gating">
           <p>On-device translation needs Chrome or Edge on desktop.</p>
@@ -183,4 +189,20 @@ export function LanguagesSection({ app, jobs, onImportTranslation, source }: Lan
 
 function nextUntracked(trackedLangs: ReadonlySet<string>): string {
   return TARGET_LANGUAGES.find((lang) => !trackedLangs.has(lang)) ?? TARGET_LANGUAGES[0]!
+}
+
+// US-302.1: build the polite announcement from RUNNING tracks only — language
+// label, phase and percent (numbers). Empty while nothing runs (no chatter).
+function liveAnnouncement(translation: Record<string, TranslationJobState>, tracked: readonly { language: string }[]): string {
+  const parts: string[] = []
+  for (const { language } of tracked) {
+    const job = translation[language]
+    if (job === undefined) continue
+    if (job.status !== 'downloading' && job.status !== 'translating') continue
+    const label = LABEL[language] ?? language
+    const phase = STATUS_LABEL[job.status] ?? job.status
+    const pct = job.progress !== null && job.progress.total > 0 ? ` ${String(Math.round((job.progress.done / job.progress.total) * 100))}%` : ''
+    parts.push(`${label} ${phase}${pct}`)
+  }
+  return parts.join('. ')
 }
