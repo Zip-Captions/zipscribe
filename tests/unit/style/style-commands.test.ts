@@ -43,8 +43,35 @@ describe('CC-201.3: style-patch', () => {
     expect(app.dispatch('style-patch', { patch: { backgroundOpacity: 1.5 } })).not.toBeNull()
     expect(app.dispatch('style-patch', { patch: { maxLinesPerBlock: 4 as 1 } })).not.toBeNull()
     expect(app.dispatch('style-patch', { patch: { fontWeight: 500 as 400 } })).not.toBeNull()
+    expect(app.dispatch('style-patch', { patch: { fontFamily: 42 as unknown as string } })).not.toBeNull()
+    expect(app.dispatch('style-patch', { patch: { textTransform: 'capitalize' as 'none' } })).not.toBeNull()
+    expect(app.dispatch('style-patch', { patch: { color: 'red' as '#ffffff' } })).not.toBeNull()
+    expect(app.dispatch('style-patch', { patch: { highlightColor: '#fff' as '#ffffff' } })).not.toBeNull()
+    expect(app.dispatch('style-patch', { patch: { outlineColor: '#12345z' as '#000000' } })).not.toBeNull()
+    expect(app.dispatch('style-patch', { patch: { backgroundColor: 'white' as '#ffffff' } })).not.toBeNull()
+    expect(app.dispatch('style-patch', { patch: { position: 'middle' as 'bottom' } })).not.toBeNull()
+    expect(app.dispatch('style-patch', { patch: { marginVPct: 46 } })).not.toBeNull()
+    expect(app.dispatch('style-patch', { patch: { alignment: 'justify' as 'center' } })).not.toBeNull()
+    expect(app.dispatch('style-patch', { patch: { highlightMode: 'rainbow' as 'none' } })).not.toBeNull()
+    expect(app.dispatch('style-patch', { patch: { showSpeakerBar: 'yes' as unknown as boolean } })).not.toBeNull()
+    expect(app.dispatch('style-patch', { patch: { animationPreset: 42 as unknown as string } })).not.toBeNull()
+    expect(app.dispatch('style-patch', { patch: { fontSizeRem: 1 as unknown as number } })).not.toBeNull()
     expect(app.project.getState().project!.style).toEqual(before)
     expect(app.history.undoCount()).toBe(0)
+  })
+
+  test('CC-201.3: one patch carrying every field at its boundary applies cleanly', () => {
+    const { app } = createTestApp()
+    expect(app.dispatch('style-patch', { patch: {
+      fontFamily: 'Inter', fontWeight: 700, fontSizePct: 20, textTransform: 'uppercase',
+      color: '#123abc', highlightColor: '#abcdef', outlineColor: '#fedcba', outlineWidth: 12,
+      backgroundColor: '#222222', backgroundOpacity: 1, position: 'top', marginVPct: 45,
+      alignment: 'left', maxLinesPerBlock: 3, highlightMode: 'karaoke', showSpeakerBar: true,
+      animationPreset: 'fade',
+    } })).toBeNull()
+    const style = app.project.getState().project!.style
+    expect(style.animationPreset).toBe('fade')
+    expect(style.marginVPct).toBe(45)
   })
 
   test('CC-201.3: sequential live-control commits each take one step (release-only dispatches)', () => {
