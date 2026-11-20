@@ -190,7 +190,7 @@ function blockTopBaseline(style: CaptionStyle, height: number, count: number, li
   if (style.position === 'top') return height * (style.marginVPct / 100) + ascent + anchorOffset
   if (style.position === 'center') {
     const center = height * (style.marginVPct / 100)
-    return center + ((0 - (count - 1) / 2) * lineH) + ascent - size * 0.45 + anchorOffset
+    return center + (0 - (count - 1) / 2) * lineH + ascent - size * 0.45 + anchorOffset
   }
   return height * (1 - style.marginVPct / 100) - (count - 1) * lineH - size * 0.25 + anchorOffset
 }
@@ -220,11 +220,11 @@ export function drawCaptions(ctx: PaintCtx, frame: OverlayFrame): void {
   ctx.direction = rtl ? 'rtl' : 'ltr'
 
   const visible = [...frame.blocks].sort((a, b) => a.start - b.start)
-  const fitted = visible.map(b => ({
+  const fitted = visible.map((b) => ({
     block: b,
     fit: fitBlock(ctx, applyTransform(b.text, style), baseSize, style.maxLinesPerBlock, maxW),
   }))
-  const lineH = Math.max(...fitted.map(f => f.fit.sizePx), baseSize) * 1.25
+  const lineH = Math.max(...fitted.map((f) => f.fit.sizePx), baseSize) * 1.25
   const anchors = anchorOffsetsFor(visible, style, lineH)
 
   for (let bi = 0; bi < fitted.length; bi++) {
@@ -240,10 +240,10 @@ export function drawCaptions(ctx: PaintCtx, frame: OverlayFrame): void {
     const lineYs: PlacedLine[] = lines.map((line, i) => ({ line, y: firstBaseline + i * sizePx * 1.25, size: sizePx }))
 
     // geometry for the box
-    const textL = Math.min(...lineYs.map(p => xLeft(ctx, style, p.line.text, width, sideInset)))
-    const textR = Math.max(...lineYs.map(p => xLeft(ctx, style, p.line.text, width, sideInset) + measure(ctx, p.line.text)))
-    const top = Math.min(...lineYs.map(p => p.y)) - sizePx * 0.85
-    const bottom = Math.max(...lineYs.map(p => p.y)) + sizePx * 0.25
+    const textL = Math.min(...lineYs.map((p) => xLeft(ctx, style, p.line.text, width, sideInset)))
+    const textR = Math.max(...lineYs.map((p) => xLeft(ctx, style, p.line.text, width, sideInset) + measure(ctx, p.line.text)))
+    const top = Math.min(...lineYs.map((p) => p.y)) - sizePx * 0.85
+    const bottom = Math.max(...lineYs.map((p) => p.y)) + sizePx * 0.25
     const bx = textL - boxPadX
     const bw = textR - textL + 2 * boxPadX
     const bh = bottom - top + 2 * boxPadY
@@ -284,13 +284,20 @@ export function drawCaptions(ctx: PaintCtx, frame: OverlayFrame): void {
     if (showWords) {
       const wi = activeWordIndex(block, time)
       if (wi >= 0) {
-        const hit = lineYs.find(p => wi >= p.line.wordFrom && wi < p.line.wordTo)
+        const hit = lineYs.find((p) => wi >= p.line.wordFrom && wi < p.line.wordTo)
         if (hit) {
-          const wordsAll = block.text.split('\n').join(' ').split(' ').filter(w => w !== '')
+          const wordsAll = block.text
+            .split('\n')
+            .join(' ')
+            .split(' ')
+            .filter((w) => w !== '')
           const rawWord = wordsAll[wi]
           if (rawWord !== undefined) {
             const word = applyTransform(rawWord, style)
-            const prefix = wordsAll.slice(hit.line.wordFrom, wi).map(w => applyTransform(w, style)).join(' ')
+            const prefix = wordsAll
+              .slice(hit.line.wordFrom, wi)
+              .map((w) => applyTransform(w, style))
+              .join(' ')
             const lineLeft = xLeft(ctx, style, hit.line.text, width, sideInset)
             const wordX = prefix ? lineLeft + measure(ctx, `${prefix} `) : lineLeft
             ctx.save()

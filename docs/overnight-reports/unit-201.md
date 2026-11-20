@@ -35,7 +35,7 @@ runner executes them and is authoritative.)
 6. Remote Google Fonts path fetches the css2 text and resolves the gstatic woff2
    URLs (FontFace src must be a font resource, not a stylesheet) — required CSP:
    `connect-src … https://fonts.googleapis.com` + `font-src 'self'
-   https://fonts.googleapis.com https://fonts.gstatic.com`; both origins added to
+https://fonts.googleapis.com https://fonts.gstatic.com`; both origins added to
    `settings.yml operations.model_hosts` (opt-in only, per product privacy rule).
 7. `pnpm fonts` (scripts/merge-fonts.py) now pins head.created/modified and
    disables fontTools' save-time modified-recalc → committed subsets are byte-stable

@@ -23,10 +23,11 @@ function registerBundledFonts(): void {
   const FontFaceCtor = scope.FontFace
   const fonts = scope.fonts
   if (FontFaceCtor === undefined || fonts === undefined) return
-  for (const face of BUNDLED_FONT_FACES.filter(f => !f.lazy)) {
+  for (const face of BUNDLED_FONT_FACES.filter((f) => !f.lazy)) {
     // worker scope has fetch; load() resolves on the worker event loop
-    void new FontFaceCtor(face.family, `url(${face.url})`, { weight: String(face.weight) }).load()
-      .then(loaded => fonts.add(loaded))
+    void new FontFaceCtor(face.family, `url(${face.url})`, { weight: String(face.weight) })
+      .load()
+      .then((loaded) => fonts.add(loaded))
       .catch(() => undefined) // offline-first: bundled load failure falls back per policy
   }
 }
@@ -48,7 +49,7 @@ scope.onmessage = (event: MessageEvent<ExportRequest>) => {
           const snapshot = request.snapshot
           const t = snapshot.blocks[0]?.start ?? 0
           renderProbeFrame(ctx, {
-            blocks: snapshot.blocks.filter(b => b.start <= t && t < b.end),
+            blocks: snapshot.blocks.filter((b) => b.start <= t && t < b.end),
             time: t,
             style: snapshot.style,
             track: 'source',

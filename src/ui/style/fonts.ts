@@ -56,9 +56,7 @@ function addFace(spec: FontFaceSpec, remoteUrl?: string): Promise<FontFace> | nu
     doc.fonts.delete?.(existing)
     registered.delete(key)
   }
-  const face = remoteUrl !== undefined
-    ? new Ctor(spec.family, `url(${remoteUrl})`, { weight: String(spec.weight), display: 'swap' })
-    : new Ctor(spec.family, `url(${spec.url})`, { weight: String(spec.weight) })
+  const face = remoteUrl !== undefined ? new Ctor(spec.family, `url(${remoteUrl})`, { weight: String(spec.weight), display: 'swap' }) : new Ctor(spec.family, `url(${spec.url})`, { weight: String(spec.weight) })
   registered.set(key, face)
   return face.load().then(() => {
     doc.fonts.add(face)
@@ -69,12 +67,12 @@ function addFace(spec: FontFaceSpec, remoteUrl?: string): Promise<FontFace> | nu
 
 /** Register the default (non-lazy) bundled set — safe to call repeatedly. */
 export async function ensureDefaultFonts(): Promise<void> {
-  await Promise.all(BUNDLED_FONT_FACES.filter(f => !f.lazy).map(f => addFace(f) ?? Promise.resolve(null)))
+  await Promise.all(BUNDLED_FONT_FACES.filter((f) => !f.lazy).map((f) => addFace(f) ?? Promise.resolve(null)))
 }
 
 /** Lazy display face registration on first use (FR-201.4). */
 export async function ensureDisplayFont(family: string): Promise<void> {
-  const spec = BUNDLED_FONT_FACES.find(f => f.family === family && f.lazy)
+  const spec = BUNDLED_FONT_FACES.find((f) => f.family === family && f.lazy)
   if (spec === undefined) return
   await (addFace(spec) ?? Promise.resolve(null))
 }
@@ -82,7 +80,7 @@ export async function ensureDisplayFont(family: string): Promise<void> {
 /** Explicit remote opt-in per product privacy rule; swap semantics. */
 export async function enableRemoteFont(family: string): Promise<boolean> {
   const remote = REMOTE_FONT_SOURCES[family]
-  const spec = BUNDLED_FONT_FACES.find(f => f.family === family)
+  const spec = BUNDLED_FONT_FACES.find((f) => f.family === family)
   if (remote === undefined || spec === undefined) return false
   try {
     // FontFace src must be a FONT resource — the css2 stylesheet URL cannot
@@ -91,9 +89,7 @@ export async function enableRemoteFont(family: string): Promise<boolean> {
     const res = await fetch(remote)
     if (!res.ok) return false
     const css = await res.text()
-    const urls = [...css.matchAll(/url\((https:\/\/fonts\.gstatic\.com\/[^)\s]+\.woff2)\)/g)]
-      .map(m => m[1])
-      .filter((u): u is string => u !== undefined)
+    const urls = [...css.matchAll(/url\((https:\/\/fonts\.gstatic\.com\/[^)\s]+\.woff2)\)/g)].map((m) => m[1]).filter((u): u is string => u !== undefined)
     if (urls.length === 0) return false
     await addFace({ ...spec, lazy: false }, urls[urls.length - 1])
     return true

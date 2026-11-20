@@ -24,7 +24,9 @@ for (const pkg of PACKAGES) {
   const src = join(ROOT, 'node_modules', '@fontsource', pkg, 'LICENSE')
   copyFileSync(src, join(licenseDir, `${pkg}.txt`))
 }
-writeFileSync(join(ROOT, 'public', 'fonts', 'README.md'), `# Bundled font faces (FR-201.4)
+writeFileSync(
+  join(ROOT, 'public', 'fonts', 'README.md'),
+  `# Bundled font faces (FR-201.4)
 
 Committed OFL subsets materialized by \`scripts/copy-fonts.ts\` from
 \`@fontsource/*\` devDependencies (regenerate: \`corepack pnpm fonts\`).
@@ -32,7 +34,8 @@ Committed OFL subsets materialized by \`scripts/copy-fonts.ts\` from
 \`tests/unit/style/fonts.test.ts\`); \`display/\` is lazy-loaded on demand.
 License texts (SIL Open Font License 1.1) are in \`licenses/\` — the OFL
 requires them to accompany these redistributed subsets.
-`)
+`,
+)
 console.log(`copy-fonts: licenses mirrored (${PACKAGES.length})`)
 
 const size = (dir: string): number => readdirSync(join(ROOT, 'public', 'fonts', dir)).reduce((a, f) => a + statSync(join(ROOT, 'public', 'fonts', dir, f)).size, 0)

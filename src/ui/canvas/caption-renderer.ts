@@ -46,7 +46,7 @@ function resolveThemeColors(style: CaptionStyle): CaptionStyle {
     const v = cs.getPropertyValue(varName).trim()
     if (/^#[0-9a-fA-F]{6}$/.test(v)) map.set(hex, v)
   }
-  const remap = (c: string | undefined): string | undefined => (c === undefined ? undefined : map.get(c.toLowerCase()) ?? c)
+  const remap = (c: string | undefined): string | undefined => (c === undefined ? undefined : (map.get(c.toLowerCase()) ?? c))
   return {
     ...style,
     color: remap(style.color) ?? style.color,
@@ -78,7 +78,7 @@ export function createCaptionOverlayRenderer(deps: CaptionRendererDeps): Overlay
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0) // drawCaptions works in CSS px
     const t = lastPlayhead
-    const visible = lastProject.blocks.filter(b => b.start <= t && t < b.end)
+    const visible = lastProject.blocks.filter((b) => b.start <= t && t < b.end)
     if (visible.length === 0) return
     const style = deps.resolveStyle?.(lastProject.style) ?? resolveThemeColors(lastProject.style)
     drawCaptions(ctx, {

@@ -20,7 +20,10 @@ async function capture(name, frame, dpr) {
   try {
     await page.goto(`${BASE}/?ziptest=1`)
     await page.waitForFunction(() => window.__zipStyleTest !== undefined, undefined, { timeout: 15_000 })
-    await page.evaluate(async () => { await window.__zipStyleTest.ensureDefaultFonts(); await document.fonts.ready })
+    await page.evaluate(async () => {
+      await window.__zipStyleTest.ensureDefaultFonts()
+      await document.fonts.ready
+    })
     const dataUrl = await page.evaluate(async ([f, d]) => await window.__zipStyleTest.renderOverlayPng(f, d), [frame, dpr])
     writeFileSync(join(OUT, name), Buffer.from(dataUrl.split(',')[1], 'base64'))
     console.log(`wrote ${name}`)
@@ -41,11 +44,17 @@ for (const dpr of DATA.dprs) {
             await page.goto(`${BASE}/?ziptest=1`)
             await page.waitForFunction(() => window.__zipStyleTest !== undefined, undefined, { timeout: 15_000 })
             return await page.evaluate((id) => window.__zipStyleTest.getPresetStyle(id), preset)
-          } finally { await context.close() }
+          } finally {
+            await context.close()
+          }
         })()
-        const words = sample.words === null
-          ? sample.text.split(/[\s\n]+/).filter(w => w !== '').map((t, i, arr) => ({ text: t, start: (i * 2.4) / arr.length, end: ((i + 1) * 2.4) / arr.length }))
-          : sample.words.map(([t, s, e]) => ({ text: t, start: s, end: e }))
+        const words =
+          sample.words === null
+            ? sample.text
+                .split(/[\s\n]+/)
+                .filter((w) => w !== '')
+                .map((t, i, arr) => ({ text: t, start: (i * 2.4) / arr.length, end: ((i + 1) * 2.4) / arr.length }))
+            : sample.words.map(([t, s, e]) => ({ text: t, start: s, end: e }))
         const frame = {
           blocks: [{ id: 'g', start: 0, end: 2.4, text: sample.text, words, speakerId: 'SPK_1' }],
           time: DATA.playhead,
@@ -69,9 +78,14 @@ for (const dpr of DATA.dprs) {
   try {
     await page.goto(`${BASE}/?ziptest=1`)
     await page.waitForFunction(() => window.__zipStyleTest !== undefined, undefined, { timeout: 15_000 })
-    await page.evaluate(async () => { await window.__zipStyleTest.ensureDefaultFonts(); await document.fonts.ready })
+    await page.evaluate(async () => {
+      await window.__zipStyleTest.ensureDefaultFonts()
+      await document.fonts.ready
+    })
     minimal = await page.evaluate(() => window.__zipStyleTest.getPresetStyle('minimal'))
-  } finally { await context.close() }
+  } finally {
+    await context.close()
+  }
   const words = DATA.rtl.text.split(' ').map((t, i, arr) => ({ text: t, start: (i * 2) / arr.length, end: ((i + 1) * 2) / arr.length }))
   const frame = {
     blocks: [{ id: 'rtl', start: 0, end: 2, text: DATA.rtl.text, words, speakerId: 'SPK_1' }],

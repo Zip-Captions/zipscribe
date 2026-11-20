@@ -61,9 +61,15 @@ if (run.status !== 0) {
 }
 
 const data = JSON.parse(readFileSync(join(REPO_ROOT, 'e2e', 'style', 'overlay-goldens-data.json'), 'utf8')) as {
-  samples: Record<string, unknown>; presets: string[]; aspects: Record<string, unknown>; dprs: number[]
+  samples: Record<string, unknown>
+  presets: string[]
+  aspects: Record<string, unknown>
+  dprs: number[]
 }
-const expected = [...data.dprs.flatMap(dpr => data.presets.flatMap(preset => Object.keys(data.samples).flatMap(sample => Object.keys(data.aspects).map(aspect => `${preset}-${sample}-${aspect}-dpr${String(dpr)}.png`)))), 'rtl-ar-dpr2.png']
+const expected = [
+  ...data.dprs.flatMap((dpr) => data.presets.flatMap((preset) => Object.keys(data.samples).flatMap((sample) => Object.keys(data.aspects).map((aspect) => `${preset}-${sample}-${aspect}-dpr${String(dpr)}.png`)))),
+  'rtl-ar-dpr2.png',
+]
 for (const name of expected) {
   if (!existsSync(join(REPO_ROOT, OUTPUT_DIR, name))) {
     console.error(`missing output ${name}`)

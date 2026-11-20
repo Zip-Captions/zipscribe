@@ -11,7 +11,10 @@ export { CAPTION_PRESETS, PRESET_ORDER, type CaptionPreset, type PresetId }
 
 /** Sample block for thumbnails — same corpus as the unit-200 renders. */
 export const THUMBNAIL_SAMPLE: CaptionBlock = {
-  id: 'thumb', start: 0, end: 4, text: 'welcome back',
+  id: 'thumb',
+  start: 0,
+  end: 4,
+  text: 'welcome back',
   words: [
     { text: 'welcome', start: 0, end: 2 },
     { text: 'back', start: 2, end: 4 },

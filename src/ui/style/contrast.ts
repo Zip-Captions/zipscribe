@@ -41,13 +41,17 @@ export interface ContrastReport {
   warn: boolean
 }
 
-export function captionContrast(style: {
-  color: string
-  outlineColor: string
-  outlineWidth: number
-  backgroundColor?: string
-  backgroundOpacity: number
-}, frameColor: string, aaRatio = 4.5): ContrastReport {
+export function captionContrast(
+  style: {
+    color: string
+    outlineColor: string
+    outlineWidth: number
+    backgroundColor?: string
+    backgroundOpacity: number
+  },
+  frameColor: string,
+  aaRatio = 4.5,
+): ContrastReport {
   if (style.backgroundColor && style.backgroundOpacity > 0) {
     const composited = over(style.backgroundColor, style.backgroundOpacity, frameColor)
     const r = ratio(style.color, composited)
