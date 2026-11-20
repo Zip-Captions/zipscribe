@@ -6,14 +6,14 @@ Status: complete (pending CI + reviewer R6 delta)
 
 From `reports/criteria/unit-201-styling-engine.md` (clean `pnpm verify:unit --from-branch` run):
 
-| ID | level | passing tests | result |
-|---|---|---|---|
+| ID       | level    | passing tests         | result                                                                                                                                                                                                                        |
+| -------- | -------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | CC-201.1 | untagged | 0 (macOS verify host) | FAIL locally — 49/49 golden comparisons PASS on the CI linux runner (`quality` run 44684325215, `e2e/style/overlay-golden.spec.ts`, 190 e2e passed); linux-gated by golden doctrine, identical treatment to unit-107 CC-107.7 |
-| CC-201.2 | untagged | 2 | pass |
-| CC-201.3 | untagged | 17 | pass |
-| CC-201.4 | untagged | 2 | pass |
-| CC-201.5 | untagged | 6 | pass |
-| CC-201.6 | untagged | 1 | pass |
+| CC-201.2 | untagged | 2                     | pass                                                                                                                                                                                                                          |
+| CC-201.3 | untagged | 17                    | pass                                                                                                                                                                                                                          |
+| CC-201.4 | untagged | 2                     | pass                                                                                                                                                                                                                          |
+| CC-201.5 | untagged | 6                     | pass                                                                                                                                                                                                                          |
+| CC-201.6 | untagged | 1                     | pass                                                                                                                                                                                                                          |
 
 `[RQ]` items: none in this unit (perf/qualify surfaces are unit-202/204). `[MANUAL]`: none.
 
