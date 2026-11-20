@@ -2,8 +2,10 @@
 status: done
 # completed: 2026-11-18 — PR #23 → f242b4a (CI run 44380539185). All 5 CC are [MANUAL]:
 # artifacts complete (mockups/README.md is the acceptance doc; 53 SVGs + contrast math);
-# CC-200.5 owner review PENDING — units 201/202/204 must not start until the owner signs
-# off the mockups incl. the 5 open questions in mockups/README.md § Open questions.
+# CC-200.5 OWNER SIGNED OFF 2026-11-19 (chat approval after review rounds 1–3 on
+# mockups/review.html; the 5 open questions answered 2026-11-19 via CLI, decisions
+# in mockups/README.md § Owner decisions; round-3 overflow fixes PR #28 → d37b355).
+# Units 201/202/204 UNBLOCKED.
 phase: mvp
 discipline: design
 depends_on: [caption-studio-ui/unit-101-workbench-shell]

@@ -1,5 +1,5 @@
 ---
-status: pending
+status: in_progress
 phase: mvp
 discipline: frontend
 depends_on: [unit-200-style-export-offline-design, caption-studio-ui/unit-102-editor-core-playback, caption-studio-ui/unit-104-transcript-editor]
