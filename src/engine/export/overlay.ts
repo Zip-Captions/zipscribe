@@ -57,7 +57,8 @@ export function displayBlocksForTrack(project: Pick<Project, 'blocks' | 'transla
 }
 
 export interface OverlayFrame {
-  /** blocks visible at `time` (caller-filtered; may temporally overlap) */  blocks: CaptionBlock[]
+  /** blocks visible at `time` (caller-filtered; may temporally overlap) */
+  blocks: CaptionBlock[]
   time: Seconds
   style: CaptionStyle
   /** 'source', or a translation track's BCP-47 language (block-level render).

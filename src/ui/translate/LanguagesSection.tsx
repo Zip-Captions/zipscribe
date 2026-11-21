@@ -14,7 +14,7 @@ import type { JobsStore, TranslationJobState } from '../../state/jobs'
 /** Candidate target languages for the picker (BCP-47). A pragmatic common set;
  *  the built-in Translator's own availability decides Ready/Download/Unavailable
  *  per pair at runtime — this list only seeds the menu. */
-export const TARGET_LANGUAGES: readonly string[] = ['es', 'fr', 'de', 'pt', 'it', 'nl', 'pl', 'tr', 'ru', 'ja', 'ko', 'zh-Hans', 'zh-Hant', 'ar', 'he', 'hi', 'id', 'vi', 'th', 'uk']
+export const TARGET_LANGUAGES: readonly string[] = ['es', 'fr', 'de', 'pt', 'it', 'nl', 'pl', 'tr', 'ru', 'ja', 'ko', 'zh', 'zh-Hant', 'ar', 'he', 'hi', 'id', 'vi', 'th', 'uk']
 
 const LABEL: Record<string, string> = {
   es: 'Spanish',
@@ -28,7 +28,7 @@ const LABEL: Record<string, string> = {
   ru: 'Russian',
   ja: 'Japanese',
   ko: 'Korean',
-  'zh-Hans': 'Chinese (Simplified)',
+  zh: 'Chinese',
   'zh-Hant': 'Chinese (Traditional)',
   ar: 'Arabic',
   he: 'Hebrew',

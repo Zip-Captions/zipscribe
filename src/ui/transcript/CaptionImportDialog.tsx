@@ -65,6 +65,7 @@ export function CaptionImportDialog({ file, port, app, onClose }: CaptionImportD
   const [useMode, setUseMode] = useState<'replace' | 'translation'>('replace')
   const [targetLang, setTargetLang] = useState('')
   const [unmatched, setUnmatched] = useState<number | null>(null)
+  const [applied, setApplied] = useState(false)
 
   const name = file.name
   const [bytes, setBytes] = useState<Uint8Array | null>(null)
@@ -108,6 +109,10 @@ export function CaptionImportDialog({ file, port, app, onClose }: CaptionImportD
   void nonce
 
   function confirm(): void {
+    if (applied) {
+      onClose()
+      return
+    }
     if (analysis === null || pending) return
     setPending(true)
     if (useMode === 'translation') {
@@ -140,8 +145,13 @@ export function CaptionImportDialog({ file, port, app, onClose }: CaptionImportD
           track.entries[src.id] = { text: cue.text, status: 'translated', sourceHash: sourceHash(src.text) }
         }
       })
-      setUnmatched(Math.max(0, analysis.blocks.length - source.length))
-      onClose()
+      const surplus = Math.max(0, analysis.blocks.length - source.length)
+      setUnmatched(surplus)
+      setPending(false)
+      // US-302.4: keep the dialog open so surplus cues are REPORTED when present
+      // (nothing is silently dropped); a clean import closes immediately.
+      if (surplus > 0) setApplied(true)
+      else onClose()
       return
     }
     const rejection = app.dispatch('captions-import', { blocks: analysis.blocks, speakers: [...analysis.speakers], replace: true })
@@ -290,8 +300,8 @@ export function CaptionImportDialog({ file, port, app, onClose }: CaptionImportD
           >
             Cancel
           </button>
-          <button type="button" data-testid="caption-import-confirm" className="ts-popover-action ts-popover-primary" disabled={analysis === null || pending} onClick={confirm}>
-            Import
+          <button type="button" data-testid="caption-import-confirm" className="ts-popover-action ts-popover-primary" disabled={applied ? false : analysis === null || pending} onClick={confirm}>
+            {applied ? 'Done' : 'Import'}
           </button>
         </div>
       </div>

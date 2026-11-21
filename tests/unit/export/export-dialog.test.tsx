@@ -125,14 +125,16 @@ describe('US-3.2.1/.3: options surface', () => {
     expect(onSidecar.mock.calls.map((c) => (c[0] as { track: string }).track)).toEqual(['source', 'fr', 'ar'])
   })
 
-  test('US-302.3: Export all languages is disabled with no translation tracks', () => {
-    const { onSidecar } = open('video')
-    // sidecarProject has tracks; assert enabled here, and the disabled branch
-    // by rendering a source-only snapshot.
+  test('US-302.3: Export all languages is disabled with no translation tracks, enabled with tracks', () => {
+    const sourceOnly: ProjectSnapshot = { ...snap('video'), translations: [] }
+    render(<ExportDialog snapshot={sourceOnly} capabilities={caps({})} onClose={vi.fn()} onSidecar={vi.fn()} onBurnIn={vi.fn()} />)
     const all = screen.getByTestId('sidecar-all') as HTMLButtonElement
-    expect(all.disabled).toBe(false)
-    onSidecar.mockClear()
-    fireEvent.click(all)
+    expect(all.disabled, 'no translation tracks ⇒ Export all languages disabled').toBe(true)
+    cleanup()
+    const { onSidecar } = open('video')
+    const enabled = screen.getByTestId('sidecar-all') as HTMLButtonElement
+    expect(enabled.disabled, 'with tracks it is enabled').toBe(false)
+    fireEvent.click(enabled)
     expect(onSidecar).toHaveBeenCalled()
   })
   test('ladders never upscale', () => {
