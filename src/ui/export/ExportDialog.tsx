@@ -162,8 +162,8 @@ export function ExportDialog(props: ExportDialogProps): React.JSX.Element | null
                       {f}
                     </option>
                   ))}
-              </select>
-            </label>
+                </select>
+              </label>
             </div>
             <div className="zip-export-row">
               <label className="zip-export-label">

@@ -100,7 +100,11 @@ export function LanguagesSection({ app, jobs, onImportTranslation, source }: Lan
   }
 
   if (resolvedSource === null) {
-    return <section aria-label="Languages" className="lang-section"><p className="lang-empty">Transcribe or set a source language to enable translation.</p></section>
+    return (
+      <section aria-label="Languages" className="lang-section">
+        <p className="lang-empty">Transcribe or set a source language to enable translation.</p>
+      </section>
+    )
   }
 
   return (
@@ -158,10 +162,10 @@ export function LanguagesSection({ app, jobs, onImportTranslation, source }: Lan
           return (
             <li key={track.language} data-testid="languages-row" data-language={track.language} className="lang-row">
               <span className="lang-row-label">{LABEL[track.language] ?? track.language}</span>
-              <span data-testid="languages-status" className={`lang-status lang-status-${status}`}>{STATUS_LABEL[status] ?? status}</span>
-              {running && (
-                <progress data-testid="languages-progress" aria-label={`${LABEL[track.language] ?? track.language} progress`} value={progress?.done ?? 0} max={progress?.total ?? 1} />
-              )}
+              <span data-testid="languages-status" className={`lang-status lang-status-${status}`}>
+                {STATUS_LABEL[status] ?? status}
+              </span>
+              {running && <progress data-testid="languages-progress" aria-label={`${LABEL[track.language] ?? track.language} progress`} value={progress?.done ?? 0} max={progress?.total ?? 1} />}
               {running ? (
                 <button type="button" data-testid="languages-cancel" className="zip-btn" onClick={() => jobs.cancelTranslation(track.language)}>
                   Cancel
@@ -174,7 +178,13 @@ export function LanguagesSection({ app, jobs, onImportTranslation, source }: Lan
                   <button type="button" data-testid="languages-retranslate-stale" className="zip-btn" onClick={() => startRun(track.language, 'stale')}>
                     Retranslate stale
                   </button>
-                  <button type="button" data-testid="languages-remove" className="zip-btn zip-btn-ghost" aria-label={`Remove ${LABEL[track.language] ?? track.language}`} onClick={() => app.dispatch('translation-remove-track', { language: track.language })}>
+                  <button
+                    type="button"
+                    data-testid="languages-remove"
+                    className="zip-btn zip-btn-ghost"
+                    aria-label={`Remove ${LABEL[track.language] ?? track.language}`}
+                    onClick={() => app.dispatch('translation-remove-track', { language: track.language })}
+                  >
                     Remove
                   </button>
                 </div>

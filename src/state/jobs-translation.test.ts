@@ -126,11 +126,7 @@ function project(): Project {
   return sampleProject({
     language: 'en',
     speakers: [speaker('SPK_1', 'Speaker 1', '#4c8dff')],
-    blocks: [
-      block('b1', 0, 2, 'SPK_1', [word('one', 0, 1)]),
-      block('b2', 3, 5, 'SPK_1', [word('two', 3, 4)]),
-      block('b3', 6, 8, 'SPK_1', [word('three', 6, 7)]),
-    ],
+    blocks: [block('b1', 0, 2, 'SPK_1', [word('one', 0, 1)]), block('b2', 3, 5, 'SPK_1', [word('two', 3, 4)]), block('b3', 6, 8, 'SPK_1', [word('three', 6, 7)])],
   })
 }
 
@@ -238,7 +234,10 @@ describe('FR-302.1: jobs.translation[lang] per-language job state', () => {
     await expect(jobs.runTranslation(app.project.getState().project!, 'fr')).rejects.toMatchObject({ code: 'PAIR_UNAVAILABLE' })
     expect(jobs.getState().translation['fr']?.status).toBe('failed')
     expect(jobs.getState().translation['fr']?.error?.code).toBe('PAIR_UNAVAILABLE')
-    expect(app.project.getState().project?.translations.some((x) => x.language === 'fr'), 'no machine track on failure').toBe(false)
+    expect(
+      app.project.getState().project?.translations.some((x) => x.language === 'fr'),
+      'no machine track on failure',
+    ).toBe(false)
   })
 
   test('FR-302.1: downloading a pair sets status downloading before translating', async () => {
