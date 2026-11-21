@@ -1,5 +1,12 @@
 ---
-status: in_progress
+status: done
+# completed: 2026-11-21 — PR #32 → 67bab07 (CI run 44851268529 all green: fixtures-verify,
+# quality 49m2s, preview-deploy; merged 02:33:52Z). verify:unit 5/5 (CC-302.1–5 untagged, all
+# pass — reports/criteria/unit-302-translation-workspace.md). Bundle 159.3 KB ≤ 350 KB.
+# Ledger gap recorded for morning review: the merging session wrote no [302-*] ledger entry,
+# no docs/overnight-reports/unit-302.md, and posted no reviewer report on the PR (no
+# gh reviews/comments). Status flipped on verified ground truth (state=MERGED + CI green +
+# criteria 5/5); the missing record is reconstructed in the 2026-11-21 ledger entries.
 phase: mvp
 discipline: frontend
 depends_on: [unit-301-translation-engine, caption-studio-ui/unit-104-transcript-editor, styling-and-export/unit-202-export]

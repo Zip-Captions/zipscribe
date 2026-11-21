@@ -1,5 +1,5 @@
 ---
-status: pending
+status: in_progress
 phase: mvp
 discipline: frontend
 depends_on: [unit-200-style-export-offline-design, unit-202-export, local-transcribe-engine/unit-03-model-manager, caption-studio-ui/unit-106-persistence]   # unit-203 deliberately NOT a dependency: 204 verifies against `vite preview` of the production build and self-provides the sw/manifest _headers entries (FR-204.6); deployed-header assertions on Cloudflare stay in unit-203 (phase: production)
