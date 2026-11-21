@@ -16,6 +16,10 @@ export interface Selection {
   focusBlockId: string | null
 }
 
+export type TranscriptViewMode = 'source' | 'translation' | 'split'
+
+const VIEW_CYCLE: readonly TranscriptViewMode[] = ['source', 'translation', 'split']
+
 export interface EditorUiState {
   playhead: Seconds
   playing: boolean
@@ -23,6 +27,9 @@ export interface EditorUiState {
   loop: [Seconds, Seconds] | null
   selection: Selection
   searchOpen: boolean
+  /** FR-302.2 (unit-302 EXTENDS, additive): transcript view mode + the translation track the translation/split views read. UI-only (never a history step). */
+  viewMode: TranscriptViewMode
+  activeLanguage: string | null
 }
 
 /** Internal storage shape: the frozen `EditorUiState` plus the last non-null loop region so `transport-loop-toggle` (Y) can re-arm it (FR-102.5). Never part of the frozen contract surface. */
@@ -39,6 +46,11 @@ export interface EditorStore {
   setLoop(loop: [Seconds, Seconds] | null): void
   setSelection(selection: Selection): void
   setSearchOpen(open: boolean): void
+  /** FR-302.2: explicit view-mode + active-language writes (UI-only). */
+  setViewMode(mode: TranscriptViewMode): void
+  setActiveLanguage(language: string | null): void
+  /** FR-302.2 / ⌘⇧L: source → translation → split → source. `candidates` are the project's translation-track languages (first candidate adopted when no active language is set or the current one was removed). */
+  cycleViewMode(candidates?: readonly string[]): void
 }
 
 export const DEFAULT_EDITOR_STATE: EditorUiState = {
@@ -48,6 +60,8 @@ export const DEFAULT_EDITOR_STATE: EditorUiState = {
   loop: null,
   selection: { anchorBlockId: null, focusBlockId: null },
   searchOpen: false,
+  viewMode: 'source',
+  activeLanguage: null,
 }
 
 export function createInitialEditorState(): EditorUiStateInternal {
@@ -55,7 +69,7 @@ export function createInitialEditorState(): EditorUiStateInternal {
 }
 
 /** The setter bodies shared by the standalone store and the app-composed facade (single implementation of the loop-memory rule). */
-export function makeEditorActions(commit: (mutate: (editor: EditorUiStateInternal) => void) => void): Omit<EditorStore, 'getState' | 'subscribe'> {
+export function makeEditorActions(commit: (mutate: (editor: EditorUiStateInternal) => void) => void, _read: () => EditorUiState = () => DEFAULT_EDITOR_STATE): Omit<EditorStore, 'getState' | 'subscribe'> {
   return {
     setPlayhead: (t) => commit((e) => void (e.playhead = t)),
     setPlaying: (playing) => commit((e) => void (e.playing = playing)),
@@ -67,6 +81,17 @@ export function makeEditorActions(commit: (mutate: (editor: EditorUiStateInterna
       }),
     setSelection: (selection) => commit((e) => void (e.selection = { anchorBlockId: selection.anchorBlockId, focusBlockId: selection.focusBlockId })),
     setSearchOpen: (open) => commit((e) => void (e.searchOpen = open)),
+    setViewMode: (mode) => commit((e) => void (e.viewMode = mode)),
+    setActiveLanguage: (language) => commit((e) => void (e.activeLanguage = language)),
+    cycleViewMode: (candidates) =>
+      commit((e) => {
+        const next = VIEW_CYCLE[(VIEW_CYCLE.indexOf(e.viewMode) + 1) % VIEW_CYCLE.length] as TranscriptViewMode
+        e.viewMode = next
+        if (next !== 'source') {
+          const list = candidates ?? []
+          if (e.activeLanguage === null || (list.length > 0 && !list.includes(e.activeLanguage))) e.activeLanguage = list[0] ?? null
+        }
+      }),
   }
 }
 
@@ -79,6 +104,6 @@ export function createEditorStore(): EditorStore {
   return {
     getState: store.getState,
     subscribe: store.subscribe,
-    ...makeEditorActions(commit),
+    ...makeEditorActions(commit, store.getState),
   }
 }

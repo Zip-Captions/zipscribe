@@ -15,6 +15,12 @@ import { immer } from 'zustand/middleware/immer'
 import type { AsrEvent, AsrRequest, Device, DiarizeRequest, EngineError, MediaEvent, MediaRequest, ModelId, Notice, PcmSource, RawSegment, Tier } from '../engine/protocol'
 import { MODEL_REGISTRY, TIER_DEFAULT_MODEL } from '../engine/model/registry'
 import { newJobId } from './ids'
+import type { EditorApp } from '@state/history'
+import type { TranslationEngine } from '../engine/translate/engine'
+import { translateError } from '../engine/translate/engine'
+import { createTranslationApplyService } from './services/translation-apply'
+import type { RunStats, SessionRunOptions } from '../engine/translate/session'
+import type { Project } from '../engine/model'
 
 /**
  * FR-2.0.6 injectable fake-engine seam: the app-side adapter over the real
@@ -64,6 +70,19 @@ export interface PendingModelDownload {
   bytes: number
 }
 
+/** FR-302.1 (unit-302 EXTENDS, additive): per-language translation job state
+ *  for the Languages section (`jobs.translation[lang]`). Codes/numbers only —
+ *  never caption/translation text (SECURITY-03). */
+export type TranslationStatus = 'idle' | 'downloading' | 'translating' | 'done' | 'partial' | 'cancelled' | 'failed'
+export type TranslationAvailability = 'unknown' | 'ready' | 'download' | 'downloading' | 'unavailable'
+export interface TranslationJobState {
+  language: string
+  status: TranslationStatus
+  availability: TranslationAvailability
+  progress: { done: number; total: number } | null
+  error: EngineError | null
+}
+
 export interface JobsState {
   capability: CapabilitySnapshot | null
   /** US-2.0.3: chip tooltip copy source; UI maps `code` → copy (never the code alone as the whole tooltip). */
@@ -86,6 +105,11 @@ export interface JobsState {
    * download confirmation — codes/numbers only (SECURITY-03).
    */
   pendingConfirmDownload: PendingModelDownload | null
+  /** FR-302.1: per-language translation job state, keyed by BCP-47 target. */
+  translation: Record<string, TranslationJobState>
+  /** FR-302.1: whether the built-in Translator is usable here — drives the
+   *  Languages-section gating copy. Set by `refreshAvailability`. */
+  translationSupport: 'unknown' | 'supported' | 'unsupported'
 }
 
 export interface StartTranscribeOptions {
@@ -113,6 +137,19 @@ export interface JobsStore {
   cancel(): void
   /** User accepted the `model:confirm-required` gate → post `confirmDownload` (unit-03). */
   confirmModelDownload(model: ModelId): void
+  /** FR-302.1: start/continue a machine translation run for one language (creates the machine track). Resolves with the run stats; rejects with the coded EngineError (SECURITY-03). */
+  runTranslation(project: Project, language: string, options?: RunTranslationOptions): Promise<RunStats>
+  /** FR-302.1: cancel an in-flight run ≤ 500 ms (completed entries kept). */
+  cancelTranslation(language: string): void
+  /** FR-302.1: hydrate the picker availability badges (a background probe — never downloads). */
+  refreshAvailability(source: string, languages: readonly string[]): Promise<void>
+}
+
+export interface RunTranslationOptions {
+  /** 'stale' re-translates stale entries (US-302.2); default only missing/failed. */
+  mode?: 'missing' | 'stale'
+  /** Transcript viewport — visible-first ordering (US-302.1). */
+  visibleIds?: ReadonlySet<string>
 }
 
 /** Registry default for a tier (unit-02 CC-02.11 spike recommendation); T4/unknown → the T1 row. */
@@ -130,6 +167,8 @@ const INITIAL_STATE: JobsState = {
   error: null,
   notices: [],
   pendingConfirmDownload: null,
+  translation: {},
+  translationSupport: 'unknown',
 }
 
 function sizeLabel(approxBytes: number): string {
@@ -160,8 +199,23 @@ function sortByStart(segments: RawSegment[]): RawSegment[] {
  * `transcribe` (sampleRate 16000, language as given) and — when `diarize` —
  * one `diarize` request with the SAME jobId.
  */
-export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCachePort; mediaSource?: () => Promise<File> }): JobsStore {
+export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCachePort; mediaSource?: () => Promise<File>; translation?: { editorApp: EditorApp; engine: TranslationEngine } }): JobsStore {
   const store = createStore<JobsState>()(immer(() => structuredClone(INITIAL_STATE)))
+
+  // FR-302.1: one apply service (unit-301) + a per-language cancel registry.
+  // The apply service adds the machine track and folds session batches as JOB
+  // OUTPUT (applyWithoutHistory) — entries are never undo steps. The engine is
+  // phase-wrapped so the `ensurePair`/`translate` seams drive the status badge
+  // (downloading vs translating) at the moment each actually runs.
+  const translationService = deps.translation === undefined ? null : createTranslationApplyService({ ...deps.translation, engine: phaseEngine(deps.translation.engine, setTranslationPhase) })
+  const translationControllers = new Map<string, AbortController>()
+
+  function setTranslationPhase(language: string, status: TranslationStatus): void {
+    store.setState((state) => {
+      const slot = state.translation[language]
+      if (slot !== undefined) slot.status = status
+    })
+  }
 
   // jobId of the most recent startTranscribe, sticky across done/cancel. The
   // streaming/error correlation below filters by it once the store has ever
@@ -367,6 +421,124 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
         state.pendingConfirmDownload = null
       })
     },
+    async runTranslation(project, language, options = {}): Promise<RunStats> {
+      if (translationService === null) throw translateError('PAIR_UNAVAILABLE', false, 'TRANSLATION_NOT_WIRED')
+      const engine = deps.translation?.engine
+      if (engine === undefined) throw translateError('PAIR_UNAVAILABLE', false, 'TRANSLATION_NOT_WIRED')
+      const gate = engine.isAvailable()
+      if (!gate.available) {
+        const error: EngineError = { code: 'PAIR_UNAVAILABLE', retryable: false, detail: `ENGINE:${gate.reason ?? 'unavailable'}` }
+        store.setState((state) => {
+          state.translation[language] = { language, status: 'failed', availability: 'unavailable', progress: null, error }
+        })
+        throw translateError('PAIR_UNAVAILABLE', false, `ENGINE:${gate.reason ?? 'unavailable'}`)
+      }
+      const controller = new AbortController()
+      translationControllers.set(language, controller)
+      store.setState((state) => {
+        state.translation[language] = { language, status: 'downloading', availability: 'ready', progress: null, error: null }
+      })
+      const sessionOptions: SessionRunOptions = {
+        retranslateStale: options.mode === 'stale',
+        signal: controller.signal,
+        onProgress: (done, total) => {
+          store.setState((state) => {
+            const slot = state.translation[language]
+            if (slot === undefined) return
+            slot.status = 'translating'
+            slot.progress = { done, total }
+          })
+        },
+        ...(options.visibleIds === undefined ? {} : { visibleIds: options.visibleIds }),
+      }
+      try {
+        const stats = await translationService.run(project, language, sessionOptions)
+        const cancelled = stats.cancelled || controller.signal.aborted
+        store.setState((state) => {
+          const slot = state.translation[language]
+          if (slot === undefined) return
+          slot.status = cancelled ? 'cancelled' : stats.failed > 0 ? 'partial' : 'done'
+          if (stats.planned > 0 && slot.progress === null) slot.progress = { done: stats.translated, total: stats.planned }
+        })
+        return stats
+      } catch (error) {
+        const engineError = asEngineError(error)
+        store.setState((state) => {
+          state.translation[language] = { language, status: 'failed', availability: 'unavailable', progress: null, error: engineError }
+        })
+        throw error
+      } finally {
+        translationControllers.delete(language)
+      }
+    },
+    cancelTranslation(language): void {
+      translationControllers.get(language)?.abort()
+    },
+    async refreshAvailability(source, languages): Promise<void> {
+      const engine = deps.translation?.engine
+      const supported = engine !== undefined && engine.isAvailable().available
+      store.setState((state) => {
+        state.translationSupport = engine === undefined ? 'unknown' : supported ? 'supported' : 'unsupported'
+      })
+      if (!supported || engine === undefined) {
+        // Gating path: no built-in Translator — every picker option is honest
+        // "Unavailable" and the section renders the gating copy instead.
+        store.setState((state) => {
+          for (const target of languages) {
+            const slot = state.translation[target]
+            if (slot === undefined) state.translation[target] = { language: target, status: 'idle', availability: 'unavailable', progress: null, error: null }
+            else slot.availability = 'unavailable'
+          }
+        })
+        return
+      }
+      const results = await Promise.all(
+        languages.map(async (target) => {
+          const availability = await engine.availability(source, target)
+          const badge: TranslationAvailability =
+            availability === 'available' ? 'ready' : availability === 'downloadable' || availability === 'downloading' ? 'download' : availability === 'unavailable' ? 'unavailable' : 'unknown'
+          return { target, badge }
+        }),
+      )
+      store.setState((state) => {
+        for (const { target, badge } of results) {
+          const slot = state.translation[target]
+          if (slot === undefined) state.translation[target] = { language: target, status: 'idle', availability: badge, progress: null, error: null }
+          else slot.availability = badge
+        }
+      })
+    },
+  }
+}
+
+/** One apply service per jobs store (the unit-301 FR-301.5 bridge): the
+ *  machine track add + the job-output application run through it, so the
+ *  history rules (entries are NOT undo steps) hold at the source. */
+function asEngineError(error: unknown): EngineError {
+  if (error instanceof Object && 'code' in error && typeof (error as { code: unknown }).code === 'string') {
+    const e = error as { code: string; retryable?: boolean; detail?: string }
+    return { code: e.code as EngineError['code'], retryable: e.retryable ?? false, ...(e.detail === undefined ? {} : { detail: e.detail }) }
+  }
+  return { code: 'ENGINE_INTERNAL', retryable: true }
+}
+
+/** FR-302.1: pass-through engine wrapper whose `ensurePair`/`translate` seams
+ *  drive the per-language status badge (download vs translate) at the moment
+ *  each runs. No text crosses this boundary (SECURITY-03). */
+function phaseEngine(raw: TranslationEngine, onPhase: (language: string, status: TranslationStatus) => void): TranslationEngine {
+  return {
+    isAvailable: () => raw.isAvailable(),
+    availability: (source, target) => raw.availability(source, target),
+    ensurePair: (source, target, options) => {
+      onPhase(target, 'downloading')
+      return raw.ensurePair(source, target, options)
+    },
+    translate: (source, target, text, signal) => {
+      onPhase(target, 'translating')
+      return raw.translate(source, target, text, signal)
+    },
+    detectLanguage: (text) => raw.detectLanguage(text),
+    dispose: () => raw.dispose(),
   }
 }
 

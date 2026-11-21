@@ -186,29 +186,6 @@ export function createAppContext(options: AppContextOptions = {}): Promise<AppCo
 async function buildAppContext(options: AppContextOptions): Promise<AppContext> {
   const ziptest = options.ziptest === true
   const engine = createWorkerEnginePort({ nullAsrDiarizeWorkers: ziptest })
-  const jobs = createJobsStore({
-    engine,
-    modelCache: createProductionModelCache(),
-    ...(ziptest
-      ? {}
-      : {
-          // FR-108.2: the real stream — the stage's current media becomes a
-          // File for the media worker's decode tee (unit-107
-          // blobForCurrentSource precedent: fetch → named File, mediabunny
-          // sniffs by EXTENSION; the name never enters any log — SECURITY-03).
-          mediaSource: async (): Promise<File> => {
-            const url = stage.getMediaSource()
-            if (url === null) throw new Error('NO_MEDIA_SOURCE')
-            const asset = editorApp.project.getState().project?.asset ?? null
-            const name = asset?.name ?? url.split('/').pop() ?? 'media'
-            const type = asset === null ? '' : `${asset.kind === 'audio' ? 'audio' : 'video'}/${asset.container}`
-            const response = await fetch(url)
-            if (!response.ok) throw new Error('MEDIA_FETCH_FAILED')
-            const blob = await response.blob()
-            return new File([blob], name, { type })
-          },
-        }),
-  })
   const settings = await createSettingsStore({ storage: createLocalStorageSettings() })
 
   // Slice C editor core: ONE project truth (the 101-frozen ProjectStore the
@@ -249,12 +226,16 @@ async function buildAppContext(options: AppContextOptions): Promise<AppContext> 
   // browsers without the built-in Translator. Manual/imported tracks stay
   // allowed everywhere (CC-I4.5).
   let translationAvailable: boolean | undefined
+  // FR-302.1: ONE Chrome Translator engine instance backs both the capability
+  // gate and the jobs-orchestrated runs (the store phase-wraps it internally).
+  // Created eagerly but never touches the Translator API until first use.
+  const translationEngine = createChromeTranslationEngine()
   const editorApp = createEditorApp({
     clock: { now: () => Date.now() },
     rafs,
     mediaClock: router,
     speakerEngine: DEFAULT_COMMAND_DEPS.speakerEngine,
-    translationEngineAvailable: () => (translationAvailable ??= createChromeTranslationEngine().isAvailable().available),
+    translationEngineAvailable: () => (translationAvailable ??= translationEngine.isAvailable().available),
   })
   const stage = createStageController({
     onAttachElement: (element) => {
@@ -276,6 +257,34 @@ async function buildAppContext(options: AppContextOptions): Promise<AppContext> 
     prefersReducedMotion: () => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   })
   visualizerRef = visualizer
+
+  // FR-302.1: the jobs store also orchestrates translation runs — it owns the
+  // per-language progress/cancel state and drives the unit-301 apply service
+  // (machine track add + job-output application) over the SAME editorApp.
+  const jobs = createJobsStore({
+    engine,
+    modelCache: createProductionModelCache(),
+    translation: { editorApp, engine: translationEngine },
+    ...(ziptest
+      ? {}
+      : {
+          // FR-108.2: the real stream — the stage's current media becomes a
+          // File for the media worker's decode tee (unit-107
+          // blobForCurrentSource precedent: fetch → named File, mediabunny
+          // sniffs by EXTENSION; the name never enters any log — SECURITY-03).
+          mediaSource: async (): Promise<File> => {
+            const url = stage.getMediaSource()
+            if (url === null) throw new Error('NO_MEDIA_SOURCE')
+            const asset = editorApp.project.getState().project?.asset ?? null
+            const name = asset?.name ?? url.split('/').pop() ?? 'media'
+            const type = asset === null ? '' : `${asset.kind === 'audio' ? 'audio' : 'video'}/${asset.container}`
+            const response = await fetch(url)
+            if (!response.ok) throw new Error('MEDIA_FETCH_FAILED')
+            const blob = await response.blob()
+            return new File([blob], name, { type })
+          },
+        }),
+  })
   resumeOnPlay = () => {
     visualizer.resumeForGesture()
   }

@@ -107,6 +107,36 @@ describe('US-3.2.1/.3: options surface', () => {
     open('video')
     expect(screen.getByTestId('snapshot-version').textContent).toContain('9')
   })
+
+  test('FR-302.3: burn-in track selector lists source + tracks and drives onBurnIn.track', () => {
+    const { onBurnIn } = open('video')
+    const sel = screen.getByTestId('burnin-track') as HTMLSelectElement
+    expect([...sel.options].map((o) => o.value)).toEqual(['source', 'fr', 'ar'])
+    fireEvent.change(sel, { target: { value: 'fr' } })
+    fireEvent.click(screen.getByTestId('burnin-start'))
+    expect(onBurnIn).toHaveBeenCalledWith(expect.objectContaining({ track: 'fr', format: 'mp4-burn-in' }))
+  })
+
+  test('US-302.3: Export all languages dispatches one sidecar per track', () => {
+    const { onSidecar } = open('video')
+    fireEvent.click(screen.getByTestId('sidecar-format-srt'))
+    fireEvent.click(screen.getByTestId('sidecar-all'))
+    expect(onSidecar).toHaveBeenCalledTimes(3)
+    expect(onSidecar.mock.calls.map((c) => (c[0] as { track: string }).track)).toEqual(['source', 'fr', 'ar'])
+  })
+
+  test('US-302.3: Export all languages is disabled with no translation tracks, enabled with tracks', () => {
+    const sourceOnly: ProjectSnapshot = { ...snap('video'), translations: [] }
+    render(<ExportDialog snapshot={sourceOnly} capabilities={caps({})} onClose={vi.fn()} onSidecar={vi.fn()} onBurnIn={vi.fn()} />)
+    const all = screen.getByTestId('sidecar-all') as HTMLButtonElement
+    expect(all.disabled, 'no translation tracks ⇒ Export all languages disabled').toBe(true)
+    cleanup()
+    const { onSidecar } = open('video')
+    const enabled = screen.getByTestId('sidecar-all') as HTMLButtonElement
+    expect(enabled.disabled, 'with tracks it is enabled').toBe(false)
+    fireEvent.click(enabled)
+    expect(onSidecar).toHaveBeenCalled()
+  })
   test('ladders never upscale', () => {
     expect(resolutionChoices(1080)).toEqual([1080, 540])
     expect(resolutionChoices(360)).toEqual([360])

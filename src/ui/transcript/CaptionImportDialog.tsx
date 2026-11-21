@@ -20,6 +20,7 @@ import type { ReactNode } from 'react'
 import type { EditorApp } from '../../state/history'
 import type { CaptionAnalyzeOutcome, CaptionImportPort } from '../../state/services/caption-import'
 import type { ImportReport } from '../../engine/captions/import'
+import { sourceHash } from '../../engine/translate/track'
 
 // UI-owned copy per adjustment code (design.md: the UI owns code → copy).
 const ADJUSTMENT_COPY: Record<ImportReport['adjustments'][number]['code'], string> = {
@@ -59,6 +60,12 @@ export function CaptionImportDialog({ file, port, app, onClose }: CaptionImportD
   const [pending, setPending] = useState(false)
   const [rejectCode, setRejectCode] = useState<string | null>(null)
   const [nonce, setNonce] = useState(0)
+  // US-302.4 (unit-302): "Add as translation" intake — the analyzed cues map
+  // onto the existing source blocks and land as an `imported`-origin track.
+  const [useMode, setUseMode] = useState<'replace' | 'translation'>('replace')
+  const [targetLang, setTargetLang] = useState('')
+  const [unmatched, setUnmatched] = useState<number | null>(null)
+  const [applied, setApplied] = useState(false)
 
   const name = file.name
   const [bytes, setBytes] = useState<Uint8Array | null>(null)
@@ -102,8 +109,51 @@ export function CaptionImportDialog({ file, port, app, onClose }: CaptionImportD
   void nonce
 
   function confirm(): void {
+    if (applied) {
+      onClose()
+      return
+    }
     if (analysis === null || pending) return
     setPending(true)
+    if (useMode === 'translation') {
+      const language = targetLang.trim()
+      if (language === '') {
+        setPending(false)
+        setRejectCode('TRANSLATION_LANGUAGE_REQUIRED')
+        return
+      }
+      const source = app.project.getState().project?.blocks ?? []
+      const addRejection = app.dispatch('translation-add-track', { language, origin: 'imported' })
+      if (addRejection !== null) {
+        setPending(false)
+        setRejectCode(addRejection.code)
+        return
+      }
+      // Map the analyzed cues onto source blocks by order (unit-07 mapping);
+      // surplus cues beyond the source count are reported unmatched. Entries are
+      // written as JOB OUTPUT against the just-added track (one undo step = the
+      // track add), with a fresh sourceHash so they are not spuriously stale.
+      const matched = Math.min(analysis.blocks.length, source.length)
+      app.applyWithoutHistory((draft) => {
+        if (draft.project === null) return
+        const track = draft.project.translations.find((x) => x.language === language)
+        if (track === undefined) return
+        for (let i = 0; i < matched; i++) {
+          const src = source[i]
+          const cue = analysis.blocks[i]
+          if (src === undefined || cue === undefined) continue
+          track.entries[src.id] = { text: cue.text, status: 'translated', sourceHash: sourceHash(src.text) }
+        }
+      })
+      const surplus = Math.max(0, analysis.blocks.length - source.length)
+      setUnmatched(surplus)
+      setPending(false)
+      // US-302.4: keep the dialog open so surplus cues are REPORTED when present
+      // (nothing is silently dropped); a clean import closes immediately.
+      if (surplus > 0) setApplied(true)
+      else onClose()
+      return
+    }
     const rejection = app.dispatch('captions-import', { blocks: analysis.blocks, speakers: [...analysis.speakers], replace: true })
     if (rejection === null) onClose()
     else {
@@ -184,14 +234,50 @@ export function CaptionImportDialog({ file, port, app, onClose }: CaptionImportD
         )}
         <div className="ts-import-use" role="group" aria-label="Use as">
           <label>
-            <input type="radio" data-testid="caption-import-use-replace" name="caption-import-use" defaultChecked disabled />
+            <input
+              type="radio"
+              data-testid="caption-import-use-replace"
+              name="caption-import-use"
+              checked={useMode === 'replace'}
+              onChange={() => {
+                setUseMode('replace')
+              }}
+            />
             Replace source captions
           </label>
-          <label title="TRANSLATION_TRACKS_INTENT_3_SCOPE">
-            <input type="radio" data-testid="caption-import-use-translation" name="caption-import-use" disabled />
+          <label>
+            <input
+              type="radio"
+              data-testid="caption-import-use-translation"
+              name="caption-import-use"
+              checked={useMode === 'translation'}
+              onChange={() => {
+                setUseMode('translation')
+              }}
+            />
             Add as translation
           </label>
         </div>
+        {useMode === 'translation' && (
+          <label className="ts-import-prefix">
+            <span className="ts-sr-only">Target language</span>
+            <input
+              type="text"
+              data-testid="caption-import-target-language"
+              value={targetLang}
+              placeholder="e.g. fr, es, zh-Hant"
+              aria-label="Target language"
+              onChange={(event) => {
+                setTargetLang(event.target.value)
+              }}
+            />
+          </label>
+        )}
+        {unmatched !== null && (
+          <p className="ts-import-adjustment" data-testid="caption-import-unmatched">
+            {String(unmatched)} cue(s) unmatched to a source block
+          </p>
+        )}
         <label className="ts-import-prefix">
           <input
             type="checkbox"
@@ -214,8 +300,8 @@ export function CaptionImportDialog({ file, port, app, onClose }: CaptionImportD
           >
             Cancel
           </button>
-          <button type="button" data-testid="caption-import-confirm" className="ts-popover-action ts-popover-primary" disabled={analysis === null || pending} onClick={confirm}>
-            Import
+          <button type="button" data-testid="caption-import-confirm" className="ts-popover-action ts-popover-primary" disabled={applied ? false : analysis === null || pending} onClick={confirm}>
+            {applied ? 'Done' : 'Import'}
           </button>
         </div>
       </div>

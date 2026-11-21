@@ -144,7 +144,10 @@ export function createEditorApp(deps: EditorAppDeps): EditorApp {
     commitState(produce(store.getState(), mutate))
   }
 
-  const editorActions = makeEditorActions((mutate) => commit((root) => mutate(root.editor)))
+  const editorActions = makeEditorActions(
+    (mutate) => commit((root) => mutate(root.editor)),
+    () => store.getState().editor,
+  )
   const editor: EditorStore = {
     getState: () => store.getState().editor,
     subscribe: store.subscribe,

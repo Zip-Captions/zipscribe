@@ -126,10 +126,11 @@ describe('FR-102.2 / editor.ts: the standalone editor store (history-free UI sli
     const store = createEditorStore()
     // The standalone store keeps `lastLoop` in its INTERNAL storage (editor.ts
     // EditorUiStateInternal, "never part of the frozen contract surface") —
-    // compare the six frozen EditorUiState fields, which is what the frozen
-    // `getState(): EditorUiState` type exposes.
+    // compare the frozen EditorUiState fields (the six from unit-102 plus the
+    // two FR-302.2 additive view fields), which is what the `getState():
+    // EditorUiState` type exposes.
     const state = store.getState()
-    expect({ playhead: state.playhead, playing: state.playing, rate: state.rate, loop: state.loop, selection: state.selection, searchOpen: state.searchOpen }).toEqual(DEFAULT_EDITOR_STATE)
+    expect({ playhead: state.playhead, playing: state.playing, rate: state.rate, loop: state.loop, selection: state.selection, searchOpen: state.searchOpen, viewMode: state.viewMode, activeLanguage: state.activeLanguage }).toEqual(DEFAULT_EDITOR_STATE)
     let notified = 0
     const unsubscribe = store.subscribe(() => {
       notified += 1

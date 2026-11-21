@@ -17,6 +17,12 @@
 // auto-stales (hash mismatch) while retiming never does (text untouched).
 
 import type { Project, TranslationEntry, TranslationTrack } from '../model'
+// The canonical `TranslationEntry.sourceHash` is the QC checker's (unit-07,
+// `knowledge/architecture.md` / qc.ts contract): the transcript + QC panel
+// derive staleness from it, and `engine/captions/import` writes entries with
+// it. The engine MUST stamp entries with the same function or every machine
+// translation reads back as stale — so this is a delegation, not a second hash.
+import { sourceTextHash } from '../captions/qc'
 
 /** Hooks mirror domain invariant 10. All mutate the immer draft `project`. */
 export interface TranslationRules {
@@ -49,17 +55,13 @@ export const NO_OP_TRANSLATION_RULES: TranslationRules = {
 export const STALE_HASH = 'stale'
 
 /**
- * Fast, stable, non-crypto hash (FNV-1a 32-bit, hex, `h` prefix so the result
- * can never collide with `STALE_HASH`). Contract: deterministic for equal
- * text across sessions (entry equality in tests, stale derivation).
+ * The canonical `TranslationEntry.sourceHash` (delegates to the QC checker's
+ * `sourceTextHash` — the single source of truth the transcript + QC panel and
+ * `engine/captions/import` agree on). Deterministic for equal text; the hex
+ * output can never equal `STALE_HASH` ('stale').
  */
 export function sourceHash(text: string): string {
-  let hash = 0x811c9dc5
-  for (let i = 0; i < text.length; i++) {
-    hash ^= text.charCodeAt(i)
-    hash = Math.imul(hash, 0x01000193) >>> 0
-  }
-  return `h${text.length.toString(36)}.${hash.toString(16)}`
+  return sourceTextHash(text)
 }
 
 export function isStale(entry: TranslationEntry, blockText: string): boolean {

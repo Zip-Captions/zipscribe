@@ -138,6 +138,7 @@ export interface ExportSettings {
   width: number
   height: number
   fps: number
+  track: string
 }
 
 export type ExportRequest = { t: 'export'; jobId: string; snapshot: ProjectSnapshot; file: File; settings: ExportSettings } | { t: 'cancel'; jobId: string }
