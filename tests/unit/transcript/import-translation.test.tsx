@@ -13,7 +13,6 @@ import type { CaptionBlock, Project } from '@engine/model@104'
 import type { CaptionImportPort } from '@state/services/caption-import'
 
 const CHILD = process.env.ZIPSCRIBE_CHILD === '1'
-const CHILD_REASON = 'gates-scaffold child run: authoritative execution is the parent `pnpm test` / verify:unit'
 
 const SPEAKERS = [speaker('SPK_1', 'Speaker 1', '#4c8dff')]
 const SOURCE = [block('blk_a', 0, 2, 'SPK_1', [word('alpha', 0, 1)]), block('blk_b', 3, 5, 'SPK_1', [word('beta', 3, 4)]), block('blk_c', 6, 8, 'SPK_1', [word('gamma', 6, 7)])]

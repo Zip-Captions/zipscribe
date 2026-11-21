@@ -20,7 +20,6 @@ import type { EditorApp } from '@state/history'
 
 const SPEC_TRANSCRIPT = '@ui/transcript/Transcript'
 const CHILD = process.env.ZIPSCRIBE_CHILD === '1'
-const CHILD_REASON = 'gates-scaffold child run: authoritative execution is the parent `pnpm test` / verify:unit'
 
 installDomStubs()
 const spy = createRedactionSpy()

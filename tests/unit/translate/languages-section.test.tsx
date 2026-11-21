@@ -20,7 +20,6 @@ import type { Project } from '@engine/model@104'
 
 const SPEC = '@ui/translate/LanguagesSection'
 const CHILD = process.env.ZIPSCRIBE_CHILD === '1'
-const CHILD_REASON = 'gates-scaffold child run: authoritative execution is the parent `pnpm test` / verify:unit'
 
 const SPEAKERS = [speaker('SPK_1', 'Speaker 1', '#4c8dff')]
 const BLOCKS = [block('b1', 0, 2, 'SPK_1', [word('alpha', 0, 1)]), block('b2', 3, 5, 'SPK_1', [word('beta', 3, 4)]), block('b3', 6, 8, 'SPK_1', [word('gamma', 6, 7)])]
