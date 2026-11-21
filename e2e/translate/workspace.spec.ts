@@ -289,3 +289,43 @@ test.describe('CC-302.2: unsupported-browser gating (chromium, no built-in APIs)
     await expect(page.getByTestId('languages-row')).toHaveCount(1, { timeout: 10_000 })
   })
 })
+
+// CC-302.5 (L5, chromium): the unit's end-to-end gate — one integrated pass
+// through the built translation workspace (add language → run fills rows → RTL
+// review → inline edit), proving the whole surface is wired in the production
+// build (the same flows the unit-302 PR ships and CI exercises).
+test.describe('CC-302.5: translation workspace e2e integration (chromium)', () => {
+  test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e`')
+  test.setTimeout(180_000)
+
+  test('CC-302.5: add language → rows fill → RTL review → inline edit, in the built app', async ({ page }) => {
+    await boot(page)
+    await page.evaluate(([asset, src]) => (window as unknown as { __zipEditorBridge: EditorBridge }).__zipEditorBridge.openProjectWithMedia(asset, src), [SIDECAR_ASSET, RUN_SRC] as const)
+    await page.evaluate(([blocks, speakers]) => (window as unknown as { __zipEditorBridge: EditorBridge }).__zipEditorBridge.seedBlocks(blocks, speakers), [RUN_BLOCKS, SPEAKERS] as const)
+    await page.evaluate(() => (window as unknown as { __zipEditorBridge: EditorBridge }).__zipEditorBridge.setProjectLanguage('en'))
+    await expect.poll(() => bridge(page).getEditorState().then((s) => s.blockCount), { timeout: 30_000 }).toBe(RUN_BLOCKS.length)
+
+    // Add language → run fills every entry.
+    await openPicker(page)
+    await addFromPicker(page, 'fr', 'French')
+    await expect(page.getByTestId('languages-row').filter({ has: page.getByText('French') }).getByTestId('languages-status')).toHaveText('Complete', { timeout: 30_000 })
+    await expect.poll(() => bridge(page).getTranslationEntryCount('fr'), { timeout: 15_000 }).toBe(RUN_BLOCKS.length)
+
+    // RTL review: an Arabic track renders with dir/lang on the active language.
+    const arEntries: Record<string, unknown> = {}
+    for (let i = 0; i < RUN_BLOCKS.length; i++) arEntries[`b${String(i)}`] = { text: `نص ${String(i)}`, status: 'translated', sourceHash: 'reviewed' }
+    await bridge(page).seedTranslation('ar', arEntries)
+    await bridge(page).setView('translation', 'ar')
+    const arNodes = await page.locator('[data-testid="transcript-translation-text"]').all()
+    expect(arNodes.length, 'arabic rows render').toBeGreaterThan(0)
+    for (const node of arNodes) {
+      await expect(node).toHaveAttribute('dir', 'rtl')
+      await expect(node).toHaveAttribute('lang', 'ar')
+    }
+
+    // Inline edit: an edited entry surfaces the Edited badge.
+    await bridge(page).setView('translation', 'fr')
+    expect(await bridge(page).command('translation-edit-entry', { language: 'fr', blockId: 'b0', text: 'fr:edited' })).toBeNull()
+    await expect.poll(() => badges(page), { timeout: 10_000 }).toContain('Edited')
+  })
+})
