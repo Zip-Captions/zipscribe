@@ -1,12 +1,15 @@
-import { createReadStream, readFileSync, rmSync, statSync, symlinkSync } from 'node:fs'
+import { createReadStream, existsSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { runInNewContext } from 'node:vm'
 import { execSync } from 'node:child_process'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 import { copyAllRuntimeWasm } from './scripts/copy-wasm.ts'
 import { copySamples } from './scripts/copy-samples.ts'
+import { pwaOptions } from './pwa.config.ts'
 
 // Product configuration (the test-only config is vitest.config.ts).
 // vite 7 specifics verified against official docs — docs-mcp indexes vite only
@@ -166,8 +169,123 @@ function servedFixtures(): Plugin {
   }
 }
 
+// CC-204.5 / FR-204.3 — name the precache manifest on the SW global so the
+// e2e budget/audit (`self.__WB_MANIFEST`) reads the REAL manifest the SW
+// precaches. workbox-build's generateSW template inlines the manifest array
+// directly into precacheAndRoute(<json>, …) without ever assigning it to the
+// conventional `self.__WB_MANIFEST` handle, and minification unquotes the
+// JSON keys (https://developer.chrome.com/docs/workbox/reference/workbox-build/#generateSW),
+// so we parse the literal back and emit it as canonical JSON: the SW's own
+// precache list, re-serialized — the audit then reads exactly what precaches.
+function exposePrecacheManifest(): Plugin {
+  return {
+    name: 'zipscribe:expose-precache-manifest',
+    apply: 'build',
+    // AFTER vite-plugin-pwa writes sw.js in its own (sequential) closeBundle.
+    closeBundle: {
+      order: 'post',
+      sequential: true,
+      handler() {
+        const swPath = join(repoRoot, 'dist', 'sw.js')
+        if (!existsSync(swPath)) return
+        let source = readFileSync(swPath, 'utf8')
+        if (source.includes('self.__WB_MANIFEST')) return
+        const marker = 'precacheAndRoute(['
+        const call = source.indexOf(marker)
+        if (call === -1) return // no manifest — the check-bundle precache gate fails loudly
+        const start = call + marker.length - 1
+        let depth = 0
+        let end = -1
+        for (let i = start; i < source.length; i++) {
+          const char = source[i]
+          if (char === '[') depth++
+          else if (char === ']') {
+            depth--
+            if (depth === 0) {
+              end = i + 1
+              break
+            }
+          } else if (char === '"' || char === "'") {
+            const quote = char
+            i++
+            while (i < source.length && source[i] !== quote) {
+              if (source[i] === '\\') i++
+              i++
+            }
+          }
+        }
+        if (end === -1) return
+        const entries = runInNewContext(`(${source.slice(start, end)})`, Object.create(null)) as unknown
+        source = `${source.slice(0, start)}(self.__WB_MANIFEST=${JSON.stringify(entries)})${source.slice(end)}`
+        writeFileSync(swPath, source, 'utf8')
+      },
+    },
+  }
+}
+
+// FR-204.6 (verification half, CC-204.4): `vite preview` of the production
+// build must answer the paths this unit self-provides in public/_headers with
+// the same cache contract — /sw.js and /manifest.webmanifest revalidate
+// (`public, max-age=0, must-revalidate`), never the global no-store the
+// preview sends for everything. The catch-all `/*` entry (CSP etc.) is NOT
+// wired here: it belongs to the Cloudflare deploy and unit-203 (this preview
+// keeps its current behavior — "keep other behaviors as-is").
+// https://vite.dev/config/preview-options (preview.headers is global; path
+// rules need the preview-server middleware below).
+interface HeadersEntry {
+  path: string
+  headers: Record<string, string>
+}
+
+function parseHeadersFile(content: string): HeadersEntry[] {
+  const entries: HeadersEntry[] = []
+  let current: HeadersEntry | null = null
+  for (const rawLine of content.split('\n')) {
+    const line = rawLine.trimEnd()
+    if (line === '' || line.trimStart().startsWith('#')) continue
+    if (!line.startsWith(' ') && !line.startsWith('\t')) {
+      current = { path: line.trim(), headers: {} }
+      entries.push(current)
+    } else if (current !== null) {
+      const match = /^\s*([^:]+):\s*(.*)$/.exec(line)
+      if (match?.[1] !== undefined && match[2] !== undefined) current.headers[match[1].trim().toLowerCase()] = match[2].trim()
+    }
+  }
+  return entries
+}
+
+function previewHeaders(): Plugin {
+  const entries = parseHeadersFile(readFileSync(join(repoRoot, 'public', '_headers'), 'utf8')).filter((entry) => entry.path !== '/*')
+  return {
+    name: 'zipscribe:preview-headers',
+    configurePreviewServer(server) {
+      server.middlewares.use((req: IncomingMessage, res: ServerResponse, next: () => void) => {
+        const pathname = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname)
+        const entry = entries.find((candidate) => (candidate.path.endsWith('/*') ? pathname.startsWith(candidate.path.slice(0, -1)) : pathname === candidate.path))
+        if (entry !== undefined) {
+          // vite's static handler re-applies `preview.headers` (no-store) via
+          // sirv `setHeaders` AFTER this middleware — pin the matched values
+          // so they win over the global no-store.
+          type SetHeaderLike = (name: string, value: string) => void
+          const original = res.setHeader.bind(res) as SetHeaderLike
+          res.setHeader = ((name: Parameters<typeof res.setHeader>[0], value?: Parameters<typeof res.setHeader>[1]) => {
+            if (typeof name === 'string') {
+              const forced = entry.headers[name.toLowerCase()]
+              if (forced !== undefined) return original(name, forced)
+            }
+            ;(original as (name: unknown, value: unknown) => void)(name, value)
+            return res
+          }) as typeof res.setHeader
+          for (const [name, value] of Object.entries(entry.headers)) original(name, value)
+        }
+        next()
+      })
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), selfHostedWasm(), servedSamples(), servedFixtures()],
+  plugins: [react(), selfHostedWasm(), servedSamples(), servedFixtures(), previewHeaders(), VitePWA(pwaOptions), exposePrecacheManifest()],
   define: {
     __ZIP_VERSION__: JSON.stringify(`${pkg.version}+${gitHash()}`),
   },
@@ -181,6 +299,15 @@ export default defineConfig({
   },
   worker: {
     format: 'es',
+    rollupOptions: {
+      output: {
+        // FR-204.2 names "mediabunny" as a first-class precache unit; split
+        // it out of the worker bundles under its own chunk name so it is a
+        // separately precached, separately auditable file (CC-204.5 asserts
+        // the precache manifest contains it).
+        manualChunks: (id: string) => (id.includes('node_modules/mediabunny') ? 'mediabunny' : undefined),
+      },
+    },
   },
   build: {
     target: 'es2022',
