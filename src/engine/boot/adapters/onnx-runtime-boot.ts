@@ -37,12 +37,19 @@ export function resolveWasmUrl(origin: string, wasmPaths: string = WASM_PATHS, f
 export interface WarmOptions {
   origin: string
   fetchImpl: typeof fetch
+  /** Online probe (injected for L1 determinism; bootRuntime defaults to
+   *  `navigator.onLine`, true where no navigator exists). */
+  isOnline?: () => boolean
 }
 
 /** Seed the HTTP/service-worker cache for /wasm/* at boot so first inference
  *  (and offline use, invariant 9) does not depend on a cold CDN-less miss.
+ *  The warm is a cache SEED — offline it can only fail, and a real attempt
+ *  would breach the offline request audit (CC-204.3: zero network attempts),
+ *  so offline boot short-circuits to a coded no-op.
  *  Never logs content — failures surface as coded EngineErrors only. */
 export async function warmRuntimeWasm(options: WarmOptions): Promise<EngineError | null> {
+  if ((options.isOnline ?? defaultIsOnline)() === false) return null
   const url = resolveWasmUrl(options.origin)
   try {
     const response = await options.fetchImpl(url, { cache: 'force-cache' })
@@ -53,11 +60,14 @@ export async function warmRuntimeWasm(options: WarmOptions): Promise<EngineError
   }
 }
 
+const defaultIsOnline = (): boolean => (typeof navigator === 'undefined' ? true : navigator.onLine)
+
 export function bootRuntime(options: Partial<WarmOptions> = {}): void {
   configureOnnxRuntime()
   const origin = options.origin ?? (typeof location === 'undefined' ? 'http://localhost' : location.origin)
   const fetchImpl = options.fetchImpl ?? ((...args: Parameters<typeof fetch>) => fetch(...args))
-  void warmRuntimeWasm({ origin, fetchImpl }).catch(() => {
+  const isOnline = options.isOnline ?? defaultIsOnline
+  void warmRuntimeWasm({ origin, fetchImpl, isOnline }).catch(() => {
     // A failed warm-up must never break the shell; ORT resolves /wasm/* again
     // lazily on first session creation.
   })
