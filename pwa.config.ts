@@ -93,7 +93,17 @@ export const pwaOptions: Partial<VitePWAOptions> = {
     // FIRST USE, never precached (size). Model hosts are BYPASSED entirely —
     // there is deliberately no rule whose urlPattern can match an off-origin
     // request (unit-03's verified `zipscribe-models` cache owns models).
-    cleanupOutdatedCaches: true,
+    // Measured (unit-204): the activate handler cleanupOutdatedCaches()
+    // registers never settles once the app page holds IndexedDB activity —
+    // skipWaiting() then hangs forever and the update toast's Reload click
+    // strands the user on the stale build. Outdated PRECACHE ENTRIES are
+    // still pruned at install by the precache controller (entries not in the
+    // manifest); this only skips the cross-workbox-version cache sweep.
+    cleanupOutdatedCaches: false,
+    // NOTE: clientsClaim is deliberately NOT enabled — with the app's live
+    // fetches in flight, an activating worker's clients.claim() never
+    // settles (measured Chromium), which deadlocks skipWaiting() and
+    // strands the update toast's Reload click (unit-204 finding).
     runtimeCaching: [
       {
         urlPattern: ({ sameOrigin, url }) => sameOrigin && url.pathname.startsWith('/wasm/'),

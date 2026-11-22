@@ -15,6 +15,7 @@
 // content; File crosses as { name, size } summaries.
 
 import { getAppContext } from '../../app/context'
+import { markLocalMediaLinked } from '../../app/real-asr-lane'
 import type { MediaFingerprint, ProjectRow } from '../../state/services/persistence'
 import type { RelinkOutcome } from '../../state/services/persistence'
 
@@ -91,7 +92,20 @@ export function installPersistenceBridge(): void {
     },
     exportProjectFile: (id) => service.exportProjectFile(id),
     importProjectFileJson: (json) => service.importProjectFile(json),
-    relinkMedia: async (projectId) => mapRelinkOutcome(await service.relinkMedia(projectId)),
+    relinkMedia: async (projectId) => {
+      const outcome = await service.relinkMedia(projectId)
+      // FR-204.2: a silent relink from the user's OWN local File means the
+      // project's media never needs the network — the real ASR lane is
+      // allowed (src/app/real-asr-lane.ts; engine-port predicate).
+      if (outcome.kind === 'silent') {
+        markLocalMediaLinked()
+        // FR-204.2: mirror context.relinkAfterOpen — the silent File belongs
+        // to the blob cache so the decode stream (and the offline leg) has
+        // bytes to read with zero network.
+        if (outcome.file !== null) await service.cacheMediaBlob(projectId, outcome.file)
+      }
+      return mapRelinkOutcome(outcome)
+    },
     seedMediaHandle: (projectId, handleLike, fingerprint) => service.storeMediaHandle(projectId, handleLike as unknown as FileSystemFileHandle, fingerprint as unknown as MediaFingerprint),
     setProbeResult: (fingerprint) => {
       deps.probeFingerprint = () => (fingerprint === 'reject' ? Promise.reject(new Error('PROBE_REJECTED')) : Promise.resolve(structuredClone(fingerprint) as unknown as MediaFingerprint))

@@ -157,6 +157,68 @@ function statSyncSafe(path: string) {
   }
 }
 
+// unit-204 (FR-204.2 / CC-204.2): the same-origin weights mirror. In dev,
+// vite already serves the repo root, so `/.cache/models/**` (the `models:fetch`
+// cache, `.agent/AGENTS.md` § Network) resolves natively. `vite preview`
+// serves `dist/` only, so the mirror must be mapped EXPLICITLY — otherwise
+// the offline path degrades to the pinned HF resolve URL (and the e2e route
+// spy would try to `route.fulfill` multi-hundred-MB ONNX bodies, which
+// crashes Chromium — the unit-05 adapter comment). This is test-server
+// furniture on the same doctrine as `servedFixtures`: the APP never depends
+// on it existing (a miss falls through to the pinned URL in production), and
+// the model hosts stay fully BYPASSED by the SW (FR-204.2 / cache-policy).
+const MODEL_MIRROR_ROOT = join(repoRoot, '.cache', 'models')
+const CI_REGISTRY_FILE = join(repoRoot, 'models', 'ci-registry.json')
+
+function modelMirrorMiddleware(req: IncomingMessage, res: ServerResponse, next: () => void): void {
+  const url = new URL(req.url ?? '/', 'http://localhost')
+  if (url.pathname === '/.cache/ci-registry.json') {
+    // The panel's seeding seed-set (which mirror dirs the local model cache
+    // guarantees). 404 (no file) → the app's seeding simply no-ops.
+    const stat = statSyncSafe(CI_REGISTRY_FILE)
+    if (stat === null || !stat.isFile()) {
+      next()
+      return
+    }
+    res.setHeader('Content-Type', 'application/json')
+    res.setHeader('Cache-Control', 'no-store')
+    res.statusCode = 200
+    res.setHeader('Content-Length', String(stat.size))
+    createReadStream(CI_REGISTRY_FILE).pipe(res)
+    return
+  }
+  if (!url.pathname.startsWith('/.cache/models/')) {
+    next()
+    return
+  }
+  const rel = decodeURIComponent(url.pathname.slice('/.cache/models/'.length))
+  const abs = join(MODEL_MIRROR_ROOT, rel)
+  if (!abs.startsWith(MODEL_MIRROR_ROOT + '/') || !statSyncSafe(abs)?.isFile()) {
+    // Honest miss: the adapter falls back to the pinned HF resolve URL.
+    next()
+    return
+  }
+  const size = statSync(abs).size
+  res.setHeader('Content-Type', extname(abs) === '.json' ? 'application/json' : 'application/octet-stream')
+  res.setHeader('Accept-Ranges', 'bytes')
+  res.setHeader('Cache-Control', 'no-store')
+  res.statusCode = 200
+  res.setHeader('Content-Length', String(size))
+  createReadStream(abs).pipe(res)
+}
+
+function servedModelMirror(): Plugin {
+  return {
+    name: 'zipscribe:served-model-mirror',
+    configureServer(server) {
+      server.middlewares.use(modelMirrorMiddleware)
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(modelMirrorMiddleware)
+    },
+  }
+}
+
 function servedFixtures(): Plugin {
   return {
     name: 'zipscribe:served-fixtures',
@@ -285,7 +347,7 @@ function previewHeaders(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), selfHostedWasm(), servedSamples(), servedFixtures(), previewHeaders(), VitePWA(pwaOptions), exposePrecacheManifest()],
+  plugins: [react(), selfHostedWasm(), servedSamples(), servedFixtures(), servedModelMirror(), previewHeaders(), VitePWA(pwaOptions), exposePrecacheManifest()],
   define: {
     __ZIP_VERSION__: JSON.stringify(`${pkg.version}+${gitHash()}`),
   },

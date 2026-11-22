@@ -20,7 +20,7 @@ interface EngineCall {
   audio: number[]
 }
 
-const h = vi.hoisted(() => ({ calls: [] as EngineCall[], segments: null as null | (() => RawSegment[]) }))
+const h = vi.hoisted(() => ({ calls: [] as EngineCall[], segments: null as null | (() => RawSegment[]), presenceDelayMs: undefined as number | undefined, presenceFail: false, presenceReady: true }))
 
 const DEFAULT_SEGMENTS = (): RawSegment[] => [{ start: 0.05, end: 0.85, text: 'hello', words: [{ text: 'hello', start: 0.05, end: 0.85, timing: 'asr' as const }] }]
 
@@ -37,6 +37,32 @@ vi.mock('@engine/asr/adapters/transformers-whisper', () => ({
 
 vi.mock('@engine/asr/adapters/silero-vad', () => ({
   createSileroScorer: () => Promise.resolve({ scoreWindow: () => 0.9 }),
+  SILERO_SAME_ORIGIN_URL: '/.cache/models/silero-vad/onnx.onnx',
+  SILERO_HF_URL: 'https://huggingface.co/onnx-community/silero-vad/resolve/0000000000000000000000000000000000000000/onnx.onnx',
+}))
+
+// FR-204.2 (unit-204): the worker's model-cache preflight is an external
+// collaborator of the same class as the SDK adapters above — "no SDK or
+// network is touched" extends to it. Offline-ready presence (the load
+// proceeds straight to the DI'd engine) and an inert cache mirror the warm
+// production state these equivalence tests are about; the cache's own
+// verification doctrine is unit-03's suite, not this one.
+vi.mock('@engine/model/adapters/browser-cache', () => ({
+  createZipscribeModelCache: () => ({
+    ensureOffline: () => Promise.resolve(),
+    listCached: () => Promise.resolve([]),
+    removeCached: () => Promise.resolve(),
+    matchCached: () => Promise.resolve(undefined),
+    putCached: () => Promise.resolve(),
+    deleteCached: () => Promise.resolve(),
+    storageEstimate: () => Promise.resolve({ usage: 0, quota: 0 }),
+  }),
+  modelSpecPresence: () =>
+    h.presenceFail
+      ? Promise.reject(new Error('presence_unavailable'))
+      : h.presenceDelayMs !== undefined
+        ? new Promise<boolean>((resolve) => setTimeout(() => resolve(true), h.presenceDelayMs))
+        : Promise.resolve(h.presenceReady),
 }))
 
 class FakePort {
@@ -174,7 +200,85 @@ describe('adversary: FR-05.5 "transcribe accepts both PcmSource kinds" — equiv
       expect(typeof err.error.detail).toBe('string')
     }
   })
+
+  test('FR-204.2 (unit-204): transcribe posted back-to-back with loadModel is QUEUED through the in-flight load and runs on ready — no MODEL_UNLOADED on the real lane', async () => {
+    // The jobs contract (jobs.ts Technical Specification) posts loadModel →
+    // transcribe without waiting for model:ready. With the load suspended at
+    // the (mocked) cache presence check, the transcribe MUST be parked and
+    // replayed once the model is ready — never rejected as unloaded.
+    h.presenceDelayMs = 40
+    try {
+      const { events } = await runWorkerBackToBack((e) => e.some((x) => x.t === 'job:done'))
+      const readyAt = events.findIndex((e) => e.t === 'model:ready')
+      const doneAt = events.findIndex((e) => e.t === 'job:done')
+      expect(readyAt).toBeGreaterThanOrEqual(0)
+      expect(doneAt).toBeGreaterThan(readyAt)
+      expect(events.some((e) => e.t === 'job:error' && e.error.code === 'MODEL_UNLOADED')).toBe(false)
+    } finally {
+      h.presenceDelayMs = undefined
+    }
+  })
+
+  test('FR-204.2 (unit-204): a load failure fails the queued transcribe with the load’s coded error (never a hang)', async () => {
+    h.presenceFail = true
+    try {
+      const { events } = await runWorkerBackToBack((e) => e.some((x) => x.t === 'job:error'))
+      expect(events.some((e) => e.t === 'model:error' && e.error.code === 'ENGINE_INTERNAL')).toBe(true)
+      const err = events.find((e) => e.t === 'job:error')
+      expect(err).toBeDefined()
+      if (err !== undefined && err.t === 'job:error') expect(err.error.code).toBe('ENGINE_INTERNAL')
+    } finally {
+      h.presenceFail = false
+    }
+  })
+  test('FR-204.2 (unit-204): the confirm gate arms only before a REAL download — a cached >100 MB model loads without confirm-required', async () => {
+    const { events } = await runLoadOnly('whisper-small_timestamped@65caa70f', (evts) => evts.some((e) => e.t === 'model:ready' || e.t === 'model:error'))
+    expect(events.some((e) => e.t === 'model:confirm-required')).toBe(false)
+    expect(events.some((e) => e.t === 'model:ready')).toBe(true)
+  })
+
+  test('FR-204.2 (unit-204): an uncached >100 MB model arms the confirm gate before downloading', async () => {
+    h.presenceReady = false
+    try {
+      const { events } = await runLoadOnly('whisper-small_timestamped@65caa70f', (evts) => evts.some((e) => e.t === 'model:confirm-required' || e.t === 'model:ready' || e.t === 'model:error'))
+      expect(events.some((e) => e.t === 'model:confirm-required')).toBe(true)
+    } finally {
+      h.presenceReady = true
+    }
+  })
 })
+
+async function runLoadOnly(model: string, settled: (events: AsrEvent[]) => boolean): Promise<{ events: AsrEvent[] }> {
+  const events: AsrEvent[] = []
+  const scope: { handler: ((event: { data: AsrRequest }) => void) | null } = { handler: null }
+  vi.stubGlobal('addEventListener', (type: string, listener: (event: { data: AsrRequest }) => void) => {
+    if (type === 'message') scope.handler = listener
+  })
+  vi.stubGlobal('postMessage', (event: AsrEvent) => events.push(event))
+  vi.resetModules()
+  await import('../../workers/asr.worker')
+  scope.handler?.({ data: { t: 'loadModel', model, device: 'wasm' } })
+  await settle(() => settled(events))
+  return { events }
+}
+
+async function runWorkerBackToBack(done: (events: AsrEvent[]) => boolean): Promise<{ events: AsrEvent[] }> {
+  h.calls.length = 0
+  h.segments = null
+  const events: AsrEvent[] = []
+  const scope: { handler: ((event: { data: AsrRequest }) => void) | null } = { handler: null }
+  vi.stubGlobal('addEventListener', (type: string, listener: (event: { data: AsrRequest }) => void) => {
+    if (type === 'message') scope.handler = listener
+  })
+  vi.stubGlobal('postMessage', (event: AsrEvent) => events.push(event))
+  vi.resetModules()
+  await import('../../workers/asr.worker')
+  // ONE turn, jobs.ts order: loadModel immediately followed by transcribe.
+  scope.handler?.({ data: { t: 'loadModel', model: 'cactus-whistle@b358ddad', device: 'wasm' } })
+  scope.handler?.({ data: { t: 'transcribe', jobId: 'j1', pcm: { kind: 'transfer', buffer: new ArrayBuffer(1024) }, sampleRate: SAMPLE_RATE, language: 'en' } })
+  await settle(() => done(events))
+  return { events }
+}
 
 async function runWorkerWithUnloaded(): Promise<{ events: AsrEvent[] }> {
   const events: AsrEvent[] = []

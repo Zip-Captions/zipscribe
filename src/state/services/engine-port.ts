@@ -55,8 +55,16 @@ export interface WorkerEnginePortOptions {
    * the scripted events (worker-side MODEL_UNLOADED `job:error` vs mocked
    * progress/segments). The media worker stays REAL — probes/decodes are
    * genuine there (CC-106.8). Production passes nothing.
+   *
+   * FR-204.2 EXTENDS (additive): a predicate form is evaluated at first
+   * worker use, letting the composition root keep the real ASR lane for
+   * flows the injection doctrine was never meant to cover — a project
+   * whose media was relinked from the user's OWN local file (the
+   * unit-204 offline e2e story: offline-ready transcription must exercise
+   * the real worker). The predicate is consulted exactly once, when the
+   * lane is first needed.
    */
-  nullAsrDiarizeWorkers?: boolean
+  nullAsrDiarizeWorkers?: boolean | (() => boolean)
 }
 
 export function createWorkerEnginePort(options: WorkerEnginePortOptions = {}): WorkerEnginePort {
@@ -71,7 +79,8 @@ export function createWorkerEnginePort(options: WorkerEnginePortOptions = {}): W
   function workerFor(kind: WorkerKind): Worker {
     const existing = workers.get(kind)
     if (existing !== undefined) return existing
-    if (options.nullAsrDiarizeWorkers === true && (kind === 'asr' || kind === 'diarize')) {
+    const shouldNull = typeof options.nullAsrDiarizeWorkers === 'function' ? options.nullAsrDiarizeWorkers() : options.nullAsrDiarizeWorkers === true
+    if (shouldNull && (kind === 'asr' || kind === 'diarize')) {
       const quiet = nullWorker()
       workers.set(kind, quiet)
       return quiet
@@ -88,6 +97,20 @@ export function createWorkerEnginePort(options: WorkerEnginePortOptions = {}): W
     }
     workers.set(kind, worker)
     return worker
+  }
+
+  // A MessagePort travelling inside request data MUST be listed in the
+  // structured-clone transfer list (FR-108.2 stream doctrine; unit-204):
+  // otherwise the worker receives a neutered placeholder whose postMessage
+  // delivers nothing, and the tee/consumer handshakes hang forever.
+  function postTo(kind: WorkerKind, request: MediaRequest | AsrRequest | DiarizeRequest): void {
+    const ports: MessagePort[] = []
+    if (request.t === 'decode') ports.push(...request.ports)
+    else if (request.t === 'decode-playback') ports.push(request.port)
+    else if (request.t === 'transcribe' || request.t === 'diarize') {
+      if (request.pcm.kind === 'stream') ports.push(request.pcm.port)
+    }
+    workerFor(kind).postMessage(request, ports.length > 0 ? { transfer: ports } : undefined)
   }
 
   function subscribe<E>(listeners: ((event: E) => void)[], listener: (event: E) => void): () => void {
@@ -127,13 +150,13 @@ export function createWorkerEnginePort(options: WorkerEnginePortOptions = {}): W
 
   return {
     postMedia(request: MediaRequest): void {
-      workerFor('media').postMessage(request)
+      postTo('media', request)
     },
     postAsr(request: AsrRequest): void {
-      workerFor('asr').postMessage(request)
+      postTo('asr', request)
     },
     postDiarize(request: DiarizeRequest): void {
-      workerFor('diarize').postMessage(request)
+      postTo('diarize', request)
     },
     onMediaEvent(listener: (event: MediaEvent) => void): () => void {
       return subscribe(mediaListeners, listener)

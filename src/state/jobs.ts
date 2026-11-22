@@ -39,6 +39,14 @@ export interface EnginePort {
 /** Offline-readiness source for the popover badges (Cache API in production, a Set in tests). */
 export interface ModelCachePort {
   listCached(): Promise<ModelId[]>
+  /**
+   * FR-204.2 (unit-204 EXTENDS, optional): live presence of one row's
+   * verified cache entries (presence-only — the load path re-hashes). The
+   * offline fast-fail preflight consults it (async, before the worker is
+   * ever posted to); absent, the preflight falls back to the hydrated
+   * `modelOptions` offlineReady flag.
+   */
+  isOfflineReady?(id: ModelId): Promise<boolean>
 }
 
 /** Capability probe result as the UI consumes it (codes/strings only — never content, SECURITY-03). */
@@ -395,14 +403,41 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
         deps.engine.postMedia({ t: 'cancel', jobId: displaced.jobId })
         cancelDecodeFor(displaced.jobId)
       }
-      deps.engine.postAsr({ t: 'loadModel', model: options.modelId, device })
-      // FR-108.2: stream pcm when the composition root wired a media source;
-      // the frozen placeholder transfer otherwise.
-      const stream = openPcmStream(jobId, options.diarize)
-      deps.engine.postAsr({ t: 'transcribe', jobId, pcm: stream?.asr ?? placeholderPcm(), sampleRate: 16000, language: options.language })
-      if (options.diarize) {
-        deps.engine.postDiarize({ t: 'diarize', jobId, pcm: stream?.diarizePcm ?? placeholderPcm(), sampleRate: 16000 })
+      const postJob = (): void => {
+        deps.engine.postAsr({ t: 'loadModel', model: options.modelId, device })
+        // FR-108.2: stream pcm when the composition root wired a media source;
+        // the frozen placeholder transfer otherwise.
+        const stream = openPcmStream(jobId, options.diarize)
+        deps.engine.postAsr({ t: 'transcribe', jobId, pcm: stream?.asr ?? placeholderPcm(), sampleRate: 16000, language: options.language })
+        if (options.diarize) {
+          deps.engine.postDiarize({ t: 'diarize', jobId, pcm: stream?.diarizePcm ?? placeholderPcm(), sampleRate: 16000 })
+        }
       }
+      // FR-204.2 (unit-204 EXTENDS): offline + model NOT cached →
+      // OFFLINE_MODEL_MISSING notice + coded NETWORK fast-fail BEFORE the
+      // worker is ever posted to (domain App lifecycle: "never a hang"; no
+      // spinner, no fetch attempt — the worker never sees this job). Offline
+      // + cached, and every online run, take the byte-identical path.
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        const preflight: Promise<boolean> =
+          deps.modelCache.isOfflineReady !== undefined
+            ? deps.modelCache.isOfflineReady(options.modelId).catch(() => false)
+            : Promise.resolve(store.getState().modelOptions.find((option) => option.id === options.modelId)?.offlineReady ?? true)
+        void preflight.then((ready) => {
+          if (ready) {
+            postJob()
+            return
+          }
+          store.setState((state) => {
+            state.notices.push({ code: 'OFFLINE_MODEL_MISSING', params: { model: options.modelId } })
+            if (state.running !== null && state.running.jobId !== jobId) return
+            state.error = { code: 'NETWORK', retryable: true, detail: 'offline_model_missing' }
+            if (state.running?.jobId === jobId) state.running = null
+          })
+        })
+        return
+      }
+      postJob()
     },
     cancel(): void {
       const running = store.getState().running

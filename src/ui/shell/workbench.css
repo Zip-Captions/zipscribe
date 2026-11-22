@@ -675,3 +675,185 @@ body,
   border-radius: 4px;
   background: #808080;
 }
+
+/* ── unit-204: PWA chrome (FR-204.4) ─────────────────────────────────── */
+/* FR-204.4: the Offline chip sits beside the tier chip in the header. */
+.shell-pwa-chrome {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+.shell-offline-chip {
+  padding: 2px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--bg-raised);
+  color: var(--warning);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: default;
+}
+.shell-pwa-menu-button {
+  min-width: 30px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.shell-pwa-menu-button:hover,
+.shell-pwa-menu-button:focus-visible {
+  border-color: var(--border-focus);
+}
+.shell-pwa-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 30;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-overlay);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+}
+.shell-pwa-menu [role='menuitem'] {
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+}
+.shell-pwa-menu [role='menuitem']:hover,
+.shell-pwa-menu [role='menuitem']:focus-visible {
+  background: var(--accent-soft);
+}
+/* FR-204.4: the update toast — bottom, out of the timeline's way, persistent
+   until decided (Reload / Later). Never auto-dismissed. */
+.shell-update-toast {
+  position: fixed;
+  right: 16px;
+  bottom: 48px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 320px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-focus);
+  border-radius: 10px;
+  background: var(--bg-overlay);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 55%);
+}
+.shell-update-toast-text {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+.shell-update-toast-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+/* CC-204.6: the Offline models panel (US-204.3). */
+.ws-offline-panel {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 35;
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--bg-panel);
+  box-shadow: 0 14px 40px rgb(0 0 0 / 60%);
+}
+.ws-offline-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ws-offline-panel-title {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+.ws-offline-panel-copy {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+}
+.ws-offline-model-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ws-offline-model-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-raised);
+}
+.ws-offline-model-id {
+  flex: 1;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-family: var(--mono, monospace);
+  overflow-wrap: anywhere;
+}
+.ws-offline-model-size {
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.ws-offline-model-code {
+  color: var(--danger);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.ws-offline-persist-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ws-offline-persist-result {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+/* FR-204.4: the popover fast-fail suggestion (offline + uncached model). */
+.ws-popover-offline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--warning);
+  border-radius: 8px;
+  background: var(--bg-raised);
+}
+.ws-popover-offline-copy {
+  color: var(--text-secondary);
+  font-size: 12px;
+}

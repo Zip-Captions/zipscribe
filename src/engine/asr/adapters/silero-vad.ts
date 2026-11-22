@@ -42,9 +42,9 @@ export interface OrtSessionLike {
 export type OrtSessionFactory = (modelBytes: Uint8Array, sessionOptions?: Record<string, unknown>) => Promise<OrtSessionLike>
 
 /** Same-origin models-fetch mirror (`.cache/models/silero-vad/onnx/model.onnx`). */
-const SILERO_SAME_ORIGIN_URL = '/.cache/models/silero-vad/onnx/model.onnx'
+export const SILERO_SAME_ORIGIN_URL = '/.cache/models/silero-vad/onnx/model.onnx'
 /** Pinned fallback (models/ci-registry.json `silero-vad` row — never `main`, FR-03.6). */
-const SILERO_HF_URL = 'https://huggingface.co/onnx-community/silero-vad/resolve/e71cae966052b992a7eca6b17738916ce0eca4ec/onnx/model.onnx'
+export const SILERO_HF_URL = 'https://huggingface.co/onnx-community/silero-vad/resolve/e71cae966052b992a7eca6b17738916ce0eca4ec/onnx/model.onnx'
 
 const STATE_ROWS = 2
 const STATE_BATCH = 1
@@ -80,8 +80,8 @@ async function fetchSileroBytes(): Promise<Uint8Array> {
  * Create the stateful scorer for ONE VAD pass. `createSession` is the
  * bundled-ORT factory (from the whisper pipeline's model sessions).
  */
-export async function createSileroScorer(createSession: OrtSessionFactory): Promise<VadScorer> {
-  const bytes = await fetchSileroBytes()
+export async function createSileroScorer(createSession: OrtSessionFactory, cachedBytes?: Uint8Array): Promise<VadScorer> {
+  const bytes = cachedBytes ?? (await fetchSileroBytes())
   const session = await createSession(bytes, { executionProviders: ['wasm'] })
   let state = new Float32Array(STATE_ROWS * STATE_BATCH * STATE_DIM)
   const context = new Float32Array(CONTEXT_SAMPLES)

@@ -33,9 +33,16 @@ export interface TranscribePopoverProps {
   jobsState: JobsState
   /** US-2.0.4: ≥ 1 caption block on the project → Replace vs Align, no plain Start. */
   hasCaptions: boolean
+  /**
+   * FR-204.4 (unit-204): when the offline fast-fail fired (OFFLINE_MODEL_
+   * MISSING notice), the popover honestly offers the Offline models panel
+   * instead of a Start that would only fail again. Absent (frozen mounts) →
+   * the block never renders.
+   */
+  offlineSuggestion?: { open(): void }
 }
 
-export function TranscribePopover({ jobs, jobsState, hasCaptions }: TranscribePopoverProps): ReactNode {
+export function TranscribePopover({ jobs, jobsState, hasCaptions, offlineSuggestion }: TranscribePopoverProps): ReactNode {
   const [selectedModel, setSelectedModel] = useState<ModelId | null>(null)
   const [language, setLanguage] = useState<string | null>(null)
   const [diarize, setDiarize] = useState(false)
@@ -146,6 +153,20 @@ export function TranscribePopover({ jobs, jobsState, hasCaptions }: TranscribePo
         >
           Start
         </button>
+      )}
+      {offlineSuggestion !== undefined && jobsState.notices.some((notice) => notice.code === 'OFFLINE_MODEL_MISSING') && (
+        <div data-testid="popover-offline-suggestion" className="ws-popover-offline">
+          <span className="ws-popover-offline-copy">You're offline and this model isn't downloaded — no transcription will start without it.</span>
+          <button
+            type="button"
+            className="ws-button"
+            onClick={() => {
+              offlineSuggestion.open()
+            }}
+          >
+            Make available offline
+          </button>
+        </div>
       )}
       {pendingConfirm !== null && (
         <div data-testid="model-download-confirm" role="alertdialog" aria-label="Model download confirmation" className="ws-confirm">

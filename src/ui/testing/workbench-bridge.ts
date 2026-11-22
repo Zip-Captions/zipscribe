@@ -22,6 +22,13 @@ interface WorkbenchBridge {
 const OPEN_PROJECT_JOB_ID = 'ziptest-open'
 
 export function installWorkbenchBridge(): void {
+  // Deterministic e2e saves (mirrors e2e/export/helpers/export-harness.ts's
+  // addInitScript): with the real File System Access save picker present,
+  // saveBlob awaits a native dialog that never answers in headless Chromium.
+  // Under ziptest the picker reads `undefined` → anchor-download path →
+  // `page.waitForEvent('download')` witnesses. Production never loads this
+  // module (the bridge is gated on `?ziptest=1`).
+  Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true })
   const context = getAppContext()
   const bridge: WorkbenchBridge = {
     injectMediaEvent(event: MediaEvent): void {
@@ -35,8 +42,9 @@ export function installWorkbenchBridge(): void {
     },
     openProject(asset: MediaAsset): void {
       // The same intake path a real `media:probed` reply takes: the intake
-      // service's media listener turns the asset into the project.
-      context.engine.injectMediaEvent({ t: 'media:probed', jobId: OPEN_PROJECT_JOB_ID, asset })
+      // service's media listener turns the asset into the project (trusted
+      // injection — the FR-204.2 decode filter only accepts posted jobIds).
+      context.intake.acceptInjectedProbe({ t: 'media:probed', jobId: OPEN_PROJECT_JOB_ID, asset })
     },
   }
   ;(window as unknown as { __zipWorkbenchBridge?: WorkbenchBridge }).__zipWorkbenchBridge = bridge

@@ -17,6 +17,7 @@
       "sha256": "ca87ea894e05bad79220fdca0f9dbcece0347143895b6e19c1b1846bc626ac75"
     },
     "audio-120min.mp4": {
+      "sha256": "99f102f1596e2b14d791f682ca9e7076ae58317f53f079e62cb2c3ac6e8f3628",
       "duration": 7200,
       "kind": "perf",
       "language": "en",
@@ -27,8 +28,7 @@
       "codec": "aac-lc",
       "sampleRate": 16000,
       "channels": 1,
-      "expectedPath": "webcodecs",
-      "sha256": "99f102f1596e2b14d791f682ca9e7076ae58317f53f079e62cb2c3ac6e8f3628"
+      "expectedPath": "webcodecs"
     },
     "captions/accents-cp1252.srt": {
       "sha256": "dcb178c2c67aa11f9e881ed1a1ee8416e2ddadb6ce069f32dd17c90352eaed3d",
@@ -375,6 +375,7 @@
       "expectedPath": null
     },
     "click-track-10min.aiff": {
+      "sha256": "e12de3dd3cf97f792153fdb1b17c1b1e52072fc897b54ab33fce677361f24b0a",
       "duration": 600,
       "kind": "perf",
       "language": null,
@@ -385,10 +386,10 @@
       "codec": "pcm_s16be",
       "sampleRate": 44100,
       "channels": 1,
-      "expectedPath": "webcodecs",
-      "sha256": "e12de3dd3cf97f792153fdb1b17c1b1e52072fc897b54ab33fce677361f24b0a"
+      "expectedPath": "webcodecs"
     },
     "click-track-10min.wav": {
+      "sha256": "193fb12187978955c470c098696f29fc0af32acbea4662e15966c8ff03ae0f76",
       "duration": 600,
       "kind": "perf",
       "language": null,
@@ -399,8 +400,7 @@
       "codec": "pcm_s16le",
       "sampleRate": 44100,
       "channels": 1,
-      "expectedPath": "webcodecs",
-      "sha256": "193fb12187978955c470c098696f29fc0af32acbea4662e15966c8ff03ae0f76"
+      "expectedPath": "webcodecs"
     },
     "fmt-30s.3gp": {
       "duration": 30,

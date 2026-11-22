@@ -4,7 +4,8 @@
 // own doubles in `tests/unit/workbench/helpers/`. SECURITY-03: nothing here
 // logs or derives strings from user content — failures are codes only.
 
-import { createModelCache } from '../engine/model/cache'
+import { createZipscribeModelCache, modelSpecPresence } from '../engine/model/adapters/browser-cache'
+import { MODEL_REGISTRY } from '../engine/model/registry'
 import { probeCapabilities } from '../engine/model/capability'
 import type { Capabilities, CapabilityEnv } from '../engine/model/capability'
 import type { ModelId } from '../engine/protocol'
@@ -38,13 +39,24 @@ export function createLocalStorageSettings(): SettingsStorage {
   }
 }
 
-/** Offline-readiness over the FR-03.6 model cache (`zipscribe-models`): only
- *  SHA-verified rows count as cached (engine/model/cache re-verifies on read). */
+/**
+ * Offline-readiness over the FR-03.6 model cache (`zipscribe-models`): only
+ * SHA-verified rows count as cached (engine/model/cache re-verifies on read).
+ * FR-204.2 EXTENDS: the browser configuration (canonical same-origin keys +
+ * weights mirror — `createZipscribeModelCache`) is shared with the ASR
+ * worker, and `isOfflineReady` answers the fast-fail preflight with a cheap
+ * presence probe.
+ */
 export function createProductionModelCache(): ModelCachePort {
-  const cache = createModelCache({})
+  const cache = createZipscribeModelCache()
   return {
     listCached(): Promise<ModelId[]> {
       return cache.listCached().then((entries) => entries.filter((entry) => entry.offlineReady).map((entry) => entry.id))
+    },
+    async isOfflineReady(id: ModelId): Promise<boolean> {
+      const spec = MODEL_REGISTRY[id]
+      if (spec === undefined) return false
+      return modelSpecPresence(spec)
     },
   }
 }
