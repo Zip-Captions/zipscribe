@@ -62,6 +62,7 @@ test.describe('CC-204.4: SW update — prompt toast, click flushes autosave, nev
   test('CC-204.4: deploy B while open → toast → click flushes autosave THEN reloads into build B', async ({ page, context }) => {
     test.setTimeout(240_000)
     const audit = attachSecurityGuards(context, page)
+    server.deploy('a') // deterministic start (tests share the one staged server)
     await openInstalled(page)
     // A real persisted project is the witness for "flushed before reload".
     await openAppWithBridges(page, server.url)
@@ -119,6 +120,7 @@ test.describe('CC-204.4: SW update — prompt toast, click flushes autosave, nev
   test('CC-204.4: Later does not reload; the old SW keeps controlling with the worker parked', async ({ page, context }) => {
     test.setTimeout(180_000)
     attachSecurityGuards(context, page)
+    server.deploy('a') // deterministic start — an update needs A→B bytes, and A is what this test opens
     await openInstalled(page)
 
     server.deploy('b')

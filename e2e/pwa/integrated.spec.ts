@@ -49,7 +49,7 @@ test.describe('CC-204.8: integrated offline PWA journey (chromium)', () => {
     //    is populated. (Installability itself: installability.spec.ts.)
     await warmShell(page, base, '/?ziptest=1')
     await ensurePrecache(page)
-    await openAppWithBridges(page)
+    await openAppWithBridges(page, base)
     const id = await openProjectWithLocalMedia(page, {
       asset: TAXI_ASSET,
       src: '/fixtures/taxi-en-accented-1.mp4',
@@ -65,15 +65,15 @@ test.describe('CC-204.8: integrated offline PWA journey (chromium)', () => {
     await context.setOffline(true)
     try {
       await page.reload({ waitUntil: 'domcontentloaded' })
-      await expect(page.getByTestId('workbench-shell'), 'shell served by the SW offline').toBeVisible({ timeout: 20_000 })
+    await expect(page.getByTestId('workbench-shell'), 'shell served by the SW offline').toBeVisible({ timeout: 20_000 })
       await expect(page.getByText('Offline', { exact: true }), 'Offline chip while disconnected').toBeVisible({ timeout: 10_000 })
 
-      await openAppWithBridges(page)
+    await openAppWithBridges(page, base)
       await page.getByTestId(`project-open-${id}`).click()
       const before = (await projectRows(page)).find((row) => row.id === id)?.updatedAt ?? 0
       await page.evaluate(() => (window as unknown as { __zipEditorBridge?: { setProjectName(n: string): void } }).__zipEditorBridge?.setProjectName('integrated-offline-edit'))
       await expect
-        .poll(async () => (await projectRows(page)).find((row) => row.id === id)?.updatedAt ?? 0, 'offline autosave reaches IndexedDB')
+        .poll(async () => (await projectRows(page)).find((row) => row.id === id)?.updatedAt ?? 0, { message: 'offline autosave reaches IndexedDB', timeout: 30_000 })
         .toBeGreaterThan(before)
 
       await page.getByTestId('export-button').click()
@@ -81,11 +81,16 @@ test.describe('CC-204.8: integrated offline PWA journey (chromium)', () => {
       await page.getByTestId('sidecar-format-srt').click()
       const [download] = await Promise.all([page.waitForEvent('download', { timeout: 30_000 }), page.getByTestId('sidecar-save').click()])
       expect(download.suggestedFilename(), 'sidecar export works offline').toMatch(/\.srt$/u)
+      // Clean up the in-memory download (Chromium defers navigation while a
+      // download is pending — it would otherwise stall the update Reload click).
+      await download.delete()
+      await page.getByTestId('export-close').click()
+      await expect(page.getByTestId('export-dialog')).toHaveCount(0)
 
       expect(audit.bypassedSw, 'the offline leg issued zero network requests').toEqual([])
       expect(audit.modelHost, 'the offline leg issued zero model-host attempts').toEqual([])
     } finally {
-      await context.setOffline(false)
+    await context.setOffline(false)
     }
     await expect(page.getByText('Offline', { exact: true }), 'chip clears on reconnect').toHaveCount(0, { timeout: 10_000 })
 
@@ -99,7 +104,7 @@ test.describe('CC-204.8: integrated offline PWA journey (chromium)', () => {
     await page.waitForFunction(() => document.documentElement.innerHTML.includes('zipscribe-e2e-build-B'), undefined, { timeout: 30_000 })
 
     // 4. Offline models panel on the updated build.
-    await openAppWithBridges(page)
+    await openAppWithBridges(page, base)
     await page.getByRole('button', { name: '⋯' }).click()
     await page.getByRole('menuitem', { name: /offline models/iu }).click()
     await expect(page.getByText(/whisper-tiny/iu), 'models panel lists registry models post-update').toBeVisible({ timeout: 15_000 })

@@ -20,27 +20,30 @@ import { attachSecurityGuards, CHILD, CHILD_REASON, openAppWithBridges, PREVIEW_
 const TINY_ID = 'whisper-tiny' // model spec id `whisper-tiny_timestamped@51724429` (src/engine/model/registry.ts)
 const UNCACHEABLE_ID = 'whisper-base' // in the registry, NOT in .cache/models (only tiny/vad/eres2net are)
 
-function spyPersist(result: boolean) {
-  // Runs BEFORE app boot. Keeps the real StorageManager, overrides ONLY
-  // persist(), counting calls (window.__zipPersistCalls).
-  return (grant: boolean) => {
-    const w = window as unknown as Record<string, unknown>
-    w.__zipPersistCalls = 0
-    const descriptor = Object.getOwnPropertyDescriptor(Navigator.prototype, 'storage')
-    const original = descriptor?.get?.bind(Navigator.prototype)
-    Object.defineProperty(Navigator.prototype, 'storage', {
-      configurable: true,
-      get: () => {
-        const real = (original?.() ?? {}) as object
-        return new Proxy(real, {
-          get: (target, prop, receiver) => (prop === 'persist' ? async () => {
-            w.__zipPersistCalls = (w.__zipPersistCalls as number) + 1
-            return grant
-          } : Reflect.get(target, prop, receiver)),
-        })
-      },
-    })
-  }
+// addInitScript INVOKES the passed function with the argument (Playwright
+// serializes the function source — no outer-closure capture, hence the
+// one-argument form). Runs BEFORE app boot. Keeps the real StorageManager,
+// overrides ONLY persist(), counting calls (window.__zipPersistCalls).
+function installPersistSpy(grant: boolean): void {
+  const w = window as unknown as Record<string, unknown>
+  w.__zipPersistCalls = 0
+  const descriptor = Object.getOwnPropertyDescriptor(Navigator.prototype, 'storage')
+  const original = descriptor?.get
+  Object.defineProperty(Navigator.prototype, 'storage', {
+    configurable: true,
+    // function (not arrow): `this` must stay the navigator INSTANCE — calling
+    // the original getter with this=Navigator.prototype throws (illegal
+    // invocation) and would reject the app's persist() instead of spying it.
+    get: function () {
+      const real = (original?.call(this) ?? {}) as object
+      return new Proxy(real, {
+        get: (target, prop, receiver) => (prop === 'persist' ? async () => {
+          w.__zipPersistCalls = (w.__zipPersistCalls as number) + 1
+          return grant
+        } : Reflect.get(target, prop, receiver)),
+      })
+    },
+  })
 }
 
 async function openPanel(page: import('@playwright/test').Page): Promise<void> {
@@ -102,7 +105,7 @@ test.describe('CC-204.6: Offline models panel — ensure/remove/persist (chromiu
 
   test('CC-204.6: Keep data on this device shows a granted persist() honestly (mocked storage API)', async ({ page, context }) => {
     test.setTimeout(90_000)
-    await context.addInitScript(spyPersist, true)
+    await context.addInitScript(installPersistSpy, true)
     attachSecurityGuards(context, page)
     await warmShell(page, PREVIEW_BASE, '/?ziptest=1')
     await openAppWithBridges(page)
@@ -116,7 +119,7 @@ test.describe('CC-204.6: Offline models panel — ensure/remove/persist (chromiu
 
   test('CC-204.6: persist denial renders honestly — never a fake yes (mocked storage API)', async ({ page, context }) => {
     test.setTimeout(90_000)
-    await context.addInitScript(spyPersist, false)
+    await context.addInitScript(installPersistSpy, false)
     attachSecurityGuards(context, page)
     await warmShell(page, PREVIEW_BASE, '/?ziptest=1')
     await openAppWithBridges(page)

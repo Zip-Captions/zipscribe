@@ -72,14 +72,14 @@ export function attachSecurityGuards(context: BrowserContext, page: Page): PwaSe
   context.on('request', (request) => {
     const url = request.url()
     if (url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('about:')) return
-    const host = new URL(url).host
+    const host = new URL(url).hostname
     if (isModelHost(host)) audit.modelHost.push(url)
     else if (!isAllowlisted(host)) audit.external.push(`${host} ${request.method()}`)
   })
   context.on('response', (response) => {
     const url = response.url()
     if (url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('about:')) return
-    const host = new URL(url).host
+    const host = new URL(url).hostname
     if (isLocalHost(host) && !response.fromServiceWorker()) audit.bypassedSw.push(url)
   })
   // A failed attempt is still an attempt: on an offline run nothing may even
@@ -88,7 +88,7 @@ export function attachSecurityGuards(context: BrowserContext, page: Page): PwaSe
   context.on('requestfailed', (request) => {
     const url = request.url()
     if (url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('about:')) return
-    if (isLocalHost(new URL(url).host)) audit.bypassedSw.push(url)
+    if (isLocalHost(new URL(url).hostname)) audit.bypassedSw.push(url)
   })
   page.on('console', (message) => {
     const text = message.text()
@@ -118,7 +118,11 @@ export async function warmShell(page: Page, base: string = PREVIEW_BASE, path = 
 }
 
 /** The Workbox precache cache exists and the app shell URLs are in it —
- *  without this, an offline reload fails for the wrong reason. */
+ *  without this, an offline reload fails for the wrong reason. Also waits for
+ *  the boot-time runtime-wasm warm-up (FR-1.0.9 bootRuntime → CacheFirst
+ *  /wasm/) to have LANDED in a workbox cache: it fires a few seconds after
+ *  controlled boot, and an offline reload that races it makes a real network
+ *  attempt the audit must not attribute to the offline paths under test. */
 export async function ensurePrecache(page: Page): Promise<void> {
   await page.waitForFunction(
     async () => {
@@ -131,6 +135,19 @@ export async function ensurePrecache(page: Page): Promise<void> {
     undefined,
     { timeout: 60_000 },
   )
+  await page
+    .waitForFunction(
+      async () => {
+        for (const name of await caches.keys()) {
+          const cache = await caches.open(name)
+          if ((await cache.match('/wasm/ort-wasm-simd-threaded.jsep.wasm')) !== undefined) return true
+        }
+        return false
+      },
+      undefined,
+      { timeout: 30_000 },
+    )
+    .catch(() => undefined)
 }
 
 // --- bridges (same globals the unit-102/106 e2e suites drive) ---------------
