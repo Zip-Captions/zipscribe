@@ -207,7 +207,13 @@ function sortByStart(segments: RawSegment[]): RawSegment[] {
  * `transcribe` (sampleRate 16000, language as given) and — when `diarize` —
  * one `diarize` request with the SAME jobId.
  */
-export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCachePort; mediaSource?: () => Promise<File>; translation?: { editorApp: EditorApp; engine: TranslationEngine } }): JobsStore {
+export function createJobsStore(deps: {
+  engine: EnginePort
+  modelCache: ModelCachePort
+  mediaSource?: () => Promise<File>
+  warmModelCache?: (modelId: string) => void
+  translation?: { editorApp: EditorApp; engine: TranslationEngine }
+}): JobsStore {
   const store = createStore<JobsState>()(immer(() => structuredClone(INITIAL_STATE)))
 
   // FR-302.1: one apply service (unit-301) + a per-language cancel registry.
@@ -437,6 +443,12 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
         })
         return
       }
+      // FR-204.2 "used once → offline-ready" (unit-204): the ONLINE real-lane
+      // dispatch warms the ONE verified cache on the main thread (fetch +
+      // verify + all-or-nothing put) so a model used once is offline-ready —
+      // without materializing model bytes on the worker heap (the worker
+      // keeps develop's streaming profile; CC-05.2 memory gate).
+      deps.warmModelCache?.(options.modelId)
       postJob()
     },
     cancel(): void {

@@ -577,6 +577,18 @@ export function Workbench(props: WorkbenchProps): ReactNode {
           },
   })
   const jobsState = useSnapshot(jobs)
+  // FR-204 (unit-204): a SUCCESSFUL transcribe/align completion dismisses the
+  // popover (the header button keeps develop's toggle semantics — a job that
+  // errored leaves the popover open so the coded notice + retry affordance
+  // stay visible).
+  const popoverJobRef = useRef<string | null>(null)
+  useEffect(() => {
+    const now = jobsState.running?.jobId ?? null
+    if (popoverJobRef.current !== null && now === null && jobsState.error === null) {
+      setPopoverOpen(false)
+    }
+    popoverJobRef.current = now
+  }, [jobsState.running, jobsState.error])
   const settingsState = useSnapshot(settings)
   const { project: currentProject } = useSnapshot(project)
   const [tab, setTab] = useState<SidebarTab>('subtitles')
@@ -778,6 +790,12 @@ export function Workbench(props: WorkbenchProps): ReactNode {
           }}
         />
         <TierChip tier={jobsState.capability?.tier ?? null} notice={jobsState.tierNotice} />
+        {/* FR-204 (unit-204): the chip/menu sit beside the tier chip per
+            design.md; the panel + toast are fixed overlays so the header
+            never gains height (frozen transcript layout budgets). */}
+        {props.pwa !== undefined && (
+          <PwaChrome jobs={jobs} persistence={props.persistence} modelCache={props.pwa.modelCache} persistenceDeps={props.pwa.persistenceDeps} panelOpen={modelsPanelOpen} onPanelOpen={setModelsPanelOpen} />
+        )}
         <span className="ws-transcribe-wrap">
           <button
             type="button"
@@ -785,7 +803,7 @@ export function Workbench(props: WorkbenchProps): ReactNode {
             className="ws-button ws-button-primary"
             disabled={currentProject === null || jobsState.running !== null}
             onClick={() => {
-              setPopoverOpen(true)
+              setPopoverOpen((open) => !open)
             }}
           >
             Transcribe
@@ -1032,9 +1050,6 @@ export function Workbench(props: WorkbenchProps): ReactNode {
           event.target.value = ''
         }}
       />
-      {props.pwa !== undefined && (
-        <PwaChrome jobs={jobs} persistence={props.persistence} modelCache={props.pwa.modelCache} persistenceDeps={props.pwa.persistenceDeps} panelOpen={modelsPanelOpen} onPanelOpen={setModelsPanelOpen} />
-      )}
     </div>
   )
 }

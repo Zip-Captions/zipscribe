@@ -23,6 +23,15 @@ import type { RelinkOutcome } from '../../state/services/persistence'
  *  the SPECS build these doubles in the page; they are not structured-
  *  cloneable — the service keeps them session-visible and persists the
  *  fingerprint row only, its pinned double-support fallback). */
+/** True once a spec has armed the probe wrapper (unit-204: the pwa media
+ *  harness arms before a block-less bridge open so the ground-truth seed may
+ *  run; specs that never arm keep the develop block-less contract). */
+let probeArmed = false
+
+export function probeResultArmed(): boolean {
+  return probeArmed
+}
+
 interface HandleLike {
   queryPermission(descriptors?: { mode?: string }): Promise<string>
   getFile(): Promise<File>
@@ -108,6 +117,7 @@ export function installPersistenceBridge(): void {
     },
     seedMediaHandle: (projectId, handleLike, fingerprint) => service.storeMediaHandle(projectId, handleLike as unknown as FileSystemFileHandle, fingerprint as unknown as MediaFingerprint),
     setProbeResult: (fingerprint) => {
+      probeArmed = true
       deps.probeFingerprint = () => (fingerprint === 'reject' ? Promise.reject(new Error('PROBE_REJECTED')) : Promise.resolve(structuredClone(fingerprint) as unknown as MediaFingerprint))
     },
     setEstimate: (estimate) => {

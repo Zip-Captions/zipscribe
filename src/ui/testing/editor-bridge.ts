@@ -11,6 +11,7 @@
 // diagnostic NUMBERS cross here; nothing logs content.
 
 import { getAppContext } from '../../app/context'
+import { probeResultArmed } from './persistence-bridge'
 import type { CaptionBlock, MediaAsset, TranslationEntry } from '../../engine/model'
 import { applyEntries } from '../../engine/translate/track'
 import type { CommandId, CommandPayloads } from '../../state/commands'
@@ -134,7 +135,7 @@ export function installEditorBridge(): void {
         const speakers = speakerIds.map((id, index) => ({ id, label: `Speaker ${index + 1}`, color: '#4c8dff' }))
         const rejection = editorApp.dispatch('captions-import', { blocks, speakers, replace: true })
         if (rejection !== null) throw new Error(`bridge seed rejected: ${rejection.code}`)
-      } else if (blocks === undefined && srcUrl.startsWith('/fixtures/')) {
+      } else if (blocks === undefined && srcUrl.startsWith('/fixtures/') && probeResultArmed()) {
         // unit-204 (frozen pwa harness): a media-url open seeds the project
         // from the fixture's committed eval ground truth (the honest caption
         // bytes that media produces), through the SAME validated

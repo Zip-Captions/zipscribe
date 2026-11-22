@@ -208,9 +208,10 @@ async function handleLoadModel(request: Extract<AsrRequest, { t: 'loadModel' }>)
     // (unit-03 doctrine, same-origin keys). Offline + not offline-ready →
     // coded fast-fail BEFORE any fetch attempt (the domain App lifecycle:
     // "never a hang"); the main-thread preflight already covers the app
-    // path — this guard also protects direct/scripted lanes. Online + not
-    // ready → download-on-first-use through the cache (fetch + verify +
-    // all-or-nothing put), which is what makes the model offline-ready.
+    // path — this guard also protects direct/scripted lanes. Cache WARMING
+    // (download-on-first-use) happens on the MAIN thread (jobs.ts
+    // warmModelCache) — an online worker load stays the develop streaming
+    // profile (CC-05.2 memory gate).
     const online = isOnline()
     const presence = await modelSpecPresence(spec)
     // The > 100 MB confirm gate is a DOWNSTREAM cost question — ask only
@@ -225,9 +226,12 @@ async function handleLoadModel(request: Extract<AsrRequest, { t: 'loadModel' }>)
       failPendingTranscribes('NETWORK', 'offline_model_missing')
       return
     }
-    if (online && !presence) {
-      await modelCache.ensureOffline(spec.id)
-    }
+    // CC-05.2 (memory gate): an ONLINE load must never materialize model
+    // bytes on the worker JS heap (fetch→arrayBuffer→hash→put, then a full
+    // Uint8Array→Response per file) — it runs develop's streaming profile
+    // through the adapter's own mirror/cache chain. The verified cache stays
+    // the OFFLINE read path (presence-gated above) and is populated by the
+    // main-thread panel/manager ensure paths.
     const sileroBytes = online ? await cachedOrMirrorSileroBytes() : await cachedSileroBytes()
     engine = await createWhisperEngine(
       {

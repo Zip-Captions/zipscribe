@@ -302,6 +302,14 @@ async function buildAppContext(options: AppContextOptions): Promise<AppContext> 
   const jobs = createJobsStore({
     engine,
     modelCache: createProductionModelCache(),
+    // FR-204.2 (unit-204): main-thread verified-cache warm on online real-
+    // lane dispatches. The scripted lane (ziptest with no local media
+    // linked) must stay byte-identical to the frozen 108 doctrine — no
+    // fetch is ever attempted there.
+    warmModelCache: (modelId) => {
+      if (ziptest && !hasLocalMediaLinked()) return
+      void modelCache.ensureOffline(modelId).catch(() => undefined)
+    },
     translation: { editorApp, engine: translationEngine },
     ...(ziptest
       ? {
