@@ -81,6 +81,14 @@ export const pwaOptions: Partial<VitePWAOptions> = {
   // cache, fixtures, /wasm) that must never be globbed into the shell cache;
   // globPatterns is therefore the allowlist of the 15 MB shell budget.
   workbox: {
+    // unit-204 flake fix (CC-204.2): the ORT runtime pair is seeded into
+    // `zipscribe-wasm` at SW INSTALL by this extra script (SW-lifecycle
+    // bound, per-file bounded) — offline boots then answer every /wasm/ read
+    // from cache with provably zero network (invariant 9), and no seed fetch
+    // can straddle the online→offline transition (the observed flake: an
+    // unbounded page-started seed request killed by the harness's offline
+    // toggle fired requestfailed on the audited context).
+    importScripts: ['/sw-seed.js'],
     globPatterns: ['index.html', 'manifest.webmanifest', 'assets/*.js', 'assets/*.css', 'fonts/**/*.woff2', 'icons/*.png', 'samples/*.mp4'],
     // Assets fail loudly instead of returning the app shell (FR-204.2); only
     // navigations fall back to the precached shell.
