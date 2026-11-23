@@ -61,6 +61,7 @@ None outside `settings.yml` `approved_dependencies`. `vite-plugin-pwa` is unit-s
 - **Screenshot provenance:** `public/screenshots/` are generated deterministically from design tokens (not hand-drawn art) — record in product docs so future designers regenerate via the fixture pipeline rather than editing PNGs.
 - **Workbox upgrade watch (review r1, finding 7):** `pwa.config.ts:102` keeps `cleanupOutdatedCaches: false` (measured: the activate-time sweep never settles while the app holds IndexedDB activity — it deadlocks `skipWaiting`). Re-verify the workbox precache cache sweep on any workbox major upgrade: outdated PRECACHE entries are still pruned at install by the precache controller, but the cross-workbox-version cache sweep is skipped — a future major bump must re-measure whether the sweep can be re-enabled (or leaks stale `precache-v*` caches across upgrades).
 - **`public/samples/` is a deliberate qualification-hash input (review r1, corrected after a misdiagnosis):** `scripts/lib/qualification-hash.ts` scopes `public/**` minus its `GENERATED_PUBLIC_DIRS` list, and `samples/` is intentionally NOT in that list — `copySamples` copies `fixtures/speech-2min.mp4` byte-exactly, the vite `buildStart`/`configureServer` hooks materialize it on `pnpm build` **and on vitest boot**, and the frozen `CC-02.5` qualification tests re-materialize it from fixtures and expect it in scope. So a qualification record must be signed on a tree WITH `public/samples/speech-2min.mp4` present (`pnpm build` or `node scripts/copy-samples.ts` first). An early r1 re-sign without it recomputed to a different hash and was rejected by those tests; the accepted r1 record is `aee14afc…` (built tree, HEAD-canonical). Process trap to avoid: never `rm -rf public/samples` while iterating — the existsSync-skip in `qualificationInputFiles` then silently changes the hash and the four `CC-02.5` tests fail for the wrong reason (verified diagnostic: a clean `e7b9191` worktree + `pnpm build` recomputes exactly the committed `7513dc0d…`, i.e. the original sign was never stale).
+- **FS-error-class conflation in the model-mirror miss 404 (review r2, N2, INFO — no action):** `vite.config.ts:196-205` — `statSyncSafe` answers every FS error class (not just `ENOENT`, but e.g. `EACCES`/`EIO`) as a mirror miss → 404; mitigated because the 404 still keeps `createMirrorFetch`'s fallthrough honest. Follow-up only: log a codes-only distinction of the stat error class on the miss path (SECURITY-03 — error codes, never paths/content).
 - Product backlog seeds for `knowledge/product.md`: (1) owner review of Workbox `skipWaiting` config per Deviation (f); (2) a shared `expect.fail` shim/typing so future adversarial specs stay inside tsc; (3) models-panel affordance for per-route cache-usage observability (extend the existing precache audit).
 
 ## OBSERVED — MVP exit gate (SPEC-GUIDE § Build order)
@@ -148,3 +149,50 @@ Qualification re-signed for the post-r1 tree: `8/8 RQ criteria pass`,
 is a deliberate deterministic hash input (see corrected Follow-ups bullet); the
 `e7b9191` record was verified never stale (clean worktree + build recomputes
 `7513dc0d…` exactly).
+
+## Review round 2 — dispositions (fixer pass r2, base HEAD `d775e81`)
+
+Two findings (N1 MINOR test-integrity, N2 INFO). Authorized test-edit scope honored:
+`git diff d775e81..HEAD -- e2e/pwa tests/unit/pwa` returns **only**
+`e2e/pwa/adversarial-persist-confirm.spec.ts` (the N1 edit — strengthening only: the
+either/or leg and the post-confirm `> 0` poll are byte-unchanged);
+`git diff d775e81..HEAD --name-only` contains **no `src/**`** (the mutation below was
+local-only and reverted byte-exact), so qualification is unchanged (contentHash
+`aee14afc…` stays canonical).
+
+- **N1 — fixed.** The r1 pre-confirm point-read `expect(offsitePre).toBe(0)` is replaced
+  by the reviewer-prescribed settle-proof poll
+  `await expect.poll(() => offsiteFetches(page), { timeout: 5_000 }).toBe(0)`, preceded by
+  a bounded early-exit settle (`waitForFunction(counter > 0, { timeout: 8_000 })`,
+  swallow-timeout). Rationale for the settle gate (measured, Playwright 1.64.1):
+  `expect.poll` passes on its **first** successful read, so the poll alone at the old
+  sample point could still pass before the late-dispatched bypassed fetches (the r2
+  instrumentation: 0 at sample, 10 after settle). The counter is monotonic (fetch
+  attempts only increment), so a post-settle read observes the entire bypass window:
+  a bypassed start makes the poll read > 0 → RED; honest gated code keeps it at 0.
+- **N1 mutation proof (acceptance test):** r1 mutation re-applied locally —
+  `src/ui/pwa/OfflineModelsPanel.tsx:157` forced `{ confirmed: true }` —
+  `pnpm build` + fresh preview (playwright webServer), spec run:
+
+  ```text
+  ✘ … adversarial-persist-confirm.spec.ts:94:3 › … gates the download behind the confirmation (6.3s)
+    Error: pre-confirm: the gated model must not have started fetching
+    expect(received).toBe(expected) // Object.is equality
+    Expected: 0
+    Received: 10
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+      > 144 |       .toBe(0)
+  1 failed, 1 passed (19.3s)
+  ```
+
+  Revert byte-exact (`shasum -a 256 -c`: `14be4b18…cbf57 OK`, `git status` clean),
+  rebuild, spec green again: `2 passed (22.3s)` (logs: `.night/r2-mutation.log`,
+  `.night/r2-revert.log`).
+- **N2 — recorded, no code change.** Follow-ups bullet added above for the
+  FS-error-class conflation at `vite.config.ts:196-205` (codes-only log distinction).
+
+r2 gates (all at final HEAD): lint ✓ · typecheck ✓ · format:check ✓ ·
+test ✓ `2154 passed | 1 skipped | 1 todo` (269 files) · build+check-bundle ✓
+`initial JS 167.5 KB gzip / budget 350 KB`, `precache 4.88 MiB / budget 15 MiB,
+largest 0.85 MiB` · e2e/pwa chromium ✓ `36 passed (41.4s)`.
