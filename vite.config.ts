@@ -194,8 +194,15 @@ function modelMirrorMiddleware(req: IncomingMessage, res: ServerResponse, next: 
   const rel = decodeURIComponent(url.pathname.slice('/.cache/models/'.length))
   const abs = join(MODEL_MIRROR_ROOT, rel)
   if (!abs.startsWith(MODEL_MIRROR_ROOT + '/') || !statSyncSafe(abs)?.isFile()) {
-    // Honest miss: the adapter falls back to the pinned HF resolve URL.
-    next()
+    // Honest miss (review r1, finding 8): a 404, NOT `next()` — on the
+    // preview server a fall-through is answered by vite's SPA-fallback HTML
+    // with status 200, and `createMirrorFetch` adopts any `ok` mirror
+    // response: the pinned-URL fallback then never runs and cache.ts rejects
+    // the HTML as CACHE_CORRUPT. 404 keeps that fallthrough honest in the
+    // env that exercises it (browser-cache mirror misses).
+    res.statusCode = 404
+    res.setHeader('Content-Type', 'text/plain')
+    res.end('model mirror miss')
     return
   }
   const size = statSync(abs).size

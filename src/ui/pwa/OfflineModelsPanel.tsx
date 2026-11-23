@@ -14,8 +14,11 @@
 // mount, models whose directory the local `/.cache/ci-registry.json`
 // guarantees are imported from the same-origin mirror, all bytes
 // re-hashed before any put (`seedSpecFromMirror`); a production 404 simply
-// no-ops. Downloads for everything else go through `ensureOffline` (the
-// canonical fetch path with the weights mirror).
+// no-ops. Rows marked `seeding: false` are PROVISION-ONLY (the CI tier
+// provisions their mirror bytes for route serving; the confirm-gated panel
+// download must still start from zero — the unit-03 gate owner decides).
+// Downloads for everything else go through `ensureOffline` (the canonical
+// fetch path with the weights mirror).
 //
 // FR-204.5: `requestPersist()` fires on FIRST "Make available offline" and
 // on the explicit button — never on plain page load (register.ts only
@@ -69,11 +72,15 @@ async function mirrorSeedable(modelCache: ModelCache): Promise<void> {
   try {
     const response = await globalThis.fetch('/.cache/ci-registry.json')
     if (!response.ok) return // production: no mirror — seeding simply no-ops
-    const registry = (await response.json()) as { models?: Record<string, unknown> }
-    const dirs = new Set(Object.keys(registry.models ?? {}))
+    const registry = (await response.json()) as { models?: Record<string, { seeding?: unknown }> }
+    const seedableDirs = new Set(
+      Object.entries(registry.models ?? {})
+        .filter(([, row]) => row.seeding !== false)
+        .map(([dir]) => dir),
+    )
     for (const spec of Object.values(MODEL_REGISTRY)) {
       const dir = spec.id.split('@')[0]?.split('/').at(-1)?.replace(/_/g, '-') ?? ''
-      if (!dirs.has(dir)) continue
+      if (!seedableDirs.has(dir)) continue
       if (await modelSpecPresence(spec)) continue
       await seedSpecFromMirror(modelCache, spec)
     }
