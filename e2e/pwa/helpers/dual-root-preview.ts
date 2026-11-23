@@ -18,6 +18,7 @@ import { createHash } from 'node:crypto'
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, extname, join, normalize } from 'node:path'
 import { REPO_ROOT } from '../../../tests/helpers/repo'
+import { warmSwReachable } from './warm-dist.mjs'
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -68,6 +69,11 @@ export function stageBuilds(): { distA: string; distB: string } {
   cpSync(src, distB, { recursive: true })
   insertMarker(join(distB, 'index.html'))
   syncPrecacheRevision(join(distB, 'sw.js'), join(distB, 'index.html'))
+  // Page-cache warm AFTER the final bytes are written (marker + revision):
+  // disk-starved CI workers must not pay cold reads inside the 60 s update
+  // toast budget (workbox install + update fetch + activate seeding).
+  warmSwReachable(distA)
+  warmSwReachable(distB)
   return { distA, distB }
 }
 
@@ -146,6 +152,9 @@ export async function startDualRootServer(port: number, distA: string, distB: st
     url: `http://${host}:${boundPort}`,
     deploy(which) {
       root = which === 'a' ? distA : distB
+      // The flip is the "deployment": warm the newly served root's
+      // SW-reachable bytes synchronously, before any triggerUpdateCheck().
+      warmSwReachable(root)
     },
     close() {
       // force-close keep-alives so afterAll cannot hang on a live browser
