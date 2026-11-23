@@ -189,6 +189,7 @@ local-only and reverted byte-exact), so qualification is unchanged (contentHash
   Revert byte-exact (`shasum -a 256 -c`: `14be4b18…cbf57 OK`, `git status` clean),
   rebuild, spec green again: `2 passed (22.3s)` (logs: `.night/r2-mutation.log`,
   `.night/r2-revert.log`).
+
 - **N2 — recorded, no code change.** Follow-ups bullet added above for the
   FS-error-class conflation at `vite.config.ts:196-205` (codes-only log distinction).
 
