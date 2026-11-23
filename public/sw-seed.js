@@ -1,15 +1,22 @@
-// unit-204 flake fix (CC-204.2): seed the self-hosted ORT runtime pair into
-// `zipscribe-wasm` at SW INSTALL — bound to the SW lifecycle (a page reload
-// cannot strand it), bounded per file (activation never spans a network
-// transition), and earliest (starts before the first boot fetch). With the
-// entry present, every later /wasm/ read — including the boot warm — is a
-// cache hit and provably zero network (architecture invariant 9). Fetch
-// failures never block installation/activation (FR-1.0.9 offline install).
+// unit-204 (CC-204.2 + CC-204.4) — seed the self-hosted ORT runtime pair into
+// `zipscribe-wasm`, gated on the SW's FIRST ACTIVATION — never `install`:
+// workbox-window fires `waiting` (the update-toast trigger, FR-204.4) only
+// after the waiting worker's install handlers settle, and a 33 MB install-time
+// seed pushed `waiting` past the prompt-toast budget on slow-disk CI runners
+// (measured: 60 s toast timeout vs 7.1 s retry — CI run 45191628622).
+// Activation gating keeps the offline-boot contract (CC-204.2):
+// `navigator.serviceWorker.ready` (and every first-visit boot) only proceeds
+// after activate settles, so the entries are in `zipscribe-wasm` before any
+// boot can race them offline (cached ⇒ provably zero network, invariant 9);
+// the update flow's PARKED worker never reaches activate, so its install is
+// precache-only and `waiting` — hence the toast — is prompt. Bounded per-file
+// fetch (never spans a network transition) and failure-swallowed (FR-1.0.9
+// offline install must still complete); the CacheFirst route self-heals.
 const CACHE_NAME = 'zipscribe-wasm'
 const SEED_FILES = ['/wasm/ort-wasm-simd-threaded.jsep.mjs', '/wasm/ort-wasm-simd-threaded.jsep.wasm', '/wasm/ort-wasm-simd-threaded.mjs', '/wasm/ort-wasm-simd-threaded.wasm']
 const SEED_TIMEOUT_MS = 6000
 
-self.addEventListener('install', (event) => {
+self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME)
@@ -21,8 +28,8 @@ self.addEventListener('install', (event) => {
             if (!response.ok) return
             await cache.put(file, response)
           } catch {
-            // A failed seed must never block install/activation — the runtime
-            // route (CacheFirst) and the page-side warm self-heal later.
+            // A failed seed must never block activation — the runtime route
+            // (CacheFirst) and the page-side warm self-heal later.
           }
         }),
       )
