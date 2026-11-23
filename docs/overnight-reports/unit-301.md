@@ -24,6 +24,22 @@ Status: **complete** (CC-301.4 `[MANUAL]` awaiting owner) — PR #24 → squash 
 - [ ] Offline (DevTools offline after models cached) — pair still works (models cached by Chrome); turning models off surfaces the codes-only failure notice.
 - Date / Chrome version / result: ______________________
 
+#### Agent-run record (puppeteer MCP, morning 2026-11-23) — owner sign-off STILL REQUIRED (boxes above left unchecked per `[MANUAL]` doctrine)
+
+Run against `vite preview` production build (`?ziptest=1` sanctioned bridge for project seeding only — NO mocks of the built-in APIs), browser = puppeteer-managed Chrome, `navigator.userAgentData` → **Chromium 158 / macOS** (UA header legacy "Chrome/120.0.0.0" — ignored). en→fr AND en→es both exercised with REAL model packs (browser-downloaded during the session).
+
+| Checklist item                                                       | Result                                                                                                                                                                                                                           |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| background probe → "downloadable" w/o download, no `NotAllowedError` | **PASS** — `Translator.availability({en→fr/es})` = `downloadable`; picker badges sat at `download` for 60+ s while no gesture fired; two clicks that failed hit-testing (see note) also triggered NO download (negative control) |
+| first run only from real click + progress 0–100                      | **PASS** — after the trusted click: `Downloading…` (real pack fetch, ~4 s) → `Translating…`, live region announced `French Translating… 2% … 98% → 100%` → `Complete`                                                            |
+| batches, visible-first, machine origin                               | **PASS** — entries applied in viewport order from block 0; all rows `Machine-translated`; output genuine (`"C'est la phrase numéro 0…"`) not scripted                                                                            |
+| cancel mid-flight ≤ ~500 ms, partials kept                           | **PASS** — 400-block run cancelled at 48 entries applied: `Cancelled` settled **29 ms** after abort; count frozen at 48 (nothing half-delivered)                                                                                 |
+| entry edit → `Edited`; source edit → `Stale`; Retranslate stale      | **PASS** — badges `Edited`/`Stale` render; `Retranslate stale` ran `1/1` (only the stale block re-planned; edited entry text untouched)                                                                                          |
+| one undo step (entry edit)                                           | **not UI-testable** — no undo gesture exists in the UI; the one-undo-step contract is store-level and covered by CC-301.1 unit tests. Owner: confirm nothing else was expected in the UI                                         |
+| Offline (DevTools offline after cache; models off)                   | **NOT RUN — owner only.** puppeteer MCP exposes no network emulation; both pairs' models are now cached in this Chrome profile, so the offline legs are ready for the owner in DevTools                                          |
+
+Side finding (real, minor): at an 800×600 viewport the transcript-issue button renders ON TOP of the language picker dropdown and swallows the Add-button click (Playwright hid this with `force:true`; reproduced twice, fixed for the run by raising the dropdown z-index). Backlog seed: z-order/stacking of the picker vs the transcript header at small viewports.
+
 ## Gates
 
 lint ✓ | typecheck ✓ | test ✓ (1956 pass, engine cov ≥ thresholds) | build+bundle ✓ (145.3 KB / 350 KB) | e2e ✓ (CC-301.3 spec green locally 1.0 m + CI) | spec-lint ✓ | format ✓ | criteria ✓ (verify:unit 5/5) | qualification re-signed ×3 (each src commit) ✓
