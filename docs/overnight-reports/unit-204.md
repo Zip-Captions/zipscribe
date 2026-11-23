@@ -199,6 +199,7 @@ test ✓ `2154 passed | 1 skipped | 1 todo` (269 files) · build+check-bundle �
 largest 0.85 MiB` · e2e/pwa chromium ✓ `36 passed (41.4s)`.
 
 ## Post-review (orchestrator)
+
 - Review loop: r1 CHANGES_REQUESTED (B1 format, M2 ci-registry whisper-base, M3 warm pre-confirm bytes, +5 minors) → fix d775e81; r2 CHANGES_REQUESTED (N1 racy pre-confirm counter — one line) → fix 73173c8 + docs 917d063 + orchestrator prettier 351eaa1; flake (CC-204.2 offline-boot wasm seed surviving setOffline) killed deterministically e7b0a85 (SW-install seed + Cache-API-first consult + SW online probe; hammer ×15 + ×3 reviewer); r3 **APPROVE** (all criteria pass, 3 INFO no-action).
 - CI at e7b0a85: fixtures-verify 27s · quality 52m25s · preview-deploy 23s (run 45154492458) — all pass.
 - Merged (squash) to develop as 0486165 — merge commit is the revert point. HITL owner flags: (f) Workbox update implemented as flush→unregister+reload (reviewers sound; unit Risks ask owner sign-off of the Workbox config), (a) `e2e/asr/helpers/asr.ts` whisper-base cache-dir mapping row (escape-clause, in-file comment), (b) `adversarial-headers.spec.ts` tsc exclusion (expect.fail absent in Playwright 1.64.1).
