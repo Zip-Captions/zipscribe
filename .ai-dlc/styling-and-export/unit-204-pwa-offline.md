@@ -1,5 +1,12 @@
 ---
-status: in_progress
+# completed: 2026-11-23 — PR #34 → 0486165 (CI run 45154492458 all green: fixtures-verify 27s,
+# quality 52m25s, preview-deploy 23s). verify:unit 8/8 (CC-204.1–8 untagged, all passing).
+# Review loop r1/r2 CHANGES_REQUESTED → fixes (d775e81, 73173c8, e7b0a85 incl. deterministic
+# kill of the CC-204.2 offline-boot wasm-seed flake); r3 APPROVE. HITL flags for owner:
+# (f) Workbox update via flush→unregister+reload (reviewers sound), (a) asr.ts whisper-base
+# cache-dir row, (b) adversarial-headers.spec tsc exclusion. Report:
+# docs/overnight-reports/unit-204.md.
+status: done
 phase: mvp
 discipline: frontend
 depends_on: [unit-200-style-export-offline-design, unit-202-export, local-transcribe-engine/unit-03-model-manager, caption-studio-ui/unit-106-persistence]   # unit-203 deliberately NOT a dependency: 204 verifies against `vite preview` of the production build and self-provides the sw/manifest _headers entries (FR-204.6); deployed-header assertions on Cloudflare stay in unit-203 (phase: production)

@@ -197,3 +197,10 @@ r2 gates (all at final HEAD): lint ✓ · typecheck ✓ · format:check ✓ ·
 test ✓ `2154 passed | 1 skipped | 1 todo` (269 files) · build+check-bundle ✓
 `initial JS 167.5 KB gzip / budget 350 KB`, `precache 4.88 MiB / budget 15 MiB,
 largest 0.85 MiB` · e2e/pwa chromium ✓ `36 passed (41.4s)`.
+
+## Post-review (orchestrator)
+
+- Review loop: r1 CHANGES_REQUESTED (B1 format, M2 ci-registry whisper-base, M3 warm pre-confirm bytes, +5 minors) → fix d775e81; r2 CHANGES_REQUESTED (N1 racy pre-confirm counter — one line) → fix 73173c8 + docs 917d063 + orchestrator prettier 351eaa1; flake (CC-204.2 offline-boot wasm seed surviving setOffline) killed deterministically e7b0a85 (SW-install seed + Cache-API-first consult + SW online probe; hammer ×15 + ×3 reviewer); r3 **APPROVE** (all criteria pass, 3 INFO no-action).
+- CI at e7b0a85: fixtures-verify 27s · quality 52m25s · preview-deploy 23s (run 45154492458) — all pass.
+- Merged (squash) to develop as 0486165 — merge commit is the revert point. HITL owner flags: (f) Workbox update implemented as flush→unregister+reload (reviewers sound; unit Risks ask owner sign-off of the Workbox config), (a) `e2e/asr/helpers/asr.ts` whisper-base cache-dir mapping row (escape-clause, in-file comment), (b) `adversarial-headers.spec.ts` tsc exclusion (expect.fail absent in Playwright 1.64.1).
+- Intent note: `verify:intent styling-and-export` reports CC-I3.1–.8/.10 UNCOVERED — pre-existing lead-citation gap across the intent's pre-enforcement suites (identical class to caption-translation CC-I4; behaviour is covered at unit level: CC-I3.6/.7 ≡ CC-204.1/.2, .1/.2 ≡ unit-202, .3–.5 ≡ unit-200/202, .8 = full e2e green, .10 ≡ unit-202 licensing). Morning item: add lead-citation legs CC-I3.* + CC-I4.*. Intent status correctly remains in_progress (phase-2 [DEPLOY] CC-I3.9 + unit-203 owner-gated per owner decision 2026-10-31).
