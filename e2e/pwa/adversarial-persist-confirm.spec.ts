@@ -64,6 +64,10 @@ async function persistCalls(page: import('@playwright/test').Page): Promise<numb
   return (await page.evaluate(() => (window as unknown as Record<string, unknown>).__zipPersistCalls)) as number
 }
 
+async function offsiteFetches(page: import('@playwright/test').Page): Promise<number> {
+  return (await page.evaluate(() => (window as unknown as Record<string, unknown>).__zipOffsiteFetches)) as number
+}
+
 test.describe('FR-204.5 / US-204.3 (adversary): persist triggers + the > 100 MB confirmation (chromium)', () => {
   test.skip(CHILD, CHILD_REASON)
   test.use({ serviceWorkers: 'allow' })
@@ -110,11 +114,24 @@ test.describe('FR-204.5 / US-204.3 (adversary): persist triggers + the > 100 MB 
       .first()
       .isVisible({ timeout: 5_000 })
       .catch(() => false)
-    const offsite = (await page.evaluate(() => (window as unknown as Record<string, unknown>).__zipOffsiteFetches)) as number
+    const offsitePre = await offsiteFetches(page)
 
     expect(
-      confirmed || offsite === 0,
-      `US-204.3 (unit file line 28): "Make available offline" downloads "with the > 100 MB confirmation" — a 211 MB model started fetching ${offsite} off-site bytes with no confirmation affordance shown`,
+      confirmed || offsitePre === 0,
+      `US-204.3 (unit file line 28): "Make available offline" downloads "with the > 100 MB confirmation" — a 211 MB model started fetching ${offsitePre} off-site bytes with no confirmation affordance shown`,
     ).toBe(true)
+
+    // Review r1 (finding 4): drive the gated sequence to a conclusion — the
+    // either/or above is only honest if the gate RELEASES: zero fetch
+    // attempts pre-confirm, and clicking the confirmation must actually
+    // start the download (the pinned URLs stay aborted — the page-level spy
+    // counts the ATTEMPT, which is the contract under test).
+    expect(offsitePre, 'pre-confirm: the gated model must not have started fetching').toBe(0)
+    if (confirmed) {
+      await page.getByTestId('model-download-confirm-button').first().click()
+      await expect
+        .poll(() => offsiteFetches(page), { message: 'post-confirm: the confirmed download starts fetching', timeout: 30_000 })
+        .toBeGreaterThan(0)
+    }
   })
 })

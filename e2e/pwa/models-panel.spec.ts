@@ -18,7 +18,7 @@ import { assertModelCachePresent, routeAsrNetwork, type NetworkCounters } from '
 import { attachSecurityGuards, CHILD, CHILD_REASON, openAppWithBridges, PREVIEW_BASE, warmShell } from './helpers/pwa-harness'
 
 const TINY_ID = 'whisper-tiny' // model spec id `whisper-tiny_timestamped@51724429` (src/engine/model/registry.ts)
-const UNCACHEABLE_ID = 'whisper-base' // in the registry, NOT in .cache/models (only tiny/vad/eres2net are)
+const UNCACHEABLE_ID = 'whisper-base' // in the registry; `models:fetch` PROVISIONS its bytes (ci-registry row, review r1 finding 2) so the ensure leg can serve them in CI, but that row is `seeding: false` — the panel never imports it into the browser cache on mount, so it stays uncached here
 
 // addInitScript INVOKES the passed function with the argument (Playwright
 // serializes the function source — no outer-closure capture, hence the

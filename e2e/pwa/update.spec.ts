@@ -138,8 +138,10 @@ test.describe('CC-204.4: SW update — prompt toast, click flushes autosave, nev
     ).toBe(true)
     const stillA = await page.evaluate(() => !document.documentElement.innerHTML.includes('zipscribe-e2e-build-B'))
     expect(stillA, 'the old version keeps running').toBe(true)
-    const waiting = await page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.waiting !== null)
-    expect(waiting, 'the updated SW stays parked in waiting until all tabs close').toBe(true)
+    // Review r1 (finding 5): assert the waiting registration ITSELF — the
+    // previous `evaluate(... !== null)` compared inside the page and passed
+    // vacuously on `undefined !== null` when no registration existed.
+    expect(await page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.waiting ?? null)).not.toBeNull()
   })
 
   test('CC-204.4 (FR-204.6): the preview server answers /sw.js and /manifest.webmanifest no-cache', async ({ page, request }) => {
