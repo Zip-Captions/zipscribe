@@ -39,7 +39,11 @@ export default defineConfig({
   // dead child) and removes the kill race without touching any frozen spec.
   webServer: [
     {
-      command: 'corepack pnpm run build && corepack pnpm run preview -- --port 4310 --strictPort',
+      // warm-dist.mjs between build and serve: read the SW-reachable dist
+      // bytes into the OS page cache while the runner is single-threaded,
+      // so 4 parallel chromium workers never cold-read them inside the
+      // FR-204.4 update/toast budgets (unit-204 CI-flake doctrine).
+      command: 'corepack pnpm run build && node e2e/pwa/helpers/warm-dist.mjs && corepack pnpm run preview -- --port 4310 --strictPort',
       url: 'http://127.0.0.1:4310',
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
