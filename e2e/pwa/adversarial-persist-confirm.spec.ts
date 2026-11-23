@@ -126,7 +126,22 @@ test.describe('FR-204.5 / US-204.3 (adversary): persist triggers + the > 100 MB 
     // attempts pre-confirm, and clicking the confirmation must actually
     // start the download (the pinned URLs stay aborted — the page-level spy
     // counts the ATTEMPT, which is the contract under test).
-    expect(offsitePre, 'pre-confirm: the gated model must not have started fetching').toBe(0)
+    //
+    // Review r2 (finding N1): the r1 pre-confirm assertion above was an
+    // instant read — a bypassed start whose fetches dispatch AFTER the
+    // sample slipped through (kill-check: 0 at the sample point, 10 after
+    // settle). The counter is monotonic (fetch attempts only ever increment
+    // it), so settle first: a bounded wait that exits early on the FIRST
+    // off-site attempt. Then the reviewer-prescribed poll asserts the
+    // settled value — a bypassed start makes it read > 0 → RED (a plain
+    // poll alone can pass on its first read before a late dispatch);
+    // honest gated code keeps the counter at 0.
+    await page
+      .waitForFunction(() => ((window as unknown as Record<string, unknown>).__zipOffsiteFetches as number) > 0, undefined, { timeout: 8_000 })
+      .catch(() => undefined)
+    await expect
+      .poll(() => offsiteFetches(page), { timeout: 5_000, message: 'pre-confirm: the gated model must not have started fetching' })
+      .toBe(0)
     if (confirmed) {
       await page.getByTestId('model-download-confirm-button').first().click()
       await expect
