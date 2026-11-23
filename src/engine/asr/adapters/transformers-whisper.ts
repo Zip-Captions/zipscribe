@@ -46,6 +46,16 @@ export interface WhisperLoadSpec {
    * local mirror instead of the HF resolve URL.
    */
   cacheDir?: string
+  /**
+   * FR-204.2 cache-first read for the offline-ready story: consulted BEFORE
+   * the mirror/HF routing for every pinned `resolve/<revision>` URL of this
+   * row. A hit answers the fetch from unit-03's verified `zipscribe-models`
+   * cache (the caller verifies SHA-256 before returning) so a model marked
+   * offline-ready loads with ZERO network requests — and a miss (or offline
+   * with nothing cached, which the caller must pre-empt) falls through to
+   * the normal routing. Absent = pre-204 behavior (mirror/HF only).
+   */
+  verifiedFetch?: (url: string) => Promise<Response | undefined>
 }
 
 export interface WhisperLoadProgress {
@@ -134,13 +144,20 @@ export async function createWhisperEngine(spec: WhisperLoadSpec, onProgress: (pr
   // HF resolve path so the request audit still sees the modelHost traffic.
   const originalFetch = globalThis.fetch
   const cacheDir = spec.cacheDir
-  const HF_ONNX = /^https:\/\/huggingface\.co\/[^/]+\/[^/]+\/resolve\/[0-9a-f]{40}\/(.+\.onnx)$/
-  if (cacheDir !== undefined) {
-    globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+  const verifiedFetch = spec.verifiedFetch
+  const HF_RESOLVE = /^https:\/\/huggingface\.co\/[^/]+\/[^/]+\/resolve\/[0-9a-f]{40}\/(.+)$/
+  const needsPatch = cacheDir !== undefined || verifiedFetch !== undefined
+  if (needsPatch) {
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
-      const match = HF_ONNX.exec(url)
+      const match = HF_RESOLVE.exec(url)
       const file = match?.[1]
       if (file === undefined) return originalFetch.call(globalThis, input, init)
+      if (verifiedFetch !== undefined) {
+        const cached = await verifiedFetch(url)
+        if (cached !== undefined) return cached
+      }
+      if (cacheDir === undefined || !/\.onnx$/u.test(file)) return originalFetch.call(globalThis, input, init)
       return originalFetch.call(globalThis, `/.cache/models/${cacheDir}/${file}`, init).then((response) => (response.ok ? response : originalFetch.call(globalThis, url, init)))
     }
   }
@@ -193,7 +210,7 @@ export async function createWhisperEngine(spec: WhisperLoadSpec, onProgress: (pr
   try {
     created = await pipeline('automatic-speech-recognition', spec.repo, options)
   } finally {
-    if (cacheDir !== undefined) globalThis.fetch = originalFetch
+    if (needsPatch) globalThis.fetch = originalFetch
   }
   const handle = created as WhisperPipelineLike
   const call = handle as unknown as AsrCall
@@ -212,11 +229,15 @@ export async function createWhisperEngine(spec: WhisperLoadSpec, onProgress: (pr
       if (options.stride_length_s !== undefined) callOptions['stride_length_s'] = options.stride_length_s
       const raw = await call(audio, callOptions)
       const first = Array.isArray(raw) ? raw[0] : raw
-      const text = first?.text ?? ''
       const words = (first?.chunks ?? [])
         .map(toWord)
         .filter((w): w is { text: string; start: number; end: number } => w !== null)
         .sort((a, b) => a.start - b.start)
+      // The transcript text MUST equal the word stream joined on single spaces
+      // (the app-wide CaptionBlock invariant enforced by the captions-import
+      // validator — FR-05.5 word-level timing is the source of truth; the
+      // pipeline's loose `text` can differ in whitespace/punctuation glue).
+      const text = words.map((w) => w.text).join(' ')
       const audioSec = audio.length / SAMPLE_RATE
       const segments =
         text.trim() === '' && words.length === 0

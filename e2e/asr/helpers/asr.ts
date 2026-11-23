@@ -22,6 +22,13 @@ const HF_HOSTS = (host: string): boolean => host === 'huggingface.co' || host.en
 /** eval-registry model ids → `.cache/models/<dir>` names (models-fetch keys). */
 const CACHE_DIR_BY_REPO: Record<string, string> = {
   'onnx-community/whisper-tiny_timestamped': 'whisper-tiny-timestamped',
+  // unit-204 (CC-204.6): the panel's "Make available offline" leg fetches
+  // whisper-base through the model-host route (the spec asserts modelHost>0).
+  // Its small config/tokenizer JSON come from here; the two large ONNX files
+  // are answered same-origin by the vite model-mirror middleware (a ~123 MB
+  // route.fulfill is what crashes Chromium — unit-05 adapter comment), so
+  // only the JSON side of this row is ever fulfilled from disk.
+  'onnx-community/whisper-base_timestamped': 'whisper-base-timestamped',
 }
 
 export interface NetworkCounters {

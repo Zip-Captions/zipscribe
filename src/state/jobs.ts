@@ -14,6 +14,7 @@ import { createStore } from 'zustand/vanilla'
 import { immer } from 'zustand/middleware/immer'
 import type { AsrEvent, AsrRequest, Device, DiarizeRequest, EngineError, MediaEvent, MediaRequest, ModelId, Notice, PcmSource, RawSegment, Tier } from '../engine/protocol'
 import { MODEL_REGISTRY, TIER_DEFAULT_MODEL } from '../engine/model/registry'
+import { LARGE_DOWNLOAD_CONFIRM_BYTES } from '../engine/model/manager'
 import { newJobId } from './ids'
 import type { EditorApp } from '@state/history'
 import type { TranslationEngine } from '../engine/translate/engine'
@@ -39,6 +40,14 @@ export interface EnginePort {
 /** Offline-readiness source for the popover badges (Cache API in production, a Set in tests). */
 export interface ModelCachePort {
   listCached(): Promise<ModelId[]>
+  /**
+   * FR-204.2 (unit-204 EXTENDS, optional): live presence of one row's
+   * verified cache entries (presence-only — the load path re-hashes). The
+   * offline fast-fail preflight consults it (async, before the worker is
+   * ever posted to); absent, the preflight falls back to the hydrated
+   * `modelOptions` offlineReady flag.
+   */
+  isOfflineReady?(id: ModelId): Promise<boolean>
 }
 
 /** Capability probe result as the UI consumes it (codes/strings only — never content, SECURITY-03). */
@@ -199,7 +208,13 @@ function sortByStart(segments: RawSegment[]): RawSegment[] {
  * `transcribe` (sampleRate 16000, language as given) and — when `diarize` —
  * one `diarize` request with the SAME jobId.
  */
-export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCachePort; mediaSource?: () => Promise<File>; translation?: { editorApp: EditorApp; engine: TranslationEngine } }): JobsStore {
+export function createJobsStore(deps: {
+  engine: EnginePort
+  modelCache: ModelCachePort
+  mediaSource?: () => Promise<File>
+  warmModelCache?: (modelId: string) => void
+  translation?: { editorApp: EditorApp; engine: TranslationEngine }
+}): JobsStore {
   const store = createStore<JobsState>()(immer(() => structuredClone(INITIAL_STATE)))
 
   // FR-302.1: one apply service (unit-301) + a per-language cancel registry.
@@ -222,6 +237,61 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
   // started a job; before the first start the slice folds events verbatim
   // (frozen L1 `job:segments accumulate` + L2 streaming pins).
   let lastStartedJobId: string | null = null
+
+  /**
+   * Review r1 (finding 3): models whose > 100 MB `model:confirm-required`
+   * gate the USER accepted this page session (via `confirmModelDownload`).
+   * This is the main-thread record of that acceptance only — the worker's
+   * `preConfirmed` set (src/workers/asr.worker.ts) stays the SINGLE gate
+   * owner for the load path; the FR-204.2 warm consults this so it never
+   * fetches gated bytes ahead of an acceptance.
+   */
+  const confirmedDownloads = new Set<ModelId>()
+
+  /** Warm deferred at dispatch because the confirm gate had not resolved
+   *  yet (uncached > 100 MB, no acceptance on record); released by the user's
+   *  own `confirmModelDownload`, or by the gate owner's completed load
+   *  (`model:ready` — the load path already moved the bytes through the
+   *  develop streaming profile, so the warm only MATERIALIZES the verified
+   *  cache — "used once → offline-ready", never pre-empts the gate). */
+  const deferredWarms = new Set<ModelId>()
+
+  /** FR-204.2 warm disposition (review r1, finding 3): a run warms the ONE
+   *  verified cache only when (a) the row is NOT already offline-ready —
+   *  `ensureOffline` fetches+re-verifies the FULL row every call, so an
+   *  ungated warm re-downloaded every cached model on every run — and
+   *  (b) the row is small, or carries an acceptance / completed gate-owner
+   *  load. Uncached + > 100 MB + unconfirmed → DEFER (zero warm bytes before
+   *  `model:confirm-required` resolves — unit-03 on the transcribe path). */
+  async function warmDisposition(modelId: ModelId): Promise<'warm' | 'cached' | 'defer'> {
+    if (deps.warmModelCache === undefined) return 'cached'
+    const spec = MODEL_REGISTRY[modelId]
+    if (spec === undefined) return 'cached'
+    try {
+      if ((await deps.modelCache.isOfflineReady?.(modelId)) === true) return 'cached'
+    } catch {
+      // Presence unknown — the confirm-cost gate below still holds.
+    }
+    return spec.approxBytes <= LARGE_DOWNLOAD_CONFIRM_BYTES || confirmedDownloads.has(modelId) ? 'warm' : 'defer'
+  }
+
+  /** Release a warm deferred for `modelId`. Triggered only by an authorized
+   *  gate resolution — the user's `confirmModelDownload`, or the gate owner's
+   *  completed load (`model:ready`) — so the confirm threshold is NOT
+   *  re-imposed here; only the presence short-circuit still applies (a
+   *  row that became offline-ready in the meantime never re-fetches). */
+  function releaseDeferredWarm(modelId: ModelId): void {
+    if (!deferredWarms.delete(modelId)) return
+    if (deps.warmModelCache === undefined || MODEL_REGISTRY[modelId] === undefined) return
+    void (async () => {
+      try {
+        if ((await deps.modelCache.isOfflineReady?.(modelId)) === true) return
+      } catch {
+        // Presence unknown — the gate already resolved; warm.
+      }
+      deps.warmModelCache?.(modelId)
+    })()
+  }
 
   // FR-108.2: the decode job riding each transcribe job (media-worker tee).
   // Tracked so cancel/displacement stops the decode alongside the ASR job.
@@ -328,6 +398,14 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
           state.pendingConfirmDownload = { model: event.model, bytes: event.bytes }
         })
         return
+      case 'model:ready':
+        // Review r1 (finding 3): the gate-owner load for this model COMPLETED
+        // (the worker already moved the bytes on develop's streaming profile)
+        // — a warm deferred at dispatch materializes the verified cache now
+        // ("used once → offline-ready"). State unchanged; model:* events
+        // otherwise stay owned by the popover/intake slices (default case).
+        releaseDeferredWarm(event.model)
+        return
       default:
         // media:probed / peaks:chunk / decode:support / vad:segments /
         // model:* are consumed by the intake seam and the popover (unit-102
@@ -395,14 +473,58 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
         deps.engine.postMedia({ t: 'cancel', jobId: displaced.jobId })
         cancelDecodeFor(displaced.jobId)
       }
-      deps.engine.postAsr({ t: 'loadModel', model: options.modelId, device })
-      // FR-108.2: stream pcm when the composition root wired a media source;
-      // the frozen placeholder transfer otherwise.
-      const stream = openPcmStream(jobId, options.diarize)
-      deps.engine.postAsr({ t: 'transcribe', jobId, pcm: stream?.asr ?? placeholderPcm(), sampleRate: 16000, language: options.language })
-      if (options.diarize) {
-        deps.engine.postDiarize({ t: 'diarize', jobId, pcm: stream?.diarizePcm ?? placeholderPcm(), sampleRate: 16000 })
+      const postJob = (): void => {
+        deps.engine.postAsr({ t: 'loadModel', model: options.modelId, device })
+        // FR-108.2: stream pcm when the composition root wired a media source;
+        // the frozen placeholder transfer otherwise.
+        const stream = openPcmStream(jobId, options.diarize)
+        deps.engine.postAsr({ t: 'transcribe', jobId, pcm: stream?.asr ?? placeholderPcm(), sampleRate: 16000, language: options.language })
+        if (options.diarize) {
+          deps.engine.postDiarize({ t: 'diarize', jobId, pcm: stream?.diarizePcm ?? placeholderPcm(), sampleRate: 16000 })
+        }
       }
+      // FR-204.2 (unit-204 EXTENDS): offline + model NOT cached →
+      // OFFLINE_MODEL_MISSING notice + coded NETWORK fast-fail BEFORE the
+      // worker is ever posted to (domain App lifecycle: "never a hang"; no
+      // spinner, no fetch attempt — the worker never sees this job). Offline
+      // + cached, and every online run, take the byte-identical path.
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        const preflight: Promise<boolean> =
+          deps.modelCache.isOfflineReady !== undefined
+            ? deps.modelCache.isOfflineReady(options.modelId).catch(() => false)
+            : Promise.resolve(store.getState().modelOptions.find((option) => option.id === options.modelId)?.offlineReady ?? true)
+        void preflight.then((ready) => {
+          if (ready) {
+            postJob()
+            return
+          }
+          store.setState((state) => {
+            state.notices.push({ code: 'OFFLINE_MODEL_MISSING', params: { model: options.modelId } })
+            if (state.running !== null && state.running.jobId !== jobId) return
+            state.error = { code: 'NETWORK', retryable: true, detail: 'offline_model_missing' }
+            if (state.running?.jobId === jobId) state.running = null
+          })
+        })
+        return
+      }
+      // FR-204.2 "used once → offline-ready" (unit-204): the ONLINE real-lane
+      // dispatch warms the ONE verified cache on the main thread (fetch +
+      // verify + all-or-nothing put) so a model used once is offline-ready —
+      // without materializing model bytes on the worker heap (the worker
+      // keeps develop's streaming profile; CC-05.2 memory gate). Review r1
+      // (finding 3): the warm is eligibility-gated — cached rows are never
+      // re-fetched, and an uncached > 100 MB row DEFERS until the gate
+      // resolves (confirm or completed gate-owner load); `postJob` never
+      // waits on any of it.
+      void warmDisposition(options.modelId).then((disposition) => {
+        if (disposition === 'warm') {
+          deferredWarms.delete(options.modelId)
+          deps.warmModelCache?.(options.modelId)
+        } else if (disposition === 'defer') {
+          deferredWarms.add(options.modelId)
+        }
+      })
+      postJob()
     },
     cancel(): void {
       const running = store.getState().running
@@ -416,6 +538,11 @@ export function createJobsStore(deps: { engine: EnginePort; modelCache: ModelCac
       })
     },
     confirmModelDownload(model: ModelId): void {
+      // Review r1 (finding 3): record the user's acceptance of the > 100 MB
+      // gate for this session (the worker's `preConfirmed` stays the load
+      // gate owner) and release any warm this run deferred on it.
+      confirmedDownloads.add(model)
+      releaseDeferredWarm(model)
       deps.engine.postAsr({ t: 'confirmDownload', model })
       store.setState((state) => {
         state.pendingConfirmDownload = null

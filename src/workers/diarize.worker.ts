@@ -104,5 +104,12 @@ core.onEvent((event) => {
 })
 
 scope.addEventListener('message', (event: MessageEvent<DiarizeRequest>) => {
-  void core.post(event.data)
+  // Transferred ports arrive on `event.ports`; the `event.data` copy is a
+  // neutered placeholder (FR-108.2 stream doctrine, unit-204).
+  const request = event.data
+  if (event.ports !== undefined && event.ports.length > 0 && request.t === 'diarize' && request.pcm.kind === 'stream') {
+    void core.post({ ...request, pcm: { ...request.pcm, port: event.ports[0] as MessagePort } })
+    return
+  }
+  void core.post(request)
 })

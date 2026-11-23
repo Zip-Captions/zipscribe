@@ -4,6 +4,8 @@ import type { ReactNode } from 'react'
 import { Workbench } from './ui/shell/Workbench'
 import { createAppContext } from './app/context'
 import type { AppContext } from './app/context'
+import { registerLaunchQueue } from './app/launch-queue'
+import { registerPwaRuntime } from './ui/pwa/register'
 import type { RelinkField } from './state/services/persistence'
 
 export function App(): ReactNode {
@@ -47,6 +49,12 @@ export function App(): ReactNode {
           installStyleBridge()
         }
         if (mounted) setContext(created)
+        // FR-204.1 / CC-204.7: the PWA runtime (SW registration behind a
+        // PROD guard + install-prompt capture) and the File-Handling launch
+        // queue both tolerate missing APIs — never a boot failure (the
+        // launch-queue boot-leg asserts zero page errors).
+        registerPwaRuntime()
+        registerLaunchQueue(created)
       })
       .catch(() => {
         // Boot failure keeps the empty root; diagnostics are codes-only in
@@ -94,6 +102,7 @@ export function App(): ReactNode {
           if (replaced) setRelink(null)
         })
       }}
+      pwa={{ modelCache: context.modelCache, persistenceDeps: context.persistenceDeps }}
     />
   )
 }

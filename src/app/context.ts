@@ -44,6 +44,9 @@ import type { VisualizerRuntime } from './visualizer-runtime'
 import type { StageController } from './stage'
 import { createBrowserRafDriver } from './browser-rafs'
 import { createLocalStorageSettings, createPendingUnit07ImportService, createProductionModelCache, probeDeviceCapability } from './ports'
+import { createZipscribeModelCache } from '../engine/model/adapters/browser-cache'
+import type { ModelCache } from '../engine/model/cache'
+import { hasLocalMediaLinked, markLocalMediaLinked } from './real-asr-lane'
 
 export interface AppContext {
   engine: WorkerEnginePort
@@ -116,6 +119,12 @@ export interface AppContext {
    * Transcript itself never commits (frozen FR-104.6).
    */
   transcribeCommit: TranscribeCommitService
+  /**
+   * FR-204.4 (unit-204): the verified model cache (unit-03 doctrine, browser
+   * configuration shared with the ASR worker) — the ⋯ → Offline models panel
+   * lists/ensures/removes through this instance.
+   */
+  modelCache: ModelCache
 }
 
 let pending: Promise<AppContext> | null = null
@@ -185,7 +194,11 @@ export function createAppContext(options: AppContextOptions = {}): Promise<AppCo
 
 async function buildAppContext(options: AppContextOptions): Promise<AppContext> {
   const ziptest = options.ziptest === true
-  const engine = createWorkerEnginePort({ nullAsrDiarizeWorkers: ziptest })
+  // FR-108 [108-ADJ] nulls the scripted lanes; FR-204.2 EXTENDS: once a
+  // project's media was relinked from the user's own local File (the
+  // offline e2e / real-user offline story), the REAL asr worker must serve
+  // the lane — offline-ready transcription is untestable through injection.
+  const engine = createWorkerEnginePort({ nullAsrDiarizeWorkers: ziptest ? () => !hasLocalMediaLinked() : undefined })
   const settings = await createSettingsStore({ storage: createLocalStorageSettings() })
 
   // Slice C editor core: ONE project truth (the 101-frozen ProjectStore the
@@ -258,31 +271,65 @@ async function buildAppContext(options: AppContextOptions): Promise<AppContext> 
   })
   visualizerRef = visualizer
 
+  // FR-204.4: the model cache the Offline models panel uses (ensure/remove/
+  // list). It is the SAME browser configuration the ASR worker builds, so
+  // "downloaded by transcription" and "shown as cached in the panel" are one
+  // truth. jobs gets the ModelCachePort over a second instance (same store).
+  const modelCache = createZipscribeModelCache()
   // FR-302.1: the jobs store also orchestrates translation runs — it owns the
   // per-language progress/cancel state and drives the unit-301 apply service
   // (machine track add + job-output application) over the SAME editorApp.
+  const currentMediaFile = async (): Promise<File> => {
+    const asset = editorApp.project.getState().project?.asset ?? null
+    const name = asset?.name ?? 'media'
+    const type = asset === null ? '' : `${asset.kind === 'audio' ? 'audio' : 'video'}/${asset.container}`
+    // FR-204.2 (unit-204): a relinked/reopened project's bytes live in the
+    // blob cache (IDB) — take them there FIRST so the decode stream works
+    // with zero network (the offline leg must never reach the URL).
+    const projectId = editorApp.project.getState().project?.id ?? null
+    if (projectId !== null) {
+      const cached = await getSourceBlob(projectId)
+      if (cached !== null) return new File([cached], name, { type })
+    }
+    const url = stage.getMediaSource()
+    if (url === null) throw new Error('NO_MEDIA_SOURCE')
+    const fetchName = asset?.name ?? url.split('/').pop() ?? 'media'
+    const response = await fetch(url)
+    if (!response.ok) throw new Error('MEDIA_FETCH_FAILED')
+    const blob = await response.blob()
+    return new File([blob], fetchName, { type })
+  }
   const jobs = createJobsStore({
     engine,
     modelCache: createProductionModelCache(),
+    // FR-204.2 (unit-204): main-thread verified-cache warm on online real-
+    // lane dispatches. The scripted lane (ziptest with no local media
+    // linked) must stay byte-identical to the frozen 108 doctrine — no
+    // fetch is ever attempted there.
+    warmModelCache: (modelId) => {
+      if (ziptest && !hasLocalMediaLinked()) return
+      void modelCache.ensureOffline(modelId).catch(() => undefined)
+    },
     translation: { editorApp, engine: translationEngine },
     ...(ziptest
-      ? {}
+      ? {
+          // FR-204.2 (unit-204): the relinked-local-file flow runs the REAL
+          // ASR worker (real-asr-lane predicate), which needs the real decode
+          // stream like production. Gate at CALL time on the same flag the
+          // lane decision uses: scripted-lane runs (no local media linked)
+          // reject before any fetch/decode post, leaving the frozen 108
+          // doctrine byte-identical (the null worker never reads a port).
+          mediaSource: async (): Promise<File> => {
+            if (!hasLocalMediaLinked()) throw new Error('SCRIPTED_LANE_NO_MEDIA')
+            return currentMediaFile()
+          },
+        }
       : {
           // FR-108.2: the real stream — the stage's current media becomes a
           // File for the media worker's decode tee (unit-107
           // blobForCurrentSource precedent: fetch → named File, mediabunny
           // sniffs by EXTENSION; the name never enters any log — SECURITY-03).
-          mediaSource: async (): Promise<File> => {
-            const url = stage.getMediaSource()
-            if (url === null) throw new Error('NO_MEDIA_SOURCE')
-            const asset = editorApp.project.getState().project?.asset ?? null
-            const name = asset?.name ?? url.split('/').pop() ?? 'media'
-            const type = asset === null ? '' : `${asset.kind === 'audio' ? 'audio' : 'video'}/${asset.container}`
-            const response = await fetch(url)
-            if (!response.ok) throw new Error('MEDIA_FETCH_FAILED')
-            const blob = await response.blob()
-            return new File([blob], name, { type })
-          },
+          mediaSource: async (): Promise<File> => currentMediaFile(),
         }),
   })
   resumeOnPlay = () => {
@@ -413,6 +460,8 @@ async function buildAppContext(options: AppContextOptions): Promise<AppContext> 
     if (outcome.kind === 'silent') {
       attachObjectUrl(outcome.file)
       void persistence.cacheMediaBlob(projectId, outcome.file).catch(() => undefined)
+      // FR-204.2: local-file media ⇒ real ASR lane (real-asr-lane.ts).
+      markLocalMediaLinked()
     }
     return outcome
   }
@@ -507,6 +556,9 @@ async function buildAppContext(options: AppContextOptions): Promise<AppContext> 
 
   engine.onMediaEvent((event) => {
     if (event.t !== 'media:probed') return
+    // FR-204.2: only intake's posted probes own the stage; a decode's
+    // `media:probed` (same shared channel) must never close the live source.
+    if (!previewUrlByProbeJobId.has(event.jobId)) return
     const url = previewUrlByProbeJobId.get(event.jobId) ?? null
     previewUrlByProbeJobId.delete(event.jobId)
     stage.setMediaSource(url)
@@ -543,6 +595,7 @@ async function buildAppContext(options: AppContextOptions): Promise<AppContext> 
     getSourceBlob,
     setSourceBlob,
     transcribeCommit,
+    modelCache,
     applyLoadedProject,
     relinkAfterOpen,
     replaceRelinkedMedia,

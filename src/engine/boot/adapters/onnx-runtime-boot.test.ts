@@ -69,4 +69,86 @@ describe('onnx runtime boot config (FR-1.0.9)', () => {
     expect(() => bootRuntime({ origin: undefined, fetchImpl: undefined })).not.toThrow()
     await new Promise((resolve) => setTimeout(resolve, 0))
   })
+
+  // --- unit-204 flake fix (CC-204.2): the warm must never touch the wire
+  // when the entry is cached (invariant 9) or when the SW process says the
+  // network is down (renderer onLine can be stale-true at boot), and a
+  // concurrent boot must share one seed fetch.
+
+  test('CC-204.2: cached entry ⇒ warm is provably zero-network', async () => {
+    const seen: string[] = []
+    const error = await warmRuntimeWasm({
+      origin: 'http://127.0.0.1:4178',
+      fetchImpl: ((input: string | URL) => {
+        seen.push(String(input))
+        return Promise.resolve(new Response(new Uint8Array([1]), { status: 200 }))
+      }) as typeof fetch,
+      isOnline: () => true,
+      cacheLookup: () => Promise.resolve(true),
+    })
+    expect(error).toBeNull()
+    expect(seen).toEqual([])
+  })
+
+  test('CC-204.2: stale-true renderer onLine is overruled by an offline SW', async () => {
+    const seen: string[] = []
+    const error = await warmRuntimeWasm({
+      origin: 'http://127.0.0.1:4178',
+      fetchImpl: ((input: string | URL) => {
+        seen.push(String(input))
+        return Promise.resolve(new Response(new Uint8Array([1]), { status: 200 }))
+      }) as typeof fetch,
+      isOnline: () => true,
+      cacheLookup: () => Promise.resolve(false),
+      swOnline: () => Promise.resolve(false),
+    })
+    expect(error).toBeNull()
+    expect(seen).toEqual([])
+  })
+
+  test('CC-204.2: concurrent boots share a single seed fetch', async () => {
+    let calls = 0
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const options: Parameters<typeof warmRuntimeWasm>[0] = {
+      origin: 'http://127.0.0.1:4178',
+      fetchImpl: async () => {
+        calls += 1
+        await gate
+        return new Response(new Uint8Array([1]), { status: 200 })
+      },
+      isOnline: () => true,
+      cacheLookup: () => Promise.resolve(false),
+      swOnline: () => Promise.resolve(true),
+    }
+    const first = warmRuntimeWasm(options)
+    const second = warmRuntimeWasm(options)
+    release()
+    expect(await first).toBeNull()
+    expect(await second).toBeNull()
+    expect(calls).toBe(1)
+  })
+
+  test('CC-204.2: a hung seed aborts at the deadline and reports a coded retryable error', async () => {
+    const error = await warmRuntimeWasm({
+      origin: 'http://127.0.0.1:4178',
+      fetchImpl: ((input: string | URL, init?: RequestInit) =>
+        new Promise<Response>((_, reject) => {
+          const abort = () => reject(new Error('aborted'))
+          if (init?.signal) {
+            if (init.signal.aborted) abort()
+            else init.signal.addEventListener('abort', abort, { once: true })
+          }
+          void String(input)
+        })) as typeof fetch,
+      isOnline: () => true,
+      cacheLookup: () => Promise.resolve(false),
+      swOnline: () => Promise.resolve(true),
+      timeoutMs: 20,
+    })
+    expect(error?.code).toBe('NETWORK')
+    expect(error?.retryable).toBe(true)
+  })
 })

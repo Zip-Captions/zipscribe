@@ -37,27 +37,108 @@ export function resolveWasmUrl(origin: string, wasmPaths: string = WASM_PATHS, f
 export interface WarmOptions {
   origin: string
   fetchImpl: typeof fetch
+  /** Online probe (injected for L1 determinism; bootRuntime defaults to
+   *  `navigator.onLine`, true where no navigator exists). */
+  isOnline?: () => boolean
+  /** Cache-API presence probe (L1 seam; default scans every open cache). */
+  cacheLookup?: (url: string) => Promise<boolean>
+  /** SW-process online probe (L1 seam): the renderer's `navigator.onLine`
+   *  can lag a network transition for the first instant of a fresh
+   *  navigation — the SW process tracks it authoritatively. `undefined` =
+   *  no opinion (no controlling SW). */
+  swOnline?: () => Promise<boolean | undefined>
+  /** Hard cap on a single seed attempt (default 8 s) — a warm fetch must
+   *  never live across a later network transition (unit-204 flake). */
+  timeoutMs?: number
 }
+
+/** Presence check across all open caches (the entry may sit in the workbox
+ *  precache or the `zipscribe-wasm` runtime cache). */
+async function cachedWasmEntry(url: string): Promise<boolean> {
+  if (typeof caches === 'undefined') return false
+  try {
+    for (const name of await caches.keys()) {
+      const cache = await caches.open(name)
+      if ((await cache.match(url)) !== undefined) return true
+    }
+  } catch {
+    // Presence unknown — treated as a miss; the online gate still holds.
+  }
+  return false
+}
+
+/** Ask the controlling SW for its live `navigator.onLine` (one MessageChannel
+ *  round trip; `undefined` when no controller or no reply within 1.5 s). */
+async function probeSwOnline(): Promise<boolean | undefined> {
+  if (typeof navigator === 'undefined' || typeof MessageChannel === 'undefined') return undefined
+  const controller = navigator.serviceWorker?.controller ?? null
+  if (controller === null) return undefined
+  return new Promise<boolean | undefined>((resolve) => {
+    const channel = new MessageChannel()
+    const timer = setTimeout(() => resolve(undefined), 1500)
+    channel.port1.onmessage = (event: MessageEvent<{ type?: string; online?: boolean }>) => {
+      clearTimeout(timer)
+      resolve(event.data?.type === 'zipscribe:online-reply' ? event.data.online === true : undefined)
+    }
+    controller.postMessage({ type: 'zipscribe:online-query' }, [channel.port2])
+  })
+}
+
+/** Single-flight per URL: concurrent/repeat boots share ONE seed fetch, so a
+ *  slow seed can never fork into parallel wire attempts. */
+const warmInFlight = new Map<string, Promise<EngineError | null>>()
 
 /** Seed the HTTP/service-worker cache for /wasm/* at boot so first inference
  *  (and offline use, invariant 9) does not depend on a cold CDN-less miss.
+ *  The warm is a cache SEED — offline it can only fail, and a real attempt
+ *  would breach the offline request audit (CC-204.3: zero network attempts),
+ *  so it consults the Cache API first (cached ⇒ provably zero network),
+ *  refuses while the SW process reports offline (the renderer's onLine can be
+ *  stale-true at fresh-navigation boot — the unit-204 flake), and bounds the
+ *  attempt so no seed fetch can live across a later offline transition.
  *  Never logs content — failures surface as coded EngineErrors only. */
 export async function warmRuntimeWasm(options: WarmOptions): Promise<EngineError | null> {
+  if ((options.isOnline ?? defaultIsOnline)() === false) return null
   const url = resolveWasmUrl(options.origin)
-  try {
-    const response = await options.fetchImpl(url, { cache: 'force-cache' })
-    if (!response.ok) return { code: 'NETWORK', retryable: true, detail: `wasm:warm-up:status:${response.status}` }
-    return null
-  } catch {
-    return { code: 'NETWORK', retryable: true, detail: 'wasm:warm-up:fetch-failed' }
-  }
+  const cached = await (options.cacheLookup ?? cachedWasmEntry)(url)
+  if (cached) return null // invariant 9: cached ⇒ zero network, always
+  if ((await (options.swOnline ?? probeSwOnline)()) === false) return null
+  const existing = warmInFlight.get(url)
+  if (existing !== undefined) return existing
+  const attempt = (async (): Promise<EngineError | null> => {
+    try {
+      const signal = typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal ? AbortSignal.timeout(options.timeoutMs ?? 8_000) : undefined
+      const response = await options.fetchImpl(url, { cache: 'force-cache', ...(signal !== undefined ? { signal } : {}) })
+      if (!response.ok) return { code: 'NETWORK', retryable: true, detail: `wasm:warm-up:status:${response.status}` }
+      // Page-side put seeds the runtime cache even on a pre-control boot, so
+      // the next boot is a cache hit and never re-fetches.
+      if (typeof caches !== 'undefined') {
+        try {
+          const cache = await caches.open('zipscribe-wasm')
+          await cache.put(url, response.clone())
+        } catch {
+          // SW route still records it for controlled requests; never fail the warm on it.
+        }
+      }
+      return null
+    } catch {
+      return { code: 'NETWORK', retryable: true, detail: 'wasm:warm-up:fetch-failed' }
+    } finally {
+      warmInFlight.delete(url)
+    }
+  })()
+  warmInFlight.set(url, attempt)
+  return attempt
 }
+
+const defaultIsOnline = (): boolean => (typeof navigator === 'undefined' ? true : navigator.onLine)
 
 export function bootRuntime(options: Partial<WarmOptions> = {}): void {
   configureOnnxRuntime()
   const origin = options.origin ?? (typeof location === 'undefined' ? 'http://localhost' : location.origin)
   const fetchImpl = options.fetchImpl ?? ((...args: Parameters<typeof fetch>) => fetch(...args))
-  void warmRuntimeWasm({ origin, fetchImpl }).catch(() => {
+  const isOnline = options.isOnline ?? defaultIsOnline
+  void warmRuntimeWasm({ origin, fetchImpl, isOnline }).catch(() => {
     // A failed warm-up must never break the shell; ORT resolves /wasm/* again
     // lazily on first session creation.
   })

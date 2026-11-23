@@ -484,7 +484,14 @@ export function decodeAudio(request: { jobId: string; file: File; ports: Message
       }
       active = 0
       deps.onDecoder?.(null)
-      for (const port of ports) port.onmessage = null
+      for (const port of ports) {
+        port.onmessage = null
+        ;(port as { close?: () => void }).close?.()
+        // Close the tee (FR-108.2 consumer contract, asr.worker readPcmSource):
+        // the paired port's `close` event is what resolves a streaming
+        // transcribe — queued chunks are delivered first by spec.
+        ;(port as { close?: () => void }).close?.()
+      }
       wake()
       resolveDone()
     }

@@ -49,6 +49,10 @@ describe('CC-I1.8 / CC-03.8: engine/model coverage gate ≥ 85%', () => {
           '--coverage.enabled',
           '--coverage.include=src/engine/model/**',
           '--coverage.exclude=**/*.test.ts',
+          // mirror vitest.config.ts § coverage (adapters excluded — the SDK/IO
+          // boundary is measured by the higher lanes; unit-204 added
+          // src/engine/model/adapters/browser-cache.ts, which no L1 suite loads)
+          '--coverage.exclude=src/engine/**/adapters/**',
           '--coverage.reporter=json-summary',
           `--coverage.reportsDirectory=${REPORTS_DIR}`,
           '--coverage.thresholds.lines=85',

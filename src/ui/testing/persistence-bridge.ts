@@ -15,6 +15,7 @@
 // content; File crosses as { name, size } summaries.
 
 import { getAppContext } from '../../app/context'
+import { markLocalMediaLinked } from '../../app/real-asr-lane'
 import type { MediaFingerprint, ProjectRow } from '../../state/services/persistence'
 import type { RelinkOutcome } from '../../state/services/persistence'
 
@@ -22,6 +23,15 @@ import type { RelinkOutcome } from '../../state/services/persistence'
  *  the SPECS build these doubles in the page; they are not structured-
  *  cloneable — the service keeps them session-visible and persists the
  *  fingerprint row only, its pinned double-support fallback). */
+/** True once a spec has armed the probe wrapper (unit-204: the pwa media
+ *  harness arms before a block-less bridge open so the ground-truth seed may
+ *  run; specs that never arm keep the develop block-less contract). */
+let probeArmed = false
+
+export function probeResultArmed(): boolean {
+  return probeArmed
+}
+
 interface HandleLike {
   queryPermission(descriptors?: { mode?: string }): Promise<string>
   getFile(): Promise<File>
@@ -91,9 +101,23 @@ export function installPersistenceBridge(): void {
     },
     exportProjectFile: (id) => service.exportProjectFile(id),
     importProjectFileJson: (json) => service.importProjectFile(json),
-    relinkMedia: async (projectId) => mapRelinkOutcome(await service.relinkMedia(projectId)),
+    relinkMedia: async (projectId) => {
+      const outcome = await service.relinkMedia(projectId)
+      // FR-204.2: a silent relink from the user's OWN local File means the
+      // project's media never needs the network — the real ASR lane is
+      // allowed (src/app/real-asr-lane.ts; engine-port predicate).
+      if (outcome.kind === 'silent') {
+        markLocalMediaLinked()
+        // FR-204.2: mirror context.relinkAfterOpen — the silent File belongs
+        // to the blob cache so the decode stream (and the offline leg) has
+        // bytes to read with zero network.
+        if (outcome.file !== null) await service.cacheMediaBlob(projectId, outcome.file)
+      }
+      return mapRelinkOutcome(outcome)
+    },
     seedMediaHandle: (projectId, handleLike, fingerprint) => service.storeMediaHandle(projectId, handleLike as unknown as FileSystemFileHandle, fingerprint as unknown as MediaFingerprint),
     setProbeResult: (fingerprint) => {
+      probeArmed = true
       deps.probeFingerprint = () => (fingerprint === 'reject' ? Promise.reject(new Error('PROBE_REJECTED')) : Promise.resolve(structuredClone(fingerprint) as unknown as MediaFingerprint))
     },
     setEstimate: (estimate) => {

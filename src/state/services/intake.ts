@@ -9,6 +9,7 @@
 // track, US-2.0.2). Nothing is silently dropped: every rejected file is
 // reported with a reason CODE only (SECURITY-03).
 
+import type { MediaEvent } from '../../engine/protocol'
 import type { CaptionBlock } from '../../engine/model'
 import type { EnginePort, JobsStore } from '../jobs'
 import type { ProjectStore } from '../project'
@@ -63,6 +64,11 @@ export interface IntakeService {
   handleFiles(files: readonly File[]): Promise<IntakeOutcome>
   /** US-2.0.2: fetches SAMPLE_CLIP_URL, wraps a File, runs it through handleFiles. */
   loadSample(): Promise<void>
+  /** EXTENDS (unit-204, ziptest-only — sole caller workbench-bridge.openProject):
+   *  trusted `media:probed` injection. The FR-204.2 decode filter can only be
+   *  fed by jobIds this service posted; a bridge-injected reply is trusted and
+   *  rides the SAME listener body as a real worker reply. */
+  acceptInjectedProbe(event: MediaEvent): void
 }
 
 /** App-served sample copied from fixtures at BUILD time — fixtures/ itself is never served (CC-101.2). */
@@ -197,13 +203,20 @@ export function createIntakeService(deps: {
   // reply can never consume a later drop's caption (a global FIFO leaked) and
   // an unpaired import of a captions-only drop can never resurface.
   const pendingByProbeJobId = new Map<string, CaptionImportResult>()
+  // FR-204.2 (unit-204): the shared media worker also carries DECODE events,
+  // and a decode emits its own `media:probed`. Only THIS service's posted
+  // probe jobIds open projects — a transcribe/preview decode must never
+  // replace the live project (it carries no captionImport and would wipe it).
+  const probeJobIds = new Set<string>()
 
-  deps.engine.onMediaEvent((event) => {
+  function handleProbed(event: MediaEvent): void {
     if (event.t !== 'media:probed') return
+    if (!probeJobIds.delete(event.jobId)) return
     const captionImport = pendingByProbeJobId.get(event.jobId)
     pendingByProbeJobId.delete(event.jobId)
     deps.project.createProject(event.asset, captionImport)
-  })
+  }
+  deps.engine.onMediaEvent(handleProbed)
 
   async function handleFiles(files: readonly File[]): Promise<IntakeOutcome> {
     const outcome: IntakeOutcome = { mediaPosted: 0, importedCaptions: [], rejected: [] }
@@ -265,6 +278,7 @@ export function createIntakeService(deps: {
       const jobId = newJobId()
       const captionImport = pairable.shift()
       if (captionImport !== undefined) pendingByProbeJobId.set(jobId, captionImport)
+      probeJobIds.add(jobId)
       deps.onMediaProbe?.(file, jobId)
       deps.engine.postMedia({ t: 'probe', jobId, file })
       outcome.mediaPosted += 1
@@ -274,6 +288,10 @@ export function createIntakeService(deps: {
 
   return {
     handleFiles,
+    acceptInjectedProbe(event: MediaEvent): void {
+      if (event.t === 'media:probed') probeJobIds.add(event.jobId)
+      handleProbed(event)
+    },
     async loadSample(): Promise<void> {
       const response = await fetch(SAMPLE_CLIP_URL)
       const bytes = await response.arrayBuffer()

@@ -39,9 +39,10 @@
 import type { AsrEvent, AsrRequest, Device, EngineError, ModelId, PcmChunk, PcmSource } from '@engine/protocol'
 import { transcribe, type EngineSession } from '@engine/asr/transcriber'
 import { runVad, type VadScorer } from '@engine/asr/vad'
-import { MODEL_REGISTRY, getModel } from '@engine/model/registry'
+import { MODEL_REGISTRY, getModel, modelFileUrl } from '@engine/model/registry'
 import { createWhisperEngine, type WhisperEngine, type WhisperLoadProgress } from '@engine/asr/adapters/transformers-whisper'
-import { createSileroScorer } from '@engine/asr/adapters/silero-vad'
+import { createSileroScorer, SILERO_SAME_ORIGIN_URL, SILERO_HF_URL } from '@engine/asr/adapters/silero-vad'
+import { createZipscribeModelCache, modelSpecPresence } from '@engine/model/adapters/browser-cache'
 
 interface DedicatedWorkerScope {
   addEventListener(type: 'message', listener: (event: MessageEvent<AsrRequest>) => void): void
@@ -71,9 +72,104 @@ let loading: { modelId: ModelId; device: Device } | null = null
 let loadedScorer: VadScorer | null = null
 const preConfirmed = new Set<ModelId>()
 let activeCancel: RunCancel | null = null
+// FR-204.2 (unit-204): the jobs contract posts `loadModel` then `transcribe`
+// back-to-back (jobs.ts Technical Specification). The real (non-scripted)
+// lane must therefore absorb a `transcribe` that arrives mid-load: it is
+// queued here and started when the model becomes ready — or failed with the
+// load's coded error when the load fails (never a hang).
+interface PendingTranscribe {
+  request: Extract<AsrRequest, { t: 'transcribe' }>
+  // Collection starts AT QUEUE TIME: the decode tee delivers its chunks and
+  // closes the port while the model is still downloading — a consumer that
+  // only starts listening at flush time would miss the `close` event.
+  samples: Promise<Float32Array>
+}
+const pendingTranscribes = new Map<string, PendingTranscribe>()
+
+function drainPendingTranscribes(): PendingTranscribe[] {
+  const queued = [...pendingTranscribes.values()]
+  pendingTranscribes.clear()
+  return queued
+}
+
+function failPendingTranscribes(code: EngineError['code'], detail: string): void {
+  for (const pending of drainPendingTranscribes()) {
+    pending.samples.catch(() => undefined)
+    post({ t: 'job:error', jobId: pending.request.jobId, error: coded(code, true, detail) })
+  }
+}
+
+/** FR-204.2: the ONE verified model cache (unit-03 verification doctrine via
+ *  `createZipscribeModelCache`, canonical same-origin keys per FR-204.2).
+ *  Downloads happen through it (fetch + SHA-256 on write, re-hash on read),
+ *  so a model used once is offline-ready; loads consult it FIRST. */
+const modelCache = createZipscribeModelCache()
+
+const workerNavigator = (globalThis as unknown as { navigator?: { onLine?: boolean } }).navigator
+
+function isOnline(): boolean {
+  return workerNavigator?.onLine !== false
+}
+
+/** Silero bytes from the verified cache (presence-only read — the pinned
+ *  fallback URL is the logical key; there is no registry row to hash
+ *  against here, same trust model as runtimeWasm). */
+async function cachedSileroBytes(): Promise<Uint8Array | undefined> {
+  try {
+    return await modelCache.matchCached(SILERO_HF_URL, '')
+  } catch {
+    return undefined
+  }
+}
+
+/** Online: cache bytes, else the same-origin mirror (fetched into the cache
+ *  for offline reuse), else undefined (the adapter's own mirror→HF chain
+ *  still gets a chance inside `createSileroScorer`). */
+async function cachedOrMirrorSileroBytes(): Promise<Uint8Array | undefined> {
+  const cached = await cachedSileroBytes()
+  if (cached !== undefined) return cached
+  try {
+    const response = await fetch(SILERO_SAME_ORIGIN_URL)
+    if (!response.ok) return undefined
+    const bytes = new Uint8Array(await response.arrayBuffer())
+    await modelCache.putCached(SILERO_HF_URL, bytes)
+    return bytes
+  } catch {
+    return undefined
+  }
+}
+
+/** FR-204.2 cache-first read for one registry row: every pinned
+ *  `resolve/<revision>` URL is answered from the verified cache (SHA-256
+ *  re-check on read — a corrupt entry simply falls through to the normal
+ *  routing). Non-row URLs return undefined. */
+function verifiedFetchFor(spec: (typeof MODEL_REGISTRY)[string]): (url: string) => Promise<Response | undefined> {
+  return async (url: string) => {
+    const file = spec.files.find((entry) => modelFileUrl(spec, entry) === url)
+    if (file === undefined) return undefined
+    try {
+      const bytes = await modelCache.matchCached(url, file.sha256)
+      return bytes === undefined ? undefined : new Response(bytes)
+    } catch {
+      // CACHE_CORRUPT (entry already evicted by matchCached): re-download
+      // through the ordinary mirror/HF routing.
+      return undefined
+    }
+  }
+}
 
 function post(event: AsrEvent): void {
   scope.postMessage(event)
+}
+
+// Transferred ports arrive on `event.ports`; the `event.data` copy is a
+// neutered placeholder (FR-108.2 stream doctrine, unit-204).
+function restoreStreamPort(request: AsrRequest, transferred: readonly MessagePort[] | undefined): AsrRequest {
+  if (transferred === undefined || transferred.length === 0) return request
+  if (request.t === 'transcribe' && request.pcm.kind === 'stream') {
+    return { ...request, pcm: { ...request.pcm, port: transferred[0] as MessagePort } }
+  }
+  return request
 }
 
 function coded(code: EngineError['code'], retryable: boolean, detail: string): EngineError {
@@ -108,9 +204,35 @@ async function handleLoadModel(request: Extract<AsrRequest, { t: 'loadModel' }>)
   loading = loadingTarget
   let engine: WhisperEngine | null = null
   try {
-    if (spec.approxBytes > CONFIRM_REQUIRED_BYTES && !preConfirmed.has(request.model)) {
+    // FR-204.2 offline contract: presence is answered by the verified cache
+    // (unit-03 doctrine, same-origin keys). Offline + not offline-ready →
+    // coded fast-fail BEFORE any fetch attempt (the domain App lifecycle:
+    // "never a hang"); the main-thread preflight already covers the app
+    // path — this guard also protects direct/scripted lanes. Cache WARMING
+    // (download-on-first-use) happens on the MAIN thread (jobs.ts
+    // warmModelCache) — an online worker load stays the develop streaming
+    // profile (CC-05.2 memory gate).
+    const online = isOnline()
+    const presence = await modelSpecPresence(spec)
+    // The > 100 MB confirm gate is a DOWNSTREAM cost question — ask only
+    // when a fresh download is actually about to start (unit-204: a cached
+    // model must never re-arm the gate; a pending gate with nothing pending
+    // suppresses the popover forever).
+    if (online && !presence && spec.approxBytes > CONFIRM_REQUIRED_BYTES && !preConfirmed.has(request.model)) {
       post({ t: 'model:confirm-required', model: request.model, bytes: spec.approxBytes })
     }
+    if (!online && !presence) {
+      post({ t: 'model:error', model: request.model, error: coded('NETWORK', true, 'offline_model_missing') })
+      failPendingTranscribes('NETWORK', 'offline_model_missing')
+      return
+    }
+    // CC-05.2 (memory gate): an ONLINE load must never materialize model
+    // bytes on the worker JS heap (fetch→arrayBuffer→hash→put, then a full
+    // Uint8Array→Response per file) — it runs develop's streaming profile
+    // through the adapter's own mirror/cache chain. The verified cache stays
+    // the OFFLINE read path (presence-gated above) and is populated by the
+    // main-thread panel/manager ensure paths.
+    const sileroBytes = online ? await cachedOrMirrorSileroBytes() : await cachedSileroBytes()
     engine = await createWhisperEngine(
       {
         repo: spec.repo,
@@ -120,6 +242,7 @@ async function handleLoadModel(request: Extract<AsrRequest, { t: 'loadModel' }>)
         // models-fetch cache dir for the same-origin weights mirror
         // (.cache/models/<registry-id minus '@rev', '_' → '-').
         cacheDir: spec.id.split('@')[0]?.replace(/_/g, '-'),
+        verifiedFetch: verifiedFetchFor(spec),
       },
       (progress: WhisperLoadProgress) => {
         if (progress.status !== 'progress' || progress.received === undefined) return
@@ -136,7 +259,7 @@ async function handleLoadModel(request: Extract<AsrRequest, { t: 'loadModel' }>)
       await engine.dispose()
       return
     }
-    const scorer = await createSileroScorer(engine.createSileroSession)
+    const scorer = await createSileroScorer(engine.createSileroSession, sileroBytes)
     if (loading !== loadingTarget) {
       await engine.dispose()
       return
@@ -146,6 +269,7 @@ async function handleLoadModel(request: Extract<AsrRequest, { t: 'loadModel' }>)
     loadedModel = { modelId: request.model, device: request.device }
     loadedScorer = scorer
     post({ t: 'model:ready', model: request.model, device: request.device })
+    for (const pending of drainPendingTranscribes()) void handleTranscribe(pending.request, pending.samples)
     if (previous !== null) await previous.dispose()
   } catch {
     if (engine !== null) {
@@ -156,6 +280,7 @@ async function handleLoadModel(request: Extract<AsrRequest, { t: 'loadModel' }>)
       }
     }
     post({ t: 'model:error', model: request.model, error: coded('ENGINE_INTERNAL', true, 'model_load_failed') })
+    failPendingTranscribes('ENGINE_INTERNAL', 'model_load_failed')
   } finally {
     if (loading === loadingTarget) loading = null
   }
@@ -167,7 +292,22 @@ async function readPcmSource(pcm: PcmSource): Promise<Float32Array> {
   // tee port; the sender closes it when the decode job completes.
   const chunks = await new Promise<PcmChunk[]>((resolve, reject) => {
     const collected: PcmChunk[] = []
-    pcm.port.onmessage = (event: MessageEvent<PcmChunk>) => collected.push(event.data)
+    // FR-108.2 (unit-204): the tee port carries the whole MediaEvent stream;
+    // accept only sample chunks and resolve on the `job:done`/`end`
+    // terminator — the same doctrine as the engine's PcmChunkStream
+    // (decode.ts). The `close` event stays as a fallback (Chromium does not
+    // reliably dispatch it across dedicated workers).
+    pcm.port.onmessage = (event: MessageEvent<unknown>) => {
+      const data = event.data as { t?: unknown; startSec?: unknown; samples?: unknown } | null
+      if (data === null || typeof data !== 'object') return
+      if (data.t === 'end' || data.t === 'job:done' || data.t === 'job:error') {
+        resolve(collected)
+        return
+      }
+      if (data.t === undefined && typeof data.startSec === 'number' && data.samples instanceof Float32Array) {
+        collected.push({ startSec: data.startSec, samples: data.samples })
+      }
+    }
     pcm.port.onmessageerror = () => reject(new Error('pcm_stream_message_error'))
     pcm.port.addEventListener('close', () => resolve(collected))
     pcm.port.start()
@@ -196,10 +336,17 @@ function pcmChunks(samples: Float32Array): AsyncIterable<PcmChunk> {
   })()
 }
 
-async function handleTranscribe(request: Extract<AsrRequest, { t: 'transcribe' }>): Promise<void> {
+async function handleTranscribe(request: Extract<AsrRequest, { t: 'transcribe' }>, prefetched?: Promise<Float32Array>): Promise<void> {
   const engine = loaded
   const scorer = loadedScorer
   if (engine === null || scorer === null || loadedModel === null) {
+    if (loading !== null) {
+      // A load is in flight for this model (jobs posts loadModel→transcribe
+      // back-to-back): start collecting PCM now, run on `model:ready` /
+      // fail on `model:error`.
+      pendingTranscribes.set(request.jobId, { request, samples: readPcmSource(request.pcm) })
+      return
+    }
     post({ t: 'job:error', jobId: request.jobId, error: coded('MODEL_UNLOADED', true, 'loadModel_first') })
     return
   }
@@ -218,7 +365,7 @@ async function handleTranscribe(request: Extract<AsrRequest, { t: 'transcribe' }
   }
 
   try {
-    const samples = await readPcmSource(request.pcm)
+    const samples = await (prefetched ?? readPcmSource(request.pcm))
     if (runCancel.cancelled) return
     const vadSegments = await runVad(pcmChunks(samples), scorer, { sampleRate: request.sampleRate })
     if (runCancel.cancelled) return
@@ -272,7 +419,7 @@ async function handleTranscribe(request: Extract<AsrRequest, { t: 'transcribe' }
 }
 
 scope.addEventListener('message', (event: MessageEvent<AsrRequest>) => {
-  const request = event.data
+  const request = restoreStreamPort(event.data, event.ports)
   switch (request.t) {
     case 'loadModel':
       void handleLoadModel(request)
@@ -283,15 +430,19 @@ scope.addEventListener('message', (event: MessageEvent<AsrRequest>) => {
     case 'transcribe':
       void handleTranscribe(request)
       return
-    case 'cancel':
+    case 'cancel': {
+      pendingTranscribes.get(request.jobId)?.samples.catch(() => undefined)
+      pendingTranscribes.delete(request.jobId)
       if (activeCancel !== null && activeCancel.jobId === request.jobId) {
         activeCancel.cancelled = true
         // Host-side settle is immediate (worker-host.ts); this loop stops at
         // the next engine-call boundary and emits nothing more (FR-05.6).
       }
       return
+    }
     case 'unload': {
       activeCancel = null
+      failPendingTranscribes('MODEL_UNLOADED', 'unload')
       const doomed = loaded
       loaded = null
       loadedModel = null

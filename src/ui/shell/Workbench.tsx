@@ -27,7 +27,7 @@ import type { ImportReport, IntakeService } from '../../state/services/intake'
 import { isCaptionFileName, isMediaFileName } from '../../state/services/intake'
 import type { CaptionImportPort } from '../../state/services/caption-import'
 import type { EditorApp } from '../../state/history'
-import type { LoadedProject, PersistenceService, RelinkField, SaveState, SaveStateName } from '../../state/services/persistence'
+import type { LoadedProject, PersistenceDeps, PersistenceService, RelinkField, SaveState, SaveStateName } from '../../state/services/persistence'
 import type { RafDriver } from '../../state/services/playback/arbitrator'
 import type { StageController } from '../../app/stage'
 import type { VisualizerRuntime } from '../../app/visualizer-runtime'
@@ -52,6 +52,8 @@ import { CaptionImportDialog } from '../transcript/CaptionImportDialog'
 import { ProjectList } from './ProjectList'
 import { StageMedia } from './StageMedia'
 import { TranscribePopover } from './TranscribePopover'
+import { PwaChrome } from '../pwa/PwaChrome'
+import type { ModelCache } from '../../engine/model/cache'
 import './workbench.css'
 
 /** Slice C editor wiring (EXTENDS the frozen 101 WorkbenchProps — optional, so every frozen 101 mount path is untouched). Unit-103 adds `rafs`: the Timeline panel's repaint driver (the app's ONE rAF loop). Unit-104 slice D adds `captionImport`: the FR-104.9 dialog port (absent → caption drops keep the plain intake path). */
@@ -119,6 +121,13 @@ export interface WorkbenchProps {
    * context) — the tab itself stays Workbench-owned state.
    */
   onTabChange?: (tab: SidebarTab) => void
+  /**
+   * Unit-204 EXTENDS (optional — every frozen mount path is untouched):
+   * FR-204.1/FR-204.4 PWA chrome (Offline chip, ⋯ → Offline models panel,
+   * update toast). The composition root passes the model-cache and
+   * persistence-deps instances; absent, none of the PWA surface mounts.
+   */
+  pwa?: { modelCache: ModelCache; persistenceDeps: PersistenceDeps }
 }
 
 /** The injectable save-state seam of the status-bar indicator (frozen
@@ -568,10 +577,26 @@ export function Workbench(props: WorkbenchProps): ReactNode {
           },
   })
   const jobsState = useSnapshot(jobs)
+  // FR-204 (unit-204): a SUCCESSFUL transcribe/align completion dismisses the
+  // popover (the header button keeps develop's toggle semantics — a job that
+  // errored leaves the popover open so the coded notice + retry affordance
+  // stay visible).
+  const popoverJobRef = useRef<string | null>(null)
+  useEffect(() => {
+    const now = jobsState.running?.jobId ?? null
+    if (popoverJobRef.current !== null && now === null && jobsState.error === null) {
+      setPopoverOpen(false)
+    }
+    popoverJobRef.current = now
+  }, [jobsState.running, jobsState.error])
   const settingsState = useSnapshot(settings)
   const { project: currentProject } = useSnapshot(project)
   const [tab, setTab] = useState<SidebarTab>('subtitles')
   const [popoverOpen, setPopoverOpen] = useState(false)
+  // FR-204.4 (unit-204): the Offline models panel open state lives here so
+  // both the ⋯ menu (PwaChrome) and the TranscribePopover fast-fail
+  // suggestion open the SAME panel. Only reachable when the pwa slot mounts.
+  const [modelsPanelOpen, setModelsPanelOpen] = useState(false)
   // FR-105.4 (US-2.3.3): the ⌘/ shortcuts overlay is Workbench-owned (the
   // frozen seam mounts it when view.shortcuts-overlay dispatches); Esc /
   // backdrop close flows through ShortcutsOverlay's onClose.
@@ -765,6 +790,12 @@ export function Workbench(props: WorkbenchProps): ReactNode {
           }}
         />
         <TierChip tier={jobsState.capability?.tier ?? null} notice={jobsState.tierNotice} />
+        {/* FR-204 (unit-204): the chip/menu sit beside the tier chip per
+            design.md; the panel + toast are fixed overlays so the header
+            never gains height (frozen transcript layout budgets). */}
+        {props.pwa !== undefined && (
+          <PwaChrome jobs={jobs} persistence={props.persistence} modelCache={props.pwa.modelCache} persistenceDeps={props.pwa.persistenceDeps} panelOpen={modelsPanelOpen} onPanelOpen={setModelsPanelOpen} />
+        )}
         <span className="ws-transcribe-wrap">
           <button
             type="button"
@@ -777,7 +808,9 @@ export function Workbench(props: WorkbenchProps): ReactNode {
           >
             Transcribe
           </button>
-          {popoverOpen && currentProject !== null && <TranscribePopover jobs={jobs} jobsState={jobsState} hasCaptions={currentProject.blocks.length > 0} />}
+          {popoverOpen && currentProject !== null && (
+            <TranscribePopover jobs={jobs} jobsState={jobsState} hasCaptions={currentProject.blocks.length > 0} offlineSuggestion={props.pwa !== undefined ? { open: () => setModelsPanelOpen(true) } : undefined} />
+          )}
         </span>
         <button
           type="button"
@@ -888,6 +921,24 @@ export function Workbench(props: WorkbenchProps): ReactNode {
                             }
                           : undefined
                       }
+                    />
+                  )}
+                  {/* FR-204.2 (unit-204, offline.spec CC-204.2): with NO
+                      project open, the persisted project rows are the
+                      offline "open a project" affordance — mounted on the
+                      default tab (an offline reload must not require tab
+                      spelunking). Same ProjectList instance/behaviour as the
+                      Media tab (opens through the onOpenProject seam). */}
+                  {persistence !== undefined && currentProject === null && (
+                    <ProjectList
+                      persistence={persistence}
+                      editor={transport?.app.editor}
+                      onOpen={(projectId, loaded) => {
+                        onOpenProject?.(projectId, loaded)
+                      }}
+                      relinkMismatch={relinkMismatch}
+                      onRelinkKeep={onRelinkKeep}
+                      onRelinkReplace={onRelinkReplace}
                     />
                   )}
                 </div>

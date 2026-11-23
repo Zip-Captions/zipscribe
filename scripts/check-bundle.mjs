@@ -108,3 +108,38 @@ console.log(`check-bundle: initial JS ${(total / 1024).toFixed(1)} KB gzip / bud
 if (total > limit) {
   fail(`initial JS ${(total / 1024).toFixed(1)} KB gzip exceeds the ${(limit / 1024).toFixed(0)} KB budget`)
 }
+
+// FR-204.3 (unit-204): precache budget — parse the REAL generated sw.js
+// precache manifest (workbox generateSW inlines self.__WB_MANIFEST) and
+// measure it against dist on disk: total ≤ 15 MiB, each file ≤ 25 MiB
+// (Cloudflare Pages). The build FAILS above the budget, matching the e2e
+// assertion made against the served sw.js.
+// https://developer.chrome.com/docs/workbox/modules/workbox-build#generatesw
+const PRECACHE_TOTAL_BUDGET_BYTES = 15 * 1024 * 1024
+const PRECACHE_SINGLE_FILE_BUDGET_BYTES = 25 * 1024 * 1024
+const swPath = join(dist, 'sw.js')
+if (!existsSync(swPath)) fail('dist/sw.js not found — vite-plugin-pwa (generateSW) must emit the service worker (FR-204.1)')
+const swSource = readFileSync(swPath, 'utf8')
+const manifestMatch = /self\.__WB_MANIFEST\s*=\s*(\[[\s\S]*?\])/.exec(swSource)
+if (manifestMatch?.[1] === undefined) fail('dist/sw.js embeds no self.__WB_MANIFEST precache manifest')
+const precacheEntries = JSON.parse(manifestMatch[1])
+if (precacheEntries.length === 0) fail('precache manifest is empty (FR-204.2: the app shell must precache)')
+let precacheTotal = 0
+const oversized = []
+for (const entry of precacheEntries) {
+  const rel = String(entry.url).replace(/^\//, '')
+  const file = join(dist, rel)
+  if (!file.startsWith(dist) || !existsSync(file) || !statSync(file).isFile()) {
+    fail(`precache entry ${entry.url} is not present in dist/ — the served URL would 404 (CC-204.5)`)
+  }
+  const size = statSync(file).size
+  if (size > PRECACHE_SINGLE_FILE_BUDGET_BYTES) oversized.push(`${entry.url} (${size} B)`)
+  precacheTotal += size
+}
+if (oversized.length > 0) fail(`precache file(s) exceed the 25 MiB Cloudflare Pages limit (FR-204.3): ${oversized.join(', ')}`)
+if (precacheTotal > PRECACHE_TOTAL_BUDGET_BYTES) {
+  fail(`precache total ${precacheTotal} B exceeds the 15 MiB budget (FR-204.3) — models/wasm must never be precached`)
+}
+console.log(
+  `check-bundle: precache ${(precacheTotal / 1048576).toFixed(2)} MiB / budget 15 MiB, largest ${(Math.max(...precacheEntries.map((e) => statSync(join(dist, String(e.url).replace(/^\//, ''))).size)) / 1048576).toFixed(2)} MiB (FR-204.3)`,
+)
