@@ -6,16 +6,16 @@ Status: complete — branch `ai-dlc/styling-and-export/unit-204-pwa-offline` @ `
 
 Pasted from `reports/criteria/unit-204-pwa-offline.md` (`pnpm verify:unit --from-branch` — ALL pass):
 
-| ID | level | tests | result |
-|---|---|---|---|
-| CC-204.1 | untagged | 5 | pass |
-| CC-204.2 | untagged | 7 | pass |
-| CC-204.3 | untagged | 1 | pass |
-| CC-204.4 | untagged | 3 | pass |
-| CC-204.5 | untagged | 2 | pass |
-| CC-204.6 | untagged | 5 | pass |
-| CC-204.7 | untagged | 4 | pass |
-| CC-204.8 | untagged | 1 | pass |
+| ID       | level    | tests | result |
+| -------- | -------- | ----- | ------ |
+| CC-204.1 | untagged | 5     | pass   |
+| CC-204.2 | untagged | 7     | pass   |
+| CC-204.3 | untagged | 1     | pass   |
+| CC-204.4 | untagged | 3     | pass   |
+| CC-204.5 | untagged | 2     | pass   |
+| CC-204.6 | untagged | 5     | pass   |
+| CC-204.7 | untagged | 4     | pass   |
+| CC-204.8 | untagged | 1     | pass   |
 
 No `[RQ]`, `[DEPLOY]` or `[MANUAL]` criteria exist for this unit (the criteria report shows every row untagged), so none are listed.
 
@@ -35,6 +35,7 @@ No `[RQ]`, `[DEPLOY]` or `[MANUAL]` criteria exist for this unit (the criteria r
 - (c) The two frozen adversary unit specs (`src/ui/pwa/use-sw-update.adversarial.test.ts`, `use-online-status.adversarial.test.ts`) added to `.prettierignore`: author-owned byte-identical test-tree precedent (`tests/`, `e2e/`, `qualify/` already excluded); `use-sw-update.adversarial.test.ts` is prettier-dirty as committed and must not be reformatted.
 - (d) V2 fix harness mode: `OfflineModelsPanel` now routes every panel download through `createModelManager` (noop adapter — download+verify only) so unit-03's `model:confirm-required` >100 MB gate genuinely holds until `model-download-confirm-button` is clicked; under strict `ziptest=1` the confirm auto-accepts so frozen deterministic flows (CC-204.6 ensure→Remove ≤120 s, no confirm click) stay byte-behaviour. Production path is gated — proven by the frozen-in `adversarial-persist-confirm` spec (`confirmed || offsite === 0`).
 - (e) V4 fix: `use-online-status` event paths use `flushSync` — a one-time observed race between React's scheduler and the frozen tests' `setTimeout(0)` flush; chip toggles are now synchronous with the window event. Each `NETWORK` error object is consumed once (identity latch) and `online` consumes the stale occurrence; a fresh model-host failure while `onLine` still latches.
+- (g) **Transcript-text derivation (review r1, finding 6):** `src/engine/asr/adapters/transformers-whisper.ts:229-237` — `transcribeWindow` builds `WindowOutput.text` as the sorted word-chunks joined on single spaces instead of passing the pipeline's top-level `text`. Rationale (in-code, pinned): FR-05.5 makes word-level timing the source of truth, and the app-wide CaptionBlock invariant enforced by the captions-import validator requires `text === words.join(' ')`; the 3.8.1 pipeline's loose `text` can differ in whitespace/punctuation glue and would fail validation or desync text from its own word stream. Behaviour change vs `develop` on the real lane only (word-native rows); the invariant is enforced downstream by the captions validator suites (`tests/unit/captions/**`, `tests/unit/asr/blockize.property.test.ts`) and the adapter runs for real in the `e2e/asr` L4 specs (`tiny-smoke`, `longtask`) against the local model cache.
 - (f) **FLAG — HITL owner review required (unit Risks):** SW update is implemented as flush → `unregister()` + `location.reload()` (the "Later" + next-visit swap) rather than workbox `skipWaiting()` activation; the builder observed Chromium not completing skipWaiting activation. The Workbox config (`registerType: 'prompt'`, `injectRegister: false`, `devOptions.enabled: false`) should be reviewed by the owner against vite-plugin-pwa docs before release.
 - Tooling note (process, not spec): `pnpm format` (write) rewrites frozen adversary files — forbidden this unit; only `format:check` used. `pnpm dev -- --port 4322` forwards a literal `--` to vite (binds 5173); use `pnpm dev --port 4322`.
 
@@ -58,6 +59,8 @@ None outside `settings.yml` `approved_dependencies`. `vite-plugin-pwa` is unit-s
 
 - **Caption-translation intent — `verify:intent` gap** (NOT this unit): morning item for the orchestrator; this branch does not touch it.
 - **Screenshot provenance:** `public/screenshots/` are generated deterministically from design tokens (not hand-drawn art) — record in product docs so future designers regenerate via the fixture pipeline rather than editing PNGs.
+- **Workbox upgrade watch (review r1, finding 7):** `pwa.config.ts:102` keeps `cleanupOutdatedCaches: false` (measured: the activate-time sweep never settles while the app holds IndexedDB activity — it deadlocks `skipWaiting`). Re-verify the workbox precache cache sweep on any workbox major upgrade: outdated PRECACHE entries are still pruned at install by the precache controller, but the cross-workbox-version cache sweep is skipped — a future major bump must re-measure whether the sweep can be re-enabled (or leaks stale `precache-v*` caches across upgrades).
+- **`public/samples/` is a deliberate qualification-hash input (review r1, corrected after a misdiagnosis):** `scripts/lib/qualification-hash.ts` scopes `public/**` minus its `GENERATED_PUBLIC_DIRS` list, and `samples/` is intentionally NOT in that list — `copySamples` copies `fixtures/speech-2min.mp4` byte-exactly, the vite `buildStart`/`configureServer` hooks materialize it on `pnpm build` **and on vitest boot**, and the frozen `CC-02.5` qualification tests re-materialize it from fixtures and expect it in scope. So a qualification record must be signed on a tree WITH `public/samples/speech-2min.mp4` present (`pnpm build` or `node scripts/copy-samples.ts` first). An early r1 re-sign without it recomputed to a different hash and was rejected by those tests; the accepted r1 record is `aee14afc…` (built tree, HEAD-canonical). Process trap to avoid: never `rm -rf public/samples` while iterating — the existsSync-skip in `qualificationInputFiles` then silently changes the hash and the four `CC-02.5` tests fail for the wrong reason (verified diagnostic: a clean `e7b9191` worktree + `pnpm build` recomputes exactly the committed `7513dc0d…`, i.e. the original sign was never stale).
 - Product backlog seeds for `knowledge/product.md`: (1) owner review of Workbox `skipWaiting` config per Deviation (f); (2) a shared `expect.fail` shim/typing so future adversarial specs stay inside tsc; (3) models-panel affordance for per-route cache-usage observability (extend the existing precache audit).
 
 ## OBSERVED — MVP exit gate (SPEC-GUIDE § Build order)
@@ -66,19 +69,82 @@ Commands run at head `01b5149`; codes/numbers only (SECURITY-03 — no user cont
 
 Production build (`corepack pnpm build && corepack pnpm preview --port 4321`, killed after):
 
-| path | code | content-type | Cache-Control |
-|---|---|---|---|
-| `/` | 200 | text/html | `no-store` |
-| `/sw.js` | 200 | text/javascript | `public, max-age=0, must-revalidate` |
-| `/manifest.webmanifest` | 200 | application/manifest+json | `public, max-age=0, must-revalidate` |
-| `/assets/asr.worker-D0lsdpI_.js` | 200 | — | `public, max-age=31536000, immutable` |
+| path                             | code | content-type              | Cache-Control                         |
+| -------------------------------- | ---- | ------------------------- | ------------------------------------- |
+| `/`                              | 200  | text/html                 | `no-store`                            |
+| `/sw.js`                         | 200  | text/javascript           | `public, max-age=0, must-revalidate`  |
+| `/manifest.webmanifest`          | 200  | application/manifest+json | `public, max-age=0, must-revalidate`  |
+| `/assets/asr.worker-D0lsdpI_.js` | 200  | —                         | `public, max-age=31536000, immutable` |
 
 Dev server (`corepack pnpm dev --port 4322`, killed after; note: `pnpm dev -- --port 4322` forwarded the literal `--` to vite, which then bound its default 5173 — flag passed directly instead):
 
-| check | result |
-|---|---|
-| `GET /` | 200, text/html |
-| `GET /sw.js` | 200 with `content-type: text/html`, body `<!doctype html>…` — **not a service-worker script**: vite's SPA fallback answers every unmatched path this way (control `GET /definitely-not-a-route.js` → 200 text/html too) |
+| check        | result                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /`      | 200, text/html                                                                                                                                                                                                                                                                                                                                                                                      |
+| `GET /sw.js` | 200 with `content-type: text/html`, body `<!doctype html>…` — **not a service-worker script**: vite's SPA fallback answers every unmatched path this way (control `GET /definitely-not-a-route.js` → 200 text/html too)                                                                                                                                                                             |
 | no SW in dev | enforced structurally: `devOptions.enabled: false` (vite-plugin-pwa emits no `sw.js` in dev), `injectRegister: false`, and the sole registration entry `src/ui/pwa/register.ts:72` returns early on `!import.meta.env.PROD`. The brief's "must 404" is the static-server expectation; on vite's SPA-fallback server the observable equivalent (no SW asset served, no registration possible) holds. |
 
 Offline/chip/project-load behaviour is proven by the `e2e/pwa` suite (36 passed — incl. `offline.spec.ts` zero-network audit and `adversarial-*`), cited not re-run.
+
+## Review round 1 — resolutions (fixer pass, HEAD `240202f`+sign)
+
+Nine findings; each fixed or dispositioned. Authorized test edits executed exactly as
+permitted — `git diff e7b9191..HEAD -- e2e/pwa tests/unit/pwa` returns **only** the three
+authorized files (`adversarial-persist-confirm.spec.ts`, `update.spec.ts`,
+`models-panel.spec.ts`; the last comment-only). No other test touched, no assertion
+weakened (both spec edits strengthen).
+
+1. **B1 format red** — fixed: report + this round's builder-owned files
+   (`OfflineModelsPanel.tsx` was prettier-dirty from its seeding edit) through
+   `prettier --write`; `format:check` tail below.
+2. **M2 ci-registry missing `whisper-base-timestamped`** — fixed. Row added to
+   `models/ci-registry.json`, pins byte-identical to `eval-registry.json`/`registry.ts`
+   (two transcription typos in the r1 brief's SHAs corrected against the local cache
+   bytes). The row carries **`"seeding": false`** (provision-only): the panel's
+   `mirrorSeedable` now skips such rows so the 211 MB confirm-gated model is never
+   imported into the browser cache without the user asking (unit-03 gate owner). CI
+   evidence (both legs run): moved-out bytes → frozen `models-panel.spec.ts` RED at
+   :98 exactly as the reviewer proved; `corepack pnpm models:fetch` →
+   `6 model(s) ready — 12 fetched, 29 already cached`, decoder sha `fc1902ce…` verified
+   against the pin, quarantine cleaned; bytes restored → `5 passed (15.8s)`.
+3. **M3 warm re-download + pre-confirm > 100 MB** — fixed in `src/state/jobs.ts`: the
+   FR-204.2 online warm now consults `warmDisposition` — `cached` (verified presence →
+   no fetch at all, per-run), `warm` (≤ `LARGE_DOWNLOAD_CONFIRM_BYTES` or already
+   confirmed this session), `defer` (large + unconfirmed → no bytes until
+   `confirmModelDownload` releases it **or** the gate-owner load completes and relays
+   `model:ready`, which releases the deferred warm without re-imposing the gate).
+   Reuses the gate owner's constant (`engine/model/manager`), no gate logic duplicated.
+   New `src/state/jobs-warm.test.ts` — 4 tests passing (presence short-circuit,
+   pre-confirm zero fetches, confirm release, `model:ready` release). The
+   `model:ready` release exists because the frozen harness's `startTranscription`
+   `isVisible()` check is instant — confirm is never clicked in the frozen CC-204.2
+   warm run; releasing only on user click made that frozen spec fail (observed).
+   `e2e/pwa/offline.spec.ts` `8 passed` incl. the ZERO-network warm audit.
+4. **m4 either/or confirm assertion non-binding** — fixed (authorized edit): the
+   > 100 MB panel spec now asserts `offsiteFetches == 0` before confirm and
+   > `expect.poll(offsiteFetches > 0)` after clicking `model-download-confirm-button` —
+   > the mutation the reviewer survived (mirror-only path) cannot pass this. Passing.
+5. **m5 vacuous waiting-SW assertion** — fixed (authorized edit):
+   `update.spec.ts:141` asserts the registration object itself
+   (`getRegistration())?.waiting … not.toBeNull()`), replacing `!== null` on an
+   `evaluate`d value that was never null. Passing.
+6. **m6 undeclared text-derivation change** — documented: Deviations (g) added
+   (`transformers-whisper.ts:229-237` transcript text derived from `words` join on the
+   word-native real lane; FR-05.5; invariant enforced downstream by
+   `tests/unit/captions/**` + `tests/unit/asr/blockize.property.test.ts`; adapter
+   exercised for real in `e2e/asr` L4 specs).
+7. **m7 `cleanupOutdatedCaches: false`** — Follow-ups bullet added (workbox major-bump
+   re-verification of the precache sweep).
+8. **m8 preview mirror-miss should 404** — fixed: `vite.config.ts` model-mirror
+   middleware answers unmatched `/.cache/models/*` with 404 `model mirror miss`
+   (SPA-fallback HTML 200 was being adopted by `createMirrorFetch` and rejected later
+   as `CACHE_CORRUPT` — honest 404 keeps the fallthrough path observable).
+9. **i9 comment drift** — fixed (authorized, comment-only): `models-panel.spec.ts:21`
+   now describes whisper-base as CI-provisioned via the provision-only ci-registry row.
+
+Qualification re-signed for the post-r1 tree: `8/8 RQ criteria pass`,
+`contentHash aee14afc75ba…`, `qualification-check: ACCEPT`. Initial clean-parity sign
+(`samples` absent) was correctly REJECTED by the frozen CC-02.5 tests — `public/samples`
+is a deliberate deterministic hash input (see corrected Follow-ups bullet); the
+`e7b9191` record was verified never stale (clean worktree + build recomputes
+`7513dc0d…` exactly).
