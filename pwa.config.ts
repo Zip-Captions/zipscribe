@@ -106,7 +106,15 @@ export const pwaOptions: Partial<VitePWAOptions> = {
     // strands the update toast's Reload click (unit-204 finding).
     runtimeCaching: [
       {
-        urlPattern: ({ sameOrigin, url }) => sameOrigin && url.pathname.startsWith('/wasm/'),
+        // FR-204.2 denylist doctrine: `/wasm/` is denylisted for NAVIGATION
+        // (navigateFallbackDenylist), but a runtime route is evaluated for
+        // EVERY matching request — and a navigation is a request. Without the
+        // mode/destination guard a `GET /wasm/<missing>.wasm` navigation hits
+        // the server's SPA fallback, and CacheFirst caches/serves that HTML
+        // as "wasm" (poisoned offline). The urlPattern callback receives
+        // RouteMatchCallbackOptions ({url, request, sameOrigin}):
+        // https://developer.chrome.com/docs/workbox/reference/workbox-routing/#type-routematchcallback
+        urlPattern: ({ sameOrigin, url, request }) => sameOrigin && url.pathname.startsWith('/wasm/') && request.mode !== 'navigate' && request.destination !== 'document',
         handler: 'CacheFirst',
         options: {
           cacheName: 'zipscribe-wasm',

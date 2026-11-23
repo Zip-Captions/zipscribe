@@ -23,10 +23,13 @@
 //
 // SECURITY-03: rows render registry ids/sizes and failure CODES only.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { MODEL_REGISTRY } from '../../engine/model/registry'
+import type { EngineKind } from '../../engine/model/registry'
 import { modelSpecPresence, seedSpecFromMirror } from '../../engine/model/adapters/browser-cache'
+import { createModelManager, type AdapterFactory, type ModelManagerEvent } from '../../engine/model/manager'
+import type { Capabilities } from '../../engine/model/capability'
 import type { ModelCache } from '../../engine/model/cache'
 import type { CachedEntry } from '../../engine/model/cache'
 import type { PersistenceDeps } from '../../state/services/persistence'
@@ -39,6 +42,16 @@ export interface OfflineModelsPanelProps {
 
 /** FR-204.5: persist() on the FIRST explicit download, once per session. */
 let persistOnFirstDownloadDone = false
+
+/** US-204.3: the panel downloads through unit-03's model manager so the
+ *  > 100 MB `model:confirm-required` gate holds the sequence — the manager
+ *  is the ONE confirm gate owner (no re-implementation here). This instance
+ *  never loads an engine: the adapter factory is a no-op double (download +
+ *  verify only), and the capability snapshot only needs to pass the tier
+ *  selector (T2 — the download path is device-agnostic). */
+const DOWNLOAD_ONLY_CAPABILITIES: Capabilities = { tier: 'T2', webgpuAdapter: false, wasmSimd: true, audioDecoder: true, audioEncoder: true, videoEncoder: true, deviceMemGB: null, online: true, reasons: [] }
+const NOOP_ADAPTER: AdapterFactory = () => ({ load: () => Promise.resolve(), invoke: () => Promise.resolve(), unload: () => Promise.resolve() })
+const DOWNLOAD_ADAPTERS: Partial<Record<EngineKind, AdapterFactory>> = { 'transformers-whisper': NOOP_ADAPTER, 'sherpa-wasm': NOOP_ADAPTER, 'cactus-whistle': NOOP_ADAPTER }
 
 function formatBytes(bytes: number): string {
   if (bytes >= 1_000_000_000) return `${(bytes / 1_000_000_000).toFixed(1)} GB`
@@ -76,6 +89,26 @@ export function OfflineModelsPanel({ modelCache, persistenceDeps, onClose }: Off
   const [busy, setBusy] = useState<string | null>(null)
   const [estimate, setEstimate] = useState<{ usage: number; quota: number } | null>(null)
   const [persistGranted, setPersistGranted] = useState<boolean | null>(null)
+  const [pendingConfirm, setPendingConfirm] = useState<{ model: string; bytes: number } | null>(null)
+
+  const manager = useMemo(
+    () =>
+      createModelManager({
+        cache: modelCache,
+        adapters: DOWNLOAD_ADAPTERS,
+        capabilities: () => Promise.resolve(DOWNLOAD_ONLY_CAPABILITIES),
+        emit: (event: ModelManagerEvent) => {
+          if (event.t === 'model:confirm-required') setPendingConfirm({ model: event.model, bytes: event.bytes })
+        },
+      }),
+    [modelCache],
+  )
+  useEffect(
+    () => () => {
+      manager.cancelLoad()
+    },
+    [manager],
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -107,7 +140,14 @@ export function OfflineModelsPanel({ modelCache, persistenceDeps, onClose }: Off
 
   const ensure = (id: string): void => {
     run(id, async () => {
-      await modelCache.ensureOffline(id)
+      // US-204.3 (unit-204): route through the manager so a > 100 MB model
+      // holds at the model:confirm-required gate (zero bytes fetched until
+      // "Download and continue") — the unit-03 gate owner, not a re-run of
+      // the threshold logic. Under the strict `ziptest=1` harness gate the
+      // confirm is auto-accepted (same doctrine as the export harness's
+      // save-file-picker suppression — deterministic frozen flows).
+      const ziptest = new URLSearchParams(globalThis.window?.location.search ?? '').get('ziptest') === '1'
+      await manager.loadModel(id, ziptest ? { confirmed: true } : undefined)
       if (!persistOnFirstDownloadDone) {
         persistOnFirstDownloadDone = true
         // FR-204.5: a downloaded model is pointless if the browser can
@@ -116,6 +156,12 @@ export function OfflineModelsPanel({ modelCache, persistenceDeps, onClose }: Off
         void persistenceDeps.requestPersist().then(setPersistGranted)
       }
     })
+  }
+
+  const close = (): void => {
+    manager.cancelLoad()
+    setPendingConfirm(null)
+    onClose()
   }
 
   const remove = (id: string): void => {
@@ -130,7 +176,7 @@ export function OfflineModelsPanel({ modelCache, persistenceDeps, onClose }: Off
     <div data-testid="offline-cache-panel" role="dialog" aria-label="Offline models" className="ws-offline-panel">
       <div className="ws-offline-panel-head">
         <h2 className="ws-offline-panel-title">Offline models</h2>
-        <button type="button" data-testid="offline-models-close" className="ws-button" onClick={onClose}>
+        <button type="button" data-testid="offline-models-close" className="ws-button" onClick={close}>
           Close
         </button>
       </div>
@@ -160,6 +206,24 @@ export function OfflineModelsPanel({ modelCache, persistenceDeps, onClose }: Off
             )
           })}
         </ul>
+      )}
+      {pendingConfirm !== null && (
+        <div data-testid="model-download-confirm" role="alertdialog" aria-label="Model download confirmation" className="ws-confirm">
+          <p className="ws-confirm-copy">
+            {pendingConfirm.model} is not cached yet — {Math.round(pendingConfirm.bytes / 1_000_000)} MB downloads on first use.
+          </p>
+          <button
+            type="button"
+            data-testid="model-download-confirm-button"
+            className="ws-button ws-button-primary"
+            onClick={() => {
+              manager.confirmDownload(pendingConfirm.model)
+              setPendingConfirm(null)
+            }}
+          >
+            Download and continue
+          </button>
+        </div>
       )}
       <p className="ws-offline-panel-copy">{estimate === null ? 'Storage estimate…' : `Estimated device storage: ${formatBytes(estimate.usage)} of ${formatBytes(estimate.quota)}`}</p>
       <div className="ws-offline-persist-row">

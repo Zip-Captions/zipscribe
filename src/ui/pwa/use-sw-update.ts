@@ -38,7 +38,14 @@ export function useSwUpdate(persistence: PersistenceService | undefined): SwUpda
     const workbox = getPwaWorkbox()
     if (workbox === undefined) return
     const onWaiting = (event: { isUpdate?: boolean }): void => {
-      if (event.isUpdate === true) setWaiting(true)
+      // workbox-window fires `waiting` (isUpdate true) PER newly waiting
+      // worker (https://developer.chrome.com/docs/workbox/modules/workbox-window/):
+      // a "Later" dismissal belongs to the PREVIOUS worker — a new
+      // deployment's waiting worker must toast again (US-204.4 line 32).
+      if (event.isUpdate === true) {
+        setDismissed(false)
+        setWaiting(true)
+      }
     }
     const onControlling = (): void => {
       // The only reload path (US-204.4 "never auto-reloads"): we asked, it

@@ -36,5 +36,14 @@
     "e2e/**/*.ts",
     "models/ci-registry.json"
   ],
-  "exclude": ["tests/fixtures"]
+  "exclude": [
+    "tests/fixtures",
+    // unit-204 adversary: uses `expect.fail` (no such member on Playwright's
+    // Expect TYPE ALIAS — not augmentable; and undefined at runtime in
+    // @playwright/test 1.64.1, only ever reached on a violation path) plus
+    // `JSON.parse(match![1])` under noUncheckedIndexedAccess. Frozen spec —
+    // excluded from tsc ONLY; Playwright still transpiles and runs it in
+    // full, verdicts unchanged (assumptions in the unit report).
+    "e2e/pwa/adversarial-headers.spec.ts"
+  ]
 }
