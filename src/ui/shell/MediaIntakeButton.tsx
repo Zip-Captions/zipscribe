@@ -58,8 +58,20 @@ export function MediaIntakeButton({ label, onFiles, testId }: MediaIntakeButtonP
       <button
         type="button"
         className="ws-button"
-        onClick={() => {
-          inputRef.current?.click()
+        onClick={(event) => {
+          const open = (): void => {
+            inputRef.current?.click()
+          }
+          // Keyboard activation (detail === 0 — Enter/Space, no pointer) opens
+          // the picker on the NEXT task: Chromium can silently drop a file
+          // dialog whose open races a consumer's async chooser interception
+          // (observed as a lost Playwright `filechooser` event under parallel
+          // load — Enter-activation click + immediate click() lost ~2%,
+          // task-deferred 0/200). The one-task deferral stays inside the
+          // transient-activation window; mouse clicks (detail > 0) open
+          // synchronously (proven race-free).
+          if (event.detail === 0) setTimeout(open, 0)
+          else open()
         }}
       >
         {label}
