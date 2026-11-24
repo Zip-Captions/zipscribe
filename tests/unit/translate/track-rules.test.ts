@@ -80,6 +80,53 @@ describe('FR-301.4: REAL invariant-10 hooks (deterministic cases)', () => {
     expect(track.entries['blk_d2'], 'no entry fabrication').toBeUndefined()
   })
 
+  // block-split.ts calls onBlockSplit(project, block.id, first.id, secondId)
+  // with first.id === block.id (the first part KEEPS the source id — the
+  // command's only shape). The handler must survive that key aliasing: the
+  // preserved first-part entry must not be destroyed by the source-key delete.
+  test('CC-301.2: identical-id split (block-split.ts real shape, sourceId === firstId) keeps the first part entry and seeds the empty stale second', () => {
+    const p = seeded()
+    REAL_TRANSLATION_RULES.onBlockSplit(p, 'blk_a', 'blk_a', 'blk_a2')
+    const track = p.translations[0]!
+    expect(track.entries['blk_a'], 'aliased source key must NOT be deleted out from under the first part').toEqual({ text: 'alpha', status: 'translated', sourceHash: 'wrong-a' })
+    expect(track.entries['blk_a2'], 'second part gets the empty stale entry').toEqual({ text: '', status: 'translated', sourceHash: STALE_HASH })
+    expect(isStale(track.entries['blk_a']!, 'alpha beta'), 'part text changed ⇒ derived stale (hash mismatch, entry un-re-stamped)').toBe(true)
+  })
+
+  test('CC-301.2: identical-id split preserves `edited` status and the reviewed hash verbatim (T3 b3 shape)', () => {
+    const p = seeded()
+    REAL_TRANSLATION_RULES.onBlockSplit(p, 'blk_c', 'blk_c', 'blk_c2')
+    const track = p.translations[0]!
+    expect(track.entries['blk_c'], 'edited entry survives the aliased split untouched').toEqual({ text: 'charlie', status: 'edited', sourceHash: 'wrong-c' })
+    expect(track.entries['blk_c2']).toEqual({ text: '', status: 'translated', sourceHash: STALE_HASH })
+  })
+
+  test('CC-301.2: identical-id split of a never-translated block fabricates nothing', () => {
+    const p = seeded()
+    REAL_TRANSLATION_RULES.onBlockSplit(p, 'blk_d', 'blk_d', 'blk_d2')
+    const track = p.translations[0]!
+    expect(track.entries['blk_d']).toBeUndefined()
+    expect(track.entries['blk_d2'], 'no entry fabrication').toBeUndefined()
+  })
+
+  // block-merge.ts calls onBlockMerge(project, left.id, [leftId, rightId]) —
+  // mergedId === sourceIds[0]. The concatenated entry must land on the merged
+  // id even though that id is also a deleted source key.
+  test('CC-301.2: merge with mergedId equal to a source id (block-merge.ts real shape) lands the concatenated stale entry on the merged id', () => {
+    const p = seeded()
+    REAL_TRANSLATION_RULES.onBlockMerge(p, 'blk_a', ['blk_a', 'blk_c'])
+    const track = p.translations[0]!
+    expect(track.entries['blk_a'], 'merged id is its own source key — result must not be deleted').toEqual({ text: 'alpha charlie', status: 'edited', sourceHash: STALE_HASH })
+    expect(track.entries['blk_c'], 'other source key consumed').toBeUndefined()
+  })
+
+  test('CC-301.2: merge with mergedId equal to a source id keeps its text alone when the other source is entry-less', () => {
+    const p = seeded()
+    REAL_TRANSLATION_RULES.onBlockMerge(p, 'blk_c', ['blk_c', 'blk_x'])
+    const track = p.translations[0]!
+    expect(track.entries['blk_c']).toEqual({ text: 'charlie', status: 'edited', sourceHash: STALE_HASH })
+  })
+
   test('CC-301.2: merge space-joins entries, preserves `edited` and marks stale; entry-less sources create nothing', () => {
     const p = seeded()
     p.blocks.push({ id: 'blk_m', start: 10, end: 12, text: 'merged', speakerId: 'SPK_1', words: [] })
