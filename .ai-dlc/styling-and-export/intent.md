@@ -1,9 +1,9 @@
 ---
-status: pending
+status: in_progress   # units 200–202/204 done; open work = CC-I3.* closure legs (e2e/intent suite, UNCOVERED per 2026-11-24 verify:intent audit), owner sign-offs, and the phase-2 Cloudflare items behind the MVP gate below
 workflow: default
 created: 2026-10-27
 passes: [design, dev]
-active_pass: "design"
+active_pass: "dev"
 announcements: [changelog, release-notes, social-posts]
 ---
 
@@ -51,8 +51,11 @@ Maps to Epic 3 (US 3.1–3.2) of the original brief; corrects its mp4-muxer choi
 | unit-202-export | dev | frontend | unit-201, local-transcribe-engine/unit-03, local-transcribe-engine/unit-07 |
 | unit-203-production-deploy | dev | devops | unit-202, caption-studio-ui/unit-106 |
 | unit-204-pwa-offline | dev | frontend | unit-200, unit-202, local-transcribe-engine/unit-03, caption-studio-ui/unit-106 |
+| unit-205-intent-closure-suite | dev | frontend | unit-200, unit-201, unit-202, unit-204 |
 
 **Phasing (owner decision 2026-10-31):** units 200–202 + 204 are `phase: mvp` — all provable locally (`vite preview`, Playwright, CDP), no external accounts. unit-203 is `phase: production`: it and this intent's `[DEPLOY]` criteria (CC-I3.9) plus unit-01's deferred CC-01.14/15/16 are gated on Cloudflare credentials and run only after every MVP unit is complete (`.agent/SPEC-GUIDE.md` § Build order). The intent `status` may only flip to `complete` once the phase-2 criteria pass on real deploys.
+
+**MVP validation gate before deployment (owner ruling 2026-11-24, `knowledge/product.md` § Roadmap):** no Cloudflare consideration (unit-203, CC-I3.9, CI deploy jobs, secrets) until the local MVP is proven end-to-end — per-story coverage audit (`reports/us-coverage.md`), this intent's closure suite green lead-citing CC-I3.1–.8/.10, `verify:intent` exit 0, owner sign-offs from the 2026-11-23 evidence run settled, and the local-media-intake gap dispositioned.
 
 ## Risks
 
