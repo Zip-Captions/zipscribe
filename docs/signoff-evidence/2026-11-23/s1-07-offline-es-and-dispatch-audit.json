@@ -1,0 +1,18 @@
+{
+  "leg": "S1 steps 8–9 — offline translation legs + dispatch audit",
+  "offlineMechanism": "dead origin (server on 4321 killed before reload; curl-verified dead)",
+  "esRun": {
+    "status": "Complete",
+    "getTranslationEntryCount": 48,
+    "entry": "picker Add → Downloading… → Translating… 1/48 → 48/48 → Complete (52 statusLog entries)",
+    "chromeModelPack": "browser-internal Translator component (app dispatched nothing; see audit)"
+  },
+  "dispatchAudit": {
+    "baselineBeforeRun": { "resourceEntries": 21, "huggingface": 0, "origin4321": 21 },
+    "afterRun": { "resourceEntries": 21, "huggingface": 0, "origin4321": 21 },
+    "newEntriesDuringRun": 0,
+    "baselineComposition": "SW-served shell assets/fonts/bridges/workers + 2 failed media fetches (ERR_CONNECTION_REFUSED logged at dead origin — expected, media not needed for translation)"
+  },
+  "frAvailabilityOffline": "picker probe reported fr=ready, es=download with origin dead — availability probe is browser-internal (Translator API availability), not app network",
+  "screenshots": ["s1-05-translation-view-es-offline.png", "s1-06-languages-es-complete-offline.png"]
+}

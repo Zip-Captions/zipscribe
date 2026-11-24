@@ -1,0 +1,19 @@
+{
+  "leg": "S1 ONLINE pass (warms Chrome model cache for offline legs)",
+  "browser": "Chrome 158 (MCP-managed, fallback — no debuggable Chrome on 9222)",
+  "seed": "48 placeholder blocks (A.1), project language en",
+  "fr": { "status": "Complete", "getTranslationEntryCount": 48, "blockCount": 48 },
+  "progressWitness": "Downloading… → Translating… 1/48 … 48/48 → Complete (see statusLog; codes/numbers only)",
+  "statusLog": [
+    { "t": 151912, "s": "Downloading…", "prog": "0/1", "live": "French Downloading…" },
+    { "t": 157002, "s": "Translating…", "prog": "0/1", "live": "French Translating…" },
+    { "t": 157033, "s": "Translating…", "prog": "1/48", "live": "French Translating… 2%" },
+    { "t": 157409, "s": "Translating…", "prog": "26/48", "live": "French Translating… 54%" },
+    { "t": 157765, "s": "Translating…", "prog": "48/48", "live": "French Translating… 100%" },
+    { "t": 157765, "s": "Complete", "prog": null, "live": "" }
+  ],
+  "statusLogLen": 52,
+  "note": "statusLog truncated to representative rows; full trace observed 1/48→48/48 monotonic in 52 entries",
+  "onlinePhaseRequests": { "huggingface": 0, "origin4321": 21 },
+  "screenshot": "s1-01-languages-fr-online.png"
+}

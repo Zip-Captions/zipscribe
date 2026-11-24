@@ -1,0 +1,22 @@
+{
+  "observation": "No affordance to add a media file from the local device (no file picker, no Browse/Upload button). Media intake is drag-and-drop only.",
+  "reportedBy": "owner (observed in own browser during sign-off run)",
+  "agentVerification": "confirmed independently in code + live app",
+  "liveProbe": {
+    "firstRunStageButtons": [{ "text": "Try a sample clip", "testid": "sample-clip-button" }],
+    "pageFileInputs": [{ "type": "file", "accept": ".srt,.vtt,.ass,.ssa", "testid": "translation-file-input", "purpose": "translation import — NOT media" }],
+    "mediaTabButtonsProjectOpen": ["Open", "Duplicate", "Delete", "New project"],
+    "browseLikeButtonsAnywhere": []
+  },
+  "codeEvidence": [
+    "src/ui/shell/Workbench.tsx:450-483 — DropZone: onDrop handler + 'Drop a video or audio file to begin' + 'Try a sample clip' button; no click-to-pick path",
+    "src/ui/shell/Workbench.tsx:983-995 — DropZone mount (currentProject === null); sample path is intake.loadSample() (bundled clip, failure code SAMPLE_FAILED), not a picker",
+    "src/ui/shell/Workbench.tsx:1041-1043 — the ONLY <input type=\"file\"> in the UI is translation-file-input (accept .srt/.vtt/.ass/.ssa)",
+    "src/ui/shell/Workbench.tsx:365 — Media-tab empty state copy is drop-only: 'No media loaded. Drop a video or audio file to begin.'",
+    "src/ui/shell/ProjectList.tsx:225-234 — 'New project' only creates an empty row; media still arrives by drop",
+    "src/app/context.ts:477 — persistenceDeps.openFilePicker() exists but is reachable ONLY from the media relink keep/replace flow (fingerprint mismatch), never as an add-media entry point"
+  ],
+  "screenshots": ["obs-01-firstrun-dropzone.png", "obs-02-dropzone-closeup.png"],
+  "impact": "drag-and-drop is the sole local-media path — undiscoverable for pointer users who do not try dragging, and impossible via keyboard/assistive paths; likely also blocks touch/pen-only use (app targets desktop browsers ≥ 1280×720)",
+  "classification": "product deficiency — candidate backlog seed; proposed for unit-200 design review (CC-200.x) and product.md backlog"
+}

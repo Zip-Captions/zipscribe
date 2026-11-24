@@ -1,0 +1,13 @@
+{
+  "leg": "S1 step 7 — offline reload: SW-served shell + IndexedDB restore",
+  "offlineMechanism": "dead origin (preview server on 4321 killed) — no CDP network emulation via MCP (Appendix B); disclosed as offline proxy",
+  "reloadResult": {
+    "shellVisible": true,
+    "errorPage": false,
+    "servedBy": "service worker (precached shell; origin confirmed dead via curl before reload)"
+  },
+  "restorePath": "real UI: default-tab ProjectList (FR-204.2 offline open affordance) → project-open-<id> button → composition-root onOpenProject/applyLoadedProject",
+  "getEditorState": { "blockCount": 48 },
+  "note": "bridge openProject() is a service-level read that does not load the editor (documented behaviour); the frozen harness uses it to inspect rows. The UI reopen is the honest restore path and yielded blockCount 48 offline.",
+  "screenshot": "s1-04-offline-restored-48blocks.png"
+}
