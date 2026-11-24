@@ -4,7 +4,7 @@ phase: mvp
 discipline: frontend
 depends_on: [unit-200-style-export-offline-design, unit-201-styling-engine, unit-202-export, unit-204-pwa-offline]
 workflow: default
-mode: AFK
+mode: AHOTL
 ---
 
 # unit-205-intent-closure-suite — Styling & Export intent journey proofs

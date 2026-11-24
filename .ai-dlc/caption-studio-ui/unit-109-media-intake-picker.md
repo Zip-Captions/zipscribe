@@ -4,7 +4,7 @@ phase: mvp
 discipline: frontend
 depends_on: [unit-101-workbench-shell, unit-104-transcript-editor, unit-106-persistence]
 workflow: default
-mode: AFK
+mode: AHOTL
 ---
 
 # unit-109-media-intake-picker — Local file picker for media intake

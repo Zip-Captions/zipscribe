@@ -4,7 +4,7 @@ phase: mvp
 discipline: frontend
 depends_on: [unit-301-translation-engine, unit-302-translation-workspace, caption-studio-ui/unit-104-transcript-editor, styling-and-export/unit-202-export]
 workflow: default
-mode: AFK
+mode: AHOTL
 ---
 
 # unit-303-intent-closure-suite — Caption Translation intent journey proofs
