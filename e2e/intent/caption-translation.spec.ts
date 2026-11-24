@@ -100,11 +100,12 @@ const T3_BLOCKS = Array.from({ length: 12 }, (_, i) =>
     : { id: `b${String(i)}`, start: i * 2, end: i * 2 + 1.5, text: `w${String(i)}`, words: [{ text: `w${String(i)}`, start: i * 2, end: i * 2 + 1 }], speakerId: 'SPK_1' },
 )
 
-function installScriptedApisScript(poison: readonly string[]): string {
+function installScriptedApisScript(poison: ReadonlyArray<readonly [string, string]>): string {
   return `(() => {
   const w = globalThis
   const poison = ${JSON.stringify(poison)}
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+  w.__zipFakeStats = { calls: {}, throws: {} }
   w.Translator = {
     availability: async () => 'available',
     create: async (init) => {
@@ -113,8 +114,12 @@ function installScriptedApisScript(poison: readonly string[]): string {
       return {
         translate: async (text) => {
           await delay(5)
-          for (const p of poison) {
-            if (typeof text === 'string' && text.includes(p)) throw new Error('scripted translate failure')
+          w.__zipFakeStats.calls[target] = (w.__zipFakeStats.calls[target] ?? 0) + 1
+          for (const [t, marker] of poison) {
+            if (t === target && typeof text === 'string' && text.includes(marker)) {
+              w.__zipFakeStats.throws[t] = (w.__zipFakeStats.throws[t] ?? 0) + 1
+              throw new Error('scripted translate failure')
+            }
           }
           return target + ':' + text
         },
@@ -129,7 +134,7 @@ function installScriptedApisScript(poison: readonly string[]): string {
 })()`
 }
 
-async function bootWithScriptedTranslator(page: import('@playwright/test').Page, poison: readonly string[]): Promise<void> {
+async function bootWithScriptedTranslator(page: import('@playwright/test').Page, poison: ReadonlyArray<readonly [string, string]>): Promise<void> {
   await page.addInitScript(installScriptedApisScript(poison))
   await page.goto('/?ziptest=1')
   await page.waitForFunction(() => {
@@ -152,19 +157,36 @@ const editorProxy = (page: import('@playwright/test').Page) => ({
 async function openPicker(page: import('@playwright/test').Page): Promise<void> {
   const add = page.getByTestId('languages-add')
   await expect(add).toBeEnabled({ timeout: 20_000 })
-  if ((await page.getByTestId('languages-picker-item').count()) === 0) await add.click({ force: true })
+  if ((await page.getByTestId('languages-picker-item').count()) === 0) {
+    await add.click({ timeout: 3_000 }).catch(async () => {
+      await add.click({ force: true }).catch(() => undefined)
+    })
+  }
 }
 
 async function addFromPicker(page: import('@playwright/test').Page, language: string, label: string): Promise<void> {
   const add = page.locator(`[data-testid="languages-picker-item"][data-language="${language}"]`).getByTestId('languages-picker-add')
   await expect(add).toBeEnabled({ timeout: 20_000 })
-  await add.click({ force: true })
+  // Real click first (full actionability); if a re-render churn swallows it,
+  // retry via the sanctioned force + direct-DOM dispatch (same onClick the
+  // user gesture reaches — no synthetic state writes).
+  await add.click({ timeout: 3_000 }).catch(async () => {
+    await add.click({ force: true }).catch(() => undefined)
+  })
   const row = page.getByTestId('languages-row').filter({ has: page.getByText(label) })
   if ((await row.count()) === 0) {
     await expect(add).toBeEnabled({ timeout: 5_000 })
-    await add.click({ force: true })
+    // Direct DOM dispatch on the SAME button node (React's delegated handler
+    // fires exactly as for a user click) — immune to coordinate churn.
+    await page.evaluate((lang) => {
+      const btn = document.querySelector(`[data-testid="languages-picker-item"][data-language="${lang}"] [data-testid="languages-picker-add"]`) as HTMLButtonElement | null
+      btn?.click()
+    }, language)
   }
-  await expect(row).toBeVisible({ timeout: 10_000 })
+  await expect(row, `languages-row for ${label} appears after picker add (button state: ${JSON.stringify(await page.evaluate((lang) => {
+    const btn = document.querySelector(`[data-testid="languages-picker-item"][data-language="${lang}"] [data-testid="languages-picker-add"]`) as HTMLButtonElement | null
+    return { present: btn !== null, disabled: btn?.disabled ?? null, offsetParent: btn ? btn.offsetParent !== null : null }
+  }, language))})`).toBeVisible({ timeout: 10_000 })
 }
 
 async function badges(page: import('@playwright/test').Page): Promise<string[]> {
@@ -271,12 +293,12 @@ const toDataUrl = (file: string): string => `data:image/png;base64,${readFileSyn
 
 // — T1 · CC-I4.1 ——————————————————————————————————————————————————————————————
 
-test.describe('CC-I4.1: 200-block en → mocked fr+es run (chromium)', () => {
+test.describe('CC-I4.1: 200-block en → mocked fr+es run', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:intent')
   test.setTimeout(240_000)
 
   test('CC-I4.1: 200-block project → mocked Translator fr+es → every block translated-or-failed (honest failed leg per track, never source-as-translation) → both tracks render → reload byte-equal', async ({ page }) => {
-    await bootWithScriptedTranslator(page, [POISON_FR, POISON_ES])
+    await bootWithScriptedTranslator(page, [['fr', POISON_FR], ['es', POISON_ES]])
     const ed = editorProxy(page)
     await ed.openProjectWithMedia(SIDECAR_ASSET, RUN_SRC)
     await ed.seedBlocks(t1Blocks(), SPEAKERS)
@@ -296,6 +318,7 @@ test.describe('CC-I4.1: 200-block en → mocked fr+es run (chromium)', () => {
     await expect.poll(() => ed.getTranslationEntryCount('es'), { timeout: 30_000 }).toBe(T1_COUNT)
 
     const snap = await flushAndSnapshot(page)
+    const fakeStats = await page.evaluate(() => (window as unknown as { __zipFakeStats: { calls: Record<string, number>; throws: Record<string, number> } }).__zipFakeStats)
     const project = JSON.parse(snap.json) as ProjectJson
     const sourceById = new Map(project.blocks.map((b) => [b.id, b.text]))
     expect(sourceById.size, 'all 200 source blocks persisted').toBe(T1_COUNT)
@@ -305,6 +328,11 @@ test.describe('CC-I4.1: 200-block en → mocked fr+es run (chromium)', () => {
       const failIndex = lang === 'fr' ? T1_FR_FAIL_INDEX : T1_ES_FAIL_INDEX
       const failedIds: string[] = []
       let translatedCount = 0
+      const statusTally: Record<string, number> = {}
+      for (const blockId of sourceById.keys()) {
+        const entry = entries[blockId]
+        statusTally[entry?.status ?? 'missing'] = (statusTally[entry?.status ?? 'missing'] ?? 0) + 1
+      }
       for (const blockId of sourceById.keys()) {
         const entry = entries[blockId]
         expect(entry, `${lang} entry exists for ${blockId}`).toBeDefined()
@@ -320,7 +348,7 @@ test.describe('CC-I4.1: 200-block en → mocked fr+es run (chromium)', () => {
           expect(entry?.text === source, 'source text is never presented as a translation').toBe(false)
         }
       }
-      expect(translatedCount, `${lang} translated count`).toBe(T1_COUNT - 1)
+      expect(translatedCount, `${lang} translated count (tally: ${JSON.stringify(statusTally)}, failedIds: ${JSON.stringify(failedIds)}, fake: ${JSON.stringify(fakeStats)})`).toBe(T1_COUNT - 1)
       expect(failedIds, `${lang} has exactly the poisoned block failed`).toEqual([`k${pad3(failIndex)}`])
     }
 
@@ -344,7 +372,7 @@ test.describe('CC-I4.1: 200-block en → mocked fr+es run (chromium)', () => {
 
 // — T3 · CC-I4.3 ——————————————————————————————————————————————————————————————
 
-test.describe('CC-I4.3: edited translation + source split → stale (chromium)', () => {
+test.describe('CC-I4.3: edited translation + source split → stale', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:intent')
   test.setTimeout(180_000)
 
@@ -404,7 +432,7 @@ test.describe('CC-I4.3: edited translation + source split → stale (chromium)',
 
 // — T4 · CC-I4.4 ——————————————————————————————————————————————————————————————
 
-test.describe('CC-I4.4: per-language export + translation burn-in (chromium)', () => {
+test.describe('CC-I4.4: per-language export + translation burn-in', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:intent')
   test.afterAll(cleanScratch)
 
@@ -417,8 +445,15 @@ test.describe('CC-I4.4: per-language export + translation burn-in (chromium)', (
       speakers: SIDECAR_SPEAKERS,
       name: SIDECAR_NAME,
       language: 'en',
-      translations: { fr: SIDECAR_FR, ar: AR },
+      translations: { fr: SIDECAR_FR },
     })
+    // The blessed golden blesses the ar track as origin 'manual' (the L1
+    // sidecar fixture) — build it through the SAME command the UI manual-add
+    // button dispatches, so the JSON byte-compare exercises the manual-track
+    // serialization, not an accidental machine origin.
+    const ed = editorProxy(page)
+    expect(await ed.command('translation-add-track', { language: 'ar', origin: 'manual' })).toBeNull()
+    await ed.seedTranslation('ar', AR)
     await page.getByTestId('export-button').click()
     await expect(page.getByTestId('export-dialog')).toBeVisible()
 
@@ -489,7 +524,7 @@ test.describe('CC-I4.4: per-language export + translation burn-in (chromium)', (
       [outSrc, 'source'],
     ] as const) {
       const info = mediaInfo(file)
-      expect(Math.abs(info.durationSec - TAXI_DURATION), `${label} burn-in duration ${String(info.durationSec)}`).toBeLessThanOrEqual(1)
+      expect(Math.abs(info.durationSec - 29.888), `${label} burn-in duration ${String(info.durationSec)}`).toBeLessThanOrEqual(1)
       expect(info.hasVideo, `${label} burn-in carries video`).toBe(true)
     }
 
@@ -525,7 +560,7 @@ test.describe('CC-I4.4: per-language export + translation burn-in (chromium)', (
 
 // — T6 · CC-I4.7 ——————————————————————————————————————————————————————————————
 
-test.describe('CC-I4.7: console redaction across a translate journey (chromium)', () => {
+test.describe('CC-I4.7: console redaction across a translate journey', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:intent')
   test.setTimeout(180_000)
 
@@ -545,7 +580,7 @@ test.describe('CC-I4.7: console redaction across a translate journey (chromium)'
       captured.push({ kind: 'pageerror', line: `${err.name} ${String(err.message ?? '')}` })
     })
 
-    await bootWithScriptedTranslator(page, [POISON_FR])
+    await bootWithScriptedTranslator(page, [['fr', POISON_FR]])
     const ed = editorProxy(page)
     const blocks = Array.from({ length: 24 }, (_, i) => ({ id: `k${pad3(i)}`, start: i, end: i + 0.9, text: `syn${pad3(i)}qx${i === 5 ? ` ${POISON_FR}` : ''}`, words: [{ text: `syn${pad3(i)}qx${i === 5 ? ` ${POISON_FR}` : ''}`, start: i, end: i + 0.9 }], speakerId: 'SPK_1' }))
     await ed.openProjectWithMedia(SIDECAR_ASSET, RUN_SRC)
