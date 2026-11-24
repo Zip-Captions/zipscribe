@@ -1,7 +1,8 @@
 // FR-204.4 / FR-204.1 — the app's PWA chrome, mounted by the Workbench via
 // the optional `pwa` slot (frozen mount paths render it as null):
 // the Offline chip (useOnlineStatus), the ⋯ menu (Offline models panel +
-// honest Install entry), and the update toast (useSwUpdate). Hooks live
+// honest Install entry + About/licensing panel, CC-I3.10), and the update
+// toast (useSwUpdate). Hooks live
 // HERE so the frozen Workbench renders byte-identically when the slot is
 // absent.
 
@@ -10,6 +11,7 @@ import type { ReactNode } from 'react'
 import type { ModelCache } from '../../engine/model/cache'
 import type { PersistenceDeps, PersistenceService } from '../../state/services/persistence'
 import type { JobsStore } from '../../state/jobs'
+import { AboutLicensingPanel } from './AboutLicensingPanel'
 import { OfflineChip } from './OfflineChip'
 import { OfflineModelsPanel } from './OfflineModelsPanel'
 import { UpdateToast } from './UpdateToast'
@@ -33,10 +35,15 @@ export function PwaChrome({ jobs, persistence, modelCache, persistenceDeps, pane
   const update = useSwUpdate(persistence)
   const install = useInstallPrompt()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
 
   const openPanel = (): void => {
     setMenuOpen(false)
     onPanelOpen(true)
+  }
+  const openAbout = (): void => {
+    setMenuOpen(false)
+    setAboutOpen(true)
   }
   const closePanel = (): void => {
     onPanelOpen(false)
@@ -72,10 +79,14 @@ export function PwaChrome({ jobs, persistence, modelCache, persistenceDeps, pane
                 Install app — use your browser's Add to Home Screen
               </button>
             )}
+            <button role="menuitem" type="button" data-testid="pwa-menu-about" onClick={openAbout}>
+              About &amp; licensing
+            </button>
           </div>
         )}
       </div>
       {panelOpen && <OfflineModelsPanel modelCache={modelCache} persistenceDeps={persistenceDeps} onClose={closePanel} />}
+      {aboutOpen && <AboutLicensingPanel onClose={() => setAboutOpen(false)} />}
       <UpdateToast update={update} />
     </>
   )
