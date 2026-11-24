@@ -1,0 +1,20 @@
+{
+  "leg": "S2 — HITL flag (f) live Workbox update demo (FR-204.4 semantics)",
+  "browser": "Chrome 158 (MCP-managed, fallback — no debuggable Chrome on 9222)",
+  "driver": ".night/signoff/driver.mjs over e2e/pwa/helpers/dual-root-preview (port 4331, spec-adjacent port per plan §3)",
+  "pass1_toast_appeared": false,
+  "pass1_no_self_reload": true,
+  "pass2_later_no_reload_worker_parked": "N/A — no toast to click; passive witness: waiting worker stayed parked (state 'installed') with old SW controlling for minutes, zero reloads (build-A + marker DOM sentinels intact across every check)",
+  "pass3_reload_now_flush_then_swap": {
+    "via": "manual applyUpdate primitives (persistence.saveNow('manual') → registration.unregister() → 300 ms → location.reload()) — same code the Reload-now button runs (src/ui/pwa/use-sw-update.ts); button unreachable because the toast never surfaced",
+    "witnessBuildB": true,
+    "rowId": "proj_dd534fa0-b5a1-4807-814d-0857b9e8b731",
+    "updatedAtBefore": 1795493749139,
+    "updatedAtAfter": 1795494606165,
+    "editsSurviveSwap": { "b0_PENDING_SAVE_MARKER_0001": true, "b1_FLUSH_WITNESS_0002": true },
+    "blockCountAfterReopen": 48
+  },
+  "toastBlockedReason": "App-level update toast never surfaced across 4 windows (3 CI-shaped attempts + settled-flush window; save state verified 'saved' during the final 30 s poll). Browser-side chain proven healthy by an in-page replica of the app's own workbox-window@7.4.0 module which observed {installed isUpdate:true} then {waiting isUpdate:true} on the same document — isolating the failure to the app instance's event path, un-inspectable without addInitScript/boot-time injection (Appendix B MCP limits). Authoritative coverage stays with e2e/pwa/update.spec.ts (CI, every PR) + use-sw-update.adversarial.test.ts (unit).",
+  "security03": "edits are placeholder codes only; no transcript/user content in any artifact",
+  "screenshots": ["s2-01-build-a-controlled.png", "s2-04-build-b-after-swap.png"]
+}

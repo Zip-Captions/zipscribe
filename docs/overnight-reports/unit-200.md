@@ -107,3 +107,12 @@ tokens (bg-app outline, bg-panel box, border-subtle edge, accent highlight).
 
 Gates this round: geometry audit 0 violations; overlap probe 0 across 51+ wires;
 verify-review incl. README-vs-page decisions parity; xmllint clean.
+
+## Sign-off evidence run (agent, puppeteer MCP, 2026-11-23) — S3 design review package
+
+- who: opencode agent session (browser sign-off runbook `docs/ops/browser-signoff-plan.md`) via puppeteer MCP — browser: **Chrome 158 / macOS (MCP-managed fallback**; no debuggable Chrome on debugPort 9222). Pure capture; the design judgment stays the owner's.
+- results S3: `review.html` served on 4323; structure probe complete — **58 inline SVGs (≥ 55 threshold)**, sections `#presets #contrast #export #offline #icons #open-questions #checklist` all present; 51 viewport frames captured in 600 px steps (≤ 800 px rule): `s3-presets-01..25` (14512 px), `s3-contrast-01..03`, `s3-export-01..15`, `s3-offline-01..05`, `s3-icons-01..03` (bonus) + `s3-structure-probe.json`. Every figure's figcaption carries its source SVG path, readable in the frames.
+- criteria rows: CC-200.1 **evidence captured — owner sign-off pending** · CC-200.2 **evidence captured — owner sign-off pending** · CC-200.3 **evidence captured — owner sign-off pending** · CC-200.4 **evidence captured — owner sign-off pending** — `[MANUAL]` boxes left **unchecked**, always.
+- observed deficiency (owner-reported during the run, independently confirmed in code + live app): **no affordance to add a media file from the local device** — media intake is drag-and-drop only (first-run DropZone + always-on shell drop); the page's only `<input type="file">` is `translation-file-input` (caption formats); "Try a sample clip" loads a bundled clip; `openFilePicker()` exists only in the media relink keep/replace flow. Artifacts: `obs-01-firstrun-dropzone.png` `obs-02-dropzone-closeup.png` `obs-01-no-local-media-picker.json` (code cites `Workbench.tsx:365/:450-483/:983-995/:1041-1043`, `ProjectList.tsx:225-234`, `context.ts:477`). Proposed: backlog seed (drop-only intake is undiscoverable + keyboard/touch-hostile) and inclusion in the CC-200.x design judgment set.
+- artifacts: `docs/signoff-evidence/2026-11-23/` (all `s3-*` + `obs-*` files)
+- ASSUMPTIONS: full-viewport 600 px scroll frames (element-sized clips would exceed any sane image); CDP scratch driver (`scroll-capture.mjs`) used because the MCP screenshot tool returns inline image bytes only and the run model cannot ingest images

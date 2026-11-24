@@ -1,0 +1,8 @@
+{
+  "leg": "S1 step 5 — first visit cached the shell",
+  "swActive": true,
+  "swState": "activated",
+  "caches": ["zipscribe-models", "workbox-precache-v2-http://127.0.0.1:4321/", "zipscribe-wasm"],
+  "precacheHit": true,
+  "wasmCache": true
+}

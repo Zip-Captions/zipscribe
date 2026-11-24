@@ -1,0 +1,34 @@
+{
+  "leg": "S4 — PWA install/offline spot-check list (unit-204)",
+  "browser": "Chrome 158 (MCP-managed, fallback — real install + chrome:// are owner-only)",
+  "install": {
+    "installMenuItem": { "present": true, "disabled": false, "screenshot": "s4-01-pwa-menu-install-entry.png" },
+    "beforeinstallprompt": "none — captured with a post-load page listener (no addInitScript via MCP, Appendix B); Chromium may also require engagement. Deep installability stays CI-covered (e2e/pwa/installability.spec.ts every PR)."
+  },
+  "manifest": {
+    "id": "/",
+    "scope": "/",
+    "display": "standalone",
+    "theme": "#0d0f12",
+    "icons": 4,
+    "maskable": "1 (icons[2].purpose='maskable' — plan §5.3 probe used field name 'purposes'; manifest uses 'purpose'; verified on disk dist/manifest.webmanifest)",
+    "screenshots": "2 (1920x1080 wide + 780x1688 narrow)",
+    "fileHandlers": "1 with 22 accept keys incl. video/mp4 + audio/mpeg",
+    "launchHandler": "launch_handler.client_mode='focus-existing' (plan probed 'route'; manifest field is 'client_mode' — verified on disk)",
+    "verdict": "all plan expectations met once probed against the actual field names"
+  },
+  "swChip": {
+    "swActive": true,
+    "caches": ["zipscribe-models", "workbox-precache-v2-http://127.0.0.1:4321/", "zipscribe-wasm"],
+    "wasmCache": true,
+    "chipHiddenWhileHealthy": true,
+    "screenshot": "s4-02-healthy-no-chip.png"
+  },
+  "chipOnModelFailure": {
+    "mechanism": "app-level window.fetch blocker (post-load, disclosed) for /.cache/models/** (the same-origin model mirror this deployment uses — HF is never hit from the app) + huggingface.co",
+    "result": "N/A for the plan's PASS form — model fetch failed with 26 blocked requests and the panel row surfaced the coded NETWORK failure (s4-03-model-panel-network-code.png), but the offline chip did not latch within the observation window under the app-level block",
+    "authoritativeCoverage": "use-online-status.adversarial.test.ts (unit) + e2e/pwa/offline.spec.ts (CI, every PR) — per plan §5.5",
+    "note": "fetch wrapper cannot be restored in-document (original not retained); next navigation restores — no residue (server stopped immediately after)"
+  },
+  "security03": "codes only in all artifacts; no transcript/user content"
+}

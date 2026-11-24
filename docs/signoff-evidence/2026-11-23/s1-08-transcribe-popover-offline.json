@@ -1,0 +1,7 @@
+{
+  "leg": "S1 step 10 — OFFLINE_MODEL_MISSING-adjacent honesty check (presence only)",
+  "mechanism": "dead origin; transcribe-button clicked with server down",
+  "result": { "popoverRendered": true, "openedInMs": 101, "modelOptions": 5, "hung": false },
+  "scopeNote": "presence check only per plan; deep offline transcribe behaviour is e2e-covered (offline.spec.ts). No non-cached-model/network condition needed to distinguish — popover opens and enumerates rows without hanging.",
+  "screenshot": "s1-08-transcribe-popover-offline.png"
+}

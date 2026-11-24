@@ -1,0 +1,18 @@
+{
+  "leg": "S3 — CC-200.1–.4 design review package (pure capture)",
+  "source": "http://127.0.0.1:4323/review.html (python http.server over .ai-dlc/styling-and-export/mockups)",
+  "browser": "Chrome 158 (MCP-managed, fallback)",
+  "svgCount": 58,
+  "svgThreshold": ">= 55 per plan §4 — PASS",
+  "bodyHeightPx": 30621,
+  "groups": {
+    "presets": { "section": "#presets", "subsections": ["preset-karaoke", "preset-broadcast-box", "preset-minimal", "preset-bold-lower"], "heightPx": 14512, "frames": "s3-presets-01..25" },
+    "contrast": { "section": "#contrast", "heightPx": 1427, "frames": "s3-contrast-01..03" },
+    "export": { "section": "#export", "heightPx": 8389, "frames": "s3-export-01..15" },
+    "offline": { "section": "#offline", "heightPx": 2603, "frames": "s3-offline-01..05" },
+    "icons_bonus": { "section": "#icons", "heightPx": 1782, "frames": "s3-icons-01..03" }
+  },
+  "openQuestionsSectionPresent": "#open-questions (Owner decisions CC-200.5)",
+  "checklistSectionPresent": "#checklist (criteria checklist)",
+  "note": "design judgment stays the owner's; every figure references its source SVG path in its figcaption (visible in frames)"
+}
