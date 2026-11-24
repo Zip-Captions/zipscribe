@@ -488,6 +488,38 @@ body,
   color: var(--text-secondary);
 }
 
+/* ── unit-109 media intake picker (FR-109.2) ────────────────────────── */
+/* design.md button vocabulary: the picker reuses .ws-button (the global
+   :focus-visible rule already gives it the keyboard focus ring). */
+.ws-drop-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.ws-intake-picker {
+  display: inline-flex;
+}
+
+/* The plain <input type=file> (persistence.ts:170 picker doctrine) — the
+   button is the visible affordance; the input stays in the DOM for the
+   e2e owner-input contract (setInputFiles / filechooser). */
+.ws-intake-input {
+  display: none;
+}
+
+.ws-project-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.ws-project-empty-copy {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
 .ws-import-report {
   display: flex;
   flex-wrap: wrap;

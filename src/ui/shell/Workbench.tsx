@@ -49,6 +49,7 @@ import type { ExportHandle, ExportService } from '../../state/services/export'
 import type { ExportDialogProps } from '../export/ExportDialog'
 import { probeFullCapability } from '../../app/ports'
 import { CaptionImportDialog } from '../transcript/CaptionImportDialog'
+import { MediaIntakeButton } from './MediaIntakeButton'
 import { ProjectList } from './ProjectList'
 import { StageMedia } from './StageMedia'
 import { TranscribePopover } from './TranscribePopover'
@@ -447,7 +448,7 @@ function cacheCopy(jobsState: JobsState): string {
 // (media + caption intake by content sniff + extension through the intake
 // service; caption parsing stays behind the unit-07 seam) and carries the
 // model/tier status from the jobs store.
-function DropZone({ jobsState, onFiles, onSample }: { jobsState: JobsState; onFiles: (files: File[]) => void; onSample: () => void }): ReactNode {
+function DropZone({ jobsState, onFiles, onIntakeFiles, onSample }: { jobsState: JobsState; onFiles: (files: File[]) => void; onIntakeFiles: (files: File[]) => void; onSample: () => void }): ReactNode {
   const capability = jobsState.capability
   return (
     <div
@@ -465,16 +466,22 @@ function DropZone({ jobsState, onFiles, onSample }: { jobsState: JobsState; onFi
     >
       <p className="ws-drop-title">Drop a video or audio file to begin</p>
       <p className="ws-drop-hint">Caption files (.srt .vtt .sbv .ttml .dfxp .xml .ass .ssa .zipscribe.json) may come along — they import as the source track.</p>
-      <button
-        type="button"
-        data-testid="sample-clip-button"
-        className="ws-button ws-button-primary"
-        onClick={() => {
-          onSample()
-        }}
-      >
-        Try a sample clip
-      </button>
+      {/* unit-109 (E1, US-109.1): the local file-picker beside the sample
+          clip — same `onFiles` seam as the drop, so the picker journey is
+          byte-identically the existing intake path (runIntake toasts/codes). */}
+      <div className="ws-drop-actions">
+        <MediaIntakeButton label="Choose file…" testId="media-intake-button" onFiles={onIntakeFiles} />
+        <button
+          type="button"
+          data-testid="sample-clip-button"
+          className="ws-button ws-button-primary"
+          onClick={() => {
+            onSample()
+          }}
+        >
+          Try a sample clip
+        </button>
+      </div>
       <p className="ws-drop-status">
         {capability === null ? 'Checking device capability…' : `Tier ${capability.tier} · ${TIER_LABEL[capability.tier]} · ${capability.reasons.length === 0 ? cacheCopy(jobsState) : 'capability notes apply'}`}
       </p>
@@ -647,6 +654,39 @@ export function Workbench(props: WorkbenchProps): ReactNode {
         setToastCodes(['INTAKE_FAILED'])
       })
     }
+  }
+
+  // unit-109 (CC-109.1): the picker is an ENTRY that must land its project row
+  // without waiting on a user edit — the launch-queue `consume()` doctrine:
+  // clean-on-attach pins the createProject sighting as a baseline (never a
+  // change), so a `setProjectName(self)` bump (updatedAt) makes the never-saved
+  // project an accepted change and `saveNow` writes the row. Intake/validation/
+  // persistence stay untouched — same handleFiles, same toasts, same codes;
+  // the drop path keeps its byte-identical unit-101/106 behavior.
+  async function runIntakeFromPicker(files: readonly File[]): Promise<void> {
+    const before = project.getState().project?.id ?? null
+    await runIntake(files)
+    if (persistence === undefined) return
+    await new Promise<void>((resolve) => {
+      let unsubscribe: (() => void) | null = null
+      const settle = (): void => {
+        unsubscribe?.()
+        resolve()
+      }
+      const deadline = setTimeout(settle, 10_000)
+      unsubscribe = project.subscribe(() => {
+        const landed = project.getState().project
+        if (landed !== null && landed.id !== before) {
+          clearTimeout(deadline)
+          unsubscribe?.()
+          project.setProjectName(landed.name)
+          void persistence.saveNow('manual').then(
+            () => resolve(),
+            () => resolve(),
+          )
+        }
+      })
+    })
   }
 
   function openExport(): void {
@@ -939,6 +979,9 @@ export function Workbench(props: WorkbenchProps): ReactNode {
                       relinkMismatch={relinkMismatch}
                       onRelinkKeep={onRelinkKeep}
                       onRelinkReplace={onRelinkReplace}
+                      onMediaFiles={(files) => {
+                        void runIntakeFromPicker(files)
+                      }}
                     />
                   )}
                 </div>
@@ -957,6 +1000,9 @@ export function Workbench(props: WorkbenchProps): ReactNode {
                       relinkMismatch={relinkMismatch}
                       onRelinkKeep={onRelinkKeep}
                       onRelinkReplace={onRelinkReplace}
+                      onMediaFiles={(files) => {
+                        void runIntakeFromPicker(files)
+                      }}
                     />
                   )}
                 </div>
@@ -984,6 +1030,9 @@ export function Workbench(props: WorkbenchProps): ReactNode {
                 jobsState={jobsState}
                 onFiles={(files) => {
                   void runIntake(files)
+                }}
+                onIntakeFiles={(files) => {
+                  void runIntakeFromPicker(files)
                 }}
                 onSample={() => {
                   void intake.loadSample().catch(() => {
