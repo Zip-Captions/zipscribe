@@ -24,6 +24,7 @@ import { flushSync } from 'react-dom'
 import type { ReactNode } from 'react'
 import type { LoadedProject, PersistenceService, PersistenceTimers, ProjectRow, RelinkField, StorageEstimateView } from '../../state/services/persistence'
 import type { EditorStore } from '../../state/generated/contract-types'
+import { MediaIntakeButton } from './MediaIntakeButton'
 
 /** The frozen ProjectListProps (unit106-api-contract.d.ts) EXTENDED with the
  *  optional slice-D relink seam — every pinned mount path stays untouched. */
@@ -41,6 +42,15 @@ export interface ProjectListProps {
   onRelinkKeep?: () => void
   /** "Replace with the picked file" — app-owned decision callback (never auto-invoked). */
   onRelinkReplace?: () => void
+  /**
+   * unit-109 EXTENDS (additive/optional, FR-109.2 E2): when given, the EMPTY
+   * state gains the shared `MediaIntakeButton` (`project-intake-button`)
+   * forwarding the VERBATIM selection to the caller's existing
+   * project-from-media creation — the Workbench wires it to the SAME
+   * `runIntake` the drop uses (one pipeline, no validation copy). Absent,
+   * the list renders byte-identically to unit-106.
+   */
+  onMediaFiles?: (files: File[]) => void
 }
 
 /** Toast-undoable delete window (US-2.4.3 product rule) on the injected timers. */
@@ -70,7 +80,7 @@ function humanizeBytes(bytes: number): string {
 type PendingDelete = { id: string; handle: { commit(): Promise<void>; undo(): void } }
 
 export function ProjectList(props: ProjectListProps): ReactNode {
-  const { persistence, onOpen, editor, relinkMismatch = null, onRelinkKeep, onRelinkReplace } = props
+  const { persistence, onOpen, editor, relinkMismatch = null, onRelinkKeep, onRelinkReplace, onMediaFiles } = props
   const timers = props.timers ?? DEFAULT_TIMERS
   const [rows, setRows] = useState<readonly ProjectRow[]>([])
   const [estimate, setEstimate] = useState<StorageEstimateView | null>(null)
@@ -220,6 +230,15 @@ export function ProjectList(props: ProjectListProps): ReactNode {
           </button>
         </div>
       ))}
+      {/* unit-109 (E2, US-109.1): the drop-only empty state gains the local
+          file picker — one click creates AND opens the project through the
+          SAME intake path the drop uses (the caller's seam). */}
+      {rows.length === 0 && onMediaFiles !== undefined && (
+        <div className="ws-project-empty">
+          <p className="ws-project-empty-copy">No projects yet — drop a media file here or choose one from your device.</p>
+          <MediaIntakeButton label="Choose file…" testId="project-intake-button" onFiles={onMediaFiles} />
+        </div>
+      )}
       <button
         type="button"
         data-testid="new-project-button"
