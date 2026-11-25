@@ -6,11 +6,12 @@
 // authoritative run) and CC-303.4 (`pnpm test` + `pnpm test:e2e` fully green,
 // pure addition over the develop merge-base — the tiered CI-robust blob
 // attestation copied from the unit-205 CC-205.4 doctrine, incl. the
-// degenerate self-base guard; Tier-B attests CI CONTEXT, not PR identity —
-// the GitHub ref must match the git-flow unit-branch grammar (shared
-// predicate in ./anchor-attestation), the blob attestation is identity-free
-// so any legitimate unit-branch PR is a legal Tier-B checkout while forged
-// non-ai-dlc refs (main, release/x) redden; the "all existing suites still
+// degenerate self-base guard; Tier-B attests a GENUINE CI CHECKOUT
+// (runner-injected GITHUB_ACTIONS plus a branch/pull ref — shared predicate
+// in ./anchor-attestation) with NO branch-grammar gate: these anchors ship
+// on develop and run in every PR's CI, grammar only false-reds (round-3
+// lesson, docs PR #47); the blob attestation is identity-free and is the
+// honest CI-tier proof; the "all existing suites still
 // green" half is
 // carried by the verify:unit spawn itself, junit-trust: nonzero ⇒ zero
 // credit). The FR-303.1-authorized test-surface modifications (identical-id
@@ -21,7 +22,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, test } from 'vitest'
 import { citationsOf } from '../../../scripts/lib/junit-trust'
-import { ciBranchFromEnv, CLOSURE_ANCHOR_AUTHORIZED_MODS, isUnitBranchCiContext } from './anchor-attestation'
+import { ciBranchFromEnv, CLOSURE_ANCHOR_AUTHORIZED_MODS, isCiCheckoutContext } from './anchor-attestation'
 
 const CHILD = process.env.ZIPSCRIBE_CHILD === '1'
 const CHILD_REASON = 'gates-scaffold child run: authoritative execution is the parent `pnpm test` / verify:unit'
@@ -193,16 +194,17 @@ describe('CC-303.4: the closure suite is additive over the develop merge-base', 
     //     FR-303.1 authorized M entries) = the "zero edits to committed
     //     specs" proof, hard-red on tampering.
     //   Tier B — no base resolves (shallow PR-merge-ref CI checkout): legal
-    //     ONLY inside a genuine CI checkout of a git-flow unit branch —
-    //     GITHUB_HEAD_REF/GITHUB_REF present and matching the
-    //     ai-dlc/<intent>/<unit-stem> grammar (red otherwise — never
-    //     vacuous). CI CONTEXT, not PR identity: the blob attestation is
-    //     identity-free, so a FOREIGN well-formed ai-dlc ref legitimately
-    //     passes (the same pipeline runs the same committed suite for every
-    //     unit PR, and it describes that tree honestly either way), while a
-    //     forged main / release/x redden; the merged ref itself is the
-    //     additive attestation there (it is develop ∪ branch, and "all
-    //     existing suites still green" is verifier-owned via junit-trust).
+    //     ONLY inside a genuine CI checkout — runner-injected
+    //     GITHUB_ACTIONS=true plus a branch/pull ref (red otherwise, incl.
+    //     no-env and actions-less runs — never vacuous). NO branch grammar:
+    //     these anchors ship on develop and run in EVERY PR's CI, and the
+    //     blob attestation is identity-free, so the checkout itself (not
+    //     the ref name) is the trust boundary — branch identity belongs to
+    //     branch protection; committed M/D/R tampering is Tier A's job and
+    //     Tier A needs develop objects (which CI's shallow fetch lacks).
+    //     The merged ref is the additive attestation there (it is
+    //     develop ∪ branch, and "all existing suites still green" is
+    //     verifier-owned via junit-trust).
     //   The blob attestation above runs in BOTH tiers, so work-tree tampering
     //     reddens locally too, not just the committed diff.
     assertCommittedBlobAttestation()
@@ -232,6 +234,22 @@ describe('CC-303.4: the closure suite is additive over the develop merge-base', 
       return
     }
     const ciBranch = ciBranchFromEnv()
-    expect(isUnitBranchCiContext(), `no develop-object-bearing merge-base resolved — Tier-B is legal only inside a genuine CI checkout of a git-flow unit-branch PR (GITHUB_HEAD_REF/GITHUB_REF matching ai-dlc/<intent>/<unit-stem>; CI context, not PR identity — the blob attestation above is identity-free); observed ciBranch='${ciBranch}'; there the committed-blob attestation above is the CI-tier proof`).toBe(true)
+    expect(isCiCheckoutContext(), `no develop-object-bearing merge-base resolved — Tier-B is legal only inside a genuine CI checkout (runner-injected GITHUB_ACTIONS=true plus a branch/pull ref; NO branch grammar — these anchors ship on develop and run in every PR's CI; the identity-free blob attestation above is the CI-tier proof); observed GITHUB_ACTIONS='${process.env.GITHUB_ACTIONS ?? ''}' ciBranch='${ciBranch}'; there the committed-blob attestation above is the CI-tier proof`).toBe(true)
+  })
+})
+
+// The Tier-B predicate itself, pinned as a pure unit (runs in every context,
+// Tier A included — deterministic, no git/CI needed): CI CONTEXT via runner
+// injection + ref context, never branch grammar.
+describe('anchor Tier-B predicate: genuine CI checkout, not branch grammar', () => {
+  test('runner-injected GITHUB_ACTIONS plus any ref context passes; grammar and absence never do', () => {
+    expect(isCiCheckoutContext({ GITHUB_ACTIONS: 'true', GITHUB_HEAD_REF: 'docs/intent-flips-mvp-gate' }), 'a docs PR is a legal Tier-B checkout (the #47 false-red this replaces)').toBe(true)
+    expect(isCiCheckoutContext({ GITHUB_ACTIONS: 'true', GITHUB_REF: 'refs/heads/fix/some-typo' }), 'a branch-push fix PR is legal').toBe(true)
+    expect(isCiCheckoutContext({ GITHUB_ACTIONS: 'true', GITHUB_HEAD_REF: 'ai-dlc/caption-translation/unit-303-intent-closure-suite', GITHUB_REF: 'refs/pull/43/merge' }), 'the unit branch itself is legal (no special status)').toBe(true)
+    expect(isCiCheckoutContext({}), 'no CI context at all — never vacuous').toBe(false)
+    expect(isCiCheckoutContext({ GITHUB_ACTIONS: 'true' }), 'actions flag with no ref context is not a checkout attestation').toBe(false)
+    expect(isCiCheckoutContext({ GITHUB_HEAD_REF: 'ai-dlc/caption-translation/unit-303-intent-closure-suite' }), 'head_ref WITHOUT GITHUB_ACTIONS (local forged env) — red').toBe(false)
+    expect(isCiCheckoutContext({ GITHUB_ACTIONS: 'false', GITHUB_HEAD_REF: 'docs/x' }), 'actions explicitly false — red').toBe(false)
+    expect(isCiCheckoutContext({ GITHUB_ACTIONS: 'true', GITHUB_REF: 'refs/tags/v1.0.0' }), 'tag push context — red (no head ref)').toBe(false)
   })
 })

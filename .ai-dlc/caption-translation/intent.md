@@ -1,5 +1,5 @@
 ---
-status: in_progress   # units 301/302 done; open = CC-I4.1/.3/.4/.5/.7 closure legs (UNCOVERED per 2026-11-24 verify:intent audit), CC-I4.2 [RQ] at release, CC-I4.6 [MANUAL] + unit-301/302 owner sign-offs (evidence pack 2026-11-23). MVP validation gate: knowledge/product.md § Roadmap (owner ruling 2026-11-24)
+status: completed   # closed 2026-11-25: units 301/302 + unit-303 closure suite (990d4a5) — verify:intent caption-translation exit 0 on develop (CC-I4.1/.3/.4/.5/.7 credited, reports/criteria). Carried per conventions: CC-I4.2 [RQ] at release qualification, CC-I4.6 [MANUAL] + owner sign-off queue docs/ops/owner-signoff-queue.md.
 workflow: default
 created: 2026-10-27
 announcements: [changelog, release-notes]
