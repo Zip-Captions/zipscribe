@@ -50,7 +50,7 @@ Built on the existing `e2e/intent/` harness pattern (fixture media via local ser
 
 ## Boundaries
 
-Owns: `e2e/intent/styling-and-export.spec.ts` (+ fixtures only if a new one is unavoidable, via `pnpm fixtures` regeneration). Doesn't own: any `src/**`, unit-200–204 specs, `e2e/intent/caption-translation.spec.ts` (unit-303), deploy concerns (unit-203, frozen).
+Owns: `e2e/intent/styling-and-export.spec.ts`, `tests/unit/intent/styling-and-export-anchor.test.ts` (static anchor legs per gates-anchor doctrine, added in the review round for CC-205.2/.3/.4 credit) (+ fixtures only if a new one is unavoidable, via `pnpm fixtures` regeneration). Doesn't own: any `src/**`, unit-200–204 specs, `e2e/intent/caption-translation.spec.ts` (unit-303), deploy concerns (unit-203, frozen).
 
 ## Docs to consult
 
