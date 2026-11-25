@@ -1,5 +1,5 @@
 ---
-status: in_progress   # reopened 2026-11-24 for unit-109 (local-media intake picker, owner ruling in knowledge/product.md § Roadmap item 5 — MVP-gating usability gap). Prior closure record: units 101–108 all done 2026-11-18; verify:intent caption-studio-ui 12/12 untagged criteria credited (reports/criteria/caption-studio-ui.md; final unit PR #21 → 058b4c8, CI run 44256219985). Carried: CC-I2.3 export-dialog leg skipped-with-reason until styling-and-export/unit-202 ([107-ADJ 23]); CC-103.6/104.9-style [MANUAL] items per unit reports
+status: completed   # re-closed 2026-11-25: unit-109 (local-media intake picker) merged 1a1bfb1 (verify:unit 5/5); verify:intent caption-studio-ui exit 0 on develop (chain 2026-11-25, reports/criteria). Original closure: units 101–108, PR #21 → 058b4c8.
 workflow: default
 created: 2026-10-27
 announcements: [changelog, release-notes, blog-draft]

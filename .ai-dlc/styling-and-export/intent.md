@@ -1,5 +1,5 @@
 ---
-status: in_progress   # units 200–202/204 done; open work = CC-I3.* closure legs (e2e/intent suite, UNCOVERED per 2026-11-24 verify:intent audit), owner sign-offs, and the phase-2 Cloudflare items behind the MVP gate below
+status: in_progress   # non-deploy work COMPLETE 2026-11-25: units 200–202/204/205 merged; verify:intent styling-and-export exit 0 on develop (CC-I3.1–.8/.10 credited; CC-I3.8 webkit half green via opt-in runs). Sole remainder = phase-2 [DEPLOY] items (unit-203, CC-I3.9, CC-01.14/15/16) behind the owner MVP-gate (product.md § Roadmap) — Cloudflare frozen until owner sign-off queue closes and credentials are provisioned.
 workflow: default
 created: 2026-10-27
 passes: [design, dev]
