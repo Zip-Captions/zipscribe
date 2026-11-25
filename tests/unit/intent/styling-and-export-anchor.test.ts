@@ -11,7 +11,12 @@
 // objects resolve, the committed-blob attestation (existence, non-emptiness,
 // shape, work-tree == HEAD blob) runs everywhere — including the shallow
 // PR-merge-ref CI checkout where FETCH_HEAD degenerates the merge-base to
-// HEAD itself; the "all existing suites still green" half is carried by the
+// HEAD itself. Tier-B attests CI CONTEXT, not PR identity: the GitHub ref
+// must match the git-flow unit-branch grammar (shared predicate in
+// ./anchor-attestation) — the blob attestation is identity-free, so any
+// legitimate unit-branch PR is a legal Tier-B checkout and forged
+// non-ai-dlc refs (main, release/x) redden. The "all existing suites still
+// green" half is carried by the
 // verify:unit spawn itself, junit-trust: nonzero ⇒ zero credit). GREEN-state
 // attestation stays with the unit report + the authoritative run, exactly as
 // in gates-anchor.
@@ -19,6 +24,7 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, test } from 'vitest'
+import { ciBranchFromEnv, CLOSURE_ANCHOR_AUTHORIZED_MODS, isUnitBranchCiContext } from './anchor-attestation'
 
 const CHILD = process.env.ZIPSCRIBE_CHILD === '1'
 const CHILD_REASON = 'gates-scaffold child run: authoritative execution is the parent `pnpm test` / verify:unit'
@@ -28,7 +34,6 @@ const SPEC = 'e2e/intent/styling-and-export.spec.ts'
 const ANCHOR = 'tests/unit/intent/styling-and-export-anchor.test.ts'
 const UNIT_FILE = '.ai-dlc/styling-and-export/unit-205-intent-closure-suite.md'
 const INTENT_FILE = '.ai-dlc/styling-and-export/intent.md'
-const UNIT_BRANCH = 'ai-dlc/styling-and-export/unit-205-intent-closure-suite'
 const CITED_ROWS = ['CC-I3.1', 'CC-I3.2', 'CC-I3.3', 'CC-I3.4', 'CC-I3.5', 'CC-I3.6', 'CC-I3.7', 'CC-I3.8', 'CC-I3.10']
 
 function read(rel: string): string {
@@ -101,9 +106,11 @@ describe('CC-205.4: the closure suite is additive over the develop merge-base', 
   const TEST_SURFACE = ['e2e', 'tests', 'scripts', 'fixtures', 'package.json', 'pnpm-lock.yaml', 'playwright.config.ts', 'vitest.config.ts', 'vitest.config.qualify.ts', 'vite.config.ts', 'tsconfig.json', 'bundle-budget.json']
 
   /** Parse `git diff --name-status base HEAD -- TEST_SURFACE` and hard-assert
-   *  the additive property: additions only, both closure files among them.
-   *  Any M/D/R/C entry reddens — on a develop-object-bearing run a tampered
-   *  committed test surface can never pass. */
+   *  the additive property: additions only (plus the CLOSURE_ANCHOR_
+   *  AUTHORIZED_MODS documented exceptions riding the merged branch), both
+   *  closure files among them. Any other M/D/R/C entry reddens — on a
+   *  develop-object-bearing run a tampered committed test surface can never
+   *  pass. */
   function assertAdditionsOnlyVs(base: string): void {
     const nameStatus = git(['diff', '--name-status', base, 'HEAD', '--', ...TEST_SURFACE])
     const violations: string[] = []
@@ -113,11 +120,26 @@ describe('CC-205.4: the closure suite is additive over the develop merge-base', 
       const status = tab < 0 ? line : line.slice(0, tab)
       const path = tab < 0 ? '' : line.slice(tab + 1).split('\t')[0] ?? ''
       if (status.startsWith('A')) added.push(path)
+      else if (status.startsWith('M') && CLOSURE_ANCHOR_AUTHORIZED_MODS.includes(path)) continue
       else violations.push(`${status} ${path}`)
     }
-    expect(violations, `the closure suite edits no committed test surface relative to ${base} (FR-205.1 / CC-205.4)`).toEqual([])
-    expect(added, 'the closure spec ships as an addition').toContain(SPEC)
-    expect(added, 'this anchor file ships as an addition').toContain(ANCHOR)
+    expect(violations, `the closure suite edits no committed test surface relative to ${base} beyond the documented authorized mods (FR-205.1 / CC-205.4)`).toEqual([])
+    // The closure files ship as ADDITIONS relative to the base — or already
+    // exist in it (the unit's own merge landed in develop and moved the base
+    // past the addition; a later authoritative run on another unit's branch
+    // then legitimately sees no A entry). Either way the blob attestation
+    // pins the committed surface at HEAD + work tree.
+    const shipped = (path: string): boolean => {
+      if (added.includes(path)) return true
+      try {
+        git(['cat-file', '-e', `${base}:${path}`])
+        return true
+      } catch {
+        return false
+      }
+    }
+    expect(shipped(SPEC), 'the closure spec ships (added vs base, or already merged into it — the blob attestation pins it either way)').toBe(true)
+    expect(shipped(ANCHOR), 'this anchor file ships (added vs base, or already merged into it — the blob attestation pins it either way)').toBe(true)
   }
 
   /** The attestation BOTH tiers run: the committed tree really carries the
@@ -159,8 +181,14 @@ describe('CC-205.4: the closure suite is additive over the develop merge-base', 
     //     full additions-only diff over the test surface = the CC-205.4
     //     "zero edits to committed specs" proof, hard-red on tampering.
     //   Tier B — no base resolves (shallow PR-merge-ref CI checkout): legal
-    //     ONLY with the unit branch carried in GITHUB_HEAD_REF/GITHUB_REF
-    //     (red otherwise — never vacuous); the merged ref itself is the
+    //     ONLY inside a genuine CI checkout of a git-flow unit branch —
+    //     GITHUB_HEAD_REF/GITHUB_REF present and matching the
+    //     ai-dlc/<intent>/<unit-stem> grammar (red otherwise — never
+    //     vacuous). CI CONTEXT, not PR identity: the blob attestation is
+    //     identity-free, so a FOREIGN well-formed ai-dlc ref legitimately
+    //     passes (the same pipeline runs the same committed suite for every
+    //     unit PR, and it describes that tree honestly either way), while a
+    //     forged main / release/x redden; the merged ref itself is the
     //     additive attestation there (it is develop ∪ branch, and "all
     //     existing suites still green" is verifier-owned via junit-trust).
     //   The blob attestation above runs in BOTH tiers, so work-tree tampering
@@ -196,7 +224,7 @@ describe('CC-205.4: the closure suite is additive over the develop merge-base', 
       assertAdditionsOnlyVs(base)
       return
     }
-    const ciBranch = (process.env.GITHUB_HEAD_REF ?? '').trim() || (process.env.GITHUB_REF ?? '').trim().replace(/^refs\/heads\//, '')
-    expect(ciBranch, 'no develop-object-bearing merge-base resolved — legal only inside a PR/branch CI checkout (shallow fetch), which must carry the unit branch in GITHUB_HEAD_REF/GITHUB_REF; there the committed-blob attestation above is the CI-tier proof').toBe(UNIT_BRANCH)
+    const ciBranch = ciBranchFromEnv()
+    expect(isUnitBranchCiContext(), `no develop-object-bearing merge-base resolved — Tier-B is legal only inside a genuine CI checkout of a git-flow unit-branch PR (GITHUB_HEAD_REF/GITHUB_REF matching ai-dlc/<intent>/<unit-stem>; CI context, not PR identity — the blob attestation above is identity-free); observed ciBranch='${ciBranch}'; there the committed-blob attestation above is the CI-tier proof`).toBe(true)
   })
 })
