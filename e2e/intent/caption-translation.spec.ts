@@ -23,8 +23,17 @@
 // doctrine: caption-studio-ui.spec.ts likewise inlines its boot/mockTranscribe/
 // snapshot helpers, and helpers living INSIDE other spec files cannot be
 // imported without re-registering those specs' tests into this file.
+// (unit-303) doctrine: every chromium-run journey describe (and its test)
+// lead-leads BOTH its unit criterion and its intent criterion
+// (`CC-303.1 CC-I4.n: …`), the webkit tier leads `CC-I4.5 CC-303.2`, and the
+// T5b chromium mirror reproduces the gating shape (delete Translator +
+// LanguageDetector via addInitScript — the unit-302 workspace.spec.ts
+// precedent) so verify:unit, which spawns chromium only, can actually credit
+// CC-303.1/.2 and CC-I4.5 (unit-205 J4b doctrine). Static self-parse with the
+// repo's own citationsOf runs inside T1.
 import { readFileSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
+import { citationsOf } from '../../scripts/lib/junit-trust'
 import { cleanScratch, EXPORT_BLOCKS, extractFrame, mediaInfo, openExportProject, readGolden, SAMPLE_TIMES, scratchPath, SIDECAR_ASSET, SIDECAR_BLOCKS, SIDECAR_FR, SIDECAR_NAME, SIDECAR_SLUG, SIDECAR_SPEAKERS, TAXI_ASSET, TAXI_DURATION } from '../export/helpers/export-harness'
 
 // — scripted built-in APIs (the unit-301/302 inject seam) --------------------
@@ -293,11 +302,31 @@ const toDataUrl = (file: string): string => `data:image/png;base64,${readFileSyn
 
 // — T1 · CC-I4.1 ——————————————————————————————————————————————————————————————
 
-test.describe('CC-I4.1: 200-block en → mocked fr+es run', () => {
+test.describe('CC-303.1 CC-I4.1: 200-block en → mocked fr+es run', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:intent')
   test.setTimeout(240_000)
 
-  test('CC-I4.1: 200-block project → mocked Translator fr+es → every block translated-or-failed (honest failed leg per track, never source-as-translation) → both tracks render → reload byte-equal', async ({ page }) => {
+  test('CC-303.1 CC-I4.1: 200-block project → mocked Translator fr+es → every block translated-or-failed (honest failed leg per track, never source-as-translation) → both tracks render → reload byte-equal', async ({ page }) => {
+    // Static citation self-guard (unit-205 doctrine): every journey describe
+    // lead-leads BOTH its unit criterion and its intent criterion, parsed
+    // with the repo's own citation grammar (scripts/lib/junit-trust) rather
+    // than a reimplementation. The dual-lead is the credit mechanics for
+    // CC-303.1–.2 under the chromium-only verify:unit spawn.
+    const specSource = readFileSync(new URL('./caption-translation.spec.ts', import.meta.url), 'utf8')
+    const describeTitles = [...specSource.matchAll(/test\.describe\('([^']+)'/gu)].map((match) => match[1]!)
+    const dualLeads: Array<readonly [string, readonly string[]]> = [
+      ['CC-303.1 CC-I4.1: 200-block en → mocked fr+es run', ['CC-303.1', 'CC-I4.1']],
+      ['CC-303.1 CC-I4.3: edited translation + source split → stale', ['CC-303.1', 'CC-I4.3']],
+      ['CC-303.1 CC-I4.4: per-language export + translation burn-in', ['CC-303.1', 'CC-I4.4']],
+      ['CC-303.1 CC-I4.7: console redaction across a translate journey', ['CC-303.1', 'CC-I4.7']],
+      ['CC-I4.5 CC-303.2: unsupported-browser gating journey (webkit)', ['CC-I4.5', 'CC-303.2']],
+    ]
+    for (const [title, ids] of dualLeads) {
+      expect(describeTitles, `the '${title}' describe exists`).toContain(title)
+      expect(citationsOf(title), `describe '${title}' lead-cites ${ids.join(' + ')}`).toEqual(ids)
+    }
+    expect(describeTitles.some((title) => title.startsWith('CC-I4.5 CC-303.2: T5b chromium') && title.endsWith('(chromium)')), 'the T5b chromium gating mirror describe exists').toBe(true)
+
     await bootWithScriptedTranslator(page, [['fr', POISON_FR], ['es', POISON_ES]])
     const ed = editorProxy(page)
     await ed.openProjectWithMedia(SIDECAR_ASSET, RUN_SRC)
@@ -372,11 +401,11 @@ test.describe('CC-I4.1: 200-block en → mocked fr+es run', () => {
 
 // — T3 · CC-I4.3 ——————————————————————————————————————————————————————————————
 
-test.describe('CC-I4.3: edited translation + source split → stale', () => {
+test.describe('CC-303.1 CC-I4.3: edited translation + source split → stale', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:intent')
   test.setTimeout(180_000)
 
-  test('CC-I4.3: edit a translation → edited; split its source block → affected entries stale per invariant 10 → reload byte-equal', async ({ page }) => {
+  test('CC-303.1 CC-I4.3: edit a translation → edited; split its source block → affected entries stale per invariant 10 → reload byte-equal', async ({ page }) => {
     await bootWithScriptedTranslator(page, [])
     const ed = editorProxy(page)
     await ed.openProjectWithMedia(SIDECAR_ASSET, RUN_SRC)
@@ -432,11 +461,11 @@ test.describe('CC-I4.3: edited translation + source split → stale', () => {
 
 // — T4 · CC-I4.4 ——————————————————————————————————————————————————————————————
 
-test.describe('CC-I4.4: per-language export + translation burn-in', () => {
+test.describe('CC-303.1 CC-I4.4: per-language export + translation burn-in', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:intent')
   test.afterAll(cleanScratch)
 
-  test('CC-I4.4: per-language SRT/VTT/JSON sidecars are byte-exact vs the committed goldens, incl. the RTL Arabic set', async ({ page }) => {
+  test('CC-303.1 CC-I4.4: per-language SRT/VTT/JSON sidecars are byte-exact vs the committed goldens, incl. the RTL Arabic set', async ({ page }) => {
     test.setTimeout(180_000)
     await openExportProject(page, {
       asset: SIDECAR_ASSET,
@@ -477,7 +506,7 @@ test.describe('CC-I4.4: per-language export + translation burn-in', () => {
     }
   })
 
-  test('CC-I4.4: burn-in of a translation track renders the translated text (fr vs source track, shared-renderer mask agreement)', async ({ page }) => {
+  test('CC-303.1 CC-I4.4: burn-in of a translation track renders the translated text (fr vs source track, shared-renderer mask agreement)', async ({ page }) => {
     test.setTimeout(300_000)
     const frEntries: Record<string, unknown> = {}
     const frTextById = new Map<string, string>()
@@ -560,11 +589,11 @@ test.describe('CC-I4.4: per-language export + translation burn-in', () => {
 
 // — T6 · CC-I4.7 ——————————————————————————————————————————————————————————————
 
-test.describe('CC-I4.7: console redaction across a translate journey', () => {
+test.describe('CC-303.1 CC-I4.7: console redaction across a translate journey', () => {
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:intent')
   test.setTimeout(180_000)
 
-  test('CC-I4.7: whole journey — captured console + pageerror carry zero caption/translation text, codes and counts only', async ({ page }) => {
+  test('CC-303.1 CC-I4.7: whole journey — captured console + pageerror carry zero caption/translation text, codes and counts only', async ({ page }) => {
     const captured: Array<{ kind: string; line: string }> = []
     const pending: Array<Promise<void>> = []
     page.on('console', (msg) => {
@@ -615,41 +644,81 @@ test.describe('CC-I4.7: console redaction across a translate journey', () => {
   })
 })
 
-// — T5 · CC-I4.5 (webkit tier) —————————————————————————————————————————————————
+// — T5 / T5b · CC-I4.5 + CC-303.2 ———————————————————————————————————————————————
 
-test.describe('CC-I4.5: unsupported-browser gating journey (webkit)', () => {
+// The shared gating journey: translation actions absent with the honest
+// explanatory note, while both escape hatches (import a translation file,
+// add an empty manual track) still work. Executed by the on-engine webkit
+// tier (T5) and by the chromium mirror (T5b) that removes the APIs the
+// adapter probes — the unit-302 workspace.spec.ts unsupported-browser
+// precedent (delete w.Translator; delete w.LanguageDetector).
+async function runGatingJourney(page: import('@playwright/test').Page): Promise<void> {
+  await openExportProject(page, {
+    asset: SIDECAR_ASSET,
+    src: RUN_SRC,
+    blocks: SIDECAR_BLOCKS,
+    speakers: SIDECAR_SPEAKERS,
+    name: SIDECAR_NAME,
+    language: 'en',
+  })
+  // Translation actions are absent, with the explanatory note.
+  await expect(page.getByTestId('languages-gating')).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByTestId('languages-gating')).toContainText('On-device translation needs Chrome or Edge on desktop.')
+  await expect(page.getByTestId('languages-add'), 'the machine-translation entry point is absent').toBeDisabled()
+  await expect(page.getByTestId('languages-picker-item'), 'no machine-translation picker items').toHaveCount(0)
+  // The probe removal really happened (unit-202 J4b doctrine: the tier must
+  // be honest, not accidental — the adapter's probe APIs are really gone).
+  const probes = await page.evaluate(() => ({
+    translator: typeof (globalThis as unknown as { Translator?: unknown }).Translator,
+    detector: typeof (globalThis as unknown as { LanguageDetector?: unknown }).LanguageDetector,
+  }))
+  expect(probes.translator, 'the built-in Translator probe the adapter checks is absent').toBe('undefined')
+  expect(probes.detector, 'the built-in LanguageDetector probe is absent').toBe('undefined')
+
+  // Escape hatch 1: importing a translation file still works.
+  const chooserPromise = page.waitForEvent('filechooser', { timeout: 15_000 })
+  await page.getByTestId('languages-import').click()
+  const chooser = await chooserPromise
+  await chooser.setFiles('fixtures/captions/simple.srt')
+  await expect(page.getByTestId('caption-import-dialog')).toBeVisible({ timeout: 15_000 })
+  await page.getByTestId('caption-import-use-translation').click()
+  await page.getByTestId('caption-import-target-language').fill('es')
+  await page.getByTestId('caption-import-confirm').click()
+  await expect(page.getByTestId('languages-row').filter({ has: page.getByText('Spanish') })).toBeVisible({ timeout: 10_000 })
+
+  // Escape hatch 2: adding an empty manual track still works.
+  await page.getByTestId('languages-manual').click()
+  await expect(page.getByTestId('languages-row')).toHaveCount(2, { timeout: 10_000 })
+}
+
+test.describe('CC-I4.5 CC-303.2: unsupported-browser gating journey (webkit)', () => {
   test.skip(({ browserName }) => browserName !== 'webkit', 'webkit tier — run under E2E_WEBKIT=1 (FR-1.0.4 default-skip)')
   test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:intent')
   test.setTimeout(180_000)
 
-  test('CC-I4.5: webkit journey — translation actions absent with the explanatory note; import + manual translation still work', async ({ page }) => {
-    await openExportProject(page, {
-      asset: SIDECAR_ASSET,
-      src: RUN_SRC,
-      blocks: SIDECAR_BLOCKS,
-      speakers: SIDECAR_SPEAKERS,
-      name: SIDECAR_NAME,
-      language: 'en',
+  test('CC-I4.5 CC-303.2: webkit journey — translation actions absent with the explanatory note; import + manual translation still work', async ({ page }) => {
+    await runGatingJourney(page)
+  })
+})
+
+// The chromium mirror of T5 (unit-205 J4b doctrine): the verify:unit spawn is
+// chromium-only, so a webkit-only lead-citation is structurally uncreditable
+// there. This leg reproduces the exact gating shape on chromium by deleting
+// the APIs the adapter probes before boot (e2e/translate/workspace.spec.ts
+// unsupported-browser precedent) and lead-cites the same IDs, so a passing
+// chromium case credits CC-I4.5 + CC-303.2 under the leading-ID rule; the
+// real webkit T5 stays as the on-engine leg.
+test.describe('CC-I4.5 CC-303.2: T5b chromium Translator-less gating mirror — translation actions absent with the explanatory note, import + manual still work (chromium)', () => {
+  test.skip(({ browserName }) => browserName !== 'chromium', 'chromium tier mirror — the on-engine leg is T5 under E2E_WEBKIT=1')
+  test.skip(process.env.ZIPSCRIBE_CHILD === '1', 'gates-scaffold child run: authoritative execution is the parent `pnpm test:e2e` / verify:intent')
+  test.setTimeout(180_000)
+
+  test('CC-I4.5 CC-303.2: T5b — Translator + LanguageDetector deleted by init script (unit-302 precedent) — gating copy shows, machine translation is never offered, import + manual tracks still work', async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = globalThis as unknown as Record<string, unknown>
+      delete w.Translator
+      delete w.LanguageDetector
     })
-    // Translation actions are absent, with the explanatory note.
-    await expect(page.getByTestId('languages-gating')).toBeVisible({ timeout: 20_000 })
-    await expect(page.getByTestId('languages-gating')).toContainText('On-device translation needs Chrome or Edge on desktop.')
-    await expect(page.getByTestId('languages-add'), 'the machine-translation entry point is absent').toBeDisabled()
-    await expect(page.getByTestId('languages-picker-item')).toHaveCount(0)
-
-    // Escape hatch 1: importing a translation file still works.
-    const chooserPromise = page.waitForEvent('filechooser', { timeout: 15_000 })
-    await page.getByTestId('languages-import').click()
-    const chooser = await chooserPromise
-    await chooser.setFiles('fixtures/captions/simple.srt')
-    await expect(page.getByTestId('caption-import-dialog')).toBeVisible({ timeout: 15_000 })
-    await page.getByTestId('caption-import-use-translation').click()
-    await page.getByTestId('caption-import-target-language').fill('es')
-    await page.getByTestId('caption-import-confirm').click()
-    await expect(page.getByTestId('languages-row').filter({ has: page.getByText('Spanish') })).toBeVisible({ timeout: 10_000 })
-
-    // Escape hatch 2: adding an empty manual track still works.
-    await page.getByTestId('languages-manual').click()
-    await expect(page.getByTestId('languages-row')).toHaveCount(2, { timeout: 10_000 })
+    await runGatingJourney(page)
   })
 })
