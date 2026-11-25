@@ -1,5 +1,5 @@
 ---
-status: completed   # conventions § Intent exit token; closed 2026-11-18: units 101–108 all done; verify:intent caption-studio-ui 12/12 untagged criteria credited (reports/criteria/caption-studio-ui.md; final unit PR #21 → 058b4c8, CI run 44256219985). Carried: CC-I2.3 export-dialog leg skipped-with-reason until styling-and-export/unit-202 ([107-ADJ 23]); CC-103.6/104.9-style [MANUAL] items per unit reports
+status: in_progress   # reopened 2026-11-24 for unit-109 (local-media intake picker, owner ruling in knowledge/product.md § Roadmap item 5 — MVP-gating usability gap). Prior closure record: units 101–108 all done 2026-11-18; verify:intent caption-studio-ui 12/12 untagged criteria credited (reports/criteria/caption-studio-ui.md; final unit PR #21 → 058b4c8, CI run 44256219985). Carried: CC-I2.3 export-dialog leg skipped-with-reason until styling-and-export/unit-202 ([107-ADJ 23]); CC-103.6/104.9-style [MANUAL] items per unit reports
 workflow: default
 created: 2026-10-27
 announcements: [changelog, release-notes, blog-draft]
@@ -74,6 +74,8 @@ suite); `[MANUAL]`/`[RQ]` unit-tier items are recorded per unit report.
 | unit-105-command-system | frontend | unit-102, unit-103, unit-104 |
 | unit-106-persistence | frontend | unit-102, local-transcribe-engine/unit-04 |
 | unit-107-audio-preview | frontend | unit-102, local-transcribe-engine/unit-04 |
+| unit-108-stream-commit | frontend | unit-105, unit-106, local-transcribe-engine/unit-05 |
+| unit-109-media-intake-picker | frontend | unit-101, unit-104, unit-106 |
 
 ## Risks
 

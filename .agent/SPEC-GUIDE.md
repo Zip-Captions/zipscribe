@@ -41,6 +41,8 @@ Remaining, in DAG order:
 
 MVP exit = every `phase: mvp` unit at its exit gate + `pnpm dev`/`pnpm build && pnpm preview` demo path works locally with cached models. Only then is the app considered worth publishing.
 
+MVP validation gate (owner ruling 2026-11-24, `knowledge/product.md` § Roadmap): before any Phase-2 consideration, **unit-109** (local-media intake picker), **unit-205** + **unit-303** (intent closure suites making `verify:intent` 4/4 green), the per-story coverage audit, and the owner sign-off queue must be green.
+
 ### Phase 2 — Productionization (owner-gated on Cloudflare credentials)
 
 - **unit-203** (Cloudflare Pages CD, `_headers`/CSP hardening, Lighthouse-on-preview, L7 smoke on preview/staging/production, rollback rehearsal, release cutting + `docs/RELEASE.md`)
