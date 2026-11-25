@@ -120,11 +120,17 @@ describe('unit-301 flip: the production DEFAULT rules are the REAL invariant-10 
 
     expect(app.dispatch('block-split', { blockId: 'blk_a', at: 1.5 })).toBeNull()
     track = app.project.getState().project?.translations[0]
-    const parts = (app.project.getState().project?.blocks ?? []).filter((b) => b.start === 0.5 || b.start >= 1.4)
+    const blocks = app.project.getState().project?.blocks ?? []
+    const parts = blocks.filter((b) => b.start === 0.5 || b.start >= 1.4)
     expect(parts.length, 'split produced two parts').toBeGreaterThanOrEqual(2)
     const ids = parts.map((b) => b.id)
-    expect(track?.entries['blk_a'], 'source id entry is never left dangling').toBeUndefined()
-    expect(ids.some((id) => track?.entries[id] !== undefined), 'first part keeps an entry').toBe(true)
+    const live = new Set(blocks.map((b) => b.id))
+    // block-split.ts keeps the id on the FIRST part (first.id === block.id),
+    // so the source key IS the first part's key: invariant 10 keeps the
+    // entry THERE (unit-303 fix — the aliased delete must not destroy it).
+    expect(track?.entries['blk_a'], 'first part (which keeps the source id) keeps the entry').toBeDefined()
+    for (const key of Object.keys(track?.entries ?? {})) expect(live.has(key), 'no dangling TranslationEntry key (invariant 10)').toBe(true)
+    expect(ids.some((id) => track?.entries[id] !== undefined && track?.entries[id]?.sourceHash !== 'stale'), 'first part keeps the translated entry').toBe(true)
     expect(ids.some((id) => track?.entries[id]?.text === '' && track?.entries[id]?.sourceHash === 'stale'), 'second part gets the empty stale entry').toBe(true)
   })
 })

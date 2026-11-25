@@ -26,7 +26,7 @@ Behaviour exists at unit-301/302 level; this unit adds intent journeys + citatio
 
 ## Functional Requirements
 
-- **FR-303.1** New file `e2e/intent/caption-translation.spec.ts` only; no edits to existing `e2e/**`, `src/**` (defects → blockers).
+- **FR-303.1** New file `e2e/intent/caption-translation.spec.ts` plus the authorized defect fix named below; no other edits to existing `e2e/**` / `src/**` (defects → blockers). Orchestrator authorization 2026-11-24 (reviewer F-1, approve-with-conditions): the T3 journey exposed a genuine `onBlockSplit` entry-loss bug (`src/engine/translate/track.ts`, aliasing `sourceId===firstId`) that blocks CC-I4.3; fixing it inside this unit is cheaper than fragmenting criterion credit across a follow-up unit — authorized scope: `src/engine/translate/track.ts` + new L1 cases in `tests/unit/translate/track-rules.test.ts` + correction of the one pre-existing pin in `tests/unit/editor/translations-stub.test.ts` that encoded the bug (strictly-strengthening, per domain.md invariant 10).
 - **FR-303.2** Test titles lead-cite their intent criterion: T1 CC-I4.1, T3 CC-I4.3, T4 CC-I4.4, T5 CC-I4.5 (webkit project), T6 CC-I4.7.
 - **FR-303.3** Mocked Translator API via the existing inject seam from unit-301/302 suites (never the network); failure-path fixtures exercise `failed` status honestly.
 - **FR-303.4** Byte-equal reload doctrine where state round-trips (mirrors caption-studio-ui.spec.ts header doctrine).
@@ -37,11 +37,11 @@ Built on the `e2e/intent/` harness pattern; reuse the unit-301 mocked-translator
 
 ## Completion Criteria
 
-- [ ] **CC-303.1** chromium journeys green, lead-citing CC-I4.1, .3, .4, .7
-- [ ] **CC-303.2** webkit journey green, lead-citing CC-I4.5
-- [ ] **CC-303.3** `pnpm verify:intent caption-translation` exits 0 with CC-I4.1/.3/.4/.5/.7 credited (CC-I4.2 `[RQ]`, CC-I4.6 `[MANUAL]` excluded per conventions)
-- [ ] **CC-303.4** `pnpm test` + `pnpm test:e2e` fully green — pure addition, zero edits to committed specs
-- [ ] **CC-303.5** Reviewer checklist pass: each cited ID exercises the intent-level journey named in `intent.md`, not a unit-test re-run
+- [ ] **CC-303.1** chromium journeys green — each journey's describe lead-leads both its intent ID and CC-303.1 (`CC-303.1 CC-I4.n: …`), proving CC-I4.1/.3/.4/.7 legs
+- [ ] **CC-303.2** webkit journey green, describe lead-leading `CC-I4.5`; plus a chromium-runnable gating-mirror leg lead-leading `CC-303.2` (verify:unit spawns chromium only — webkit-only leads are structurally uncreditable there; unit-205 J4b doctrine)
+- [ ] **CC-303.3** `pnpm verify:intent caption-translation` exits 0 with CC-I4.1/.3/.4/.5/.7 credited (CC-I4.2 `[RQ]`, CC-I4.6 `[MANUAL]` excluded per conventions) — anchored by a static wiring-attestation leg lead-citing `CC-303.3` (gates-anchor doctrine)
+- [ ] **CC-303.4** `pnpm test` + `pnpm test:e2e` fully green — pure addition, zero edits to committed specs — anchored by a static blob-attestation leg lead-citing `CC-303.4` (tiered CI-robust attestation, unit-205 CC-205.4 doctrine)
+- [ ] **CC-303.5** `[MANUAL]` Reviewer checklist pass: each cited ID exercises the intent-level journey named in `intent.md`, not a unit-test re-run (reviewer report posted on the PR)
 
 ## Risks
 
@@ -50,7 +50,7 @@ Built on the `e2e/intent/` harness pattern; reuse the unit-301 mocked-translator
 
 ## Boundaries
 
-Owns: `e2e/intent/caption-translation.spec.ts` (+ unavoidable new fixtures via `pnpm fixtures`). Doesn't own: `src/**`, unit-301/302 specs, `[RQ]`/`[MANUAL]` executions, styling-and-export closure (unit-205).
+Owns: `e2e/intent/caption-translation.spec.ts` (+ unavoidable new fixtures via `pnpm fixtures`) and, per the FR-303.1 authorization (orchestrator, 2026-11-24), `src/engine/translate/track.ts` + `tests/unit/translate/track-rules.test.ts` + the corrected pin in `tests/unit/editor/translations-stub.test.ts`. Doesn't own: other `src/**`, unit-301/302 specs, `[RQ]`/`[MANUAL]` executions, styling-and-export closure (unit-205).
 
 ## Docs to consult
 

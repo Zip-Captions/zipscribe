@@ -80,11 +80,16 @@ export const REAL_TRANSLATION_RULES: TranslationRules = {
     for (const track of project.translations) {
       const entry = track.entries[sourceId]
       if (entry === undefined) continue // never-translated block: split creates NO entries
+      // Drop the source key FIRST: block-split.ts keeps the id on the first
+      // part (first.id === block.id), so the NORMAL call shape aliases
+      // sourceId === firstId — a delete after the assignments would destroy
+      // the preserved first-part entry (unit-303 / CC-I4.3). The entry is
+      // already captured above, so the rewrites below are aliasing-safe.
+      delete track.entries[sourceId]
       // Kept on the first part; its block text changed ⇒ stale (hash mismatch).
       track.entries[firstId] = { ...entry }
       // Second part gets an empty stale entry (invariant 10, verbatim).
       track.entries[secondId] = { text: '', status: 'translated', sourceHash: STALE_HASH }
-      delete track.entries[sourceId]
     }
   },
 
