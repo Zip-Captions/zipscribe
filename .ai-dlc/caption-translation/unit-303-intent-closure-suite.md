@@ -37,11 +37,11 @@ Built on the `e2e/intent/` harness pattern; reuse the unit-301 mocked-translator
 
 ## Completion Criteria
 
-- [ ] **CC-303.1** chromium journeys green, lead-citing CC-I4.1, .3, .4, .7
-- [ ] **CC-303.2** webkit journey green, lead-citing CC-I4.5
-- [ ] **CC-303.3** `pnpm verify:intent caption-translation` exits 0 with CC-I4.1/.3/.4/.5/.7 credited (CC-I4.2 `[RQ]`, CC-I4.6 `[MANUAL]` excluded per conventions)
-- [ ] **CC-303.4** `pnpm test` + `pnpm test:e2e` fully green — pure addition, zero edits to committed specs
-- [ ] **CC-303.5** Reviewer checklist pass: each cited ID exercises the intent-level journey named in `intent.md`, not a unit-test re-run
+- [ ] **CC-303.1** chromium journeys green — each journey's describe lead-leads both its intent ID and CC-303.1 (`CC-303.1 CC-I4.n: …`), proving CC-I4.1/.3/.4/.7 legs
+- [ ] **CC-303.2** webkit journey green, describe lead-leading `CC-I4.5`; plus a chromium-runnable gating-mirror leg lead-leading `CC-303.2` (verify:unit spawns chromium only — webkit-only leads are structurally uncreditable there; unit-205 J4b doctrine)
+- [ ] **CC-303.3** `pnpm verify:intent caption-translation` exits 0 with CC-I4.1/.3/.4/.5/.7 credited (CC-I4.2 `[RQ]`, CC-I4.6 `[MANUAL]` excluded per conventions) — anchored by a static wiring-attestation leg lead-citing `CC-303.3` (gates-anchor doctrine)
+- [ ] **CC-303.4** `pnpm test` + `pnpm test:e2e` fully green — pure addition, zero edits to committed specs — anchored by a static blob-attestation leg lead-citing `CC-303.4` (tiered CI-robust attestation, unit-205 CC-205.4 doctrine)
+- [ ] **CC-303.5** `[MANUAL]` Reviewer checklist pass: each cited ID exercises the intent-level journey named in `intent.md`, not a unit-test re-run (reviewer report posted on the PR)
 
 ## Risks
 
