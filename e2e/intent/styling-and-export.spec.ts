@@ -14,6 +14,10 @@
 //   J2 CC-I3.2  sidecar goldens byte-exact, source + translation tracks
 //   J3 CC-I3.3  burn-in MP4, 10 word-boundary frames SSIM ≥ 0.99 vs preview
 //   J4 CC-I3.4  webkit tier: formats offered, MP4 never (E2E_WEBKIT=1)
+//   J4b CC-I3.4 chromium mirror: AudioEncoder deleted via addInitScript —
+//         the T3 shape the chromium verify:unit spawn can actually execute
+//         and credit (unit-205 review round; webkit-1.64 HAS AudioEncoder,
+//         so J4's encoder-less branch is dead code on that engine)
 //   J5 CC-I3.5  audio project: no MP4 in dialog DOM, Style hides aspect
 //   J6 CC-I3.6  CDP Page.getInstallabilityErrors zero on the built bundle
 //   J7 CC-I3.7  offline reload → IDB reopen → autosave → sidecar offline
@@ -39,11 +43,11 @@
 // re-deriving them; Follow-up: lift them into e2e/export/helpers.
 //
 // RED doctrine (unit-205): journeys fail on missing composition legs, never
-// on fixture/server/config errors — J9 is honest red today (no About/
-// licensing panel ships yet, reported as a unit-205 blocker); the seam
-// contract it pins: ⋯ menu item `pwa-menu-about` → `about-licensing-panel`
-// → per-registry-model row `about-model-row-<id>` carrying the registry
-// license (+ attribution where the row defines one).
+// on fixture/server/config errors. J9 was the honest-RED journey until 5bc27cb
+// shipped the About/licensing panel — it is now a live regression pin on the
+// seam contract: ⋯ menu item `pwa-menu-about` → `about-licensing-panel` →
+// per-registry-model row `about-model-row-<id>` carrying the registry license
+// (+ attribution where the row defines one).
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
@@ -344,17 +348,30 @@ async function snapshotAfterReload(page: Page, id: string): Promise<string> {
 
 // — closure-map parser (CC-205.1 guard + J8 aggregate integrity) -------------
 
+interface ModeledCase {
+  /** Title of the single enclosing describe ('' when top-level). */
+  describe: string
+  test: string
+  /** The junit `name` the reporter will emit: `describe › test`. */
+  title: string
+}
+
 /** Model the Playwright junit title space of this file: `describe › test`
  *  (the concatenation scripts/lib/junit-trust.ts citationsOf parses), from
- *  the committed source text — one describe per test in this file. */
-function modeledTitles(src: string): string[] {
+ *  the committed source text — one describe per test in this file. The
+ *  regexes spell their quote as \u0027 so scripts/lib/criteria-credit.ts's
+ *  stripStringsAndComments (no regex-literal awareness) keeps string parity
+ *  over this file and every describe stays visible to the committed-spec
+ *  model (unit-205 review MAJOR-1). */
+function modeledCases(src: string): ModeledCase[] {
   const describes: { index: number; title: string }[] = []
-  for (const match of src.matchAll(/test\.describe\(\s*'([^']*)'/g)) describes.push({ index: match.index ?? 0, title: match[1]! })
-  const out: string[] = []
-  for (const match of src.matchAll(/\btest\(\s*'([^']*)'/g)) {
+  for (const match of src.matchAll(/test\.describe\(\s*\u0027([^\u0027]*)\u0027/g)) describes.push({ index: match.index ?? 0, title: match[1]! })
+  const out: ModeledCase[] = []
+  for (const match of src.matchAll(/\btest\(\s*\u0027([^\u0027]*)\u0027/g)) {
     const idx = match.index ?? 0
     const enclosing = describes.filter((entry) => entry.index < idx).at(-1)
-    out.push(enclosing === undefined ? match[1]! : `${enclosing.title} › ${match[1]!}`)
+    const title = match[1]!
+    out.push({ describe: enclosing?.title ?? '', test: title, title: enclosing === undefined ? title : `${enclosing.title} › ${title}` })
   }
   return out
 }
@@ -448,6 +465,11 @@ test.describe('CC-I3.2 CC-205.5: J2 sidecar goldens byte-exact — source + tran
       ...Object.values(AR).map((entry) => String((entry as { text: string }).text)),
     ]
     const audit = attachConsoleAudit(page, needles)
+    // Deferral (unit-205 review round): CC-I3.2's re-import half — the
+    // local-transcribe-engine/unit-07 parsers round-tripping our own
+    // sidecar bytes (± 1 ms) — is owned by unit-202
+    // (tests/unit/export/roundtrip.test.ts, CC-202.1); FR-205.1 keeps
+    // committed suites the single owner of their legs.
     await openExportProject(page, {
       asset: SIDECAR_ASSET,
       src: '/fixtures/audio/speech-2min.m4a',
@@ -542,6 +564,11 @@ test.describe('CC-I3.3 CC-205.5: J3 burn-in MP4 — 10 word-boundary frames SSIM
 
 // ============================== J4 · CC-I3.4 ================================
 
+// The on-engine webkit leg. Reviewer probe (unit-205 review round): webkit
+// 1.64 HAS AudioEncoder, so the encoder-less branch below is dead code on
+// this engine — the executable T3 proof is the chromium mirror (J4b), and
+// the chromium verify:unit spawn (which skips this case) credits the IDs
+// from J4b's passing run. This journey stays as the real-engine tier check.
 test.describe('CC-I3.4 CC-205.2: J4 webkit export tier — SRT/VTT/JSON/TSV offered, MP4 never offered on the encoder-less tier (webkit)', () => {
   test.skip(CHILD, CHILD_REASON)
   test.skip(({ browserName }: { browserName: string }): boolean => browserName !== 'webkit', 'webkit export tier — run under E2E_WEBKIT=1')
@@ -571,6 +598,59 @@ test.describe('CC-I3.4 CC-205.2: J4 webkit export tier — SRT/VTT/JSON/TSV offe
       const explained = (await page.getByTestId('burnin-absent-reason').count()) + (await page.getByTestId('requirements-copy').count())
       expect(explained, 'one honest one-line reason replaces the offer').toBe(1)
     }
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download', { timeout: 15_000 }),
+      page.getByTestId('sidecar-save').click(),
+    ])
+    expect(download.suggestedFilename()).toMatch(/\.srt$/u)
+    await expect(page.getByTestId('export-toast')).toContainText('Download', { timeout: 15_000 })
+  })
+})
+
+// ============================= J4b · CC-I3.4 ================================
+
+// The chromium mirror of the T3 encoder-less tier (unit-205 review round,
+// BLOCKER-1 + MAJOR-2): webkit-1.64 exposes AudioEncoder, so J4's
+// encoder-less branch never executes there, and under the chromium-only
+// verify:unit spawn J4 stays skipped — leaving CC-I3.4/CC-205.2
+// cited-only-skipped and uncreditable. This leg reproduces the exact T3
+// shape on chromium with the unit-202 doctrine (e2e/export/gating.spec.ts:
+// addInitScript deleting AudioEncoder before navigation) and LEAD-CITES the
+// same IDs, so a passing chromium case credits them under the leading-ID
+// rule; the real webkit J4 is kept as the on-engine leg.
+test.describe('CC-I3.4 CC-205.2: J4b chromium AudioEncoder-less tier — SRT/VTT/JSON/TSV offered, MP4 never offered (chromium)', () => {
+  test.skip(CHILD, CHILD_REASON)
+  test.skip(CHROMIUM_ONLY, 'chromium tier mirror — the on-engine leg is J4 under E2E_WEBKIT=1')
+  test.setTimeout(120_000)
+
+  test('CC-I3.4 CC-205.2: AudioEncoder deleted by init script — all four sidecar formats stay offered and SRT downloads; burn-in is NEVER offered; the gating copy honestly names AudioEncoder', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(window, 'AudioEncoder', { value: undefined, configurable: true })
+    })
+    await openExportProject(page, { asset: TAXI_ASSET, src: '/fixtures/taxi-en-accented-1.mp4', blocks: EXPORT_BLOCKS })
+    const encoders = await page.evaluate(() => ({
+      video: typeof (globalThis as unknown as { VideoEncoder?: unknown }).VideoEncoder === 'function',
+      audio: typeof (globalThis as unknown as { AudioEncoder?: unknown }).AudioEncoder === 'function',
+    }))
+    expect(encoders.audio, 'the init script really removed AudioEncoder (unit-202 gating.spec.ts doctrine)').toBe(false)
+    expect(encoders.video, 'VideoEncoder stays present — this is the T3 AudioEncoder-less shape, not the T4 requirements view').toBe(true)
+
+    await page.getByTestId('export-button').click()
+    await expect(page.getByTestId('export-dialog')).toBeVisible()
+
+    for (const format of ['srt', 'vtt', 'json', 'tsv']) {
+      await expect(page.getByTestId(`sidecar-format-${format}`), `format ${format.toUpperCase()} stays offered at the encoder-less tier`).toBeVisible()
+    }
+    await expect(page.getByTestId('sidecar-save'), 'sidecar export stays startable').toBeVisible()
+
+    // The CC-I3.4 contract: never a broken-but-offered MP4 …
+    await expect(page.getByTestId('burnin-start'), 'MP4 burn-in is NEVER offered without AudioEncoder').toHaveCount(0)
+    // … and the absence is explained honestly (unit-202 gating contract:
+    // exactly one reason line naming the missing encoder, not the T4
+    // requirements screen — navigator.gpu is untouched here).
+    await expect(page.getByTestId('burnin-absent-reason')).toContainText('AudioEncoder')
+    await expect(page.getByTestId('requirements-copy')).toHaveCount(0)
 
     const [download] = await Promise.all([
       page.waitForEvent('download', { timeout: 15_000 }),
@@ -691,6 +771,10 @@ test.describe('CC-I3.7 CC-205.5: J7 offline — reload from the SW cache, projec
     const before = (await projectRows(page)).find((row) => row.id === id)?.updatedAt ?? 0
     audit.reset()
 
+    // Deferral (unit-205 review round): CC-I3.7's transcription half — the
+    // offline-ready model transcribing after one visit, and the honest
+    // OFFLINE_MODEL_MISSING fast-fail otherwise — is owned by unit-204
+    // (e2e/pwa/offline.spec.ts); FR-205.1 keeps e2e/pwa/** untouched.
     await context.setOffline(true)
     try {
       // Offline reload (navigateFallback) → reopen from REAL IndexedDB.
@@ -749,18 +833,29 @@ test.describe('CC-I3.8: J8 closure aggregate — the closure run gates on the pr
     const index = await request.get('/')
     expect(index.status(), 'the preview origin answers').toBe(200)
     const html = await index.text()
-    expect(html, 'the served index references the BUILT hashed bundle (not the Vite dev client)').toMatch(/<script[^>]+src="\/assets\/[^"]+\.js"/u)
+    // The quotes are spelled \u0022: scripts/lib/criteria-credit.ts's
+    // stripStringsAndComments has no regex-literal awareness, and raw "
+    // here flipped string parity and swallowed the trailing describes of
+    // this file from the committed-spec model (unit-205 review MAJOR-1).
+    expect(html, 'the served index references the BUILT hashed bundle (not the Vite dev client)').toMatch(/<script[^>]+src=\u0022\/assets\/[^\u0022]+\.js\u0022/u)
     expect(html, 'no dev-server fallback inside the e2e webServer').not.toContain('/@vite/client')
     const manifestResponse = await request.get('/manifest.webmanifest')
     expect(manifestResponse.status(), 'the production build ships the manifest (PWA parity)').toBe(200)
 
     const own = readFileSync(testInfo.file, 'utf8')
-    const titles = modeledTitles(own)
+    const cases = modeledCases(own)
+    // Tier-aware uniqueness (unit-205 review round): every row leads exactly
+    // one CHROMIUM-runnable journey — the tier the chromium verify:unit spawn
+    // can actually credit (CC-I3.4's chromium leg is the J4b mirror) — and
+    // CC-I3.4 additionally keeps exactly one on-engine WEBKIT journey (J4).
+    // Renaming, duplicating or dropping any leg reddens this.
     for (const row of CITED_ROWS) {
-      const leads = titles.filter((title) => citationsOf(title).includes(row))
-      expect(leads.length, `exactly one lead-citing journey for ${row}`).toBe(1)
+      const chromiumLeads = cases.filter((entry) => citationsOf(entry.title).includes(row) && /\(chromium\)$/u.test(entry.describe))
+      expect(chromiumLeads.length, `exactly one chromium-runnable lead-citing journey for ${row}`).toBe(1)
     }
-    expect(titles.some((title) => citationsOf(title).includes('CC-I3.9')), 'the [DEPLOY] row is never lead-cited').toBe(false)
+    const webkitLeads = cases.filter((entry) => citationsOf(entry.title).includes('CC-I3.4') && /\(webkit\)$/u.test(entry.describe))
+    expect(webkitLeads.length, 'CC-I3.4 keeps exactly one on-engine webkit journey (J4)').toBe(1)
+    expect(cases.some((entry) => citationsOf(entry.title).includes('CC-I3.9')), 'the [DEPLOY] row is never lead-cited').toBe(false)
     expect(own.includes("browserName !== 'webkit'"), 'the webkit journey is project-tagged (no test.skip-free drift)').toBe(true)
 
     const config = readFileSync(join(dirname(testInfo.file), '..', '..', 'playwright.config.ts'), 'utf8')
@@ -783,9 +878,10 @@ test.describe('CC-I3.10: J9 About/licensing panel lists every registry model wit
     await page.locator('.shell-pwa-menu-button').click()
 
     // Seam contract (unit-205 header): pwa-menu-about → about-licensing-panel
-    // → about-model-row-<id>. Honest RED today: no About/licensing panel
-    // ships yet — the missing composition leg, filed as a unit-205 blocker.
-    await expect(page.getByTestId('pwa-menu-about'), 'About/licensing entry in the ⋯ menu (seam contract, unit-205 blocker until shipped)').toBeVisible({ timeout: 5_000 })
+    // → about-model-row-<id>. The panel shipped with 5bc27cb (the honest-RED
+    // leg the review round filed as the unit-205 blocker) — these assertions
+    // are now the regression pin on that seam, not a placeholder.
+    await expect(page.getByTestId('pwa-menu-about'), 'About/licensing entry in the ⋯ menu (seam contract, shipped 5bc27cb)').toBeVisible({ timeout: 5_000 })
     await page.getByTestId('pwa-menu-about').click()
     const panel = page.getByTestId('about-licensing-panel')
     await expect(panel, 'the About/licensing panel opens').toBeVisible({ timeout: 10_000 })
@@ -847,18 +943,24 @@ test.describe('CC-205.1: closure-map lint — every CC-I3 row has exactly one le
   // Falsifiable spec-lint: renaming, duplicating or dropping any journey's
   // leading citation reddens this test (it parses this very file through the
   // SAME grammar the verifier uses — scripts/lib/junit-trust.citationsOf —
-  // over the modelled `describe › test` junit title space).
-  test('CC-205.1: every covered CC-I3 row leads exactly one journey title; the [DEPLOY] row is never lead-cited', async ({}, testInfo) => {
+  // over the modelled `describe › test` junit title space). Tier-aware
+  // (unit-205 review round): every row needs exactly one chromium-runnable
+  // lead (what the chromium verify:unit spawn can credit — for CC-I3.4 that
+  // is the J4b mirror) plus, for CC-I3.4, exactly one on-engine webkit
+  // lead (J4). A duplicated or dropped leg reddens it either way.
+  test('CC-205.1: every covered CC-I3 row leads exactly one chromium-runnable journey (+ the CC-I3.4 webkit leg); the [DEPLOY] row is never lead-cited', async ({}, testInfo) => {
     const own = readFileSync(testInfo.file, 'utf8')
-    const titles = modeledTitles(own)
-    expect(titles.length, 'the spec exposes its test titles to the parser').toBeGreaterThanOrEqual(CITED_ROWS.length + 2)
+    const cases = modeledCases(own)
+    expect(cases.length, 'the spec exposes its test titles to the parser').toBeGreaterThanOrEqual(CITED_ROWS.length + 3)
     const problems: string[] = []
     for (const row of CITED_ROWS) {
-      const leads = titles.filter((title) => citationsOf(title).includes(row))
-      if (leads.length !== 1) problems.push(`${row}: ${String(leads.length)} lead-citing journeys`)
+      const chromiumLeads = cases.filter((entry) => citationsOf(entry.title).includes(row) && /\(chromium\)$/u.test(entry.describe))
+      if (chromiumLeads.length !== 1) problems.push(`${row}: ${String(chromiumLeads.length)} chromium-runnable lead-citing journeys (want exactly 1)`)
     }
-    for (const title of titles) {
-      if (citationsOf(title).includes('CC-I3.9')) problems.push('CC-I3.9 ([DEPLOY]) is lead-cited — it must stay uncited')
+    const webkitLeads = cases.filter((entry) => citationsOf(entry.title).includes('CC-I3.4') && /\(webkit\)$/u.test(entry.describe))
+    if (webkitLeads.length !== 1) problems.push(`CC-I3.4 webkit journey (J4): ${String(webkitLeads.length)} (want exactly 1)`)
+    for (const entry of cases) {
+      if (citationsOf(entry.title).includes('CC-I3.9')) problems.push('CC-I3.9 ([DEPLOY]) is lead-cited — it must stay uncited')
     }
     expect(problems, `closure-map violations: ${problems.join(' | ')}`).toEqual([])
   })
