@@ -229,7 +229,7 @@ async function settleOutcomes(page: Page): Promise<IntakeSignature> {
   return readSignature(page)
 }
 
-test.describe('CC-109.x: local file-picker media intake', () => {
+test.describe('CC-109.1: picker creates, previews and autosaves projects (chromium)', () => {
   test('CC-109.1: setInputFiles via media-intake-button creates asset, preview and autosaves the project', async ({ page }) => {
     test.setTimeout(240_000)
     await boot(page)
@@ -269,6 +269,9 @@ test.describe('CC-109.x: local file-picker media intake', () => {
     expect(rows.length, 'the created project persisted (read after the in-page saved + row ≥ 1 gate — on a cold page the row only exists once the autosave flushed)').toBe(1)
   })
 
+})
+
+test.describe('CC-109.2: picker cancellation and picker/drop parity (chromium)', () => {
   test('CC-109.2: cancelling the picker is a no-op — no asset, no project, no toast', async ({ page }) => {
     test.setTimeout(120_000)
     const errors: string[] = []
@@ -325,6 +328,9 @@ test.describe('CC-109.x: local file-picker media intake', () => {
     expect(pickerOutcome.projectRows, 'the picker path creates no project from bad files either').toBe(0)
   })
 
+})
+
+test.describe('CC-109.3: keyboard activation opens the file chooser (chromium)', () => {
   test('CC-109.3: keyboard Enter on media-intake-button opens the file chooser (Playwright filechooser event)', async ({ page }) => {
     test.setTimeout(120_000)
     await boot(page)
@@ -341,6 +347,9 @@ test.describe('CC-109.x: local file-picker media intake', () => {
     await chooser.setFiles([])
   })
 
+})
+
+test.describe('CC-109.4: console hygiene during the picker journey (chromium)', () => {
   test('CC-109.4: console stays codes/counts during the picker journey — no file names, no transcript strings (SECURITY-03)', async ({ page }) => {
     test.setTimeout(240_000)
     const lines: string[] = []
