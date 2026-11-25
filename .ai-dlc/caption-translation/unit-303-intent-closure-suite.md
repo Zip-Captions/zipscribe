@@ -26,7 +26,7 @@ Behaviour exists at unit-301/302 level; this unit adds intent journeys + citatio
 
 ## Functional Requirements
 
-- **FR-303.1** New file `e2e/intent/caption-translation.spec.ts` only; no edits to existing `e2e/**`, `src/**` (defects → blockers).
+- **FR-303.1** New file `e2e/intent/caption-translation.spec.ts` plus the authorized defect fix named below; no other edits to existing `e2e/**` / `src/**` (defects → blockers). Orchestrator authorization 2026-11-24 (reviewer F-1, approve-with-conditions): the T3 journey exposed a genuine `onBlockSplit` entry-loss bug (`src/engine/translate/track.ts`, aliasing `sourceId===firstId`) that blocks CC-I4.3; fixing it inside this unit is cheaper than fragmenting criterion credit across a follow-up unit — authorized scope: `src/engine/translate/track.ts` + new L1 cases in `tests/unit/translate/track-rules.test.ts` + correction of the one pre-existing pin in `tests/unit/editor/translations-stub.test.ts` that encoded the bug (strictly-strengthening, per domain.md invariant 10).
 - **FR-303.2** Test titles lead-cite their intent criterion: T1 CC-I4.1, T3 CC-I4.3, T4 CC-I4.4, T5 CC-I4.5 (webkit project), T6 CC-I4.7.
 - **FR-303.3** Mocked Translator API via the existing inject seam from unit-301/302 suites (never the network); failure-path fixtures exercise `failed` status honestly.
 - **FR-303.4** Byte-equal reload doctrine where state round-trips (mirrors caption-studio-ui.spec.ts header doctrine).
@@ -50,7 +50,7 @@ Built on the `e2e/intent/` harness pattern; reuse the unit-301 mocked-translator
 
 ## Boundaries
 
-Owns: `e2e/intent/caption-translation.spec.ts` (+ unavoidable new fixtures via `pnpm fixtures`). Doesn't own: `src/**`, unit-301/302 specs, `[RQ]`/`[MANUAL]` executions, styling-and-export closure (unit-205).
+Owns: `e2e/intent/caption-translation.spec.ts` (+ unavoidable new fixtures via `pnpm fixtures`) and, per the FR-303.1 authorization (orchestrator, 2026-11-24), `src/engine/translate/track.ts` + `tests/unit/translate/track-rules.test.ts` + the corrected pin in `tests/unit/editor/translations-stub.test.ts`. Doesn't own: other `src/**`, unit-301/302 specs, `[RQ]`/`[MANUAL]` executions, styling-and-export closure (unit-205).
 
 ## Docs to consult
 
