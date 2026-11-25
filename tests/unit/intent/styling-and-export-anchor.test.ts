@@ -7,7 +7,11 @@
 // these legs pin the WIRING), CC-205.3 (the criteria verifier ships and is
 // consumed by the closure spec), and CC-205.4 (the closure suite is pure
 // addition over the develop merge-base — a falsifiable git check, no test
-// re-runs; the "all existing suites still green" half is carried by the
+// re-runs; tiered (PR #44): the additions-only diff runs wherever develop
+// objects resolve, the committed-blob attestation (existence, non-emptiness,
+// shape, work-tree == HEAD blob) runs everywhere — including the shallow
+// PR-merge-ref CI checkout where FETCH_HEAD degenerates the merge-base to
+// HEAD itself; the "all existing suites still green" half is carried by the
 // verify:unit spawn itself, junit-trust: nonzero ⇒ zero credit). GREEN-state
 // attestation stays with the unit report + the authoritative run, exactly as
 // in gates-anchor.
@@ -96,32 +100,11 @@ describe('CC-205.4: the closure suite is additive over the develop merge-base', 
   // (junit-trust: a nonzero exit anywhere ⇒ zero credit), not by this leg.
   const TEST_SURFACE = ['e2e', 'tests', 'scripts', 'fixtures', 'package.json', 'pnpm-lock.yaml', 'playwright.config.ts', 'vitest.config.ts', 'vitest.config.qualify.ts', 'vite.config.ts', 'tsconfig.json', 'bundle-budget.json']
 
-  test('CC-205.4: git diff develop-merge-base..HEAD shows additions only — no committed e2e/tests/scripts/config file is modified, renamed or deleted', async ({ skip }) => {
-    skip(CHILD, CHILD_REASON)
-    // CI-honest (unit-105/106 adjudications): a PR-merge-ref checkout is a
-    // shallow single-commit fetch with no develop objects — merge-base then
-    // cannot resolve and the diff leg is replaced by the merge-tree
-    // attestation below (the merged ref itself is the additive evidence).
-    let base = ''
-    for (const candidate of ['develop', 'origin/develop', 'FETCH_HEAD']) {
-      try {
-        const out = git(['merge-base', candidate, 'HEAD'])
-        if (/^[0-9a-f]{40}$/u.test(out)) {
-          base = out
-          break
-        }
-      } catch {
-        // candidate ref absent — try the next
-      }
-    }
-    if (base === '') {
-      const ciBranch = (process.env.GITHUB_HEAD_REF ?? '').trim() || (process.env.GITHUB_REF ?? '').trim().replace(/^refs\/heads\//, '')
-      expect(ciBranch, 'the develop merge-base is unresolvable — legal only inside a PR/branch CI checkout (shallow fetch); it must carry the unit branch in GITHUB_HEAD_REF/GITHUB_REF').toBe(UNIT_BRANCH)
-      const tree = git(['ls-tree', '-r', '--name-only', 'HEAD', '--', 'e2e/intent', 'tests/unit/intent']).split('\n').filter((line) => line !== '')
-      expect(tree, 'the merged tree carries the closure spec').toContain(SPEC)
-      expect(tree, 'the merged tree carries this anchor file').toContain(ANCHOR)
-      return
-    }
+  /** Parse `git diff --name-status base HEAD -- TEST_SURFACE` and hard-assert
+   *  the additive property: additions only, both closure files among them.
+   *  Any M/D/R/C entry reddens — on a develop-object-bearing run a tampered
+   *  committed test surface can never pass. */
+  function assertAdditionsOnlyVs(base: string): void {
     const nameStatus = git(['diff', '--name-status', base, 'HEAD', '--', ...TEST_SURFACE])
     const violations: string[] = []
     const added: string[] = []
@@ -132,8 +115,88 @@ describe('CC-205.4: the closure suite is additive over the develop merge-base', 
       if (status.startsWith('A')) added.push(path)
       else violations.push(`${status} ${path}`)
     }
-    expect(violations, 'the closure suite edits no committed test surface relative to the develop merge-base (FR-205.1 / CC-205.4)').toEqual([])
+    expect(violations, `the closure suite edits no committed test surface relative to ${base} (FR-205.1 / CC-205.4)`).toEqual([])
     expect(added, 'the closure spec ships as an addition').toContain(SPEC)
     expect(added, 'this anchor file ships as an addition').toContain(ANCHOR)
+  }
+
+  /** The attestation BOTH tiers run: the committed tree really carries the
+   *  closure surface (existence, non-emptiness, shape) and the work tree the
+   *  tests execute is byte-identical to the committed blobs. Without develop
+   *  objects the diff-vs-develop half cannot run, but deleting or emptying
+   *  the committed spec reddens the ls-tree/length assertions and any
+   *  work-tree tampering reddens the hash-object assertion — this pair is
+   *  the forgery surface that matters (junit credits flow from the work
+   *  tree while criteria-credit models HEAD; they must agree). */
+  function assertCommittedBlobAttestation(): void {
+    const blobSha = new Map<string, string>()
+    for (const line of git(['ls-tree', 'HEAD', '--', SPEC, ANCHOR]).split('\n').filter((entry) => entry !== '')) {
+      const tab = line.indexOf('\t')
+      if (tab < 0) continue
+      const meta = line.slice(0, tab).split(/\s+/u)
+      if (meta[1] === 'blob' && (meta[2] ?? '').length === 40) blobSha.set(line.slice(tab + 1), meta[2]!)
+    }
+    for (const required of [SPEC, ANCHOR]) {
+      const sha = blobSha.get(required)
+      expect(sha, `${required} exists as a committed blob at HEAD (delete / rename ⇒ red even without develop objects)`).toMatch(/^[0-9a-f]{40}$/u)
+      expect(git(['hash-object', '--', required]), `${required} in the work tree is byte-identical to the committed blob (work-tree tamper ⇒ red: the tests run the work tree, the model reads HEAD)`).toBe(sha)
+    }
+    const committed = git(['show', `HEAD:${SPEC}`])
+    expect(committed.length, 'the committed closure spec is non-empty (empty-out ⇒ red even without develop objects)').toBeGreaterThan(2_000)
+    expect(committed, 'the committed closure spec carries its lead-citation journey describes (shape check only — the full committed-model lint lives in J8 / the CC-205.1 leg)').toContain("test.describe('CC-I3.4 CC-205.2")
+  }
+
+  test('CC-205.4: committed blob attestation always, plus an additions-only git diff vs the develop merge-base whenever develop objects resolve', async ({ skip }) => {
+    skip(CHILD, CHILD_REASON)
+    // Attestation tiering (gates-anchor wiring-not-green-state doctrine;
+    // CI-proven 2026-11-24 on PR #44: a PR-merge-ref checkout is a shallow
+    // single-commit fetch — FETCH_HEAD points AT the checkout itself, so an
+    // unguarded merge-base(FETCH_HEAD, HEAD) degenerates to HEAD and the
+    // diff leg runs vacuously (empty added list); and develop objects are
+    // absent there, so the diff-vs-develop half is physically unrunnable):
+    //   Tier A — a real (non-degenerate) merge-base against origin/develop,
+    //     develop or FETCH_HEAD resolves (every local/authoritative run):
+    //     full additions-only diff over the test surface = the CC-205.4
+    //     "zero edits to committed specs" proof, hard-red on tampering.
+    //   Tier B — no base resolves (shallow PR-merge-ref CI checkout): legal
+    //     ONLY with the unit branch carried in GITHUB_HEAD_REF/GITHUB_REF
+    //     (red otherwise — never vacuous); the merged ref itself is the
+    //     additive attestation there (it is develop ∪ branch, and "all
+    //     existing suites still green" is verifier-owned via junit-trust).
+    //   The blob attestation above runs in BOTH tiers, so work-tree tampering
+    //     reddens locally too, not just the committed diff.
+    // Tier option (b) — diffing the merge commit's parents — was rejected:
+    // on GitHub merge refs HEAD^1 is the develop tip and on branch merge
+    // commits it is the pre-merge branch head; either orientation mixes
+    // develop-side modifications into the diff (false red) or an
+    // any-parent relaxation hides deep tampering (false green).
+    assertCommittedBlobAttestation()
+    let head = ''
+    try {
+      head = git(['rev-parse', 'HEAD'])
+    } catch {
+      head = ''
+    }
+    expect(head, 'HEAD resolves — git is available where this attestation runs').toMatch(/^[0-9a-f]{40}$/u)
+    let base = ''
+    for (const candidate of ['origin/develop', 'develop', 'FETCH_HEAD']) {
+      try {
+        const out = git(['merge-base', candidate, 'HEAD'])
+        // A self-base (the PR-merge-ref FETCH_HEAD trap) makes the diff
+        // empty by construction — never an attestation.
+        if (/^[0-9a-f]{40}$/u.test(out) && out !== head) {
+          base = out
+          break
+        }
+      } catch {
+        // candidate ref absent — try the next
+      }
+    }
+    if (base !== '') {
+      assertAdditionsOnlyVs(base)
+      return
+    }
+    const ciBranch = (process.env.GITHUB_HEAD_REF ?? '').trim() || (process.env.GITHUB_REF ?? '').trim().replace(/^refs\/heads\//, '')
+    expect(ciBranch, 'no develop-object-bearing merge-base resolved — legal only inside a PR/branch CI checkout (shallow fetch), which must carry the unit branch in GITHUB_HEAD_REF/GITHUB_REF; there the committed-blob attestation above is the CI-tier proof').toBe(UNIT_BRANCH)
   })
 })
