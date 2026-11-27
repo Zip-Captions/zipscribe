@@ -1,0 +1,78 @@
+{
+  "clipped": [
+    {
+      "tag": "off-viewport",
+      "cls": "ws-style-panel",
+      "overflowPx": 99,
+      "text": "«460 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-style-remote-row",
+      "overflowPx": 8,
+      "text": "«5 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "",
+      "overflowPx": 6,
+      "text": "«5 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-style-remote-row",
+      "overflowPx": 29,
+      "text": "«10 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "",
+      "overflowPx": 27,
+      "text": "«10 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-style-remote-row",
+      "overflowPx": 50,
+      "text": "«6 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "",
+      "overflowPx": 48,
+      "text": "«6 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-style-remote-row",
+      "overflowPx": 71,
+      "text": "«7 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "",
+      "overflowPx": 69,
+      "text": "«7 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-tabular",
+      "overflowPx": 95,
+      "text": "«24 chars»"
+    }
+  ],
+  "occluded": [
+    {
+      "blocked": "",
+      "by": "footer.ws-status"
+    }
+  ],
+  "panelOverlaps": [
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ws-style-panel",
+      "ox": 304,
+      "oy": 773
+    }
+  ]
+}

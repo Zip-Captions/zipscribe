@@ -1,0 +1,318 @@
+{
+  "keymap2": [
+    {
+      "name": "Caption visibility ⌘\\",
+      "key": "ControlOrMeta+\\",
+      "changed": [],
+      "delta": {},
+      "rowsAfter": 12
+    },
+    {
+      "name": "Caption visibility back",
+      "key": "ControlOrMeta+\\",
+      "changed": [],
+      "delta": {},
+      "rowsAfter": 12
+    },
+    {
+      "name": "Set in I",
+      "key": "i",
+      "changed": [
+        "save",
+        "loop"
+      ],
+      "delta": {
+        "save": [
+          "unsaved changes",
+          "saved"
+        ],
+        "loop": [
+          "false",
+          "true"
+        ]
+      },
+      "rowsAfter": 12
+    },
+    {
+      "name": "Set out O",
+      "key": "o",
+      "changed": [],
+      "delta": {},
+      "rowsAfter": 12
+    },
+    {
+      "name": "Loop Y",
+      "key": "y",
+      "changed": [
+        "loop"
+      ],
+      "delta": {
+        "loop": [
+          "true",
+          "false"
+        ]
+      },
+      "rowsAfter": 12
+    },
+    {
+      "name": "Loop Y back",
+      "key": "y",
+      "changed": [
+        "loop"
+      ],
+      "delta": {
+        "loop": [
+          "false",
+          "true"
+        ]
+      },
+      "rowsAfter": 12
+    },
+    {
+      "name": "Collapse timeline Ctrl+Alt+3",
+      "key": "Control+Alt+3",
+      "changed": [
+        "canvas",
+        "timeline"
+      ],
+      "delta": {
+        "canvas": [
+          "60774:-278796374",
+          "62518:455527"
+        ],
+        "timeline": [
+          "1115x201",
+          "absent"
+        ]
+      },
+      "rowsAfter": 12
+    },
+    {
+      "name": "Restore timeline",
+      "key": "Control+Alt+3",
+      "changed": [
+        "canvas",
+        "timeline"
+      ],
+      "delta": {
+        "canvas": [
+          "62518:455527",
+          "60774:-278796374"
+        ],
+        "timeline": [
+          "absent",
+          "1115x201"
+        ]
+      },
+      "rowsAfter": 12
+    },
+    {
+      "name": "Focus stage Alt+2",
+      "key": "Alt+2",
+      "changed": [
+        "focus"
+      ],
+      "delta": {
+        "focus": [
+          "DIV#transcript-row@panel-sidebar",
+          "SECTION#panel-stage@panel-stage"
+        ]
+      },
+      "rowsAfter": 12
+    },
+    {
+      "name": "Focus timeline Alt+3",
+      "key": "Alt+3",
+      "changed": [
+        "focus"
+      ],
+      "delta": {
+        "focus": [
+          "SECTION#panel-stage@panel-stage",
+          "SECTION#panel-timeline@panel-timeline"
+        ]
+      },
+      "rowsAfter": 12
+    },
+    {
+      "name": "Focus sidebar Alt+1",
+      "key": "Alt+1",
+      "changed": [
+        "focus"
+      ],
+      "delta": {
+        "focus": [
+          "SECTION#panel-timeline@panel-timeline",
+          "SECTION#panel-sidebar@panel-sidebar"
+        ]
+      },
+      "rowsAfter": 12
+    },
+    {
+      "name": "Cycle view ⌘⇧L",
+      "key": "ControlOrMeta+Shift+L",
+      "changed": [],
+      "delta": {},
+      "rowsAfter": 12
+    },
+    {
+      "name": "Select all ⌘A",
+      "key": "ControlOrMeta+a",
+      "changed": [
+        "sel"
+      ],
+      "delta": {
+        "sel": [
+          1,
+          2
+        ]
+      },
+      "rowsAfter": 12
+    },
+    {
+      "name": "Deselect Esc",
+      "key": "Escape",
+      "changed": [
+        "sel"
+      ],
+      "delta": {
+        "sel": [
+          2,
+          0
+        ]
+      },
+      "rowsAfter": 12
+    },
+    {
+      "name": "Cycle view back ⌘⇧L ×2",
+      "key": "ControlOrMeta+Shift+L",
+      "changed": [],
+      "delta": {},
+      "rowsAfter": 12
+    },
+    {
+      "name": "Save ⌘S",
+      "key": "ControlOrMeta+s",
+      "changed": [
+        "save"
+      ],
+      "delta": {
+        "save": [
+          "unsaved changes",
+          "saved"
+        ]
+      },
+      "rowsAfter": 11
+    },
+    {
+      "name": "Collapse sidebar Ctrl+Alt+2",
+      "key": "Control+Alt+2",
+      "changed": [
+        "sidebar",
+        "timeline",
+        "focus",
+        "sel"
+      ],
+      "delta": {
+        "sidebar": [
+          "321x826",
+          "absent"
+        ],
+        "timeline": [
+          "1115x201",
+          "1440x201"
+        ],
+        "focus": [
+          "DIV#transcript-row@panel-sidebar",
+          "BODY#@"
+        ],
+        "sel": [
+          1,
+          0
+        ]
+      },
+      "rowsAfter": 0
+    },
+    {
+      "name": "Restore sidebar Ctrl+Alt+2",
+      "key": "Control+Alt+2",
+      "changed": [
+        "sidebar",
+        "timeline",
+        "sel"
+      ],
+      "delta": {
+        "sidebar": [
+          "absent",
+          "321x826"
+        ],
+        "timeline": [
+          "1440x201",
+          "1115x201"
+        ],
+        "sel": [
+          0,
+          1
+        ]
+      },
+      "rowsAfter": 11
+    }
+  ],
+  "layoutBeforeTab": {
+    "canvas": "45334:412671726",
+    "sidebar": "321x826",
+    "timeline": "1115x201",
+    "focus": "BODY#@",
+    "sel": 1,
+    "view": "preview-canvas-layer",
+    "save": "saved",
+    "loop": "true"
+  },
+  "tab2": {
+    "distinct": 31,
+    "regionsReached": [
+      "HEADER",
+      "panel-sidebar",
+      "",
+      "panel-stage",
+      "panel-timeline"
+    ],
+    "noRing": [
+      "BODY@"
+    ],
+    "unreachable": [],
+    "order": [
+      "project-name@HEADER",
+      "BUTTON@HEADER",
+      "transcribe-button@HEADER",
+      "export-button@HEADER",
+      "tab-subtitles@panel-sidebar",
+      "tab-media@panel-sidebar",
+      "tab-style@panel-sidebar",
+      "transcript-issue-filter@panel-sidebar",
+      "transcript-retime-tool@panel-sidebar",
+      "transcript-align-audio@panel-sidebar",
+      "transcript-issue@panel-sidebar",
+      "transcript-row@panel-sidebar",
+      "transcript-row-chip@panel-sidebar",
+      "transcript-row-timecode@panel-sidebar",
+      "transcript-close-gap@panel-sidebar",
+      "transcript-row-delete@panel-sidebar",
+      "transcript-row-timecode-edit@panel-sidebar",
+      "resize-handle-sidebar@",
+      "transport-skip-back@panel-stage",
+      "transport-play-pause@panel-stage",
+      "transport-skip-forward@panel-stage",
+      "transport-loop-toggle@panel-stage",
+      "transport-loop-in@panel-stage",
+      "transport-loop-out@panel-stage",
+      "transport-rate@panel-stage",
+      "resize-handle-timeline@",
+      "timeline-root@panel-timeline",
+      "timeline-snap-toggle@panel-timeline",
+      "timeline-input-start@panel-timeline",
+      "timeline-input-end@panel-timeline",
+      "BODY@"
+    ]
+  }
+}

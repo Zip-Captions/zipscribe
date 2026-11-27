@@ -1,0 +1,23 @@
+{
+  "rowsBeforeCrash": 5,
+  "saveStateBeforeCrash": "unsaved changes",
+  "landing": {
+    "name": "",
+    "rows": 0,
+    "status": "Idle · no model · CPU · cache partial 1/5 · model downloads on first use",
+    "alerts": []
+  },
+  "reopen": {
+    "dialogs": [],
+    "relinkButtons": [],
+    "stage": 0,
+    "notices": []
+  },
+  "after": {
+    "rows": 0,
+    "status": "Idle · no model · CPU · cache partial 1/5 · model downloads on first use",
+    "alerts": [],
+    "resumeButtons": [],
+    "transcribeEnabled": true
+  }
+}

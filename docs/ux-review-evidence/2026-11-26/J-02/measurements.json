@@ -1,0 +1,135 @@
+{
+  "afterChoose": {
+    "dialogs": [],
+    "toasts": [
+      "UNSUPPORTED_CAPTION"
+    ],
+    "alerts": [
+      "UNSUPPORTED_CAPTION"
+    ],
+    "assetCard": 1,
+    "status": "Idle · no model · CPU · cache empty · models download on first use\nsaved",
+    "chooseButtonsAfterMedia": 0,
+    "dragDrop": {
+      "dialogs": [
+        "Import captions"
+      ],
+      "toasts": [
+        "UNSUPPORTED_CAPTION"
+      ]
+    }
+  },
+  "intakePath": "drag-drop fallback (click path rejected caption)",
+  "importDialog": {
+    "format": "srt",
+    "encoding": "utf-8",
+    "cues": "12",
+    "blocks": "12",
+    "language": "",
+    "languagePlaceholder": "—",
+    "radios": [
+      {
+        "tid": "caption-import-language",
+        "type": "text",
+        "checked": false,
+        "labelText": "",
+        "ariaLabel": "Caption language"
+      },
+      {
+        "tid": "caption-import-use-replace",
+        "type": "radio",
+        "checked": true,
+        "labelText": "Replace source captions",
+        "ariaLabel": null
+      },
+      {
+        "tid": "caption-import-use-translation",
+        "type": "radio",
+        "checked": false,
+        "labelText": "Add as translation",
+        "ariaLabel": null
+      },
+      {
+        "tid": "caption-import-prefix-toggle",
+        "type": "checkbox",
+        "checked": true,
+        "labelText": "Read speaker prefixes from cue text",
+        "ariaLabel": null
+      }
+    ],
+    "toasts": [
+      "UNSUPPORTED_CAPTION"
+    ]
+  },
+  "tabAfterImport": "Media",
+  "afterImport": {
+    "rowsMounted": 10,
+    "toasts": [
+      "UNSUPPORTED_CAPTION"
+    ],
+    "languages": "Transcribe or set a source language to enable translation."
+  },
+  "select": {
+    "tc": "00:30.1",
+    "before": "00:00.0",
+    "after": "00:30.1",
+    "sel": {
+      "ariaSelected": null,
+      "ariaCurrent": null,
+      "cls": "ts-row ts-row-selected",
+      "focused": true,
+      "bg": "rgba(76, 141, 255, 0.22)",
+      "outline": "none"
+    },
+    "other": {
+      "cls": "ts-row",
+      "bg": "rgba(0, 0, 0, 0)"
+    }
+  },
+  "wordEditor": {
+    "tag": "DIV",
+    "type": "",
+    "ce": true,
+    "tid": "transcript-editor",
+    "inRow": true,
+    "valueLen": 30
+  },
+  "edit": {
+    "applied": 1,
+    "editorStill": false,
+    "saveStates": [
+      {
+        "ms": 3,
+        "s": "unsaved changes"
+      },
+      {
+        "ms": 2019,
+        "s": "saved"
+      }
+    ]
+  },
+  "splitKey": {
+    "splitChanged": true,
+    "undoRestored": true,
+    "redoReapplied": true,
+    "undoAgain": true,
+    "active": "DIV#transcript-row",
+    "playhead": "00:19.3"
+  },
+  "menuPath": {
+    "contextMenus": 0,
+    "items": [],
+    "rowButtons": [
+      "Speaker options for Unknown",
+      "Delete block and close the gap (neighbours meet at the midpoint)",
+      "Delete block (leave the gap)"
+    ],
+    "splitButtons": 0,
+    "mergeButtons": 0
+  },
+  "mergeKey": {
+    "merged": false,
+    "undoRestored": true
+  },
+  "longTasksMain": []
+}

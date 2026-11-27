@@ -1,0 +1,551 @@
+[
+  {
+    "story": "J-107",
+    "step": 1,
+    "name": "107.0 intake m4a by click + srt by drag",
+    "expected": "audio project with captions",
+    "actual": "geometry issues: 14 clipped, 15 occluded, 3 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-107/step-01-107-0-intake-m4a-by-click-srt-by-drag.png",
+    "geometry": {
+      "clipped": [
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 17,
+          "text": "«42 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 15,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 19,
+          "text": "«30 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 17,
+          "text": "«3 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 77,
+          "text": "«42 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 18,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 37,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 56,
+          "text": "«6 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 75,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 40,
+          "text": "«28 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«3 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«1 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 38,
+          "text": "«6 chars»"
+        }
+      ],
+      "occluded": [
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.389 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.432 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "footer.ws-status"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "footer.ws-status"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-107",
+    "step": 2,
+    "name": "107.1 Export offers no burn-in for audio",
+    "expected": "no burned-in video export for audio projects",
+    "actual": "geometry issues: 14 clipped, 15 occluded, 4 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-107/step-02-107-1-export-offers-no-burn-in-for-audio.png",
+    "geometry": {
+      "clipped": [
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 17,
+          "text": "«42 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 15,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 19,
+          "text": "«30 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 17,
+          "text": "«3 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 77,
+          "text": "«42 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 18,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 37,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 56,
+          "text": "«6 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 75,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 40,
+          "text": "«28 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«3 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«1 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 38,
+          "text": "«6 chars»"
+        }
+      ],
+      "occluded": [
+        {
+          "blocked": "Project name",
+          "by": "div.zip-export-backdrop"
+        },
+        {
+          "blocked": "⋯",
+          "by": "div.zip-export-backdrop"
+        },
+        {
+          "blocked": "Transcribe",
+          "by": "div.zip-export-backdrop"
+        },
+        {
+          "blocked": "Export",
+          "by": "div.zip-export-backdrop"
+        },
+        {
+          "blocked": "Subtitles",
+          "by": "div.zip-export-backdrop"
+        },
+        {
+          "blocked": "Media",
+          "by": "div.zip-export-backdrop"
+        },
+        {
+          "blocked": "Style",
+          "by": "div.zip-export-backdrop"
+        },
+        {
+          "blocked": "Issues (12)",
+          "by": "div.zip-export-backdrop"
+        },
+        {
+          "blocked": "Shift / stretch timing…",
+          "by": "div.zip-export-backdrop"
+        },
+        {
+          "blocked": "Align to audio",
+          "by": "div.zip-export-backdrop"
+        },
+        {
+          "blocked": "Shown too long — 8.389 s",
+          "by": "div.zip-export-backdrop"
+        },
+        {
+          "blocked": "Shown too long — 8.432 s",
+          "by": "div.zip-export-backdrop"
+        },
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.zip-export-backdrop"
+        },
+        {
+          "blocked": "Shown too long — 8.389 s",
+          "by": "div.zip-export-backdrop"
+        },
+        {
+          "blocked": "Shown too long — 8.432 s",
+          "by": "div.zip-export-backdrop"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.zip-export-section",
+          "b": "SECTION.ws-stage",
+          "ox": 560,
+          "oy": 182
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-107",
+    "step": 3,
+    "name": "107.2 audio plays (clock advances)",
+    "expected": "audio file plays; visualizer animates (owner-eyeball)",
+    "actual": "geometry issues: 15 clipped, 15 occluded, 3 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-107/step-03-107-2-audio-plays-clock-advances-.png",
+    "geometry": {
+      "clipped": [
+        {
+          "tag": "span",
+          "cls": "tl-timecode-label",
+          "overflowPx": 18,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 17,
+          "text": "«42 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 15,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 19,
+          "text": "«30 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 17,
+          "text": "«3 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 77,
+          "text": "«42 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 18,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 37,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 56,
+          "text": "«6 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 75,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 40,
+          "text": "«28 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«3 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«1 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 38,
+          "text": "«6 chars»"
+        }
+      ],
+      "occluded": [
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.389 s",
+          "by": "div.ts-row ts-row-selected"
+        },
+        {
+          "blocked": "Shown too long — 8.432 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "footer.ws-status"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "footer.ws-status"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  }
+]

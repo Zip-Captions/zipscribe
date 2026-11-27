@@ -1,0 +1,40 @@
+div |  | "Zipscribe0.0.0+7819d70CPU⋯TranscribeExportSubtitlesMediaStylespeech-2min.mp4Dura" | workbench-shell |  | 0,0 1440x900
+header | banner | "Zipscribe0.0.0+7819d70CPU⋯TranscribeExport" |  |  | 0,0 1440x45
+span |  | "0.0.0+7819d70" | build-info |  | 88,15 84x14
+input |  | "Project name" | project-name | type=text val=speech-2min | 188,7 166x30
+span |  | "CPU" | tier-chip |  | 362,11 74x22
+button |  | "⋯" |  | exp=false | 444,9 33x27
+button |  | "Transcribe" | transcribe-button |  | 485,8 92x28
+button |  | "Export" | export-button |  | 585,8 66x28
+section | region | "Sidebar" | panel-sidebar |  | 0,45 321x826
+div | tablist | "Sidebar panels" |  |  | 0,45 320x45
+button | tab | "Subtitles" | tab-subtitles |  | 8,53 69x28
+button | tab | "Media" | tab-media | selected | 81,53 54x28
+button | tab | "Style" | tab-style |  | 139,53 47x28
+div | tabpanel | "speech-2min.mp4Duration01:59.9Containervideo/mp4; codecs=\"avc1.42c00b, mp4a.40.2" |  |  | 0,90 320x781
+div |  | "speech-2min.mp4Duration01:59.9Containervideo/mp4; codecs=\"avc1.42c00b, mp4a.40.2" | media-asset-card |  | 8,98 304x136
+p |  | "speech-2min.mp4" |  |  | 8,98 304x16
+div | list | "Projects" | project-list |  | 8,234 304x126
+div | listitem | "Untitled projectOpenDuplicateDelete" | project-row-proj_b636bfaa-3d34-4c2e-aa16-2c148ea4bf75 |  | 8,234 304x28
+button |  | "Open Untitled project" | project-open-proj_b636bfaa-3d34-4c2e-aa16-2c148ea4bf75 |  | 102,234 59x28
+button |  | "Duplicate Untitled project" | project-duplicate-proj_b636bfaa-3d34-4c2e-aa16-2c148ea4bf75 |  | 161,234 84x28
+button |  | "Delete Untitled project" | project-delete-proj_b636bfaa-3d34-4c2e-aa16-2c148ea4bf75 |  | 245,234 65x28
+div | listitem | "speech-2minOpenDuplicateDelete" | project-row-proj_8da371c1-68eb-4757-ba52-49c3164bfa65 |  | 8,262 304x28
+button |  | "Open speech-2min" | project-open-proj_8da371c1-68eb-4757-ba52-49c3164bfa65 |  | 89,262 59x28
+button |  | "Duplicate speech-2min" | project-duplicate-proj_8da371c1-68eb-4757-ba52-49c3164bfa65 |  | 148,262 84x28
+button |  | "Delete speech-2min" | project-delete-proj_8da371c1-68eb-4757-ba52-49c3164bfa65 |  | 232,262 65x28
+button |  | "New project" | new-project-button |  | 8,290 100x28
+p |  | "38.2 MB of 10 GB · persistent off" | storage-estimate |  | 8,331 304x16
+div | separator | "Resize sidebar" | resize-handle-sidebar |  | 321,45 4x826
+section | region | "Preview stage" | panel-stage |  | 325,45 1115x621
+div |  | "" | preview-canvas-layer |  | 325,45 1115x621
+div | separator | "Resize timeline" | resize-handle-timeline |  | 325,666 1115x4
+section | region | "«8 chars»" | panel-timeline |  | 325,670 1115x201
+div | region | "«8 chars»" | timeline-root |  | 325,671 1115x186
+canvas |  | "«0 chars»" | timeline-canvas |  | 325,671 23978x144
+button |  | "Snap" | timeline-snap-toggle |  | 325,815 47x21
+label |  | "Start" |  |  | 325,838 182x16
+input |  | "" | timeline-input-start | type=text val=00:47.3 | 354,836 153x21
+label |  | "End" |  |  | 507,838 176x16
+input |  | "" | timeline-input-end | type=text val=00:55.7 | 531,836 153x21
+footer | status | "Idle · no model · CPU · cache empty · models download on first use" | status-bar | live=polite | 0,871 1440x29

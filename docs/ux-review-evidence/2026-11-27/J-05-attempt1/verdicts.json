@@ -1,0 +1,538 @@
+[
+  {
+    "story": "J-05",
+    "step": 1,
+    "name": "J05.0 prereq intake",
+    "expected": "transcript present, playhead inside a cue",
+    "actual": "geometry issues: 15 clipped, 15 occluded, 3 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-05/step-01-j05-0-prereq-intake.png",
+    "geometry": {
+      "clipped": [
+        {
+          "tag": "span",
+          "cls": "tl-timecode-label",
+          "overflowPx": 18,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 17,
+          "text": "«42 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 15,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 19,
+          "text": "«30 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 17,
+          "text": "«3 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 77,
+          "text": "«42 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 18,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 37,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 56,
+          "text": "«6 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 75,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 40,
+          "text": "«28 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«3 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«1 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 38,
+          "text": "«6 chars»"
+        }
+      ],
+      "occluded": [
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.389 s",
+          "by": "div.ts-row ts-row-selected"
+        },
+        {
+          "blocked": "Shown too long — 8.432 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "footer.ws-status"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "p.lang-empty"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-05",
+    "step": 2,
+    "name": "J05.1 each preset changes overlay distinctly",
+    "expected": "overlay preview changes distinctly per preset (look = owner-eyeball)",
+    "actual": "Error: only 1/4 distinct overlay renders; selected preset not marked pressed [{\"preset\":\"Karaoke\",\"pressed\":null,\"canvas\":\"1104x621:-278796374:60774\",\"textColor\":\"#ffffff\",\"outline\":\"#0d0f12\",\"box\":false,\"font\":\"Inter\"},{\"preset\":\"Broadcast box\",\"pressed\":null,\"canvas\":\"1104x6",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-05/step-02-j05-1-each-preset-changes-overlay-distinctly.png",
+    "geometry": {
+      "clipped": [
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-panel",
+          "overflowPx": 99,
+          "text": "«462 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-remote-row",
+          "overflowPx": 8,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "",
+          "overflowPx": 6,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-remote-row",
+          "overflowPx": 29,
+          "text": "«10 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "",
+          "overflowPx": 27,
+          "text": "«10 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-remote-row",
+          "overflowPx": 50,
+          "text": "«6 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "",
+          "overflowPx": 48,
+          "text": "«6 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-remote-row",
+          "overflowPx": 71,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "",
+          "overflowPx": 69,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-tabular",
+          "overflowPx": 95,
+          "text": "«24 chars»"
+        }
+      ],
+      "occluded": [
+        {
+          "blocked": "",
+          "by": "footer.ws-status"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-style-panel",
+          "ox": 304,
+          "oy": 773
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-05",
+    "step": 3,
+    "name": "J05.1b preset text contrast (WCAG, text vs outline/box colour)",
+    "expected": "caption text readable against its outline/box (≥ 4.5:1)",
+    "actual": "geometry issues: 10 clipped, 1 occluded, 1 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-05/step-03-j05-1b-preset-text-contrast-wcag-text-vs-outline-box-colour-.png",
+    "geometry": {
+      "clipped": [
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-panel",
+          "overflowPx": 99,
+          "text": "«462 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-remote-row",
+          "overflowPx": 8,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "",
+          "overflowPx": 6,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-remote-row",
+          "overflowPx": 29,
+          "text": "«10 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "",
+          "overflowPx": 27,
+          "text": "«10 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-remote-row",
+          "overflowPx": 50,
+          "text": "«6 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "",
+          "overflowPx": 48,
+          "text": "«6 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-remote-row",
+          "overflowPx": 71,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "",
+          "overflowPx": 69,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-tabular",
+          "overflowPx": 95,
+          "text": "«24 chars»"
+        }
+      ],
+      "occluded": [
+        {
+          "blocked": "",
+          "by": "footer.ws-status"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-style-panel",
+          "ox": 304,
+          "oy": 773
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-05",
+    "step": 4,
+    "name": "J05.2 change one style field → persists across reload",
+    "expected": "style change persists across reload (autosave)",
+    "actual": "Error: style not persisted: {\"before\":\"8\",\"set\":\"8.4\",\"saveState\":\"saved\",\"after\":null} landing={\"tab\":\"Subtitles\",\"projectName\":\"\",\"rows\":0,\"stage\":0,\"dialogs\":[],\"toasts\":[]}",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-05/step-04-j05-2-change-one-style-field-persists-across-reload.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "P.ws-empty",
+          "ox": 304,
+          "oy": 40
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-05",
+    "step": 5,
+    "name": "J06.0 make one edit to verify export content",
+    "expected": "edit applied",
+    "actual": "TimeoutError: locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n  - waiting for getByTestId('transcript-row').first() to be visible\n",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-05/step-05-j06-0-make-one-edit-to-verify-export-content.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 305
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 305
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-05",
+    "step": 6,
+    "name": "J06.1 export SRT downloads, content matches",
+    "expected": "SRT downloads; content = edited transcript; timings sane",
+    "actual": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByTestId('export-button')\n    - locator resolved to <button disabled type=\"button\" class=\"ws-button\" data-testid=\"export-button\">Export</button>\n  - attempting click action\n    2 × waiting for element to be visible, ",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-05/step-06-j06-1-export-srt-downloads-content-matches.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 305
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 305
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-05",
+    "step": 7,
+    "name": "J06.1 export VTT downloads, content matches",
+    "expected": "VTT downloads; content = edited transcript; timings sane",
+    "actual": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByTestId('export-button')\n    - locator resolved to <button disabled type=\"button\" class=\"ws-button\" data-testid=\"export-button\">Export</button>\n  - attempting click action\n    2 × waiting for element to be visible, ",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-05/step-07-j06-1-export-vtt-downloads-content-matches.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 305
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 305
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-05",
+    "step": 8,
+    "name": "J05.2b style applies to export (burn-in MP4)",
+    "expected": "burned-in MP4 produced with the chosen style",
+    "actual": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByTestId('export-button')\n    - locator resolved to <button disabled type=\"button\" class=\"ws-button\" data-testid=\"export-button\">Export</button>\n  - attempting click action\n    2 × waiting for element to be visible, ",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-05/step-08-j05-2b-style-applies-to-export-burn-in-mp4-.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 305
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 305
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  }
+]

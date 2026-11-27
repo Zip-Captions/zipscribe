@@ -1,0 +1,176 @@
+{
+  "clipped": [
+    {
+      "tag": "off-viewport",
+      "cls": "ts-text",
+      "overflowPx": 31,
+      "text": "«42 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 10,
+      "text": "«6 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 29,
+      "text": "«7 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-text",
+      "overflowPx": 33,
+      "text": "«30 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 12,
+      "text": "«6 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 12,
+      "text": "«3 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 31,
+      "text": "«3 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-text",
+      "overflowPx": 91,
+      "text": "«42 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 13,
+      "text": "«6 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 32,
+      "text": "«7 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 51,
+      "text": "«5 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 70,
+      "text": "«6 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 89,
+      "text": "«7 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-row",
+      "overflowPx": 17,
+      "text": "«45 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-timecode",
+      "overflowPx": 17,
+      "text": "«7 chars»"
+    }
+  ],
+  "occluded": [
+    {
+      "blocked": "Shown too long — 8.421 s",
+      "by": "div.ts-row"
+    },
+    {
+      "blocked": "Shown too long — 8.389 s",
+      "by": "div.ts-row"
+    },
+    {
+      "blocked": "Shown too long — 8.432 s",
+      "by": "div.ts-row"
+    },
+    {
+      "blocked": "Shown too long — 8.421 s",
+      "by": "div.ts-row"
+    },
+    {
+      "blocked": "Gap too small — 0.185 s",
+      "by": "div.ts-row"
+    },
+    {
+      "blocked": "Gap too small — 0.142 s",
+      "by": "div.ts-row"
+    },
+    {
+      "blocked": "Gap too small — 0.185 s",
+      "by": "div.ts-row"
+    },
+    {
+      "blocked": "Gap too small — 0.142 s",
+      "by": "p.lang-empty"
+    },
+    {
+      "blocked": "Gap too small — 0.185 s",
+      "by": "p.lang-empty"
+    },
+    {
+      "blocked": "Gap too small — 0.142 s",
+      "by": "section.lang-section"
+    },
+    {
+      "blocked": "Gap too small — 0.185 s",
+      "by": "footer.ws-status"
+    },
+    {
+      "blocked": "Speaker options for Unknown",
+      "by": "section.lang-section"
+    },
+    {
+      "blocked": "Delete block and close the gap",
+      "by": "section.lang-section"
+    },
+    {
+      "blocked": "Delete block (leave the gap)",
+      "by": "section.lang-section"
+    },
+    {
+      "blocked": "Speaker options for Unknown",
+      "by": "p.lang-empty"
+    }
+  ],
+  "panelOverlaps": [
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ws-transcript",
+      "ox": 304,
+      "oy": 354
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ts-panel",
+      "ox": 304,
+      "oy": 354
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "SECTION.lang-section",
+      "ox": 304,
+      "oy": 58
+    }
+  ]
+}

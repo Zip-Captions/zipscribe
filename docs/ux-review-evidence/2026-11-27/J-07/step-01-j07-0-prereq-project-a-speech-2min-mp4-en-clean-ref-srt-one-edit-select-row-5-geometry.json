@@ -1,0 +1,104 @@
+{
+  "clipped": [
+    {
+      "tag": "span",
+      "cls": "tl-timecode-label",
+      "overflowPx": 18,
+      "text": "«5 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-text",
+      "overflowPx": 17,
+      "text": "«42 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 15,
+      "text": "«7 chars»"
+    }
+  ],
+  "occluded": [
+    {
+      "blocked": "Shown too long — 8.421 s",
+      "by": "div.ts-row"
+    },
+    {
+      "blocked": "Shown too long — 8.389 s",
+      "by": "div.ts-row"
+    },
+    {
+      "blocked": "Shown too long — 8.432 s",
+      "by": "div.ts-row ts-row-selected"
+    },
+    {
+      "blocked": "Shown too long — 8.421 s",
+      "by": "div.ts-row"
+    },
+    {
+      "blocked": "Gap too small — 0.185 s",
+      "by": "div.ts-row"
+    },
+    {
+      "blocked": "Gap too small — 0.142 s",
+      "by": "div.ts-row"
+    },
+    {
+      "blocked": "Gap too small — 0.185 s",
+      "by": "div.ts-row"
+    },
+    {
+      "blocked": "Gap too small — 0.142 s",
+      "by": "section.lang-section"
+    },
+    {
+      "blocked": "Gap too small — 0.185 s",
+      "by": "p.lang-empty"
+    },
+    {
+      "blocked": "Gap too small — 0.142 s",
+      "by": "p.lang-empty"
+    },
+    {
+      "blocked": "Gap too small — 0.142 s",
+      "by": "footer.ws-status"
+    },
+    {
+      "blocked": "Speaker options for Unknown",
+      "by": "button.ts-issue-item"
+    },
+    {
+      "blocked": "Delete block and close the gap",
+      "by": "button.ts-issue-item"
+    },
+    {
+      "blocked": "Delete block (leave the gap)",
+      "by": "button.ts-issue-item"
+    },
+    {
+      "blocked": "Speaker options for Unknown",
+      "by": "button.ts-issue-item"
+    }
+  ],
+  "panelOverlaps": [
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ws-transcript",
+      "ox": 304,
+      "oy": 354
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ts-panel",
+      "ox": 304,
+      "oy": 354
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "SECTION.lang-section",
+      "ox": 304,
+      "oy": 58
+    }
+  ]
+}

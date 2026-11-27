@@ -1,0 +1,248 @@
+[
+  {
+    "story": "J-08",
+    "step": 1,
+    "name": "J08.0 intake",
+    "expected": "media loaded",
+    "actual": "geometry issues: 0 clipped, 0 occluded, 2 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-08/step-01-j08-0-intake.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-08",
+    "step": 2,
+    "name": "J08.1 Offline models: make whisper-tiny available offline",
+    "expected": "model stored for offline with visible progress; status reflects it",
+    "actual": "Error: DOM-MISS: no whisper-tiny row in Offline models",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-08/step-02-j08-1-offline-models-make-whisper-tiny-available-offline.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-08",
+    "step": 3,
+    "name": "J08.2 go offline + reload → shell + projects load, offline chip visible",
+    "expected": "app shell + projects load from SW; offline chip visible",
+    "actual": "geometry issues: 0 clipped, 0 occluded, 4 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-08/step-03-j08-2-go-offline-reload-shell-projects-load-offline-chip-visible.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 305
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 305
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-08",
+    "step": 4,
+    "name": "J08.3 offline: transcribe with the cached model (tiny)",
+    "expected": "cached model transcribes offline",
+    "actual": "Error: no rows offline with cached tiny; last: {\"t\":1,\"status\":\"Idle · no model · CPU · cache empty · models download on first use NETWORK saved\",\"rows\":0,\"alerts\":[]}",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-08/step-04-j08-3-offline-transcribe-with-the-cached-model-tiny-.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-08",
+    "step": 5,
+    "name": "J08.4 offline: uncached model (base) fails fast and honestly",
+    "expected": "honest fast-fail, never a hang",
+    "actual": "TimeoutError: locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n  - waiting for getByRole('dialog', { name: 'Transcribe options' }) to be visible\n",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-08/step-05-j08-4-offline-uncached-model-base-fails-fast-and-honestly.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-08",
+    "step": 6,
+    "name": "US-3.1.1 fonts work offline",
+    "expected": "bundled fonts load offline; remote faces opt-in",
+    "actual": "geometry issues: 10 clipped, 1 occluded, 1 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-08/step-06-us-3-1-1-fonts-work-offline.png",
+    "geometry": {
+      "clipped": [
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-panel",
+          "overflowPx": 99,
+          "text": "«460 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-remote-row",
+          "overflowPx": 8,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "",
+          "overflowPx": 6,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-remote-row",
+          "overflowPx": 29,
+          "text": "«10 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "",
+          "overflowPx": 27,
+          "text": "«10 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-remote-row",
+          "overflowPx": 50,
+          "text": "«6 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "",
+          "overflowPx": 48,
+          "text": "«6 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-remote-row",
+          "overflowPx": 71,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "",
+          "overflowPx": 69,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-tabular",
+          "overflowPx": 95,
+          "text": "«24 chars»"
+        }
+      ],
+      "occluded": [
+        {
+          "blocked": "",
+          "by": "footer.ws-status"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-style-panel",
+          "ox": 304,
+          "oy": 773
+        }
+      ]
+    }
+  }
+]

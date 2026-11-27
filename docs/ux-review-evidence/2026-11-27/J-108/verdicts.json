@@ -1,0 +1,101 @@
+[
+  {
+    "story": "J-108",
+    "step": 1,
+    "name": "108.0 intake",
+    "expected": "media loaded",
+    "actual": "geometry issues: 0 clipped, 0 occluded, 2 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-108/step-01-108-0-intake.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-108",
+    "step": 2,
+    "name": "108.1 start whisper-tiny, reload the tab once ≥ 5 rows exist",
+    "expected": "job running with partial rows",
+    "actual": "geometry issues: 0 clipped, 0 occluded, 4 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-108/step-02-108-1-start-whisper-tiny-reload-the-tab-once-5-rows-exist.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 305
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 305
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-108",
+    "step": 3,
+    "name": "108.2 reopen: already-transcribed rows kept; state honest",
+    "expected": "no transcribed rows lost; interruption is visible and resumable",
+    "actual": "Error: rows lost: 5 → 0; no message that transcription was interrupted, no resume {\"rows\":0,\"status\":\"Idle · no model · CPU · cache partial 1/5 · model downloads on first use\",\"alerts\":[],\"resumeButtons\":[],\"transcribeEnabled\":true}",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-108/step-03-108-2-reopen-already-transcribed-rows-kept-state-honest.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  }
+]

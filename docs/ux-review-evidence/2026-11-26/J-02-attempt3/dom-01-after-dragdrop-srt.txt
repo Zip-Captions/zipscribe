@@ -1,0 +1,76 @@
+div |  | "Zipscribe0.0.0+7819d70CPU⋯TranscribeExportSubtitlesMediaStylespeech-2min.mp4Dura" | workbench-shell |  | 0,0 1440x900
+header | banner | "Zipscribe0.0.0+7819d70CPU⋯TranscribeExport" |  |  | 0,0 1440x45
+span |  | "0.0.0+7819d70" | build-info |  | 88,15 84x14
+input |  | "Project name" | project-name | type=text val=speech-2min | 188,7 166x30
+span |  | "CPU" | tier-chip |  | 362,11 74x22
+button |  | "⋯" |  | exp=false | 444,9 33x27
+button |  | "Transcribe" | transcribe-button |  | 485,8 92x28
+button |  | "Export" | export-button | DISABLED | 585,8 66x28
+section | region | "Sidebar" | panel-sidebar |  | 0,45 321x826
+div | tablist | "Sidebar panels" |  |  | 0,45 320x45
+button | tab | "Subtitles" | tab-subtitles |  | 8,53 69x28
+button | tab | "Media" | tab-media | selected | 81,53 54x28
+button | tab | "Style" | tab-style |  | 139,53 47x28
+div | tabpanel | "speech-2min.mp4Duration01:59.9Containervideo/mp4; codecs=\"avc1.42c00b, mp4a.40.2" |  |  | 0,90 320x781
+div |  | "speech-2min.mp4Duration01:59.9Containervideo/mp4; codecs=\"avc1.42c00b, mp4a.40.2" | media-asset-card |  | 8,98 304x136
+p |  | "speech-2min.mp4" |  |  | 8,98 304x16
+div | list | "Projects" | project-list |  | 8,234 304x98
+div | listitem | "speech-2minOpenDuplicateDelete" | project-row-proj_cbe595cb-d08d-4040-977d-3c820837b661 |  | 8,234 304x28
+button |  | "Open speech-2min" | project-open-proj_cbe595cb-d08d-4040-977d-3c820837b661 |  | 89,234 59x28
+button |  | "Duplicate speech-2min" | project-duplicate-proj_cbe595cb-d08d-4040-977d-3c820837b661 |  | 148,234 84x28
+button |  | "Delete speech-2min" | project-delete-proj_cbe595cb-d08d-4040-977d-3c820837b661 |  | 232,234 65x28
+button |  | "New project" | new-project-button |  | 8,262 100x28
+p |  | "36.4 MB of 10 GB · persistent off" | storage-estimate |  | 8,303 304x16
+div | separator | "Resize sidebar" | resize-handle-sidebar |  | 321,45 4x826
+section | region | "Preview stage" | panel-stage |  | 325,45 1115x621
+div |  | "" | preview-canvas-layer |  | 325,45 1115x621
+canvas |  | "" | caption-canvas |  | 331,45 1104x621
+div |  | "⏪5s▶5s⏩00:00.0/01:59.9↻IO1×" | stage-media |  | 325,45 1115x621
+video |  | "" | stage-video |  | 325,45 1115x621
+div | group | "Transport" | transport-bar |  | 645,620 474x38
+button |  | "⏪5s — Back 5 seconds" | transport-skip-back |  | 654,625 57x28
+button | button | "Play" | transport-play-pause |  | 715,625 36x28
+button |  | "5s⏩ — Forward 5 seconds" | transport-skip-forward |  | 755,625 57x28
+span |  | "00:00.0" | transport-time-current |  | 824,631 55x17
+span |  | "01:59.9" | transport-time-total |  | 890,631 55x17
+button |  | "Loop region" | transport-loop-toggle |  | 957,625 37x28
+button |  | "Set loop in from playhead" | transport-loop-in |  | 997,625 30x28
+button |  | "Set loop out from playhead" | transport-loop-out |  | 1031,625 36x28
+button |  | "Playback rate 1×" | transport-rate |  | 1071,625 40x28
+div | separator | "Resize timeline" | resize-handle-timeline |  | 325,666 1115x4
+section | region | "«8 chars»" | panel-timeline |  | 325,670 1115x201
+div | region | "«8 chars»" | timeline-root |  | 325,671 1115x186
+canvas |  | "«0 chars»" | timeline-canvas |  | 325,671 23978x144
+button |  | "Snap" | timeline-snap-toggle |  | 325,815 47x21
+label |  | "Start" |  |  | 325,838 182x16
+input |  | "" | timeline-input-start | DISABLED type=text val=00:00.0 | 354,836 153x21
+label |  | "End" |  |  | 507,838 176x16
+input |  | "" | timeline-input-end | DISABLED type=text val=00:00.0 | 531,836 153x21
+div | alert | "UNSUPPORTED_CAPTION" | toast |  | 622,826 195x34
+footer | status | "Idle · no model · CPU · cache empty · models download on first usesaved" | status-bar | live=polite | 0,871 1440x29
+span |  | "saved" | save-state | live=polite | 422,878 37x16
+div |  | "Import captionsFormatsrtEncodingutf-8Override encodingutf-8utf-16leutf-16bewindo" | caption-import-backdrop |  | 0,0 1440x900
+div | dialog | "Import captions" | caption-import-dialog |  | 493,320 454x261
+p |  | "Import captions" |  |  | 510,337 420x17
+div |  | "FormatsrtEncodingutf-8Override encodingutf-8utf-16leutf-16bewindows-1252Cues12Bl" | caption-import-report |  | 510,362 420x119
+p |  | "Formatsrt" |  |  | 519,371 402x15
+span |  | "srt" | caption-import-report-format |  | 599,371 15x15
+p |  | "Encodingutf-8Override encodingutf-8utf-16leutf-16bewindows-1252" |  |  | 519,390 402x19
+span |  | "utf-8" | caption-import-report-encoding |  | 599,392 28x15
+label |  | "Override encodingutf-8utf-16leutf-16bewindows-1252" |  |  | 635,390 214x19
+select |  | "Override encoding" | caption-import-encoding-select | val=utf-8 opts=[utf-8,utf-16le,utf-16be,windows-1252] | 740,390 108x19
+p |  | "Cues12" |  |  | 519,413 402x15
+span |  | "12" | caption-import-report-cues |  | 599,413 12x15
+p |  | "Blocks12" |  |  | 519,432 402x15
+span |  | "12" | caption-import-report-blocks |  | 599,432 12x15
+p |  | "Language" |  |  | 519,451 402x21
+input |  | "Caption language" | caption-import-language | DISABLED type=text val= | 599,451 322x21
+div | group | "Use as" |  |  | 510,489 420x19
+label |  | "Replace source captions" |  |  | 510,489 160x19
+input |  | "" | caption-import-use-replace | type=radio val=on | 515,492 13x13
+label |  | "Add as translation" |  |  | 678,489 123x19
+input |  | "" | caption-import-use-translation | type=radio val=on | 683,492 13x13
+label |  | "Read speaker prefixes from cue text" |  |  | 510,516 420x19
+input |  | "" | caption-import-prefix-toggle | type=checkbox val=on | 514,519 13x13
+button |  | "Cancel" | caption-import-cancel |  | 803,543 60x21
+button |  | "Import" | caption-import-confirm |  | 871,543 59x21

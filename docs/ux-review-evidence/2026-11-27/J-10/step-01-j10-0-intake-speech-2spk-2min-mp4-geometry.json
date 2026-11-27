@@ -1,0 +1,18 @@
+{
+  "clipped": [],
+  "occluded": [],
+  "panelOverlaps": [
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ws-media-card",
+      "ox": 304,
+      "oy": 136
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ws-project-list",
+      "ox": 304,
+      "oy": 126
+    }
+  ]
+}

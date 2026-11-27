@@ -1,0 +1,56 @@
+{
+  "layoutBeforeTab": {
+    "canvas": "60774:-278796374",
+    "sidebar": "321x826",
+    "timeline": "1115x201",
+    "focus": "DIV#transcript-row@panel-sidebar",
+    "sel": 0,
+    "view": "preview-canvas-layer",
+    "save": "saved",
+    "loop": "true"
+  },
+  "tab2": {
+    "distinct": 28,
+    "regionsReached": [
+      "HEADER",
+      "panel-sidebar",
+      "",
+      "panel-stage",
+      "panel-timeline"
+    ],
+    "noRing": [
+      "BODY@"
+    ],
+    "unreachable": [],
+    "order": [
+      "project-name@HEADER",
+      "BUTTON@HEADER",
+      "transcribe-button@HEADER",
+      "export-button@HEADER",
+      "tab-subtitles@panel-sidebar",
+      "tab-media@panel-sidebar",
+      "tab-style@panel-sidebar",
+      "transcript-issue-filter@panel-sidebar",
+      "transcript-retime-tool@panel-sidebar",
+      "transcript-align-audio@panel-sidebar",
+      "transcript-issue@panel-sidebar",
+      "transcript-row@panel-sidebar",
+      "transcript-row-chip@panel-sidebar",
+      "transcript-row-timecode@panel-sidebar",
+      "transcript-close-gap@panel-sidebar",
+      "transcript-row-delete@panel-sidebar",
+      "resize-handle-sidebar@",
+      "transport-skip-back@panel-stage",
+      "transport-play-pause@panel-stage",
+      "transport-skip-forward@panel-stage",
+      "transport-loop-toggle@panel-stage",
+      "transport-loop-in@panel-stage",
+      "transport-loop-out@panel-stage",
+      "transport-rate@panel-stage",
+      "resize-handle-timeline@",
+      "timeline-root@panel-timeline",
+      "timeline-snap-toggle@panel-timeline",
+      "BODY@"
+    ]
+  }
+}

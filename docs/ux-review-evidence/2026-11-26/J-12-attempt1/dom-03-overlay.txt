@@ -1,0 +1,105 @@
+div |  | "Zipscribe0.0.0+7819d70CPU⋯TranscribeExportSubtitlesMediaStyle0AaWReplace all×Tra" | workbench-shell |  | 0,0 1440x900
+header | banner | "Zipscribe0.0.0+7819d70CPU⋯TranscribeExport" |  |  | 0,0 1440x45
+span |  | "0.0.0+7819d70" | build-info |  | 88,15 84x14
+input |  | "Project name" | project-name | DISABLED type=text val= | 188,7 166x30
+span |  | "CPU" | tier-chip |  | 362,11 74x22
+button |  | "⋯" |  | exp=false | 444,9 33x27
+button |  | "Transcribe" | transcribe-button | DISABLED | 485,8 92x28
+button |  | "Export" | export-button | DISABLED | 585,8 66x28
+section | region | "Sidebar" | panel-sidebar |  | 0,45 321x826
+div | tablist | "Sidebar panels" |  |  | 0,45 320x45
+button | tab | "Subtitles" | tab-subtitles | selected | 8,53 69x28
+button | tab | "Media" | tab-media |  | 81,53 54x28
+button | tab | "Style" | tab-style |  | 139,53 47x28
+div | tabpanel | "0AaWReplace all×Transcribe or set a source language to enable translation.speech" |  |  | 0,90 320x781
+div | list | "«20 chars»" |  |  | 8,98 304x305
+div |  | "0AaWReplace all×" | transcript-panel |  | 8,403 304x305
+div | search | "0AaWReplace all×" | transcript-search |  | 8,411 304x45
+input |  | "Find in transcript" | transcript-search-input | type=text val= | 16,422 35x21
+span |  | "0" | transcript-search-count |  | 59,425 8x15
+label |  | "Aa" |  |  | 75,423 36x19
+input |  | "" | transcript-search-case | type=checkbox val=on | 79,426 13x13
+label |  | "W" |  |  | 119,423 33x19
+input |  | "" | transcript-search-word | type=checkbox val=on | 123,426 13x13
+input |  | "Replace with" | transcript-search-replace-input | type=text val= | 160,422 35x21
+button |  | "Replace all" | transcript-replace-all |  | 203,415 67x36
+button |  | "Close search" | transcript-search-close |  | 278,422 26x21
+div |  | "" | transcript-qc-live | live=polite | 8,403 1x1
+div | list | "«10 chars»" | transcript-root |  | 8,456 304x252
+p |  | "Transcribe or set a source language to enable translation." |  |  | 8,720 304x32
+div | list | "Projects" | project-list |  | 8,765 304x98
+div | listitem | "speech-2minOpenDuplicateDelete" | project-row-proj_853621e0-25da-4ebc-b1be-324e01ec0f5f |  | 8,765 304x28
+button |  | "Open speech-2min" | project-open-proj_853621e0-25da-4ebc-b1be-324e01ec0f5f |  | 89,765 59x28
+button |  | "Duplicate speech-2min" | project-duplicate-proj_853621e0-25da-4ebc-b1be-324e01ec0f5f |  | 148,765 84x28
+button |  | "Delete speech-2min" | project-delete-proj_853621e0-25da-4ebc-b1be-324e01ec0f5f |  | 232,765 65x28
+button |  | "New project" | new-project-button |  | 8,793 100x28
+p |  | "36.4 MB of 10 GB · persistent off" | storage-estimate |  | 8,834 304x16
+div | separator | "Resize sidebar" | resize-handle-sidebar |  | 321,45 4x826
+section | region | "Preview stage" | panel-stage |  | 325,45 1115x621
+div |  | "" | preview-canvas-layer |  | 325,45 1115x621
+div |  | "Drop a video or audio file to beginCaption files (.srt .vtt .sbv .ttml .dfxp .xm" | drop-zone |  | 341,61 1083x589
+p |  | "Drop a video or audio file to begin" |  |  | 752,304 261x20
+p |  | "Caption files (.srt .vtt .sbv .ttml .dfxp .xml .ass .ssa .zipscribe.json) may co" |  |  | 519,332 727x16
+label |  | "Choose file…" | media-intake-button |  | 760,356 107x28
+button |  | "Choose file…" |  |  | 760,356 107x28
+button |  | "Try a sample clip" | sample-clip-button |  | 875,356 130x28
+p |  | "Tier T2 · CPU · cache empty · models download on first use" |  |  | 700,392 366x16
+div | separator | "Resize timeline" | resize-handle-timeline |  | 325,666 1115x4
+section | region | "«8 chars»" | panel-timeline |  | 325,670 1115x201
+p |  | "«31 chars»" |  |  | 325,684 1115x40
+footer | status | "Idle · no model · CPU · cache empty · models download on first usesaved" | status-bar | live=polite | 0,871 1440x29
+span |  | "saved" | save-state | live=polite | 422,878 37x16
+div |  | "TransportPlay / pauseSpaceSeek backward 5 sJSeek forward 5 sLSeek backward 10 s⇧" | shortcuts-backdrop |  | 0,0 1440x900
+div | dialog | "Keyboard shortcuts" | shortcuts-overlay |  | 423,113 594x674
+input |  | "Filter shortcuts" | shortcuts-filter | type=search val= | 440,130 560x29
+h2 |  | "Transport" |  |  | 440,179 560x15
+div |  | "Play / pauseSpace" | shortcuts-row |  | 440,198 560x22
+div |  | "Seek backward 5 sJ" | shortcuts-row |  | 440,222 560x22
+div |  | "Seek forward 5 sL" | shortcuts-row |  | 440,246 560x22
+div |  | "Seek backward 10 s⇧J" | shortcuts-row |  | 440,270 560x22
+div |  | "Seek forward 10 s⇧L" | shortcuts-row |  | 440,294 560x22
+div |  | "Playhead back 1 frame←" | shortcuts-row |  | 440,318 560x22
+div |  | "Playhead forward 1 frame→" | shortcuts-row |  | 440,342 560x22
+div |  | "Playhead back 1 s⇧←" | shortcuts-row |  | 440,366 560x22
+div |  | "Playhead forward 1 s⇧→" | shortcuts-row |  | 440,390 560x22
+div |  | "Loop region on/offY" | shortcuts-row |  | 440,414 560x22
+div |  | "Set loop in from playheadI" | shortcuts-row |  | 440,438 560x22
+div |  | "Set loop out from playheadO" | shortcuts-row |  | 440,462 560x22
+div |  | "Go to start⌘← ⌃← Home" | shortcuts-row |  | 440,486 560x22
+div |  | "Go to end⌘→ ⌃→ End" | shortcuts-row |  | 440,510 560x22
+div |  | "Clear loop region⇧I ⇧O" | shortcuts-row |  | 440,534 560x22
+h2 |  | "Edit" |  |  | 440,576 560x15
+div |  | "Undo⌘Z ⌃Z" | shortcuts-row |  | 440,595 560x22
+div |  | "Redo⌘⇧Z ⌃⇧Z ⌘Y ⌃Y" | shortcuts-row |  | 440,619 560x22
+h2 |  | "Timeline" |  |  | 440,661 560x15
+div |  | "Split caption block at playheadS" | shortcuts-row |  | 440,680 560x22
+div |  | "Merge selected with next block⌘⇧M" | shortcuts-row |  | 440,704 560x22
+div |  | "Merge selected with next block (Ctrl)⌃⇧M" | shortcuts-row |  | 440,728 560x22
+div |  | "Trim block start to playheadZ← Z→" | shortcuts-row |  | 440,752 560x22
+div |  | "Trim block end to playheadC← C→" | shortcuts-row |  | 440,776 560x22
+div |  | "Timeline zoom in⌘= ⌃=" | shortcuts-row |  | 440,800 560x22
+div |  | "Timeline zoom out⌘- ⌃-" | shortcuts-row |  | 440,824 560x22
+div |  | "Timeline zoom fit⌘0 ⌃0" | shortcuts-row |  | 440,848 560x22
+div |  | "Move block focus to next→" | shortcuts-row |  | 440,872 560x22
+div |  | "Move block focus to previous←" | shortcuts-row |  | 440,896 560x22
+div |  | "Toggle block selectionEnter" | shortcuts-row |  | 440,920 560x22
+div |  | "Delete selected blockDelete Backspace" | shortcuts-row |  | 440,944 560x22
+div |  | "Delete selected block and close gap⇧Delete" | shortcuts-row |  | 440,968 560x22
+h2 |  | "Transcript" |  |  | 440,1010 560x15
+div |  | "Find in transcript⌘F ⌃F" | shortcuts-row |  | 440,1029 560x22
+div |  | "Next search matchF3 ⌘G ⌃G" | shortcuts-row |  | 440,1053 560x22
+div |  | "Previous search match⇧F3 ⌘⇧G ⌃⇧G" | shortcuts-row |  | 440,1077 560x22
+div |  | "Next QC issue⌘' ⌃'" | shortcuts-row |  | 440,1101 560x22
+div |  | "Previous QC issue⌘⇧' ⌃⇧'" | shortcuts-row |  | 440,1125 560x22
+div |  | "Select all blocks⌘A ⌃A" | shortcuts-row |  | 440,1149 560x22
+div |  | "DeselectEscape" | shortcuts-row |  | 440,1173 560x22
+h2 |  | "View" |  |  | 440,1215 560x15
+div |  | "Focus sidebar⌥1" | shortcuts-row |  | 440,1234 560x22
+div |  | "Focus stage⌥2" | shortcuts-row |  | 440,1258 560x22
+div |  | "Focus timeline⌥3" | shortcuts-row |  | 440,1282 560x22
+div |  | "Collapse sidebar⌃⌥2" | shortcuts-row |  | 440,1306 560x22
+div |  | "Collapse timeline⌃⌥3" | shortcuts-row |  | 440,1330 560x22
+div |  | "Save snapshot⌘S ⌃S" | shortcuts-row |  | 440,1354 560x22
+div |  | "Toggle caption visibility⌘\\ ⌃\\" | shortcuts-row |  | 440,1378 560x22
+div |  | "Shortcuts overlay⌘/ ⌃/" | shortcuts-row |  | 440,1402 560x22
+div |  | "Cycle transcript view⌘⇧L ⌃⇧L" | shortcuts-row |  | 440,1426 560x22

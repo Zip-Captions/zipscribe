@@ -1,0 +1,119 @@
+[
+  {
+    "story": "J-09",
+    "step": 1,
+    "name": "J09.1 manifest + install affordance",
+    "expected": "Install app reachable from ⋯; manifest installable",
+    "actual": "geometry issues: 0 clipped, 0 occluded, 4 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-09/step-01-j09-1-manifest-install-affordance.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 281
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 281
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 146
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-09",
+    "step": 2,
+    "name": "J09.2 click Install app",
+    "expected": "browser install prompt appears (owner-eyeball)",
+    "actual": "geometry issues: 0 clipped, 0 occluded, 4 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-09/step-02-j09-2-click-install-app.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 281
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 281
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 146
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-09",
+    "step": 3,
+    "name": "US-204.5 file handler declared for media + captions",
+    "expected": "installed app opens files from the OS (declaration level; OS leg owner-eyeball)",
+    "actual": "geometry issues: 0 clipped, 0 occluded, 4 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-09/step-03-us-204-5-file-handler-declared-for-media-captions.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 281
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 281
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 146
+        }
+      ]
+    }
+  }
+]

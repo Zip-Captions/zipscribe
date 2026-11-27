@@ -1,5 +1,5 @@
 ---
-status: completed   # closed 2026-11-25: units 301/302 + unit-303 closure suite (990d4a5) — verify:intent caption-translation exit 0 on develop (CC-I4.1/.3/.4/.5/.7 credited, reports/criteria). Carried per conventions: CC-I4.2 [RQ] at release qualification, CC-I4.6 [MANUAL] + owner sign-off queue docs/ops/owner-signoff-queue.md.
+status: in_progress   # REOPENED 2026-11-27 — independent UX sweep (docs/ux-review-evidence/2026-11-26/report.md) found the core journey user-unreachable: nothing in production sets project.language (#51); e2e was green only because suites inject it via src/ui/testing bridge. Remediation = MVP ladder M1 (product.md § Roadmap addendum); re-close requires #51/#54/#63 fixed + bridge-banned e2e + sweep pass. Prior closure record below retained for history. closed 2026-11-25: units 301/302 + unit-303 closure suite (990d4a5) — verify:intent caption-translation exit 0 on develop (CC-I4.1/.3/.4/.5/.7 credited, reports/criteria). Carried per conventions: CC-I4.2 [RQ] at release qualification, CC-I4.6 [MANUAL] + owner sign-off queue docs/ops/owner-signoff-queue.md.
 workflow: default
 created: 2026-10-27
 announcements: [changelog, release-notes]

@@ -1,0 +1,2 @@
+net::ERR_ABORTED http://127.0.0.1:4184/.cache/models/whisper-base-timestamped/onnx/encoder_model.onnx
+net::ERR_ABORTED http://127.0.0.1:4184/.cache/models/whisper-base-timestamped/onnx/decoder_model_merged_q4.onnx

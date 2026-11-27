@@ -1,0 +1,206 @@
+{
+  "clipped": [
+    {
+      "tag": "off-viewport",
+      "cls": "ws-shortcuts-group",
+      "overflowPx": 90,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-shortcuts-row",
+      "overflowPx": 18,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-shortcuts-label",
+      "overflowPx": 15,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-shortcuts-keys",
+      "overflowPx": 15,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-shortcuts-row",
+      "overflowPx": 42,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-shortcuts-label",
+      "overflowPx": 39,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-shortcuts-keys",
+      "overflowPx": 39,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-shortcuts-row",
+      "overflowPx": 66,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-shortcuts-label",
+      "overflowPx": 63,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-shortcuts-keys",
+      "overflowPx": 63,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-shortcuts-row",
+      "overflowPx": 90,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-shortcuts-label",
+      "overflowPx": 87,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-shortcuts-keys",
+      "overflowPx": 87,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-shortcuts-group",
+      "overflowPx": 295,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-shortcuts-row",
+      "overflowPx": 151,
+      "text": "«11+ chars»"
+    }
+  ],
+  "occluded": [
+    {
+      "blocked": "Project name",
+      "by": "div.ws-shortcuts-backdrop"
+    },
+    {
+      "blocked": "⋯",
+      "by": "div.ws-shortcuts-backdrop"
+    },
+    {
+      "blocked": "Transcribe",
+      "by": "div.ws-shortcuts-backdrop"
+    },
+    {
+      "blocked": "Export",
+      "by": "div.ws-shortcuts-backdrop"
+    },
+    {
+      "blocked": "Subtitles",
+      "by": "div.ws-shortcuts-backdrop"
+    },
+    {
+      "blocked": "Media",
+      "by": "div.ws-shortcuts-backdrop"
+    },
+    {
+      "blocked": "Style",
+      "by": "div.ws-shortcuts-backdrop"
+    },
+    {
+      "blocked": "Find in transcript",
+      "by": "div.ws-shortcuts-backdrop"
+    },
+    {
+      "blocked": "",
+      "by": "div.ws-shortcuts-backdrop"
+    },
+    {
+      "blocked": "",
+      "by": "div.ws-shortcuts-backdrop"
+    },
+    {
+      "blocked": "Replace with",
+      "by": "div.ws-shortcuts-backdrop"
+    },
+    {
+      "blocked": "Replace all",
+      "by": "div.ws-shortcuts-backdrop"
+    },
+    {
+      "blocked": "Close search",
+      "by": "div.ws-shortcuts-backdrop"
+    },
+    {
+      "blocked": "Open speech-2min",
+      "by": "div.ws-shortcuts-backdrop"
+    },
+    {
+      "blocked": "Duplicate speech-2min",
+      "by": "div.ws-shortcuts-backdrop"
+    }
+  ],
+  "panelOverlaps": [
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ws-transcript",
+      "ox": 304,
+      "oy": 305
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ts-panel",
+      "ox": 304,
+      "oy": 305
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "SECTION.lang-section",
+      "ox": 304,
+      "oy": 58
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ws-project-list",
+      "ox": 304,
+      "oy": 98
+    },
+    {
+      "a": "SECTION.ws-stage",
+      "b": "SECTION.ws-shortcuts-group",
+      "ox": 560,
+      "oy": 385
+    },
+    {
+      "a": "SECTION.ws-stage",
+      "b": "SECTION.ws-shortcuts-group",
+      "ox": 560,
+      "oy": 73
+    },
+    {
+      "a": "SECTION.ws-stage",
+      "b": "SECTION.ws-shortcuts-group",
+      "ox": 560,
+      "oy": 13
+    },
+    {
+      "a": "SECTION.ws-timeline",
+      "b": "SECTION.ws-shortcuts-group",
+      "ox": 560,
+      "oy": 201
+    }
+  ]
+}

@@ -1,0 +1,428 @@
+{
+  "start": {
+    "choose": 2,
+    "sample": 1,
+    "newp": 1,
+    "subtitlesFirstText": "Transcribe or set a source language to enable translation."
+  },
+  "assetCard": "speech-2min.mp4 Duration 01:59.9 Container video/mp4; codecs=\"avc1.42c00b, mp4a.40.2\" Audio aac Video avc Resolution 320×180 · 10 fps",
+  "transcribeEnabled": true,
+  "models": [
+    {
+      "id": "whisper-base_timestamped@608c49e6",
+      "label": "whisper-base_timestamped@608c49e6211 MB",
+      "pressed": "true",
+      "disabled": false,
+      "title": ""
+    },
+    {
+      "id": "whisper-small_timestamped@65caa70f",
+      "label": "whisper-small_timestamped@65caa70f591 MB",
+      "pressed": "false",
+      "disabled": false,
+      "title": ""
+    },
+    {
+      "id": "whisper-tiny_timestamped@51724429",
+      "label": "whisper-tiny_timestamped@51724429125 MB",
+      "pressed": "false",
+      "disabled": false,
+      "title": ""
+    },
+    {
+      "id": "sherpa-zipformer-en-int8@11a70a47",
+      "label": "sherpa-zipformer-en-int8@11a70a4771 MB",
+      "pressed": "false",
+      "disabled": false,
+      "title": ""
+    },
+    {
+      "id": "cactus-whistle@b358ddad",
+      "label": "cactus-whistle@b358ddad17 MB",
+      "pressed": "false",
+      "disabled": false,
+      "title": ""
+    }
+  ],
+  "languageDefault": "en",
+  "languageOptionLabels": [
+    "Auto-detect",
+    "en",
+    "es",
+    "fr",
+    "de",
+    "it",
+    "pt",
+    "nl",
+    "pl",
+    "sv",
+    "tr",
+    "ru",
+    "ar",
+    "hi",
+    "id",
+    "vi",
+    "ja",
+    "ko",
+    "zh"
+  ],
+  "documentedLabelPresent": false,
+  "basePressed": "true",
+  "downloadConfirm": {
+    "label": "Model download confirmation",
+    "text": "whisper-base_timestamped@608c49e6 is not cached yet — 211 MB downloads on first use. Download and continue",
+    "buttons": [
+      "Download and continue"
+    ],
+    "statusWhileWaiting": "Idle · transcribing · CPU · cache empty · models download on first use saved",
+    "focusInside": false
+  },
+  "after2s": {
+    "dialogOpen": 1,
+    "statusBefore": "Idle · no model · CPU · cache empty · models download on first use\nsaved",
+    "statusAfter": "Idle · transcribing · CPU · cache empty · models download on first use saved",
+    "progressbars": 0
+  },
+  "timeline": [
+    {
+      "t": 2,
+      "status": "Idle · transcribing · CPU · cache empty · models download on first use saved",
+      "rows": 0,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 5,
+      "status": "98% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 1,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 7,
+      "status": "91% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 2,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 10,
+      "status": "96% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 2,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 13,
+      "status": "96% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 3,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 14,
+      "status": "96% · transcribing · CPU · cache empty · models download on first use saved",
+      "rows": 3,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 16,
+      "status": "98% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 4,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 17,
+      "status": "98% · transcribing · CPU · cache empty · models download on first use saved",
+      "rows": 4,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 19,
+      "status": "100% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 5,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 20,
+      "status": "99% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 6,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 23,
+      "status": "98% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 7,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 25,
+      "status": "98% · transcribing · CPU · cache empty · models download on first use saved",
+      "rows": 7,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 29,
+      "status": "98% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 8,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 31,
+      "status": "99% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 9,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 34,
+      "status": "100% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 10,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 35,
+      "status": "100% · transcribing · CPU · cache empty · models download on first use saved",
+      "rows": 10,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 37,
+      "status": "100% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 11,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 38,
+      "status": "100% · transcribing · CPU · cache empty · models download on first use saved",
+      "rows": 11,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 40,
+      "status": "99% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 12,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 41,
+      "status": "99% · transcribing · CPU · cache empty · models download on first use saved",
+      "rows": 12,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 44,
+      "status": "100% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 13,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 46,
+      "status": "100% · transcribing · CPU · cache empty · models download on first use saved",
+      "rows": 13,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 47,
+      "status": "99% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 14,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 49,
+      "status": "99% · transcribing · CPU · cache empty · models download on first use saved",
+      "rows": 14,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 50,
+      "status": "100% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 15,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 52,
+      "status": "100% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 16,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 55,
+      "status": "100% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 17,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 56,
+      "status": "100% · transcribing · CPU · cache empty · models download on first use saved",
+      "rows": 17,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 61,
+      "status": "100% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 18,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 62,
+      "status": "99% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 19,
+      "stream": 1,
+      "popover": 1,
+      "progress": []
+    },
+    {
+      "t": 65,
+      "status": "100% · no model · CPU · cache empty · models download on first use unsaved changes",
+      "rows": 20,
+      "stream": 1,
+      "popover": 0,
+      "progress": []
+    },
+    {
+      "t": 67,
+      "status": "100% · no model · CPU · cache empty · models download on first use saved",
+      "rows": 20,
+      "stream": 1,
+      "popover": 0,
+      "progress": []
+    }
+  ],
+  "doneAt": 73,
+  "incremental": true,
+  "rowAudit": {
+    "rows": 20,
+    "overflowing": 12,
+    "worst": [
+      {
+        "i": 0,
+        "boxH": 20,
+        "spillPx": 18
+      },
+      {
+        "i": 2,
+        "boxH": 20,
+        "spillPx": 18
+      },
+      {
+        "i": 4,
+        "boxH": 20,
+        "spillPx": 18
+      },
+      {
+        "i": 5,
+        "boxH": 20,
+        "spillPx": 18
+      },
+      {
+        "i": 7,
+        "boxH": 20,
+        "spillPx": 18
+      }
+    ],
+    "speakerChips": 20,
+    "distinctChipLabelLengths": [
+      9
+    ],
+    "rootScrollH": 418,
+    "rootClientH": 326
+  },
+  "transcriptRootRect": {
+    "x": 8,
+    "y": 479.5,
+    "width": 304,
+    "height": 325.5
+  },
+  "streamingRect": {
+    "x": 8,
+    "y": 98,
+    "width": 304,
+    "height": 353.5
+  },
+  "firstRowContrast": {
+    "fg": "rgb(232, 234, 237)",
+    "bg": "rgb(21,24,29)",
+    "ratio": 14.76,
+    "fontPx": 12
+  },
+  "firstRowHTMLShape": [
+    "button.ts-chip#transcript-row-chip",
+    "span.ts-timecode#transcript-row-timecode",
+    "span.ts-text#transcript-row-text",
+    "span.ts-word#transcript-word",
+    "span.ts-word#transcript-word",
+    "button.ts-row-action#transcript-close-gap",
+    "button.ts-row-action#transcript-row-delete"
+  ],
+  "qc": {
+    "headline": null,
+    "issueButtons": [
+      "div#transcript-qc-live.ts-live h=1"
+    ],
+    "codes": []
+  },
+  "languages": {
+    "present": 1,
+    "text": "Transcribe or set a source language to enable translation.",
+    "html": "<section aria-label=\"Languages\" class=\"lang-section\"><p class=\"lang-empty\">Transcribe or set a source language to enable translation.</p></section>",
+    "addButton": 0
+  },
+  "longTasksMain": [
+    53,
+    74,
+    63
+  ]
+}

@@ -1,0 +1,72 @@
+div |  | "Zipscribe0.0.0+7819d70CPU⋯TranscribeExportMEDIA_UNAVAILABLEExport×Captions fileS" | workbench-shell |  | 0,0 1440x900
+header | banner | "Zipscribe0.0.0+7819d70CPU⋯TranscribeExport" |  |  | 0,0 1440x45
+span |  | "0.0.0+7819d70" | build-info |  | 88,15 84x14
+input |  | "Project name" | project-name | type=text val=Untitled project | 188,7 166x30
+span |  | "CPU" | tier-chip |  | 362,11 74x22
+button |  | "⋯" |  | exp=false | 444,9 33x27
+button |  | "Transcribe" | transcribe-button |  | 485,8 92x28
+button |  | "Export" | export-button |  | 585,8 66x28
+div | status | "MEDIA_UNAVAILABLE" | export-toast |  | 635,826 171x34
+div | dialog | "Export×Captions fileSRTVTTJSONTSVTrackSourceSpeaker labelsNoneVTT voice tags[Nam" | export-dialog |  | 0,0 1440x900
+h2 |  | "Export" |  |  | 458,332 48x19
+button |  | "Close" | export-close |  | 958,331 24x22
+h3 |  | "Captions file" |  |  | 458,382 524x16
+div | radiogroup | "Format" |  |  | 458,408 524x26
+button | radio | "SRT" | sidecar-format-srt |  | 458,408 54x26
+button | radio | "VTT" | sidecar-format-vtt |  | 524,408 53x26
+button | radio | "JSON" | sidecar-format-json |  | 588,408 62x26
+button | radio | "TSV" | sidecar-format-tsv |  | 662,408 53x26
+label |  | "TrackSource" |  |  | 458,444 80x50
+select |  | "Source" | sidecar-track | val=source opts=[source] | 458,463 80x31
+label |  | "Speaker labelsNoneVTT voice tags[Name]: prefix" |  |  | 550,444 125x50
+select |  | "NoneVTT voice tags[Name]: prefix" | sidecar-speaker-labels | val=off opts=[off,vtt-voice,prefix] | 550,463 125x31
+button |  | "Save SRT" | sidecar-save |  | 458,504 92x31
+button |  | "Export all languages" | sidecar-all | DISABLED | 550,509 137x21
+footer |  | "snapshot v1795742866823" | snapshot-version |  | 440,550 560x34
+section | region | "Sidebar" | panel-sidebar |  | 0,45 321x826
+div | tablist | "Sidebar panels" |  |  | 0,45 320x45
+button | tab | "Subtitles" | tab-subtitles |  | 8,53 69x28
+button | tab | "Media" | tab-media | selected | 81,53 54x28
+button | tab | "Style" | tab-style |  | 139,53 47x28
+div | tabpanel | "Duration00:00.0ContainerAudio—Sample rate—Channels—Untitled projectOpenDuplicate" |  |  | 0,90 320x781
+div |  | "Duration00:00.0ContainerAudio—Sample rate—Channels—" | media-asset-card |  | 8,98 304x104
+div | list | "Projects" | project-list |  | 8,202 304x126
+div | listitem | "Untitled projectOpenDuplicateDelete" | project-row-proj_eee7f53f-c396-433d-9bc1-df688d183a8e |  | 8,202 304x28
+button |  | "Open Untitled project" | project-open-proj_eee7f53f-c396-433d-9bc1-df688d183a8e |  | 102,202 59x28
+button |  | "Duplicate Untitled project" | project-duplicate-proj_eee7f53f-c396-433d-9bc1-df688d183a8e |  | 161,202 84x28
+button |  | "Delete Untitled project" | project-delete-proj_eee7f53f-c396-433d-9bc1-df688d183a8e |  | 245,202 65x28
+div | listitem | "speech-2minOpenDuplicateDelete" | project-row-proj_1aaf826f-3e70-4daf-b4f8-79408c226d19 |  | 8,230 304x28
+button |  | "Open speech-2min" | project-open-proj_1aaf826f-3e70-4daf-b4f8-79408c226d19 |  | 89,230 59x28
+button |  | "Duplicate speech-2min" | project-duplicate-proj_1aaf826f-3e70-4daf-b4f8-79408c226d19 |  | 148,230 84x28
+button |  | "Delete speech-2min" | project-delete-proj_1aaf826f-3e70-4daf-b4f8-79408c226d19 |  | 232,230 65x28
+button |  | "New project" | new-project-button |  | 8,258 100x28
+p |  | "118 MB of 10.1 GB · persistent off" | storage-estimate |  | 8,299 304x16
+div | separator | "Resize sidebar" | resize-handle-sidebar |  | 321,45 4x826
+section | region | "Preview stage" | panel-stage |  | 325,45 1115x621
+div |  | "" | preview-canvas-layer |  | 325,45 1115x621
+canvas |  | "" | caption-canvas |  | 331,45 1104x621
+div |  | "⏪5s▶5s⏩00:00.0/00:00.0↻IO1×" | stage-media |  | 325,45 1115x621
+div |  | "" | stage-visualizer-slot |  | 331,45 1104x621
+canvas |  | "" | visualizer-canvas |  | 563,176 640x360
+div | group | "Transport" | transport-bar |  | 645,620 474x38
+button |  | "⏪5s — Back 5 seconds" | transport-skip-back |  | 654,625 57x28
+button | button | "Play" | transport-play-pause |  | 715,625 36x28
+button |  | "5s⏩ — Forward 5 seconds" | transport-skip-forward |  | 755,625 57x28
+span |  | "00:00.0" | transport-time-current |  | 824,631 55x17
+span |  | "00:00.0" | transport-time-total |  | 890,631 55x17
+button |  | "Loop region" | transport-loop-toggle |  | 957,625 37x28
+button |  | "Set loop in from playhead" | transport-loop-in |  | 997,625 30x28
+button |  | "Set loop out from playhead" | transport-loop-out |  | 1031,625 36x28
+button |  | "Playback rate 1×" | transport-rate |  | 1071,625 40x28
+div | separator | "Resize timeline" | resize-handle-timeline |  | 325,666 1115x4
+section | region | "«8 chars»" | panel-timeline |  | 325,670 1115x201
+div | region | "«8 chars»" | timeline-root |  | 325,671 1115x186
+canvas |  | "«0 chars»" | timeline-canvas |  | 325,671 1115x144
+button |  | "Snap" | timeline-snap-toggle |  | 325,815 47x21
+label |  | "Start" |  |  | 325,838 182x16
+input |  | "" | timeline-input-start | DISABLED type=text val=00:00.0 | 354,836 153x21
+label |  | "End" |  |  | 507,838 176x16
+input |  | "" | timeline-input-end | DISABLED type=text val=00:00.0 | 531,836 153x21
+footer | status | "Idle · no model · CPU · cache empty · models download on first useENGINE_INTERNA" | status-bar | live=polite | 0,871 1440x29
+span |  | "ENGINE_INTERNAL" | job-error |  | 422,878 119x16
+span |  | "saved" | save-state | live=polite | 540,878 37x16

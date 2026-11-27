@@ -1,0 +1,134 @@
+{
+  "clipped": [
+    {
+      "tag": "off-viewport",
+      "cls": "ws-segment-row",
+      "overflowPx": 38,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-segment-time",
+      "overflowPx": 22,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-segment-text",
+      "overflowPx": 21,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-segment-row",
+      "overflowPx": 78,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-segment-time",
+      "overflowPx": 62,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-segment-text",
+      "overflowPx": 61,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-segment-row",
+      "overflowPx": 118,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-segment-time",
+      "overflowPx": 102,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-segment-text",
+      "overflowPx": 101,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-segment-row",
+      "overflowPx": 158,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-segment-time",
+      "overflowPx": 142,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-segment-text",
+      "overflowPx": 141,
+      "text": "«11+ chars»"
+    }
+  ],
+  "occluded": [
+    {
+      "blocked": "Speaker options for Speaker 1",
+      "by": "section.lang-section"
+    },
+    {
+      "blocked": "Delete block and close the gap",
+      "by": "section.lang-section"
+    },
+    {
+      "blocked": "Delete block (leave the gap)",
+      "by": "section.lang-section"
+    },
+    {
+      "blocked": "Speaker options for Speaker 1",
+      "by": "p.lang-empty"
+    },
+    {
+      "blocked": "Delete block and close the gap",
+      "by": "p.lang-empty"
+    },
+    {
+      "blocked": "Delete block (leave the gap)",
+      "by": "p.lang-empty"
+    },
+    {
+      "blocked": "Speaker options for Speaker 1",
+      "by": "p.lang-empty"
+    },
+    {
+      "blocked": "Delete block and close the gap",
+      "by": "p.lang-empty"
+    },
+    {
+      "blocked": "Delete block (leave the gap)",
+      "by": "p.lang-empty"
+    }
+  ],
+  "panelOverlaps": [
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ws-transcript",
+      "ox": 304,
+      "oy": 354
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ts-panel",
+      "ox": 304,
+      "oy": 354
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "SECTION.lang-section",
+      "ox": 304,
+      "oy": 58
+    }
+  ]
+}

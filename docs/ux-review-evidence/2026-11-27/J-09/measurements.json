@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "href": "/manifest.webmanifest",
+    "name": "Zipscribe",
+    "short_name": "Zipscribe",
+    "display": "standalone",
+    "start_url": "/",
+    "icons": [
+      "192x192",
+      "512x512",
+      "512x512",
+      "180x180"
+    ],
+    "file_handlers": [
+      {
+        "action": "/",
+        "accept": [
+          "video/mp4:.mp4 .m4v",
+          "video/quicktime:.mov",
+          "video/x-matroska:.mkv",
+          "video/webm:.webm",
+          "video/mp2t:.ts .m2ts",
+          "audio/mpeg:.mp3",
+          "audio/mp4:.m4a .m4b",
+          "audio/aac:.aac",
+          "audio/wav:.wav",
+          "audio/flac:.flac",
+          "audio/ogg:.ogg .oga",
+          "audio/opus:.opus",
+          "audio/webm:.weba",
+          "audio/x-matroska:.mka",
+          "audio/aiff:.aiff .aif",
+          "audio/x-ms-wma:.wma",
+          "audio/amr:.amr",
+          "video/3gpp:.3gp",
+          "audio/x-caf:.caf",
+          "text/plain:.srt .vtt .sbv .ass",
+          "application/ttml+xml:.ttml",
+          "application/json:.zipscribe.json"
+        ]
+      }
+    ],
+    "launch_handler": {
+      "client_mode": "focus-existing"
+    }
+  },
+  "launchQueue": true,
+  "menu": [
+    "Offline models",
+    "Install app",
+    "About & licensing"
+  ],
+  "afterInstallClick": {
+    "dialogs": [],
+    "alerts": [],
+    "menuOpen": 0
+  },
+  "fileHandler": {
+    "count": 1,
+    "accept": "video/mp4:.mp4 .m4v video/quicktime:.mov video/x-matroska:.mkv video/webm:.webm video/mp2t:.ts .m2ts audio/mpeg:.mp3 audio/mp4:.m4a .m4b audio/aac:.aac audio/wav:.wav audio/flac:.flac audio/ogg:.ogg .oga audio/opus:.opus audio/webm:.weba audio/x-matroska:.mka audio/aiff:.aiff .aif audio/x-ms-wma:.wma audio/amr:.amr video/3gpp:.3gp audio/x-caf:.caf text/plain:.srt .vtt .sbv .ass application/ttml+xml:.ttml application/json:.zipscribe.json",
+    "launchQueue": true
+  }
+}

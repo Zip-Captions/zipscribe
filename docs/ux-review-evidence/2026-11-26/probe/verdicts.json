@@ -1,0 +1,356 @@
+[
+  {
+    "story": "probe",
+    "step": 1,
+    "name": "boot dump",
+    "expected": "map",
+    "actual": "geometry issues: 0 clipped, 0 occluded, 4 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-26/probe/step-01-boot-dump.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 281
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 281
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 146
+        }
+      ]
+    }
+  },
+  {
+    "story": "probe",
+    "step": 2,
+    "name": "media tab dump",
+    "expected": "map",
+    "actual": "geometry issues: 0 clipped, 0 occluded, 2 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-26/probe/step-02-media-tab-dump.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "P.ws-empty",
+          "ox": 304,
+          "oy": 56
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 146
+        }
+      ]
+    }
+  },
+  {
+    "story": "probe",
+    "step": 3,
+    "name": "choose fixture",
+    "expected": "asset appears",
+    "actual": "geometry issues: 0 clipped, 0 occluded, 2 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-26/probe/step-03-choose-fixture.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "probe",
+    "step": 4,
+    "name": "transcribe popover dump",
+    "expected": "map",
+    "actual": "geometry issues: 0 clipped, 1 occluded, 2 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-26/probe/step-04-transcribe-popover-dump.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [
+        {
+          "blocked": "Delete speech-2min",
+          "by": "div.ws-popover-row"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "probe",
+    "step": 5,
+    "name": "more menu dump",
+    "expected": "map",
+    "actual": "geometry issues: 0 clipped, 3 occluded, 2 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-26/probe/step-05-more-menu-dump.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [
+        {
+          "blocked": "Auto-detectenesfrdeitptnlplsvt",
+          "by": "button."
+        },
+        {
+          "blocked": "whisper-base_timestamped@608c4",
+          "by": "div.shell-pwa-menu"
+        },
+        {
+          "blocked": "Delete speech-2min",
+          "by": "div.ws-popover-row"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "probe",
+    "step": 6,
+    "name": "export dump",
+    "expected": "map",
+    "actual": "geometry issues: 0 clipped, 3 occluded, 2 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-26/probe/step-06-export-dump.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [
+        {
+          "blocked": "Auto-detectenesfrdeitptnlplsvt",
+          "by": "button."
+        },
+        {
+          "blocked": "whisper-base_timestamped@608c4",
+          "by": "div.shell-pwa-menu"
+        },
+        {
+          "blocked": "Delete speech-2min",
+          "by": "div.ws-popover-row"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "probe",
+    "step": 7,
+    "name": "style tab dump",
+    "expected": "map",
+    "actual": "geometry issues: 10 clipped, 6 occluded, 1 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-26/probe/step-07-style-tab-dump.png",
+    "geometry": {
+      "clipped": [
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-panel",
+          "overflowPx": 99,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-remote-row",
+          "overflowPx": 8,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "",
+          "overflowPx": 6,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-remote-row",
+          "overflowPx": 29,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "",
+          "overflowPx": 27,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-remote-row",
+          "overflowPx": 50,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "",
+          "overflowPx": 48,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-style-remote-row",
+          "overflowPx": 71,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "",
+          "overflowPx": 69,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-tabular",
+          "overflowPx": 95,
+          "text": "«11+ chars»"
+        }
+      ],
+      "occluded": [
+        {
+          "blocked": "Auto-detectenesfrdeitptnlplsvt",
+          "by": "button."
+        },
+        {
+          "blocked": "whisper-base_timestamped@608c4",
+          "by": "div.shell-pwa-menu"
+        },
+        {
+          "blocked": "Broadcast box",
+          "by": "div.ws-popover"
+        },
+        {
+          "blocked": "Minimal",
+          "by": "div.ws-popover"
+        },
+        {
+          "blocked": "Font",
+          "by": "button.ws-button ws-button-primary"
+        },
+        {
+          "blocked": "",
+          "by": "footer.ws-status"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-style-panel",
+          "ox": 304,
+          "oy": 773
+        }
+      ]
+    }
+  },
+  {
+    "story": "probe",
+    "step": 8,
+    "name": "subtitles tab dump",
+    "expected": "map",
+    "actual": "geometry issues: 0 clipped, 2 occluded, 3 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-26/probe/step-08-subtitles-tab-dump.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [
+        {
+          "blocked": "Auto-detectenesfrdeitptnlplsvt",
+          "by": "button."
+        },
+        {
+          "blocked": "whisper-base_timestamped@608c4",
+          "by": "div.shell-pwa-menu"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  }
+]

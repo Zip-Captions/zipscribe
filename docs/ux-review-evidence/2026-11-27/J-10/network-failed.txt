@@ -1,0 +1,1 @@
+net::ERR_ABORTED http://127.0.0.1:4206/.cache/models/whisper-base-timestamped/onnx/encoder_model.onnx

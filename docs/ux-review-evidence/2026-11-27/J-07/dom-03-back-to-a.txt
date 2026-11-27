@@ -1,0 +1,207 @@
+div |  | "Zipscribe0.0.0+7819d70CPU⋯TranscribeExportSubtitlesMediaStyleIssues (20)Shift / " | workbench-shell |  | 0,0 1440x900
+header | banner | "Zipscribe0.0.0+7819d70CPU⋯TranscribeExport" |  |  | 0,0 1440x45
+span |  | "0.0.0+7819d70" | build-info |  | 88,15 84x14
+input |  | "Project name" | project-name | type=text val=speech-2min | 188,7 166x30
+span |  | "CPU" | tier-chip |  | 362,11 74x22
+button |  | "⋯" |  | exp=false | 444,9 33x27
+button |  | "Transcribe" | transcribe-button |  | 485,8 92x28
+button |  | "Export" | export-button |  | 585,8 66x28
+section | region | "Sidebar" | panel-sidebar |  | 0,45 321x826
+div | tablist | "Sidebar panels" |  |  | 0,45 320x45
+button | tab | "Subtitles" | tab-subtitles | selected | 8,53 69x28
+button | tab | "Media" | tab-media |  | 81,53 54x28
+button | tab | "Style" | tab-style |  | 139,53 47x28
+div | tabpanel | "Issues (20)Shift / stretch timing…Align to audioShown too long — 8.389 sShown to" |  |  | 0,90 320x781
+div | list | "«20 chars»" |  |  | 8,98 304x354
+div |  | "Issues (20)Shift / stretch timing…Align to audioShown too long — 8.389 sShown to" | transcript-panel |  | 8,452 304x354
+button |  | "Issues (20)" | transcript-issue-filter |  | 16,464 72x18
+button |  | "Shift / stretch timing…" | transcript-retime-tool |  | 96,456 120x34
+button |  | "Align to audio" | transcript-align-audio |  | 223,456 81x34
+div |  | "Caption quality issues" | transcript-issues |  | 8,494 304x169
+button |  | "Shown too long — 8.389 s" | transcript-issue |  | 16,498 288x18
+button |  | "Shown too long — 8.432 s" | transcript-issue |  | 16,518 288x18
+button |  | "Shown too long — 8.421 s" | transcript-issue |  | 16,538 288x18
+button |  | "Shown too long — 8.389 s" | transcript-issue |  | 16,558 288x18
+button |  | "Shown too long — 8.432 s" | transcript-issue |  | 16,578 288x18
+button |  | "Shown too long — 8.421 s" | transcript-issue |  | 16,598 288x18
+button |  | "Shown too long — 8.389 s" | transcript-issue |  | 16,618 288x18
+button |  | "Shown too long — 8.432 s" | transcript-issue |  | 16,638 288x18
+button |  | "Shown too long — 8.421 s" | transcript-issue |  | 16,658 288x18
+button |  | "Shown too long — 8.389 s" | transcript-issue |  | 16,678 288x18
+button |  | "Shown too long — 8.432 s" | transcript-issue |  | 16,698 288x18
+button |  | "Shown too long — 8.421 s" | transcript-issue |  | 16,718 288x18
+button |  | "Gap too small — 0.185 s" | transcript-issue |  | 16,738 288x18
+button |  | "Gap too small — 0.142 s" | transcript-issue |  | 16,758 288x18
+button |  | "Gap too small — 0.185 s" | transcript-issue |  | 16,778 288x18
+button |  | "Gap too small — 0.142 s" | transcript-issue |  | 16,798 288x18
+button |  | "Gap too small — 0.185 s" | transcript-issue |  | 16,818 288x18
+button |  | "Gap too small — 0.142 s" | transcript-issue |  | 16,838 288x18
+button |  | "Gap too small — 0.185 s" | transcript-issue |  | 16,858 288x18
+button |  | "Gap too small — 0.142 s" | transcript-issue |  | 16,878 288x18
+div |  | "" | transcript-qc-live | live=polite | 8,452 1x1
+div | list | "«10 chars»" | transcript-root |  | 8,663 304x143
+div | listitem | "«48 chars»" | transcript-row |  | 8,663 304x20
+button |  | "Speaker options for Unknown" | transcript-row-chip |  | 16,665 70x16
+span |  | "«7 chars»" | transcript-row-timecode |  | 94,664 64x19
+span |  | "«0 chars»" | transcript-issue-dot |  | 166,669 8x8
+span |  | "«30 chars»" | transcript-row-text |  | 182,663 64x76
+span |  | "«3 chars»" | transcript-word |  | 182,665 18x15
+span |  | "«4 chars»" | transcript-word |  | 203,665 28x15
+span |  | "«6 chars»" | transcript-word |  | 182,684 40x15
+span |  | "«6 chars»" | transcript-word |  | 182,703 38x15
+span |  | "«3 chars»" | transcript-word |  | 223,703 18x15
+span |  | "«3 chars»" | transcript-word |  | 182,722 17x15
+button |  | "Delete block and close the gap (neighbours meet at the midpoint)" | transcript-close-gap |  | 254,664 26x17
+button |  | "Delete block (leave the gap)" | transcript-row-delete |  | 288,665 16x15
+div | listitem | "«27 chars»" | transcript-row |  | 8,683 304x20
+button |  | "Speaker options for Unknown" | transcript-row-chip |  | 16,685 70x16
+span |  | "«7 chars»" | transcript-row-timecode |  | 94,684 64x19
+span |  | "«0 chars»" | transcript-issue-dot |  | 166,689 8x8
+span |  | "«9 chars»" | transcript-row-text |  | 182,683 64x19
+span |  | "«9 chars»" | transcript-word |  | 182,685 62x15
+button |  | "Delete block and close the gap (neighbours meet at the midpoint)" | transcript-close-gap |  | 254,684 26x17
+button |  | "Delete block (leave the gap)" | transcript-row-delete |  | 288,685 16x15
+div | listitem | "«46 chars»" | transcript-row |  | 8,703 304x20
+button |  | "Speaker options for Unknown" | transcript-row-chip |  | 16,705 70x16
+span |  | "«7 chars»" | transcript-row-timecode |  | 94,704 64x19
+span |  | "«0 chars»" | transcript-issue-dot |  | 166,709 8x8
+span |  | "«28 chars»" | transcript-row-text |  | 182,703 64x57
+span |  | "«1 chars»" | transcript-word |  | 182,705 7x15
+span |  | "«7 chars»" | transcript-word |  | 192,705 39x15
+span |  | "«3 chars»" | transcript-word |  | 182,724 21x15
+span |  | "«1 chars»" | transcript-word |  | 207,724 7x15
+span |  | "«5 chars»" | transcript-word |  | 217,724 29x15
+span |  | "«6 chars»" | transcript-word |  | 182,743 29x15
+button |  | "Delete block and close the gap (neighbours meet at the midpoint)" | transcript-close-gap |  | 254,704 26x17
+button |  | "Delete block (leave the gap)" | transcript-row-delete |  | 288,705 16x15
+div | listitem | "«48 chars»" | transcript-row |  | 8,723 304x20
+button |  | "Speaker options for Unknown" | transcript-row-chip |  | 16,725 70x16
+span |  | "«7 chars»" | transcript-row-timecode |  | 94,724 64x19
+span |  | "«0 chars»" | transcript-issue-dot |  | 166,729 8x8
+span |  | "«30 chars»" | transcript-row-text |  | 182,723 64x76
+span |  | "«3 chars»" | transcript-word |  | 182,725 18x15
+span |  | "«4 chars»" | transcript-word |  | 203,725 28x15
+span |  | "«6 chars»" | transcript-word |  | 182,744 40x15
+span |  | "«6 chars»" | transcript-word |  | 182,763 38x15
+span |  | "«3 chars»" | transcript-word |  | 223,763 18x15
+span |  | "«3 chars»" | transcript-word |  | 182,782 17x15
+button |  | "Delete block and close the gap (neighbours meet at the midpoint)" | transcript-close-gap |  | 254,724 26x17
+button |  | "Delete block (leave the gap)" | transcript-row-delete |  | 288,725 16x15
+div | listitem | "«60 chars»" | transcript-row |  | 8,743 304x20
+button |  | "Speaker options for Unknown" | transcript-row-chip |  | 16,745 70x16
+span |  | "«7 chars»" | transcript-row-timecode |  | 94,744 64x19
+span |  | "«0 chars»" | transcript-issue-dot |  | 166,749 8x8
+span |  | "«42 chars»" | transcript-row-text |  | 182,743 64x114
+span |  | "«6 chars»" | transcript-word |  | 182,745 37x15
+span |  | "«6 chars»" | transcript-word |  | 182,764 37x15
+span |  | "«7 chars»" | transcript-word |  | 182,783 41x15
+span |  | "«5 chars»" | transcript-word |  | 182,802 32x15
+span |  | "«6 chars»" | transcript-word |  | 182,821 47x15
+span |  | "«7 chars»" | transcript-word |  | 182,840 44x15
+button |  | "Delete block and close the gap (neighbours meet at the midpoint)" | transcript-close-gap |  | 254,744 26x17
+button |  | "Delete block (leave the gap)" | transcript-row-delete |  | 288,745 16x15
+div | listitem | "«46 chars»" | transcript-row |  | 8,763 304x20
+button |  | "Speaker options for Unknown" | transcript-row-chip |  | 16,765 70x16
+input |  | "" | transcript-row-timecode-edit | type=text val=00:47:02 | 94,769 64x16
+span |  | "«0 chars»" | transcript-issue-dot |  | 166,769 8x8
+span |  | "«28 chars»" | transcript-row-text |  | 182,763 64x57
+span |  | "«1 chars»" | transcript-word |  | 182,765 7x15
+span |  | "«7 chars»" | transcript-word |  | 192,765 39x15
+span |  | "«3 chars»" | transcript-word |  | 182,784 21x15
+span |  | "«1 chars»" | transcript-word |  | 207,784 7x15
+span |  | "«5 chars»" | transcript-word |  | 217,784 29x15
+span |  | "«6 chars»" | transcript-word |  | 182,803 29x15
+button |  | "Delete block and close the gap (neighbours meet at the midpoint)" | transcript-close-gap |  | 254,764 26x17
+button |  | "Delete block (leave the gap)" | transcript-row-delete |  | 288,765 16x15
+div | listitem | "«48 chars»" | transcript-row |  | 8,783 304x20
+button |  | "Speaker options for Unknown" | transcript-row-chip |  | 16,785 70x16
+span |  | "«7 chars»" | transcript-row-timecode |  | 94,784 64x19
+span |  | "«0 chars»" | transcript-issue-dot |  | 166,789 8x8
+span |  | "«30 chars»" | transcript-row-text |  | 182,783 64x76
+span |  | "«3 chars»" | transcript-word |  | 182,785 18x15
+span |  | "«4 chars»" | transcript-word |  | 203,785 28x15
+span |  | "«6 chars»" | transcript-word |  | 182,804 40x15
+span |  | "«6 chars»" | transcript-word |  | 182,823 38x15
+span |  | "«3 chars»" | transcript-word |  | 223,823 18x15
+span |  | "«3 chars»" | transcript-word |  | 182,842 17x15
+button |  | "Delete block and close the gap (neighbours meet at the midpoint)" | transcript-close-gap |  | 254,784 26x17
+button |  | "Delete block (leave the gap)" | transcript-row-delete |  | 288,785 16x15
+div | listitem | "«60 chars»" | transcript-row |  | 8,803 304x20
+button |  | "Speaker options for Unknown" | transcript-row-chip |  | 16,805 70x16
+span |  | "«7 chars»" | transcript-row-timecode |  | 94,804 64x19
+span |  | "«0 chars»" | transcript-issue-dot |  | 166,809 8x8
+span |  | "«42 chars»" | transcript-row-text |  | 182,803 64x114
+span |  | "«6 chars»" | transcript-word |  | 182,805 37x15
+span |  | "«6 chars»" | transcript-word |  | 182,824 37x15
+span |  | "«7 chars»" | transcript-word |  | 182,843 41x15
+span |  | "«5 chars»" | transcript-word |  | 182,862 32x15
+span |  | "«6 chars»" | transcript-word |  | 182,881 47x15
+span |  | "«7 chars»" | transcript-word |  | 182,900 44x15
+button |  | "Delete block and close the gap (neighbours meet at the midpoint)" | transcript-close-gap |  | 254,804 26x17
+button |  | "Delete block (leave the gap)" | transcript-row-delete |  | 288,805 16x15
+div | listitem | "«46 chars»" | transcript-row |  | 8,823 304x20
+button |  | "Speaker options for Unknown" | transcript-row-chip |  | 16,825 70x16
+span |  | "«7 chars»" | transcript-row-timecode |  | 94,824 64x19
+span |  | "«0 chars»" | transcript-issue-dot |  | 166,829 8x8
+span |  | "«28 chars»" | transcript-row-text |  | 182,823 64x57
+span |  | "«1 chars»" | transcript-word |  | 182,825 7x15
+span |  | "«7 chars»" | transcript-word |  | 192,825 39x15
+span |  | "«3 chars»" | transcript-word |  | 182,844 21x15
+span |  | "«1 chars»" | transcript-word |  | 207,844 7x15
+span |  | "«5 chars»" | transcript-word |  | 217,844 29x15
+span |  | "«6 chars»" | transcript-word |  | 182,863 29x15
+button |  | "Delete block and close the gap (neighbours meet at the midpoint)" | transcript-close-gap |  | 254,824 26x17
+button |  | "Delete block (leave the gap)" | transcript-row-delete |  | 288,825 16x15
+div | listitem | "«48 chars»" | transcript-row |  | 8,843 304x20
+button |  | "Speaker options for Unknown" | transcript-row-chip |  | 16,845 70x16
+span |  | "«7 chars»" | transcript-row-timecode |  | 94,844 64x19
+span |  | "«0 chars»" | transcript-issue-dot |  | 166,849 8x8
+span |  | "«30 chars»" | transcript-row-text |  | 182,843 64x76
+span |  | "«3 chars»" | transcript-word |  | 182,845 18x15
+span |  | "«4 chars»" | transcript-word |  | 203,845 28x15
+span |  | "«6 chars»" | transcript-word |  | 182,864 40x15
+span |  | "«6 chars»" | transcript-word |  | 182,883 38x15
+span |  | "«3 chars»" | transcript-word |  | 223,883 18x15
+span |  | "«3 chars»" | transcript-word |  | 182,902 17x15
+button |  | "Delete block and close the gap (neighbours meet at the midpoint)" | transcript-close-gap |  | 254,844 26x17
+button |  | "Delete block (leave the gap)" | transcript-row-delete |  | 288,845 16x15
+div | listitem | "«60 chars»" | transcript-row |  | 8,863 304x20
+button |  | "Speaker options for Unknown" | transcript-row-chip |  | 16,865 70x16
+span |  | "«7 chars»" | transcript-row-timecode |  | 94,864 64x19
+span |  | "«0 chars»" | transcript-issue-dot |  | 166,869 8x8
+span |  | "«42 chars»" | transcript-row-text |  | 182,863 64x114
+span |  | "«6 chars»" | transcript-word |  | 182,865 37x15
+span |  | "«6 chars»" | transcript-word |  | 182,884 37x15
+span |  | "«7 chars»" | transcript-word |  | 182,903 41x15
+span |  | "«5 chars»" | transcript-word |  | 182,922 32x15
+span |  | "«6 chars»" | transcript-word |  | 182,941 47x15
+span |  | "«7 chars»" | transcript-word |  | 182,960 44x15
+button |  | "Delete block and close the gap (neighbours meet at the midpoint)" | transcript-close-gap |  | 254,864 26x17
+button |  | "Delete block (leave the gap)" | transcript-row-delete |  | 288,865 16x15
+div | listitem | "«46 chars»" | transcript-row |  | 8,883 304x20
+button |  | "Speaker options for Unknown" | transcript-row-chip |  | 16,885 70x16
+span |  | "«7 chars»" | transcript-row-timecode |  | 94,884 64x19
+span |  | "«0 chars»" | transcript-issue-dot |  | 166,889 8x8
+span |  | "«28 chars»" | transcript-row-text |  | 182,883 64x57
+span |  | "«1 chars»" | transcript-word |  | 182,885 7x15
+span |  | "«7 chars»" | transcript-word |  | 192,885 39x15
+span |  | "«3 chars»" | transcript-word |  | 182,904 21x15
+span |  | "«1 chars»" | transcript-word |  | 207,904 7x15
+span |  | "«5 chars»" | transcript-word |  | 217,904 29x15
+span |  | "«6 chars»" | transcript-word |  | 182,923 29x15
+button |  | "Delete block and close the gap (neighbours meet at the midpoint)" | transcript-close-gap |  | 254,884 26x17
+button |  | "Delete block (leave the gap)" | transcript-row-delete |  | 288,885 16x15
+p |  | "Transcribe or set a source language to enable translation." |  |  | 8,818 304x32
+div | separator | "Resize sidebar" | resize-handle-sidebar |  | 321,45 4x826
+section | region | "Preview stage" | panel-stage |  | 325,45 1115x621
+div |  | "" | preview-canvas-layer |  | 325,45 1115x621
+div | separator | "Resize timeline" | resize-handle-timeline |  | 325,666 1115x4
+section | region | "«8 chars»" | panel-timeline |  | 325,670 1115x201
+div | region | "«8 chars»" | timeline-root |  | 325,671 1115x186
+canvas |  | "«0 chars»" | timeline-canvas |  | 325,671 23978x144
+button |  | "Snap" | timeline-snap-toggle |  | 325,815 47x21
+label |  | "Start" |  |  | 325,838 182x16
+input |  | "" | timeline-input-start | type=text val=00:47.3 | 354,836 153x21
+label |  | "End" |  |  | 507,838 176x16
+input |  | "" | timeline-input-end | type=text val=00:55.7 | 531,836 153x21
+footer | status | "Idle · no model · CPU · cache empty · models download on first use" | status-bar | live=polite | 0,871 1440x29

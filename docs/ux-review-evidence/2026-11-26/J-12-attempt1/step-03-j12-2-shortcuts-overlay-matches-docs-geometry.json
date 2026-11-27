@@ -1,0 +1,30 @@
+{
+  "clipped": [],
+  "occluded": [],
+  "panelOverlaps": [
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ws-transcript",
+      "ox": 304,
+      "oy": 305
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ts-panel",
+      "ox": 304,
+      "oy": 305
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "SECTION.lang-section",
+      "ox": 304,
+      "oy": 58
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ws-project-list",
+      "ox": 304,
+      "oy": 98
+    }
+  ]
+}

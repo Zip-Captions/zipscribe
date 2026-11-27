@@ -1,0 +1,12 @@
+{
+  "clipped": [],
+  "occluded": [],
+  "panelOverlaps": [
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "P.ws-empty",
+      "ox": 304,
+      "oy": 40
+    }
+  ]
+}

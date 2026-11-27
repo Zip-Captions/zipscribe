@@ -1,0 +1,98 @@
+{
+  "diarizeRun": {
+    "confirms": [
+      "whisper-base_timestamped@608c49e6 is not cached yet — 211 MB downloads on first use. Download and continue"
+    ],
+    "samples": [
+      {
+        "t": 3,
+        "status": "Idle · transcribing · CPU · cache empty · models download on first use saved",
+        "rows": 0,
+        "alerts": []
+      },
+      {
+        "t": 6,
+        "status": "97% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+        "rows": 1,
+        "alerts": []
+      },
+      {
+        "t": 7,
+        "status": "97% · transcribing · CPU · cache empty · models download on first use saved",
+        "rows": 1,
+        "alerts": []
+      },
+      {
+        "t": 9,
+        "status": "96% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+        "rows": 1,
+        "alerts": []
+      },
+      {
+        "t": 33,
+        "status": "100% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+        "rows": 8,
+        "alerts": []
+      },
+      {
+        "t": 34,
+        "status": "100% · transcribing · CPU · cache empty · models download on first use saved",
+        "rows": 8,
+        "alerts": []
+      },
+      {
+        "t": 37,
+        "status": "99% · transcribing · CPU · cache empty · models download on first use unsaved changes",
+        "rows": 9,
+        "alerts": []
+      },
+      {
+        "t": 39,
+        "status": "99% · transcribing · CPU · cache empty · models download on first use saved",
+        "rows": 9,
+        "alerts": []
+      },
+      {
+        "t": 40,
+        "status": "99% · no model · CPU · cache empty · models download on first use unsaved changes",
+        "rows": 10,
+        "alerts": []
+      }
+    ],
+    "totalSamples": 20,
+    "rows": 10
+  },
+  "speakers": {
+    "blocks": 10,
+    "labels": [
+      "Speaker 1"
+    ],
+    "perLabelCount": {
+      "Speaker 1": 10
+    },
+    "colorsPerLabel": {
+      "Speaker 1": [
+        "rgb(76, 141, 255)"
+      ]
+    },
+    "speakersView": [],
+    "timelineLane": {
+      "testids": [
+        "timeline-root",
+        "timeline-canvas",
+        "timeline-snap-toggle",
+        "timeline-input-start",
+        "timeline-input-end",
+        "timeline-live"
+      ],
+      "speakerish": [
+        "div.tl-lanes:"
+      ]
+    },
+    "chipMenu": {
+      "dialogs": [],
+      "menu": [],
+      "opts": []
+    }
+  }
+}

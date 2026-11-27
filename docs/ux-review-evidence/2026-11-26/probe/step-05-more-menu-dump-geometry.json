@@ -1,0 +1,31 @@
+{
+  "clipped": [],
+  "occluded": [
+    {
+      "blocked": "Auto-detectenesfrdeitptnlplsvt",
+      "by": "button."
+    },
+    {
+      "blocked": "whisper-base_timestamped@608c4",
+      "by": "div.shell-pwa-menu"
+    },
+    {
+      "blocked": "Delete speech-2min",
+      "by": "div.ws-popover-row"
+    }
+  ],
+  "panelOverlaps": [
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ws-media-card",
+      "ox": 304,
+      "oy": 136
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ws-project-list",
+      "ox": 304,
+      "oy": 98
+    }
+  ]
+}

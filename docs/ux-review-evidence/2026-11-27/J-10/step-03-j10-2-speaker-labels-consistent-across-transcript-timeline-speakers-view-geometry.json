@@ -1,0 +1,85 @@
+{
+  "clipped": [],
+  "occluded": [
+    {
+      "blocked": "Too fast to read — 21.591 char",
+      "by": "input.ts-rename-input"
+    },
+    {
+      "blocked": "Shown too long — 18.78 s",
+      "by": "button.ts-popover-action"
+    },
+    {
+      "blocked": "Shown too long — 9.32 s",
+      "by": "div.ts-popover-row"
+    },
+    {
+      "blocked": "Speaker options for Speaker 1",
+      "by": "label.ts-popover-label"
+    },
+    {
+      "blocked": "Delete block and close the gap",
+      "by": "div.ts-popover-row"
+    },
+    {
+      "blocked": "Delete block (leave the gap)",
+      "by": "div.ts-popover-row"
+    },
+    {
+      "blocked": "Speaker options for Speaker 1",
+      "by": "button.ts-swatch"
+    },
+    {
+      "blocked": "Delete block and close the gap",
+      "by": "div.ts-popover-row"
+    },
+    {
+      "blocked": "Delete block (leave the gap)",
+      "by": "div.ts-popover-row"
+    },
+    {
+      "blocked": "Speaker options for Speaker 1",
+      "by": "label.ts-popover-label"
+    },
+    {
+      "blocked": "Delete block and close the gap",
+      "by": "div.ts-popover-row"
+    },
+    {
+      "blocked": "Delete block (leave the gap)",
+      "by": "div.ts-popover-row"
+    },
+    {
+      "blocked": "Speaker options for Speaker 1",
+      "by": "div.ts-popover"
+    },
+    {
+      "blocked": "Delete block and close the gap",
+      "by": "div.ts-popover"
+    },
+    {
+      "blocked": "Delete block (leave the gap)",
+      "by": "div.ts-popover"
+    }
+  ],
+  "panelOverlaps": [
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ws-transcript",
+      "ox": 304,
+      "oy": 354
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ts-panel",
+      "ox": 304,
+      "oy": 354
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "SECTION.lang-section",
+      "ox": 304,
+      "oy": 58
+    }
+  ]
+}

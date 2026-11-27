@@ -1,0 +1,2 @@
+net::ERR_INTERNET_DISCONNECTED http://127.0.0.1:4202/.cache/models/silero-vad/onnx/model.onnx
+net::ERR_INTERNET_DISCONNECTED https://huggingface.co/onnx-community/silero-vad/resolve/e71cae966052b992a7eca6b17738916ce0eca4ec/onnx/model.onnx

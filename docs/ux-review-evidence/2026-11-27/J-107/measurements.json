@@ -1,0 +1,38 @@
+{
+  "card": "speech-2min.m4a Duration 01:59.9 Container audio/mp4; codecs=\"mp4a.40.2\" Audio aac Sample rate — Channels —",
+  "stage": {
+    "visualizer": 1,
+    "transport": 1
+  },
+  "export": {
+    "text": "Export × CAPTIONS FILE SRT VTT JSON TSV Track Source Speaker labels None VTT voice tags [Name]: prefix Save SRTExport all languages snapshot v1795742958466",
+    "burnin": 0
+  },
+  "play": {
+    "a": {
+      "clock": "00:00.0",
+      "vt": 0,
+      "vis": 754702676
+    },
+    "b": {
+      "clock": "00:02.4",
+      "vt": 0,
+      "paused": true,
+      "vis": 1799986569,
+      "button": "Pause",
+      "audioEls": [
+        {
+          "paused": true,
+          "t": 0
+        }
+      ],
+      "alerts": [],
+      "status": "Idle · no model · CPU · cache empty · models download on first use\nsaved"
+    },
+    "space": {
+      "before": "00:08.7",
+      "clock": "00:11.1",
+      "vt": 0
+    }
+  }
+}

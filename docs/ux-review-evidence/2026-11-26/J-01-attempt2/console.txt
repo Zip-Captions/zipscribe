@@ -1,0 +1,7 @@
+warning: No available adapters.
+warning: Unable to determine content-length from response headers. Will expand buffer when needed.
+warning: Unable to determine content-length from response headers. Will expand buffer when needed.
+warning: Unable to determine content-length from response headers. Will expand buffer when needed.
+warning: Unable to determine content-length from response headers. Will expand buffer when needed.
+warning: Unable to determine content-length from response headers. Will expand buffer when needed.
+warning: Unable to determine content-length from response headers. Will expand buffer when needed.

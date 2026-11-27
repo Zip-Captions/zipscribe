@@ -1,0 +1,15 @@
+{
+  "afterChoose": {
+    "dialogs": [],
+    "toasts": [
+      "UNSUPPORTED_CAPTION"
+    ],
+    "alerts": [
+      "UNSUPPORTED_CAPTION"
+    ],
+    "assetCard": 1,
+    "status": "Idle · no model · CPU · cache empty · models download on first use\nsaved",
+    "chooseButtonsAfterMedia": 0
+  },
+  "longTasksMain": []
+}

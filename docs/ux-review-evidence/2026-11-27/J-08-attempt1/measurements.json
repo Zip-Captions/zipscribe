@@ -1,0 +1,93 @@
+{
+  "statusFresh": "Idle · no model · CPU · cache empty · models download on first use\nsaved",
+  "panelBefore": {
+    "rows": [
+      {
+        "i": 0,
+        "text": "Close",
+        "model": null,
+        "size": null,
+        "disabled": false
+      },
+      {
+        "i": 1,
+        "text": "Keep data on this device",
+        "model": null,
+        "size": null,
+        "disabled": false
+      }
+    ],
+    "storage": "Estimated device storage: 38.2 MB of 10.8 GB"
+  },
+  "offlineBoot": {
+    "ms": 4026,
+    "header": 1,
+    "transcribeBtn": 1,
+    "projects": [
+      "Open"
+    ],
+    "offlineIndicators": [
+      "span#offline-chip:Offline"
+    ],
+    "status": "Idle · no model · CPU · cache empty · models download on first use",
+    "swControlled": true
+  },
+  "offlineTiny": {
+    "confirms": [],
+    "samples": [
+      {
+        "t": 1,
+        "status": "Idle · no model · CPU · cache empty · models download on first use NETWORK saved",
+        "rows": 0,
+        "alerts": []
+      }
+    ],
+    "rows": 0
+  },
+  "fontsOffline": {
+    "res": [
+      {
+        "font": "Inter",
+        "check": true,
+        "faces": "loaded,loaded"
+      },
+      {
+        "font": "Archivo",
+        "check": true,
+        "faces": "loaded,loaded"
+      },
+      {
+        "font": "JetBrains Mono",
+        "check": true,
+        "faces": "loaded"
+      },
+      {
+        "font": "Anton",
+        "check": true,
+        "faces": "loaded"
+      },
+      {
+        "font": "Bebas Neue",
+        "check": true,
+        "faces": "loaded"
+      },
+      {
+        "font": "Oswald",
+        "check": true,
+        "faces": "loaded"
+      },
+      {
+        "font": "Poppins",
+        "check": true,
+        "faces": "loaded"
+      }
+    ],
+    "remoteRows": [
+      "Anton",
+      "Bebas Neue",
+      "Oswald",
+      "Poppins"
+    ],
+    "toasts": []
+  }
+}

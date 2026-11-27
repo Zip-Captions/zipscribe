@@ -1,0 +1,40 @@
+div |  | "Zipscribe0.0.0+7819d70CPU⋯TranscribeExportSubtitlesMediaStyleTranscribe or set a" | workbench-shell |  | 0,0 1440x900
+header | banner | "Zipscribe0.0.0+7819d70CPU⋯TranscribeExport" |  |  | 0,0 1440x45
+span |  | "0.0.0+7819d70" | build-info |  | 88,15 84x14
+input |  | "Project name" | project-name | DISABLED type=text val= | 188,7 166x30
+span |  | "CPU" | tier-chip |  | 362,11 74x22
+button |  | "⋯" |  | exp=false | 444,9 33x27
+button |  | "Transcribe" | transcribe-button | DISABLED | 485,8 92x28
+button |  | "Export" | export-button | DISABLED | 585,8 66x28
+section | region | "Sidebar" | panel-sidebar |  | 0,45 321x826
+div | tablist | "Sidebar panels" |  |  | 0,45 320x45
+button | tab | "Subtitles" | tab-subtitles | selected | 8,53 69x28
+button | tab | "Media" | tab-media |  | 81,53 54x28
+button | tab | "Style" | tab-style |  | 139,53 47x28
+div | tabpanel | "Transcribe or set a source language to enable translation.speech-2minOpenDuplica" |  |  | 0,90 320x781
+div | list | "«20 chars»" |  |  | 8,98 304x305
+div |  | "" | transcript-panel |  | 8,403 304x305
+div |  | "" | transcript-qc-live | live=polite | 8,403 1x1
+div | list | "«10 chars»" | transcript-root |  | 8,411 304x297
+p |  | "Transcribe or set a source language to enable translation." |  |  | 8,720 304x32
+div | list | "Projects" | project-list |  | 8,765 304x98
+div | listitem | "speech-2minOpenDuplicateDelete" | project-row-proj_8da371c1-68eb-4757-ba52-49c3164bfa65 |  | 8,765 304x28
+button |  | "Open speech-2min" | project-open-proj_8da371c1-68eb-4757-ba52-49c3164bfa65 |  | 89,765 59x28
+button |  | "Duplicate speech-2min" | project-duplicate-proj_8da371c1-68eb-4757-ba52-49c3164bfa65 |  | 148,765 84x28
+button |  | "Delete speech-2min" | project-delete-proj_8da371c1-68eb-4757-ba52-49c3164bfa65 |  | 232,765 65x28
+button |  | "New project" | new-project-button |  | 8,793 100x28
+p |  | "37.1 MB of 10 GB · persistent off" | storage-estimate |  | 8,834 304x16
+div | separator | "Resize sidebar" | resize-handle-sidebar |  | 321,45 4x826
+section | region | "Preview stage" | panel-stage |  | 325,45 1115x621
+div |  | "" | preview-canvas-layer |  | 325,45 1115x621
+div |  | "Drop a video or audio file to beginCaption files (.srt .vtt .sbv .ttml .dfxp .xm" | drop-zone |  | 341,61 1083x589
+p |  | "Drop a video or audio file to begin" |  |  | 752,304 261x20
+p |  | "Caption files (.srt .vtt .sbv .ttml .dfxp .xml .ass .ssa .zipscribe.json) may co" |  |  | 519,332 727x16
+label |  | "Choose file…" | media-intake-button |  | 760,356 107x28
+button |  | "Choose file…" |  |  | 760,356 107x28
+button |  | "Try a sample clip" | sample-clip-button |  | 875,356 130x28
+p |  | "Tier T2 · CPU · cache empty · models download on first use" |  |  | 700,392 366x16
+div | separator | "Resize timeline" | resize-handle-timeline |  | 325,666 1115x4
+section | region | "«8 chars»" | panel-timeline |  | 325,670 1115x201
+p |  | "«31 chars»" |  |  | 325,684 1115x40
+footer | status | "Idle · no model · CPU · cache empty · models download on first use" | status-bar | live=polite | 0,871 1440x29

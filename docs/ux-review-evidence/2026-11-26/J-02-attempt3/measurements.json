@@ -1,0 +1,65 @@
+{
+  "afterChoose": {
+    "dialogs": [],
+    "toasts": [
+      "UNSUPPORTED_CAPTION"
+    ],
+    "alerts": [
+      "UNSUPPORTED_CAPTION"
+    ],
+    "assetCard": 1,
+    "status": "Idle · no model · CPU · cache empty · models download on first use\nsaved",
+    "chooseButtonsAfterMedia": 0,
+    "dragDrop": {
+      "dialogs": [
+        "Import captions"
+      ],
+      "toasts": [
+        "UNSUPPORTED_CAPTION"
+      ]
+    }
+  },
+  "intakePath": "drag-drop fallback (click path rejected caption)",
+  "importDialog": {
+    "format": "srt",
+    "encoding": "utf-8",
+    "cues": "12",
+    "blocks": "12",
+    "language": "",
+    "languagePlaceholder": "—",
+    "radios": [
+      {
+        "tid": "caption-import-language",
+        "type": "text",
+        "checked": false,
+        "labelText": "",
+        "ariaLabel": "Caption language"
+      },
+      {
+        "tid": "caption-import-use-replace",
+        "type": "radio",
+        "checked": true,
+        "labelText": "Replace source captions",
+        "ariaLabel": null
+      },
+      {
+        "tid": "caption-import-use-translation",
+        "type": "radio",
+        "checked": false,
+        "labelText": "Add as translation",
+        "ariaLabel": null
+      },
+      {
+        "tid": "caption-import-prefix-toggle",
+        "type": "checkbox",
+        "checked": true,
+        "labelText": "Read speaker prefixes from cue text",
+        "ariaLabel": null
+      }
+    ],
+    "toasts": [
+      "UNSUPPORTED_CAPTION"
+    ]
+  },
+  "longTasksMain": []
+}

@@ -1,4 +1,8 @@
-# Owner sign-off queue — consolidated (updated 2026-11-25)
+# Owner sign-off queue — consolidated (updated 2026-11-27)
+
+> **PARKED 2026-11-27** — independent UX sweep produced blockers #51/#55/#71; remaining rows
+> are superseded by the MVP remediation ladder (`knowledge/product.md` § Roadmap addendum)
+> and will be re-presented only after the ladder + a clean re-sweep.
 
 Everything still owned by the person, not the pipeline. Evidence pack for the 2026-11-23 puppeteer run: `docs/signoff-evidence/2026-11-23/` (72 artifacts; recording template in `browser-signoff-plan.md`). Verdict rows land in the owning unit's report block.
 
@@ -26,3 +30,24 @@ Everything still owned by the person, not the pipeline. Evidence pack for the 20
 
 - unit-109 merged `1a1bfb1` · unit-205 merged `7b45c94` · unit-303 merged `990d4a5` (incl. engine fix, owner-authorized scope).
 - `verify:intent` chain (caption-translation → styling-and-export → caption-studio-ui) running on develop — results recorded in `docs/overnight-ledger.md`; intent flips follow conventions § Intent exit token (styling-and-export stays `in_progress` until the frozen `[DEPLOY]` items run — by design).
+
+## Status — 2026-11-26 sign-off session (orchestrator-recorded; owner quotes verbatim)
+
+| #   | Status                                            | Evidence / quote                                                                                                                                                                                                                                                                                                                                                    |
+| --- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **CLOSED**                                        | 1a owner: "Confirmed 1a." · 1b NOT-RUNNABLE-AS-WRITTEN (owner: the `chrome://settings/language` toggle "does not exist") — plan wording invalid; code-path unit-covered.                                                                                                                                                                                            |
+| 2   | **CLOSED**                                        | Owner verbatim (2026-11-26): "ratify all 3" — flags (f)/(a)/(b) cleared; facts in unit-204 report § verdicts.                                                                                                                                                                                                                                                       |
+| 3   | **CLOSED**                                        | Owner: "it loads correctly, and displays the offline status correctly. This fully passes" (installed app, offline, after one online launch — SW-activation race remedy).                                                                                                                                                                                            |
+| 4   | **PENDING owner** (agent-verified core)           | Agent (real Translator API): en→fr + en→es translations completed with `navigator.onLine=false`, entries written to export; NOT agent-provable: real pack-download progress + real-Chrome re-translate-stale (defect suspect, see ledger). Runs in the open verification window: Subtitles → Add language → Spanish → DevTools Offline → edit → Re-translate stale. |
+| 5   | **PENDING owner eyeball** (mechanically verified) | Preset CaptionStyle JSONs match approved constants byte-for-byte; computed WCAG ratios ≥ AA (10.10–19.19; karaoke highlight 3.20 ≥ 3.0); custom style-patch persists; overlay ink tracks presets. WCAG/mood tick is the owner's call.                                                                                                                               |
+| 6   | **PENDING owner** (verbatim-verified)             | About panel scrapes 7/7 rows identical to `src/engine/model/registry.ts` (id/license/attribution/repo@revision). HF-card eyeball remains (registry carries 2026-11-10 re-verify notes).                                                                                                                                                                             |
+| 7   | **PENDING owner "confirmed"**                     | Battery re-run at 7819d70 green (unit-103 report § Gate-tail status); tick awaits owner word.                                                                                                                                                                                                                                                                       |
+| 8   | **CLOSED (agent-verified, owner-delegated)**      | Empty selection = silent no-op; real pick created+opened project (252 ms); native dialog proven by e2e filechooser legs.                                                                                                                                                                                                                                            |
+| 9   | **CLOSED (agent-verified, owner-delegated)**      | Post-split badges [Stale, Stale]; `exportProjectFile` shows first part's entry preserved (`"hola allí amigo"`, sourceHash fbe0a0ff) — the pre-fix failure mode gone.                                                                                                                                                                                                |
+
+Session defect findings (ledger 2026-11-25T23:40Z → 2026-11-26T12:05Z): (A) cactus-whistle +
+sherpa-zipformer selectable in popover but no worker integration (`asr.worker.ts:236` builds
+whisper unconditionally → 404s + silent hang); (B) silent media → job ends with 0 rows and NO
+notice; (C) stale service worker after rebuild → 0.0 kB worker chunk served, silent hang
+(recover: unregister SW + ⌘⇧R); (D) panel model warm-up fires 404 pinned-URL requests for
+sherpa on open; (E) transcript row overflow → **GitHub issue #48**.
