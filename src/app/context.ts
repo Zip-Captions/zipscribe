@@ -301,6 +301,10 @@ async function buildAppContext(options: AppContextOptions): Promise<AppContext> 
   }
   const jobs = createJobsStore({
     engine,
+    // unit-304 (FR-304.1, #51): the language plumbing records `project.language`
+    // as job output on this same editor app (Start-time explicit choice +
+    // Auto-detect job:done detection — applyWithoutHistory, never undo steps).
+    editorApp,
     modelCache: createProductionModelCache(),
     // FR-204.2 (unit-204): main-thread verified-cache warm on online real-
     // lane dispatches. The scripted lane (ziptest with no local media

@@ -268,7 +268,12 @@ export async function createWhisperEngine(spec: WhisperLoadSpec, onProgress: (pr
         const tokenizer = handle.tokenizer
         if (processor === null || processor === undefined || model?.generate === undefined || tokenizer === undefined) return 'und'
         const features = await processor(audio)
-        const generated = (await model.generate({ inputs: features['input_features'], max_new_tokens: LANGUAGE_PROBE_TOKENS })) as { sequences?: { tolist?: () => unknown } } | undefined
+        // workarounds transformers.js#3.8.1: `generate()` returns a BARE Tensor
+        // unless `return_dict_in_generate` (pinned source src/models.js:1926) —
+        // the probe needs `{ sequences }`; without the flag `.sequences` is
+        // undefined and every real auto-detect silently degraded to 'und'
+        // (the L1 doubles always handed back {sequences}).
+        const generated = (await model.generate({ inputs: features['input_features'], max_new_tokens: LANGUAGE_PROBE_TOKENS, return_dict_in_generate: true })) as { sequences?: { tolist?: () => unknown } } | undefined
         const rowsRaw = generated?.sequences?.tolist?.()
         if (!Array.isArray(rowsRaw)) return 'und'
         const rowRaw = (rowsRaw as unknown[])[0]
