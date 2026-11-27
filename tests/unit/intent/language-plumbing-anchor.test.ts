@@ -10,15 +10,26 @@
 //     AND the committed blobs at HEAD match those same digests — the tests
 //     execute the work tree while the model reads HEAD, so both must be
 //     byte-identical to the frozen originals (work-tree tamper ⇒ red).
-//   • Whenever the `develop` merge-base resolves locally: an additions-only
-//     `git diff --name-status` over the frozen surface — ANY M/D/R/C entry on
-//     these paths reddens (this unit's diff must be pure additions; the
-//     ruling "no edits to the frozen surface" is enforced mechanically).
-//   • When develop objects do NOT resolve: the diff leg is only honest in a
-//     genuine CI checkout — attested via the shared Tier-B predicate
-//     (tests/unit/intent/anchor-attestation.ts; no branch-grammar gate,
-//     round-4 doctrine). With neither develop objects nor CI context the
-//     test is RED, never vacuous.
+//   • Whenever the FROZEN diff base resolves: an additions-only `git diff
+//     --name-status` over the frozen surface — ANY M/D/R/C entry on these
+//     paths reddens (this unit's diff must be pure additions; the ruling
+//     "no edits to the frozen surface" is enforced mechanically). The base is
+//     a FROZEN permanent repo fact — the commit unit-304's branch was cut
+//     from (pre-unit-304 develop tip b687f24…, the parent of the unit-304
+//     spec commit 2e6745e) — NOT an ambient `develop`/`origin/develop`
+//     merge-base: ambient resolution is RED post-unit-304 on develop itself
+//     and on every branch cut from it (merge-base == HEAD was refused, then
+//     the CI predicate fell false locally — red forever). Hermetic-probe
+//     doctrine per the 2026-10-28 PR #4 precedent (48d6227,
+//     verify-criteria adversarial-control hotfix: make the probe hermetic
+//     instead of ambient-reading).
+//   • When the frozen base does NOT resolve (shallow CI): the diff leg is
+//     only honest in a genuine CI checkout — attested via the shared Tier-B
+//     predicate (tests/unit/intent/anchor-attestation.ts; no branch-grammar
+//     gate, round-4 doctrine). With neither base objects nor CI context the
+//     test is RED, never vacuous. If HEAD is at/behind the frozen base
+//     (a pre-unit-304 checkout — cannot happen post-merge), the positive
+//     anchor assertion itself reddens: acceptable, never vacuous.
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -79,21 +90,26 @@ describe('CC-304.6: the frozen engine contract and translation e2e surface are b
   })
 
   test('CC-304.6: the frozen surface is additions-only against the develop merge-base whenever develop objects resolve; otherwise a genuine CI checkout is attested (never vacuous)', () => {
-    const head = git(['rev-parse', 'HEAD'])
-    let base: string | null = null
-    for (const candidate of ['develop', 'origin/develop']) {
-      try {
-        const out = git(['merge-base', candidate, 'HEAD'])
-        if (/^[0-9a-f]{40}$/u.test(out) && out !== head) {
-          base = out
-          break
-        }
-      } catch {
-        // A missing ref is exactly the shallow-CI condition — fall through.
-      }
+    // FROZEN diff base — a permanent repo fact, never an ambient ref.
+    // Derivation (verified at fix time): `git rev-parse 2e6745e^` ==
+    // b687f24343b8c3dc16ce78e11b593a021081fbf0 and `git cat-file -t` on both
+    // yields `commit` — the pre-unit-304 develop tip that unit-304's branch
+    // was cut from, i.e. the parent of the unit-304 spec commit 2e6745e.
+    // Ambient develop/origin/develop merge-base is NOT consulted: post-
+    // unit-304 it equals HEAD on develop and on every branch cut from it,
+    // which the old `!== head` guard refused, dropping every local checkout
+    // to the CI predicate — false-red forever (PR #4 hermetic-probe
+    // doctrine, 48d6227).
+    const base = 'b687f24343b8c3dc16ce78e11b593a021081fbf0'
+    let baseResolves = true
+    try {
+      git(['cat-file', '-e', `${base}^{commit}`])
+    } catch {
+      // Objects absent (shallow CI clone) — exactly the Tier-B condition.
+      baseResolves = false
     }
-    if (base === null) {
-      expect(isCiCheckoutContext(), 'no develop objects locally: the additions-only leg is only honest in a genuine CI checkout (shared Tier-B predicate — no branch-grammar gate)').toBe(true)
+    if (!baseResolves) {
+      expect(isCiCheckoutContext(), 'frozen base objects missing: the additions-only leg is only honest in a genuine CI checkout (shared Tier-B predicate — no branch-grammar gate)').toBe(true)
       return
     }
     const nameStatus = git(['diff', '--name-status', base, 'HEAD', '--', ...FROZEN_PATHS])
