@@ -382,7 +382,12 @@
   flex-direction: column;
   gap: 2px;
   max-height: 160px;
-  flex: none;
+  /* SHRINKABLE (was flex:none): when the open Languages picker squashes the
+     panel to its min, an unsquashable issues list overflowed the panel and
+     painted over the picker, swallowing its clicks — the internal
+     overflow-y:auto now scrolls instead. */
+  flex: 0 1 auto;
+  min-height: 0;
   overflow-y: auto;
   padding: 4px 8px;
   border-bottom: 1px solid var(--border-subtle);
