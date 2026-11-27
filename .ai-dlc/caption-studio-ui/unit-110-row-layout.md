@@ -1,5 +1,5 @@
 ---
-status: pending
+status: in_progress
 phase: mvp
 discipline: frontend
 depends_on: [caption-studio-ui/unit-103-timeline, caption-studio-ui/unit-104-transcript-editor, caption-studio-ui/unit-108-stream-commit]
