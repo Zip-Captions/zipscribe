@@ -25,3 +25,6 @@ docs/spikes
 # RED commit) — formatting them is not allowed, so they are not checked.
 src/ui/pwa/use-sw-update.adversarial.test.ts
 src/ui/pwa/use-online-status.adversarial.test.ts
+
+# Verbatim machine-captured UX sweep evidence (docs/ux-review-evidence) — artifacts are not source; never reformatted
+docs/ux-review-evidence/
