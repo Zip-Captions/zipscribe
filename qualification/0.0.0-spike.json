@@ -1,7 +1,7 @@
 {
   "version": "0.0.0-spike",
-  "contentHash": "9dae47c8d4625056ae1f52dbf84b971718a9b6b618ebe8d6d90e6335fbc53350",
-  "startedAt": "2021-01-10T21:16:54.242Z",
+  "contentHash": "4bce1eab6af973d680a677da323a6e9d6f661bd6c6d79f34fc7b7d34d93cad2c",
+  "startedAt": "2021-01-08T12:31:36.697Z",
   "machine": {
     "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
     "os": "Darwin 24.6.0 (arm64)",
