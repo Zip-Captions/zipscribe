@@ -1,0 +1,156 @@
+[
+  {
+    "story": "J-10",
+    "step": 1,
+    "name": "J10.0 intake speech-2spk-2min.mp4",
+    "expected": "media loaded",
+    "actual": "geometry issues: 0 clipped, 0 occluded, 2 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-10/step-01-j10-0-intake-speech-2spk-2min-mp4.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 126
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-10",
+    "step": 2,
+    "name": "J10.1 transcribe with Diarize speakers (beta)",
+    "expected": "transcription with diarization completes",
+    "actual": "geometry issues: 0 clipped, 0 occluded, 3 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-10/step-02-j10-1-transcribe-with-diarize-speakers-beta-.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-10",
+    "step": 3,
+    "name": "J10.2 speaker labels consistent across transcript / timeline / Speakers view",
+    "expected": "2 speakers found; labels consistent across transcript, timeline lane, Speakers view",
+    "actual": "Error: only 1 speaker label(s) on a 2-speaker fixture: Speaker 1 {\"blocks\":10,\"labels\":[\"Speaker 1\"],\"perLabelCount\":{\"Speaker 1\":10},\"colorsPerLabel\":{\"Speaker 1\":[\"rgb(76, 141, 255)\"]},\"speakersView\":[],\"timelineLane\":{\"testids\":[\"timeline-root\",\"timeline-canvas\",\"timeline-snap-toggle\",\"timeline-i",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-10/step-03-j10-2-speaker-labels-consistent-across-transcript-timeline-speakers-view.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [
+        {
+          "blocked": "Too fast to read — 21.591 char",
+          "by": "input.ts-rename-input"
+        },
+        {
+          "blocked": "Shown too long — 18.78 s",
+          "by": "button.ts-popover-action"
+        },
+        {
+          "blocked": "Shown too long — 9.32 s",
+          "by": "div.ts-popover-row"
+        },
+        {
+          "blocked": "Speaker options for Speaker 1",
+          "by": "label.ts-popover-label"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "div.ts-popover-row"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "div.ts-popover-row"
+        },
+        {
+          "blocked": "Speaker options for Speaker 1",
+          "by": "button.ts-swatch"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "div.ts-popover-row"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "div.ts-popover-row"
+        },
+        {
+          "blocked": "Speaker options for Speaker 1",
+          "by": "label.ts-popover-label"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "div.ts-popover-row"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "div.ts-popover-row"
+        },
+        {
+          "blocked": "Speaker options for Speaker 1",
+          "by": "div.ts-popover"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "div.ts-popover"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "div.ts-popover"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  }
+]

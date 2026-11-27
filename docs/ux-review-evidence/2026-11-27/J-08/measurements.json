@@ -1,0 +1,207 @@
+{
+  "statusFresh": "Idle · no model · CPU · cache empty · models download on first use\nsaved",
+  "panelCheckMs": [
+    1010
+  ],
+  "panelBefore": {
+    "rows": [
+      {
+        "i": 0,
+        "text": "Close",
+        "model": "modelsClosewhisper-base_timestamped@608c49e6",
+        "size": "210.6 MB",
+        "disabled": false
+      },
+      {
+        "i": 1,
+        "text": "Make available offline",
+        "model": "whisper-base_timestamped@608c49e6",
+        "size": "210.6 MB",
+        "disabled": false
+      },
+      {
+        "i": 2,
+        "text": "Make available offline",
+        "model": "whisper-small_timestamped@65caa70f",
+        "size": "590.6 MB",
+        "disabled": false
+      },
+      {
+        "i": 3,
+        "text": "Remove",
+        "model": "whisper-tiny_timestamped@51724429",
+        "size": "156.9 MB",
+        "disabled": false
+      },
+      {
+        "i": 4,
+        "text": "Make available offline",
+        "model": "sherpa-zipformer-en-int8@11a70a47",
+        "size": "70.4 MB",
+        "disabled": false
+      },
+      {
+        "i": 5,
+        "text": "Make available offline",
+        "model": "cactus-whistle@b358ddad",
+        "size": "16.9 MB",
+        "disabled": false
+      },
+      {
+        "i": 6,
+        "text": "Keep data on this device",
+        "model": "modelsClosewhisper-base_timestamped@608c49e6",
+        "size": "210.6 MB",
+        "disabled": false
+      }
+    ],
+    "storage": "Estimated device storage: 38.2 MB of 10.8 GB"
+  },
+  "tinyAlreadyStored": "Remove",
+  "offlineDownload": [],
+  "panelAfter": {
+    "rows": [
+      {
+        "i": 0,
+        "text": "Close",
+        "model": "modelsClosewhisper-base_timestamped@608c49e6",
+        "size": "210.6 MB",
+        "disabled": false
+      },
+      {
+        "i": 1,
+        "text": "Make available offline",
+        "model": "whisper-base_timestamped@608c49e6",
+        "size": "210.6 MB",
+        "disabled": false
+      },
+      {
+        "i": 2,
+        "text": "Make available offline",
+        "model": "whisper-small_timestamped@65caa70f",
+        "size": "590.6 MB",
+        "disabled": false
+      },
+      {
+        "i": 3,
+        "text": "Remove",
+        "model": "whisper-tiny_timestamped@51724429",
+        "size": "156.9 MB",
+        "disabled": false
+      },
+      {
+        "i": 4,
+        "text": "Make available offline",
+        "model": "sherpa-zipformer-en-int8@11a70a47",
+        "size": "70.4 MB",
+        "disabled": false
+      },
+      {
+        "i": 5,
+        "text": "Make available offline",
+        "model": "cactus-whistle@b358ddad",
+        "size": "16.9 MB",
+        "disabled": false
+      },
+      {
+        "i": 6,
+        "text": "Keep data on this device",
+        "model": "modelsClosewhisper-base_timestamped@608c49e6",
+        "size": "210.6 MB",
+        "disabled": false
+      }
+    ],
+    "storage": "Estimated device storage: 38.2 MB of 10.8 GB",
+    "status": "Idle · no model · CPU · cache empty · models download on first use\nsaved"
+  },
+  "offlineBoot": {
+    "ms": 4020,
+    "header": 1,
+    "transcribeBtn": 1,
+    "projects": [
+      "Open"
+    ],
+    "offlineIndicators": [
+      "span#offline-chip:Offline"
+    ],
+    "status": "Idle · no model · CPU · cache partial 1/5 · model downloads on first use",
+    "swControlled": true
+  },
+  "offlineTiny": {
+    "confirms": [],
+    "samples": [
+      {
+        "t": 1,
+        "status": "Idle · no model · CPU · cache partial 1/5 · model downloads on first use ENGINE_INTERNAL saved",
+        "rows": 0,
+        "alerts": []
+      }
+    ],
+    "rows": 0,
+    "popoverText": "Language Auto-detect en es fr de it pt nl pl sv tr ru ar hi id vi ja ko zh Model whisper-base_timestamped@608c49e6 211 MB whisper-small_timestamped@65caa70f 591 MB whisper-tiny_timestamped@51724429 125 MB Offline ready sherpa-zipformer-en-int8@11a70a47 71 MB cactus-whistle@b358ddad 17 MB Diarize spe"
+  },
+  "offlineBase": {
+    "confirms": [],
+    "firstSignal": {
+      "ms": 1271,
+      "alerts": [],
+      "popover": "Offline ready sherpa-zipformer-en-int8@11a70a47 71 MB cactus-whistle@b358ddad 17 MB Dia",
+      "status": "Idle · no model · CPU · cache partial 1/5 · model downloads on first use NETWORK saved"
+    },
+    "samples": [
+      {
+        "t": 1,
+        "status": "Idle · no model · CPU · cache partial 1/5 · model downloads on first use NETWORK saved",
+        "rows": 0,
+        "alerts": []
+      }
+    ],
+    "rows": 0
+  },
+  "fontsOffline": {
+    "res": [
+      {
+        "font": "Inter",
+        "check": true,
+        "faces": "loaded,loaded"
+      },
+      {
+        "font": "Archivo",
+        "check": true,
+        "faces": "loaded,loaded"
+      },
+      {
+        "font": "JetBrains Mono",
+        "check": true,
+        "faces": "loaded"
+      },
+      {
+        "font": "Anton",
+        "check": true,
+        "faces": "loaded"
+      },
+      {
+        "font": "Bebas Neue",
+        "check": true,
+        "faces": "loaded"
+      },
+      {
+        "font": "Oswald",
+        "check": true,
+        "faces": "loaded"
+      },
+      {
+        "font": "Poppins",
+        "check": true,
+        "faces": "loaded"
+      }
+    ],
+    "remoteRows": [
+      "Anton",
+      "Bebas Neue",
+      "Oswald",
+      "Poppins"
+    ],
+    "toasts": []
+  }
+}

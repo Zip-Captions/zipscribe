@@ -1,0 +1,251 @@
+[
+  {
+    "story": "J-12",
+    "step": 1,
+    "name": "J12.0 prereq intake",
+    "expected": "transcript present",
+    "actual": "geometry issues: 14 clipped, 15 occluded, 3 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-12/step-01-j12-0-prereq-intake.png",
+    "geometry": {
+      "clipped": [
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 17,
+          "text": "«42 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 15,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 19,
+          "text": "«30 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 17,
+          "text": "«3 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 77,
+          "text": "«42 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 18,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 37,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 56,
+          "text": "«6 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 75,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 40,
+          "text": "«28 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«3 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«1 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 38,
+          "text": "«6 chars»"
+        }
+      ],
+      "occluded": [
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.389 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.432 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "footer.ws-status"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "p.lang-empty"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-12",
+    "step": 2,
+    "name": "J12.1 keymap: each documented binding does something",
+    "expected": "every documented key acts (design.md § Keyboard shortcuts)",
+    "actual": "Error: no observable effect: Play/pause back, Loop Y, Loop Y back, Set out O, Clear out Shift+O, Merge ⌘⇧M, Merge Ctrl+Shift+M, Esc closes find, Caption visibility ⌘\\, Caption visibility back",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-12/step-02-j12-1-keymap-each-documented-binding-does-something.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": []
+    }
+  },
+  {
+    "story": "J-12",
+    "step": 3,
+    "name": "J12.2 shortcuts overlay matches docs",
+    "expected": "help overlay lists the map",
+    "actual": "overlay rows=0",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-12/step-03-j12-2-shortcuts-overlay-matches-docs.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": []
+    }
+  },
+  {
+    "story": "J-12",
+    "step": 4,
+    "name": "J12.3 tab order reaches every control with visible focus ring",
+    "expected": "Tab reaches every interactive control with a visible focus ring",
+    "actual": "Error: 1 focus stops without visible ring",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-12/step-04-j12-3-tab-order-reaches-every-control-with-visible-focus-ring.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": []
+    }
+  },
+  {
+    "story": "J-12",
+    "step": 5,
+    "name": "J12.4 live regions present",
+    "expected": "transcript + panels announce via live regions",
+    "actual": "[{\"tid\":\"timeline-live\",\"role\":\"\",\"live\":\"polite\",\"inTranscript\":false},{\"tid\":\"status-bar\",\"role\":\"status\",\"live\":\"polite\",\"inTranscript\":false},{\"tid\":\"save-state\",\"role\":\"\",\"live\":\"polite\",\"inTranscript\":false}]",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-12/step-05-j12-4-live-regions-present.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": []
+    }
+  },
+  {
+    "story": "J-12",
+    "step": 6,
+    "name": "J12.5 icon-only controls have accessible names",
+    "expected": "every control has a meaningful accessible name",
+    "actual": "Error: controls with glyph-only/empty names: [{\"tid\":\"\",\"name\":\"⋯\"}]",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-12/step-06-j12-5-icon-only-controls-have-accessible-names.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": []
+    }
+  }
+]

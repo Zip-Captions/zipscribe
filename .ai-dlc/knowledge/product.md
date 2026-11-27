@@ -68,6 +68,57 @@ Queue order for the orchestrator (owner-approved 2026-11-24): (1) coverage audit
 
 **Seeds (2026-11-24 MVP-gate round — intake/closure reviewer findings):** Space-key swallow: global `useCommands` `preventDefault()` for `transport.play-pause` kills native button activation app-wide (Space dead on every button incl. `sample-clip-button`; registry binds Space while design.md lists `n` — spec↔code drift, decide one). Unify intake persistence: picker replicates `launch-queue.consume()` (`runIntakeFromPicker`) while the drop path stays unpersisted-until-edit — one `landAndSave(intake, project, persistence, files)` with consume's polling loop for all three surfaces. `MediaIntakeButton` testId de-nest (invalid HTML5: `<button>` inside `<label>` root — empirically safe today, split root/input ids). About+OfflineModels a11y pair (focus on open, Esc, aria-modal). `--mono` token undefined (falls back to generic monospace; define once from design.md JetBrains Mono stack). Tier-suffix lint hardening (describe `(chromium)`/`(webkit)` convention → asserted). Verifier tooling: `stripStringsAndComments` regex-literal blindness (an odd-quote count in any committed e2e spec silently drops trailing describes from the credit model); `verify:unit`/`verify:intent` chromium-only spawn (webkit-only leads structurally uncreditable — AudioEncoder-stub chromium legs are the workaround); `verify:unit --from-branch` hang needs a timeout guard. `tests/unit/model` prefix-matches `tests/unit/model-eval` (coverage-gate hostage to qualify suites). Languages-picker actionability under 200-block churn. Invariant-10 property-test gap: split can lose an entry without dangling keys — add a seed→split→entry-survives property.
 
+### Addendum — MVP remediation ladder (owner ruling 2026-11-27, post independent UX sweep)
+
+The 2026-11-26/27 independent sweep (`docs/ux-review-evidence/2026-11-26/report.md`, brief
+`docs/ops/ux-review-agent-brief.md`) invalidated the gate's self-certification: e2e suites
+inject state via `src/ui/testing/*` bridges, so journeys passed while the real UI could not
+reach them. Three intents re-opened same day (`caption-translation`, `caption-studio-ui`,
+`local-transcribe-engine`; `styling-and-export` already `in_progress`). Gate criteria 1–3
+above are **not sufficient** on their own — criterion 7 added: **independent story-driven
+sweep green** (zero open blocker/major from the sweep; bridges banned in closure/e2e for any
+journey that relied on them). **Cloudflare freeze reaffirmed and extended: nothing beyond
+this repo — no Cloudflare, no deploys, no deploy-adjacent CI — until the ladder is done and
+the owner has accepted a functional MVP running on localhost.** Deploying broken code is
+explicitly worthless (owner ruling).
+
+Workstreams (each = spec'd unit(s) on their own branch/PR, ordered; blockers marked):
+
+- **M1 · Language plumbing** — #51 **blocker**, #63. `project.language` set from the
+  Transcribe popover's language choice (and Auto-detect default surfaced); Languages section
+  reachable; acceptance includes a **bridge-banned** L5 e2e (intake→transcribe→Add language
+  via real UI only). Re-opened `caption-translation`'s critical path.
+- **M2 · Edit & layout** — #55 **blocker** (merge UI — orchestrator ruling needed: frozen
+  CC-104 shortcuts overlay promised ⌘⇧M; add pointer paths for split/merge), #48 (row
+  overflow, expand-on-active design), #52 (panel crush, QC posture on raw ASR, single-speaker
+  chip suppression). One layout/edit workstream; frozen-spec touchpoints listed for review.
+- **M3 · Intake & project integrity** — #53 (production caption importer — replace unit-07
+  placeholder at `src/app/ports.ts:71`), #54 (import language display/detection), #57, #58,
+  #59 (reload/new-project/bleed), #70 (mid-job reload row loss), #65 (bad-file feedback +
+  internal stamps in Export).
+- **M4 · Offline & truthfulness** — #71 **blocker** (offline model availability hangs at
+  "Downloading…", cached models `ENGINE_INTERNAL` offline), #60 (status-bar truth), #50
+  (silent-failure surfacing + stale-SW self-heal), #63 labels, #67 (harness tooling fix).
+- **M5 · Silent features** — #61 (burn-in MP4), #68 (align-to-audio), #69 (diarization
+  models never fetched + speaker chip). Each: make it work or make it honestly unavailable —
+  no selectable no-ops (phantom cactus/sherpa rows from #50-A included).
+- **M6 · Polish pack** — #62 (dismissal), #64 (a11y names/modality/focus), #66 (keymap +
+  undo scope — design call), residual minors.
+
+Then: (a) full independent re-sweep → report; (b) **owner localhost acceptance session** —
+owner runs the journeys personally on `localhost` (the only sign-offs that remain: queue
+items #4–#7 represented post-fix + owner-eyeball list: install prompt, OS open-with, preset
+looks, visualizer, audibility); (c) gate criteria 1–3 re-run for the re-opened intents
+(`verify:intent` 4/4 again on develop); (d) **only then** does the Cloudflare/[DEPLOY]
+block re-enter planning.
+
+### Addendum — queue status (2026-11-27)
+
+`docs/ops/owner-signoff-queue.md`: #1 #2 #3 #8 #9 closed; #4 blocked by #51 (M1); #5 partial
+(preset eyeball pending, contrast measured); #6 About-panel content passed sweep, fonts/
+runtimes scope + HF-card check open; #7 green tails on record, tick pending. All remaining
+rows re-present only after the ladder + re-sweep.
+
 ## Success metrics (post-launch, anonymized-countable only if/when telemetry unit exists — else manual/PGS)
 
 - ≥ 60% of imports reach an export (funnel health)

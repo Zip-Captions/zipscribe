@@ -1,0 +1,191 @@
+[
+  {
+    "story": "J-02",
+    "step": 1,
+    "name": "J02.0 intake mp4 + srt through Choose file… and Import captions dialog",
+    "expected": "caption file imports next to video (US-07.1), language shown (US-07.2)",
+    "actual": "TimeoutError: locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n  - waiting for getByTestId('transcript-row').first() to be visible\n",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-26/J-02/step-01-j02-0-intake-mp4-srt-through-choose-file-and-import-captions-dialog.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-02",
+    "step": 2,
+    "name": "J02.1 click row → selected + playhead seeks",
+    "expected": "row selects (visible state), playhead seeks to it",
+    "actual": "TimeoutError: locator.innerText: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByTestId('transcript-row').nth(3).getByTestId('transcript-row-timecode')\n",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-26/J-02/step-02-j02-1-click-row-selected-playhead-seeks.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-02",
+    "step": 3,
+    "name": "J02.2 double-click word → inline word editor",
+    "expected": "inline word editor opens for that word",
+    "actual": "TimeoutError: locator.getAttribute: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByTestId('transcript-row').nth(3)\n",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-26/J-02/step-03-j02-2-double-click-word-inline-word-editor.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-02",
+    "step": 4,
+    "name": "J02.3 change word + Enter → row updates, autosave → saved ≤ 2 s",
+    "expected": "row updates; autosave indicator moves to saved within ~2 s",
+    "actual": "TypeError: Cannot read properties of undefined (reading 'tag')",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-26/J-02/step-04-j02-3-change-word-enter-row-updates-autosave-saved-2-s.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-02",
+    "step": 5,
+    "name": "J02.4a split by keyboard S, undo/redo",
+    "expected": "split by shortcut; undo/redo restores exactly",
+    "actual": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByTestId('transcript-row').nth(2).getByTestId('transcript-row-text')\n",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-26/J-02/step-05-j02-4a-split-by-keyboard-s-undo-redo.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-02",
+    "step": 6,
+    "name": "J02.4b split/merge via menu path",
+    "expected": "split also reachable via a menu path",
+    "actual": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByTestId('transcript-row').nth(2)\n",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-26/J-02/step-06-j02-4b-split-merge-via-menu-path.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-02",
+    "step": 7,
+    "name": "J02.4c merge by keyboard ⌘⇧M, undo restores",
+    "expected": "merge back; undo restores",
+    "actual": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByTestId('transcript-row').nth(2).getByTestId('transcript-row-text')\n",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-26/J-02/step-07-j02-4c-merge-by-keyboard-m-undo-restores.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  }
+]

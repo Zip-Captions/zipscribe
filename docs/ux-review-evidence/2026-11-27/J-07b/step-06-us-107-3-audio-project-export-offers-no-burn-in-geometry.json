@@ -1,0 +1,85 @@
+{
+  "clipped": [],
+  "occluded": [
+    {
+      "blocked": "Project name",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "⋯",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Transcribe",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Export",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Subtitles",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Media",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Style",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Open Untitled project",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Duplicate Untitled project",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Delete Untitled project",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Open speech-2min",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Duplicate speech-2min",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Delete speech-2min",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "New project",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "⏪5s — Back 5 seconds",
+      "by": "div.zip-export-backdrop"
+    }
+  ],
+  "panelOverlaps": [
+    {
+      "a": "SECTION.zip-export-section",
+      "b": "SECTION.ws-stage",
+      "ox": 560,
+      "oy": 182
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ws-media-card",
+      "ox": 304,
+      "oy": 104
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ws-project-list",
+      "ox": 304,
+      "oy": 126
+    }
+  ]
+}

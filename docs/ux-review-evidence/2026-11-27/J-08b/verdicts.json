@@ -1,0 +1,89 @@
+[
+  {
+    "story": "J-08b",
+    "step": 1,
+    "name": "J08b.0 intake",
+    "expected": "media loaded",
+    "actual": "geometry issues: 0 clipped, 0 occluded, 2 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-08b/step-01-j08b-0-intake.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-08b",
+    "step": 2,
+    "name": "J08b.1 make whisper-base available offline (visible progress?)",
+    "expected": "stored with visible progress; status/storage reflect it",
+    "actual": "Error: not stored: {\"s\":0,\"row\":\"whisper-base_timestamped@608c49e6 210.6 MB Downloading… \",\"bars\":[]}",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-08b/step-02-j08b-1-make-whisper-base-available-offline-visible-progress-.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-08b",
+    "step": 3,
+    "name": "J08b.2 offline + reload + intake + transcribe with base",
+    "expected": "model the user made available offline transcribes offline",
+    "actual": "Error: offline transcription with a user-cached model produced 0 rows: [{\"t\":1,\"status\":\"Idle · no model · CPU · cache partial 1/5 · model downloads on first use NETWORK saved\",\"rows\":0,\"alerts\":[]}]",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-08b/step-03-j08b-2-offline-reload-intake-transcribe-with-base.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  }
+]

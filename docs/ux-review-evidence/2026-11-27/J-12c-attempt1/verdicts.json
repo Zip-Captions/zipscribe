@@ -1,0 +1,375 @@
+[
+  {
+    "story": "J-12c",
+    "step": 1,
+    "name": "J12c.0 prereq intake",
+    "expected": "transcript present",
+    "actual": "geometry issues: 15 clipped, 15 occluded, 3 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-12c/step-01-j12c-0-prereq-intake.png",
+    "geometry": {
+      "clipped": [
+        {
+          "tag": "span",
+          "cls": "tl-timecode-label",
+          "overflowPx": 18,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 17,
+          "text": "«42 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 15,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 19,
+          "text": "«30 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 17,
+          "text": "«3 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 77,
+          "text": "«42 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 18,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 37,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 56,
+          "text": "«6 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 75,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 40,
+          "text": "«28 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«3 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«1 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 38,
+          "text": "«6 chars»"
+        }
+      ],
+      "occluded": [
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.389 s",
+          "by": "div.ts-row ts-row-selected"
+        },
+        {
+          "blocked": "Shown too long — 8.432 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "footer.ws-status"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "p.lang-empty"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-12c",
+    "step": 2,
+    "name": "J12c.1 remaining bindings",
+    "expected": "every documented key acts",
+    "actual": "TimeoutError: locator.dblclick: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByTestId('transcript-row').nth(1).getByTestId('transcript-word').first()\n",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-12c/step-02-j12c-1-remaining-bindings.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.389 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.432 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "footer.ws-status"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "p.lang-empty"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-12c",
+    "step": 3,
+    "name": "J12c.2 tab order (sidebar + timeline expanded)",
+    "expected": "Tab reaches every interactive control with a visible focus ring",
+    "actual": "Error: no visible ring: BODY@",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-12c/step-03-j12c-2-tab-order-sidebar-timeline-expanded-.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.389 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.432 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "footer.ws-status"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "button.ts-issue-item"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "button.ts-issue-item"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "button.ts-issue-item"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "button.ts-issue-item"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  }
+]

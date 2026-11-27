@@ -1,0 +1,92 @@
+{
+  "clipped": [
+    {
+      "tag": "span",
+      "cls": "tl-timecode-label",
+      "overflowPx": 18,
+      "text": "«5 chars»"
+    }
+  ],
+  "occluded": [
+    {
+      "blocked": "Shown too long — 8.389 s",
+      "by": "div.ws-transcript"
+    },
+    {
+      "blocked": "Shown too long — 8.5 s",
+      "by": "div.ws-transcript"
+    },
+    {
+      "blocked": "Shown too long — 8.389 s",
+      "by": "div.ws-transcript"
+    },
+    {
+      "blocked": "Shown too long — 8.432 s",
+      "by": "button.ts-toolbar-button"
+    },
+    {
+      "blocked": "Shown too long — 8.421 s",
+      "by": "button.ts-toolbar-button"
+    },
+    {
+      "blocked": "Gap too small — 0.142 s",
+      "by": "div.ts-row"
+    },
+    {
+      "blocked": "Gap too small — 0.185 s",
+      "by": "div.ts-row"
+    },
+    {
+      "blocked": "Gap too small — 0.142 s",
+      "by": "div.ts-row"
+    },
+    {
+      "blocked": "Speaker options for Unknown",
+      "by": "button.ts-issue-item"
+    },
+    {
+      "blocked": "Delete block and close the gap",
+      "by": "button.ts-issue-item"
+    },
+    {
+      "blocked": "Delete block (leave the gap)",
+      "by": "button.ts-issue-item"
+    },
+    {
+      "blocked": "Speaker options for Unknown",
+      "by": "button.ts-issue-item"
+    },
+    {
+      "blocked": "",
+      "by": "button.ts-issue-item"
+    },
+    {
+      "blocked": "Delete block and close the gap",
+      "by": "button.ts-issue-item"
+    },
+    {
+      "blocked": "Delete block (leave the gap)",
+      "by": "button.ts-issue-item"
+    }
+  ],
+  "panelOverlaps": [
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ws-transcript",
+      "ox": 304,
+      "oy": 354
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ts-panel",
+      "ox": 304,
+      "oy": 354
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "SECTION.lang-section",
+      "ox": 304,
+      "oy": 58
+    }
+  ]
+}

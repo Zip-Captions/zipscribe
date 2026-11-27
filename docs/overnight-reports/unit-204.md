@@ -221,3 +221,23 @@ largest 0.85 MiB` · e2e/pwa chromium ✓ `36 passed (41.4s)`.
   - chip-on-model-failure **N/A** (app-level block, disclosed as such): same-origin model mirror `/.cache/models/**` blocked via page-level `window.fetch` wrapper → 26 blocked fetches, panel row surfaced the coded `NETWORK` failure (`s4-03-model-panel-network-code.png`), but the offline chip did not latch within the observation window; authoritative latch coverage = `use-online-status.adversarial.test.ts` (unit) + `offline.spec.ts` (e2e) per plan §5.5
 - owner residue: flip (f)/(a)/(b) after own-browser review; Chrome-visual install (real `beforeinstallprompt` + taskbar entry); DevTools-offline cross-check of S4 step 4
 - ASSUMPTIONS: dead-origin/driver-kill as network proxy; the fetch wrapper could not be restored in-document (original unretained) — next navigation restores, server stopped immediately after; scratch drivers under `.night/` (killed at exit: 4321/4323/4331 all free)
+
+## Owner sign-off verdicts — 2026-11-26 queue session (orchestrator-recorded)
+
+- **Queue row #1 (S1 true-offline)** — CLOSED. Owner verbatim: "Confirmed 1a." (DevTools
+  offline → reload → shell + project restore). Sub-check 1b (models-off notice via
+  `chrome://settings/language` toggle) recorded NOT-RUNNABLE-AS-WRITTEN: owner confirms the
+  setting does not exist in current Chrome — signoff-plan wording invalid. Code-path gating
+  stays unit-covered (`tests/unit/translate/languages-section.test.tsx`); picker live-states
+  (Ready/Download + button labels) agent-verified in-browser.
+- **Queue row #3 (S4 installability)** — CLOSED. Owner verbatim: "it loads correctly, and
+  displays the offline status correctly. This fully passes" (after one online launch of the
+  installed app, per the SW-activation-race remedy; matches agent dead-origin SW repro where
+  the shell served fully with the origin killed).
+- **Queue row #2 (flags (f)/(a)/(b))** — **CLOSED / RATIFIED.** Flag facts verified in code
+  (registerType prompt / injectRegister false / devOptions off + skipWaiting rationale;
+  asr.ts:23 cache-dir map; tsconfig.node.json:47 exclusion) and presented in plain English;
+  owner verbatim (2026-11-26): "ratify all 3". HITL flags (f)/(a)/(b) cleared.
+- Session defect findings recorded in ledger 2026-11-25T23:40Z+ (phantom cactus/sherpa models,
+  silent-media zero-feedback completion, stale-SW silent worker failure — asr.worker served
+  0.0 kB from stale precache; fix for affected sessions: unregister SW + hard reload).

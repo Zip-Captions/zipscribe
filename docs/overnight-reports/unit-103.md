@@ -172,3 +172,11 @@ done` — factual board correction their runs left behind; next-run
   unit-06 (not started), **105 BLOCKED** behind 104.
 - Owner checklist (CC-103.6): confirm the verbatim gate tails (report §
   Gates + round-3 reviewer reproduction); sign-off pending.
+
+## Gate-tail status — 2026-11-26 queue session (orchestrator-recorded)
+
+Battery independently re-run by orchestrator at develop@7819d70 (`.night/gate-battery-103.log`,
+`-103b.log`): lint/typecheck/prettier/build/check-bundle exit 0 (initial 168.8 KB gzip vs 350
+budget; precache 4.89/15 MiB) · chromium e2e 219 passed / 0 failed · verify:unit exit 0.
+`pnpm test` red ONLY on the two CI-only intent-anchor Tier-B tests (assert outside CI by
+design). CC-103.6 tick still requires the owner's explicit "confirmed" (checklist stands).

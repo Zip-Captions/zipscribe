@@ -1,0 +1,704 @@
+[
+  {
+    "story": "J-01",
+    "step": 1,
+    "name": "J01.1 clear starting point",
+    "expected": "new project / open project / choose file reachable without guessing",
+    "actual": "geometry issues: 0 clipped, 0 occluded, 4 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-26/J-01/step-01-j01-1-clear-starting-point.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 281
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 281
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 146
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-01",
+    "step": 2,
+    "name": "J01.2 Media tab → Choose file… → speech-2min.mp4",
+    "expected": "asset appears with duration/codec; Transcribe becomes available",
+    "actual": "geometry issues: 0 clipped, 0 occluded, 2 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-26/J-01/step-02-j01-2-media-tab-choose-file-speech-2min-mp4.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-01",
+    "step": 3,
+    "name": "J01.3a Transcribe popover: model list + documented label",
+    "expected": "popover lists models with honest availability; whisper-base (int8) pickable",
+    "actual": "geometry issues: 0 clipped, 1 occluded, 2 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-26/J-01/step-03-j01-3a-transcribe-popover-model-list-documented-label.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [
+        {
+          "blocked": "Delete speech-2min",
+          "by": "div.ws-popover-row"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-01",
+    "step": 4,
+    "name": "J01.3b pick whisper-base → Start → popup closes + progress visible",
+    "expected": "popup closes, visible progress state appears",
+    "actual": "Error: dialog still open 2 s after Start | {\"dialogOpen\":1,\"statusBefore\":\"Idle · no model · CPU · cache empty · models download on first use\\nsaved\",\"statusAfter\":\"Idle · transcribing · CPU · cache empty · models download on first use saved\",\"progressbars\":0}",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-26/J-01/step-04-j01-3b-pick-whisper-base-start-popup-closes-progress-visible.png",
+    "geometry": {
+      "clipped": [],
+      "occluded": [
+        {
+          "blocked": "Delete speech-2min",
+          "by": "div.ws-popover-row"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-media-card",
+          "ox": 304,
+          "oy": 136
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-project-list",
+          "ox": 304,
+          "oy": 98
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-01",
+    "step": 5,
+    "name": "J01.3c captions appear incrementally, completion announced",
+    "expected": "caption rows appear incrementally; completion announced",
+    "actual": "geometry issues: 12 clipped, 9 occluded, 3 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-26/J-01/step-05-j01-3c-captions-appear-incrementally-completion-announced.png",
+    "geometry": {
+      "clipped": [
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-row",
+          "overflowPx": 38,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-time",
+          "overflowPx": 22,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-text",
+          "overflowPx": 21,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-row",
+          "overflowPx": 78,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-time",
+          "overflowPx": 62,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-text",
+          "overflowPx": 61,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-row",
+          "overflowPx": 118,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-time",
+          "overflowPx": 102,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-text",
+          "overflowPx": 101,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-row",
+          "overflowPx": 158,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-time",
+          "overflowPx": 142,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-text",
+          "overflowPx": 141,
+          "text": "«11+ chars»"
+        }
+      ],
+      "occluded": [
+        {
+          "blocked": "Speaker options for Speaker 1",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Speaker options for Speaker 1",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Speaker options for Speaker 1",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "p.lang-empty"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-01",
+    "step": 6,
+    "name": "J01.4 rows readable: no overflow/overlap, no chip spam",
+    "expected": "rows fully readable, no overlap, no single-speaker chip spam",
+    "actual": "Error: 12/20 rows overflow (known #48); 20 identical speaker chips (known #52)",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-26/J-01/step-06-j01-4-rows-readable-no-overflow-overlap-no-chip-spam.png",
+    "geometry": {
+      "clipped": [
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-row",
+          "overflowPx": 38,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-time",
+          "overflowPx": 22,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-text",
+          "overflowPx": 21,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-row",
+          "overflowPx": 78,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-time",
+          "overflowPx": 62,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-text",
+          "overflowPx": 61,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-row",
+          "overflowPx": 118,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-time",
+          "overflowPx": 102,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-text",
+          "overflowPx": 101,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-row",
+          "overflowPx": 158,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-time",
+          "overflowPx": 142,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-text",
+          "overflowPx": 141,
+          "text": "«11+ chars»"
+        }
+      ],
+      "occluded": [
+        {
+          "blocked": "Speaker options for Speaker 1",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Speaker options for Speaker 1",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Speaker options for Speaker 1",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "p.lang-empty"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-01",
+    "step": 7,
+    "name": "J03.1 Issues panel quiet by default",
+    "expected": "quiet by default — raw ASR lint not a wall of issues",
+    "actual": "geometry issues: 12 clipped, 9 occluded, 3 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-26/J-01/step-07-j03-1-issues-panel-quiet-by-default.png",
+    "geometry": {
+      "clipped": [
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-row",
+          "overflowPx": 38,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-time",
+          "overflowPx": 22,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-text",
+          "overflowPx": 21,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-row",
+          "overflowPx": 78,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-time",
+          "overflowPx": 62,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-text",
+          "overflowPx": 61,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-row",
+          "overflowPx": 118,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-time",
+          "overflowPx": 102,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-text",
+          "overflowPx": 101,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-row",
+          "overflowPx": 158,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-time",
+          "overflowPx": 142,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-text",
+          "overflowPx": 141,
+          "text": "«11+ chars»"
+        }
+      ],
+      "occluded": [
+        {
+          "blocked": "Speaker options for Speaker 1",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Speaker options for Speaker 1",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Speaker options for Speaker 1",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "p.lang-empty"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-01",
+    "step": 8,
+    "name": "J04.1 Languages: Add language available",
+    "expected": "Add language available after transcription",
+    "actual": "Error: no Add language control; section text: Transcribe or set a source language to enable translation. (known #51)",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-26/J-01/step-08-j04-1-languages-add-language-available.png",
+    "geometry": {
+      "clipped": [
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-row",
+          "overflowPx": 38,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-time",
+          "overflowPx": 22,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-text",
+          "overflowPx": 21,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-row",
+          "overflowPx": 78,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-time",
+          "overflowPx": 62,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-text",
+          "overflowPx": 61,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-row",
+          "overflowPx": 118,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-time",
+          "overflowPx": 102,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-text",
+          "overflowPx": 101,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-row",
+          "overflowPx": 158,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-time",
+          "overflowPx": 142,
+          "text": "«11+ chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ws-segment-text",
+          "overflowPx": 141,
+          "text": "«11+ chars»"
+        }
+      ],
+      "occluded": [
+        {
+          "blocked": "Speaker options for Speaker 1",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Speaker options for Speaker 1",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Speaker options for Speaker 1",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "p.lang-empty"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  }
+]

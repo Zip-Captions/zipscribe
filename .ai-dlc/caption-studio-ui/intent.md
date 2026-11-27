@@ -1,5 +1,5 @@
 ---
-status: completed   # re-closed 2026-11-25: unit-109 (local-media intake picker) merged 1a1bfb1 (verify:unit 5/5); verify:intent caption-studio-ui exit 0 on develop (chain 2026-11-25, reports/criteria). Original closure: units 101–108, PR #21 → 058b4c8.
+status: in_progress   # REOPENED 2026-11-27 — independent UX sweep found user-facing breakage in "completed" scope: merge has NO UI (#55 blocker — shortcut listed, never bound; no pointer path), row overflow (#48), Subtitles-tab crush + QC flood + speaker-chip spam (#52), status-bar untruth (#60), persistence/new-project/bleed (#57/#58/#59). Remediation = MVP ladder M2/M3 (product.md § Roadmap addendum). Prior closure record retained. re-closed 2026-11-25: unit-109 (local-media intake picker) merged 1a1bfb1 (verify:unit 5/5); verify:intent caption-studio-ui exit 0 on develop (chain 2026-11-25, reports/criteria). Original closure: units 101–108, PR #21 → 058b4c8.
 workflow: default
 created: 2026-10-27
 announcements: [changelog, release-notes, blog-draft]

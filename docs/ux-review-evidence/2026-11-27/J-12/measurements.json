@@ -1,0 +1,758 @@
+{
+  "keymap": [
+    {
+      "name": "Play/pause",
+      "key": "Space",
+      "changed": [
+        "t",
+        "paused"
+      ],
+      "delta": {
+        "t": [
+          "17.27",
+          "17.68"
+        ],
+        "paused": [
+          "true",
+          "false"
+        ]
+      }
+    },
+    {
+      "name": "Play/pause back",
+      "key": "Space",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Seek +5s",
+      "key": "l",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "17.27",
+          "22.27"
+        ]
+      }
+    },
+    {
+      "name": "Seek -5s",
+      "key": "j",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "17.27",
+          "12.27"
+        ]
+      }
+    },
+    {
+      "name": "Seek +10s",
+      "key": "Shift+L",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "17.27",
+          "27.27"
+        ]
+      }
+    },
+    {
+      "name": "Seek -10s",
+      "key": "Shift+J",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "17.27",
+          "7.27"
+        ]
+      }
+    },
+    {
+      "name": "Frame +1",
+      "key": "ArrowRight",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "17.27",
+          "17.37"
+        ]
+      }
+    },
+    {
+      "name": "Frame -1",
+      "key": "ArrowLeft",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "17.27",
+          "17.17"
+        ]
+      }
+    },
+    {
+      "name": "+1 s",
+      "key": "Shift+ArrowRight",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "17.27",
+          "18.27"
+        ]
+      }
+    },
+    {
+      "name": "-1 s",
+      "key": "Shift+ArrowLeft",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "17.27",
+          "16.27"
+        ]
+      }
+    },
+    {
+      "name": "Go to end",
+      "key": "End",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "17.27",
+          "119.89"
+        ]
+      }
+    },
+    {
+      "name": "Go to start",
+      "key": "Home",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "17.27",
+          "0"
+        ]
+      }
+    },
+    {
+      "name": "Go to end ⌘→",
+      "key": "ControlOrMeta+ArrowRight",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "17.27",
+          "119.89"
+        ]
+      }
+    },
+    {
+      "name": "Go to start ⌘←",
+      "key": "ControlOrMeta+ArrowLeft",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "17.27",
+          "0"
+        ]
+      }
+    },
+    {
+      "name": "Loop Y",
+      "key": "y",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Loop Y back",
+      "key": "y",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Set in I",
+      "key": "i",
+      "changed": [
+        "loop"
+      ],
+      "delta": {
+        "loop": [
+          "false/ws-button ws-transport-button",
+          "true/ws-button ws-transport-button"
+        ]
+      }
+    },
+    {
+      "name": "Set out O",
+      "key": "o",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Clear in Shift+I",
+      "key": "Shift+I",
+      "changed": [
+        "loop"
+      ],
+      "delta": {
+        "loop": [
+          "true/ws-button ws-transport-button",
+          "false/ws-button ws-transport-button"
+        ]
+      }
+    },
+    {
+      "name": "Clear out Shift+O",
+      "key": "Shift+O",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Split S",
+      "key": "s",
+      "changed": [
+        "ids",
+        "save"
+      ],
+      "delta": {
+        "ids": [
+          "blk-1,blk-2,blk-3,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10",
+          "blk-1,blk-2,blk-3,blk_781f59be-b2ef-4484-8ed3-64ee5e329302,b"
+        ],
+        "save": [
+          "saved",
+          "unsaved changes"
+        ]
+      }
+    },
+    {
+      "name": "Undo split ⌘Z",
+      "key": "ControlOrMeta+z",
+      "changed": [
+        "ids"
+      ],
+      "delta": {
+        "ids": [
+          "blk-1,blk-2,blk-3,blk_781f59be-b2ef-4484-8ed3-64ee5e329302,b",
+          "blk-1,blk-2,blk-3,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10"
+        ]
+      }
+    },
+    {
+      "name": "Redo ⌘⇧Z",
+      "key": "ControlOrMeta+Shift+z",
+      "changed": [
+        "ids"
+      ],
+      "delta": {
+        "ids": [
+          "blk-1,blk-2,blk-3,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10",
+          "blk-1,blk-2,blk-3,blk_781f59be-b2ef-4484-8ed3-64ee5e329302,b"
+        ]
+      }
+    },
+    {
+      "name": "Undo again",
+      "key": "ControlOrMeta+z",
+      "changed": [
+        "ids"
+      ],
+      "delta": {
+        "ids": [
+          "blk-1,blk-2,blk-3,blk_781f59be-b2ef-4484-8ed3-64ee5e329302,b",
+          "blk-1,blk-2,blk-3,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10"
+        ]
+      }
+    },
+    {
+      "name": "Redo ⌘Y",
+      "key": "ControlOrMeta+y",
+      "changed": [
+        "ids"
+      ],
+      "delta": {
+        "ids": [
+          "blk-1,blk-2,blk-3,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10",
+          "blk-1,blk-2,blk-3,blk_781f59be-b2ef-4484-8ed3-64ee5e329302,b"
+        ]
+      }
+    },
+    {
+      "name": "Undo after ⌘Y",
+      "key": "ControlOrMeta+z",
+      "changed": [
+        "ids"
+      ],
+      "delta": {
+        "ids": [
+          "blk-1,blk-2,blk-3,blk_781f59be-b2ef-4484-8ed3-64ee5e329302,b",
+          "blk-1,blk-2,blk-3,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10"
+        ]
+      }
+    },
+    {
+      "name": "Merge ⌘⇧M",
+      "key": "ControlOrMeta+Shift+m",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Merge Ctrl+Shift+M",
+      "key": "Control+Shift+M",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Delete block",
+      "key": "Delete",
+      "changed": [
+        "ids",
+        "sel",
+        "focus"
+      ],
+      "delta": {
+        "ids": [
+          "blk-1,blk-2,blk-3,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10",
+          "blk-1,blk-2,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10,blk-1"
+        ],
+        "sel": [
+          "blk-3",
+          ""
+        ],
+        "focus": [
+          "DIV#transcript-row@panel-sidebar",
+          "BODY#@"
+        ]
+      }
+    },
+    {
+      "name": "Undo delete",
+      "key": "ControlOrMeta+z",
+      "changed": [
+        "ids",
+        "sel"
+      ],
+      "delta": {
+        "ids": [
+          "blk-1,blk-2,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10,blk-1",
+          "blk-1,blk-2,blk-3,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10"
+        ],
+        "sel": [
+          "",
+          "blk-3"
+        ]
+      }
+    },
+    {
+      "name": "Backspace block",
+      "key": "Backspace",
+      "changed": [
+        "ids",
+        "sel"
+      ],
+      "delta": {
+        "ids": [
+          "blk-1,blk-2,blk-3,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10",
+          "blk-1,blk-2,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10,blk-1"
+        ],
+        "sel": [
+          "blk-3",
+          ""
+        ]
+      }
+    },
+    {
+      "name": "Undo backspace",
+      "key": "ControlOrMeta+z",
+      "changed": [
+        "ids",
+        "sel"
+      ],
+      "delta": {
+        "ids": [
+          "blk-1,blk-2,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10,blk-1",
+          "blk-1,blk-2,blk-3,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10"
+        ],
+        "sel": [
+          "",
+          "blk-3"
+        ]
+      }
+    },
+    {
+      "name": "Delete+close gap",
+      "key": "Shift+Delete",
+      "changed": [
+        "ids",
+        "sel",
+        "focus"
+      ],
+      "delta": {
+        "ids": [
+          "blk-1,blk-2,blk-3,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10",
+          "blk-1,blk-2,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10,blk-1"
+        ],
+        "sel": [
+          "blk-3",
+          ""
+        ],
+        "focus": [
+          "DIV#transcript-row@panel-sidebar",
+          "BODY#@"
+        ]
+      }
+    },
+    {
+      "name": "Undo close gap",
+      "key": "ControlOrMeta+z",
+      "changed": [
+        "ids",
+        "sel"
+      ],
+      "delta": {
+        "ids": [
+          "blk-1,blk-2,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10,blk-1",
+          "blk-1,blk-2,blk-3,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10"
+        ],
+        "sel": [
+          "",
+          "blk-3"
+        ]
+      }
+    },
+    {
+      "name": "Find ⌘F",
+      "key": "ControlOrMeta+f",
+      "changed": [
+        "ids",
+        "focus",
+        "search"
+      ],
+      "delta": {
+        "ids": [
+          "blk-1,blk-2,blk-3,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10",
+          "blk-1,blk-2,blk-3,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10"
+        ],
+        "focus": [
+          "DIV#transcript-row@panel-sidebar",
+          "INPUT#transcript-search-input@panel-sidebar"
+        ],
+        "search": [
+          "false",
+          "true"
+        ]
+      }
+    },
+    {
+      "name": "Esc closes find",
+      "key": "Escape",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Next QC ⌘'",
+      "key": "ControlOrMeta+'",
+      "changed": [
+        "t",
+        "sel",
+        "save"
+      ],
+      "delta": {
+        "t": [
+          "17.27",
+          "4.32"
+        ],
+        "sel": [
+          "blk-3",
+          "blk-1"
+        ],
+        "save": [
+          "unsaved changes",
+          "saved"
+        ]
+      }
+    },
+    {
+      "name": "Prev QC ⌘⇧'",
+      "key": "ControlOrMeta+Shift+'",
+      "changed": [
+        "t",
+        "ids",
+        "sel"
+      ],
+      "delta": {
+        "t": [
+          "17.27",
+          "111.48"
+        ],
+        "ids": [
+          "blk-1,blk-2,blk-3,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10",
+          "blk-2,blk-3,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10,blk-1"
+        ],
+        "sel": [
+          "blk-3",
+          "blk-12"
+        ]
+      }
+    },
+    {
+      "name": "Zoom in ⌘=",
+      "key": "ControlOrMeta+=",
+      "changed": [
+        "tlCanvas"
+      ],
+      "delta": {
+        "tlCanvas": [
+          "23978x144",
+          "32000x144"
+        ]
+      }
+    },
+    {
+      "name": "Zoom out ⌘-",
+      "key": "ControlOrMeta+-",
+      "changed": [
+        "tlCanvas"
+      ],
+      "delta": {
+        "tlCanvas": [
+          "32000x144",
+          "23978x144"
+        ]
+      }
+    },
+    {
+      "name": "Zoom fit ⌘0",
+      "key": "ControlOrMeta+0",
+      "changed": [
+        "tlCanvas"
+      ],
+      "delta": {
+        "tlCanvas": [
+          "23978x144",
+          "1115x144"
+        ]
+      }
+    },
+    {
+      "name": "Caption visibility ⌘\\",
+      "key": "ControlOrMeta+\\",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Caption visibility back",
+      "key": "ControlOrMeta+\\",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Collapse sidebar Ctrl+Alt+2",
+      "key": "Control+Alt+2",
+      "changed": [
+        "ids",
+        "sel",
+        "focus",
+        "sidebar",
+        "timeline",
+        "tlCanvas",
+        "search"
+      ],
+      "delta": {
+        "ids": [
+          "blk-1,blk-2,blk-3,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10",
+          ""
+        ],
+        "sel": [
+          "blk-3",
+          ""
+        ],
+        "focus": [
+          "DIV#transcript-row@panel-sidebar",
+          "BODY#@"
+        ],
+        "sidebar": [
+          "321x826",
+          "null"
+        ],
+        "timeline": [
+          "1115x201",
+          "1440x201"
+        ],
+        "tlCanvas": [
+          "1115x144",
+          "1440x144"
+        ],
+        "search": [
+          "true",
+          "false"
+        ]
+      }
+    },
+    {
+      "name": "STATE LOST",
+      "key": "",
+      "changed": [
+        "ids"
+      ],
+      "delta": {}
+    }
+  ],
+  "overlay": {
+    "label": "Keyboard shortcuts",
+    "rows": 0,
+    "text": "TRANSPORT Play / pause Space Seek backward 5 s J Seek forward 5 s L Seek backward 10 s ⇧J Seek forward 10 s ⇧L Playhead back 1 frame ← Playhead forward 1 frame → Playhead back 1 s ⇧← Playhead forward 1 s ⇧→ Loop region on/off Y Set loop in from playhead I Set loop out from playhead O Go to start ⌘← ⌃← Home Go to end ⌘→ ⌃→ End Clear loop region ⇧I ⇧O EDIT Undo ⌘Z ⌃Z Redo ⌘⇧Z ⌃⇧Z ⌘Y ⌃Y TIMELINE Split caption block at playhead S Merge selected with next block ⌘⇧M Merge selected with next block (Ctrl) ⌃⇧M Trim block start to playhead Z← Z→ Trim block end to playhead C← C→ Timeline zoom in ⌘= ⌃= Timeline zoom out ⌘- ⌃- Timeline zoom fit ⌘0 ⌃0 Move block focus to next → Move block focus to previous ← Toggle block selection Enter Delete selected block Delete Backspace Delete selected block and close gap ⇧Delete TRANSCRIPT Find in transcript ⌘F ⌃F Next search match F3 ⌘G ⌃G Previous search match ⇧F3 ⌘⇧G ⌃⇧G Next QC issue ⌘' ⌃' Previous QC issue ⌘⇧' ⌃⇧' Select all blocks ⌘A ⌃A Deselect Escape VIEW Focus sidebar ⌥1 Focus stage ⌥2 Focus timeline ⌥3 Collapse sidebar ⌃⌥2 Collapse timeline ⌃⌥3 Save snapshot ⌘S ⌃S Toggle caption visibility ⌘\\ ⌃\\ Shortcuts overlay ⌘/ ⌃/ Cycle transcript view ⌘⇧L ⌃⇧L",
+    "closedByEsc": true
+  },
+  "tab": {
+    "stops": 90,
+    "distinct": 17,
+    "noRing": [
+      "Zipscribe0.0.0+7819d70CPU⋯Tran"
+    ],
+    "offscreen": [],
+    "unreachable": [],
+    "order": [
+      "project-name",
+      "⋯",
+      "transcribe-button",
+      "export-button",
+      "transport-skip-back",
+      "transport-play-pause",
+      "transport-skip-forward",
+      "transport-loop-toggle",
+      "transport-loop-in",
+      "transport-loop-out",
+      "transport-rate",
+      "resize-handle-timeline",
+      "timeline-root",
+      "timeline-snap-toggle",
+      "timeline-input-start",
+      "timeline-input-end",
+      "Zipscribe0.0.0+7819d70CPU⋯Tran",
+      "project-name",
+      "⋯",
+      "transcribe-button",
+      "export-button",
+      "transport-skip-back",
+      "transport-play-pause",
+      "transport-skip-forward",
+      "transport-loop-toggle",
+      "transport-loop-in",
+      "transport-loop-out",
+      "transport-rate",
+      "resize-handle-timeline",
+      "timeline-root",
+      "timeline-snap-toggle",
+      "timeline-input-start",
+      "timeline-input-end",
+      "Zipscribe0.0.0+7819d70CPU⋯Tran",
+      "project-name",
+      "⋯",
+      "transcribe-button",
+      "export-button",
+      "transport-skip-back",
+      "transport-play-pause",
+      "transport-skip-forward",
+      "transport-loop-toggle",
+      "transport-loop-in",
+      "transport-loop-out",
+      "transport-rate",
+      "resize-handle-timeline",
+      "timeline-root",
+      "timeline-snap-toggle",
+      "timeline-input-start",
+      "timeline-input-end",
+      "Zipscribe0.0.0+7819d70CPU⋯Tran",
+      "project-name",
+      "⋯",
+      "transcribe-button",
+      "export-button",
+      "transport-skip-back",
+      "transport-play-pause",
+      "transport-skip-forward",
+      "transport-loop-toggle",
+      "transport-loop-in",
+      "transport-loop-out",
+      "transport-rate",
+      "resize-handle-timeline",
+      "timeline-root",
+      "timeline-snap-toggle",
+      "timeline-input-start",
+      "timeline-input-end",
+      "Zipscribe0.0.0+7819d70CPU⋯Tran",
+      "project-name",
+      "⋯",
+      "transcribe-button",
+      "export-button",
+      "transport-skip-back",
+      "transport-play-pause",
+      "transport-skip-forward",
+      "transport-loop-toggle",
+      "transport-loop-in",
+      "transport-loop-out",
+      "transport-rate",
+      "resize-handle-timeline",
+      "timeline-root",
+      "timeline-snap-toggle",
+      "timeline-input-start",
+      "timeline-input-end",
+      "Zipscribe0.0.0+7819d70CPU⋯Tran",
+      "project-name",
+      "⋯",
+      "transcribe-button",
+      "export-button",
+      "transport-skip-back"
+    ]
+  },
+  "live": [
+    {
+      "tid": "timeline-live",
+      "role": "",
+      "live": "polite",
+      "inTranscript": false
+    },
+    {
+      "tid": "status-bar",
+      "role": "status",
+      "live": "polite",
+      "inTranscript": false
+    },
+    {
+      "tid": "save-state",
+      "role": "",
+      "live": "polite",
+      "inTranscript": false
+    }
+  ],
+  "unnamed": [
+    {
+      "tid": "",
+      "name": "⋯"
+    }
+  ],
+  "longTasksMain": []
+}

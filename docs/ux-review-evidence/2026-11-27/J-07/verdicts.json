@@ -1,0 +1,485 @@
+[
+  {
+    "story": "J-07",
+    "step": 1,
+    "name": "J07.0 prereq: project A = speech-2min.mp4 + en-clean-ref.srt, one edit, select row 5",
+    "expected": "project with edit + selection",
+    "actual": "geometry issues: 3 clipped, 15 occluded, 3 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-07/step-01-j07-0-prereq-project-a-speech-2min-mp4-en-clean-ref-srt-one-edit-select-row-5.png",
+    "geometry": {
+      "clipped": [
+        {
+          "tag": "span",
+          "cls": "tl-timecode-label",
+          "overflowPx": 18,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 17,
+          "text": "«42 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 15,
+          "text": "«7 chars»"
+        }
+      ],
+      "occluded": [
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.389 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.432 s",
+          "by": "div.ts-row ts-row-selected"
+        },
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "footer.ws-status"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "button.ts-issue-item"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "button.ts-issue-item"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "button.ts-issue-item"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "button.ts-issue-item"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-07",
+    "step": 2,
+    "name": "J07.1 ⌘S → reload → project restored (edit, selection, playhead, scroll)",
+    "expected": "project restored with transcript, edits, selection/playhead context",
+    "actual": "Error: reload lands on empty workbench; needed \"Open\" from list; playhead not restored (00:47.3 → null); media not re-attached (no stage video) | before={\"name\":\"speech-2min\",\"rows\":12,\"selected\":[\"blk-6\"],\"playhead\":\"00:47.3\",\"scrollTop\":60,\"edit\":1} after={\"name\":\"speech-2min\",\"rows\":12,\"selected\"",
+    "verdict": "fail",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-07/step-02-j07-1-s-reload-project-restored-edit-selection-playhead-scroll-.png",
+    "geometry": {
+      "clipped": [
+        {
+          "tag": "span",
+          "cls": "tl-timecode-label",
+          "overflowPx": 18,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 17,
+          "text": "«42 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 15,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 19,
+          "text": "«30 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 17,
+          "text": "«3 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 77,
+          "text": "«42 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 18,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 37,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 56,
+          "text": "«6 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 75,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 40,
+          "text": "«28 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«3 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«1 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 38,
+          "text": "«6 chars»"
+        }
+      ],
+      "occluded": [
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.389 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.432 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "div.ts-row ts-row-selected"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "footer.ws-status"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "p.lang-empty"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  },
+  {
+    "story": "J-07",
+    "step": 3,
+    "name": "J07.2 second project, then back — no cross-project bleed",
+    "expected": "no cross-project bleed",
+    "actual": "geometry issues: 15 clipped, 15 occluded, 3 overlaps",
+    "verdict": "pass",
+    "evidence": "docs/ux-review-evidence/2026-11-27/J-07/step-03-j07-2-second-project-then-back-no-cross-project-bleed.png",
+    "geometry": {
+      "clipped": [
+        {
+          "tag": "span",
+          "cls": "tl-timecode-label",
+          "overflowPx": 18,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 17,
+          "text": "«42 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 15,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 19,
+          "text": "«30 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 17,
+          "text": "«3 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 77,
+          "text": "«42 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 18,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 37,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 56,
+          "text": "«6 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 75,
+          "text": "«7 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-text",
+          "overflowPx": 40,
+          "text": "«28 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«3 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«1 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 19,
+          "text": "«5 chars»"
+        },
+        {
+          "tag": "off-viewport",
+          "cls": "ts-word ts-word-estimated",
+          "overflowPx": 38,
+          "text": "«6 chars»"
+        }
+      ],
+      "occluded": [
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.389 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.432 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Shown too long — 8.421 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "div.ts-row ts-row-selected"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "div.ts-row"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Gap too small — 0.185 s",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "p.lang-empty"
+        },
+        {
+          "blocked": "Gap too small — 0.142 s",
+          "by": "footer.ws-status"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block and close the gap",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Delete block (leave the gap)",
+          "by": "section.lang-section"
+        },
+        {
+          "blocked": "Speaker options for Unknown",
+          "by": "p.lang-empty"
+        }
+      ],
+      "panelOverlaps": [
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ws-transcript",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "DIV.ts-panel",
+          "ox": 304,
+          "oy": 354
+        },
+        {
+          "a": "SECTION.ws-sidebar",
+          "b": "SECTION.lang-section",
+          "ox": 304,
+          "oy": 58
+        }
+      ]
+    }
+  }
+]

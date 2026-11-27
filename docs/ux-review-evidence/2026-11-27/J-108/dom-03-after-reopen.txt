@@ -1,0 +1,34 @@
+div |  | "Zipscribe0.0.0+7819d70CPU⋯TranscribeExportSubtitlesMediaStyleShift / stretch tim" | workbench-shell |  | 0,0 1440x900
+header | banner | "Zipscribe0.0.0+7819d70CPU⋯TranscribeExport" |  |  | 0,0 1440x45
+span |  | "0.0.0+7819d70" | build-info |  | 88,15 84x14
+input |  | "Project name" | project-name | type=text val=speech-2min | 188,7 166x30
+span |  | "CPU" | tier-chip |  | 362,11 74x22
+button |  | "⋯" |  | exp=false | 444,9 33x27
+button |  | "Transcribe" | transcribe-button |  | 485,8 92x28
+button |  | "Export" | export-button | DISABLED | 585,8 66x28
+section | region | "Sidebar" | panel-sidebar |  | 0,45 321x826
+div | tablist | "Sidebar panels" |  |  | 0,45 320x45
+button | tab | "Subtitles" | tab-subtitles | selected | 8,53 69x28
+button | tab | "Media" | tab-media |  | 81,53 54x28
+button | tab | "Style" | tab-style |  | 139,53 47x28
+div | tabpanel | "Shift / stretch timing…Align to audioTranscribe or set a source language to enab" |  |  | 0,90 320x781
+div | list | "«20 chars»" |  |  | 8,98 304x354
+div |  | "Shift / stretch timing…Align to audio" | transcript-panel |  | 8,452 304x354
+button |  | "Shift / stretch timing…" | transcript-retime-tool | DISABLED | 72,456 135x20
+button |  | "Align to audio" | transcript-align-audio | DISABLED | 213,456 91x20
+div |  | "" | transcript-qc-live | live=polite | 8,452 1x1
+div | list | "«10 chars»" | transcript-root |  | 8,480 304x326
+p |  | "Transcribe or set a source language to enable translation." |  |  | 8,818 304x32
+div | separator | "Resize sidebar" | resize-handle-sidebar |  | 321,45 4x826
+section | region | "Preview stage" | panel-stage |  | 325,45 1115x621
+div |  | "" | preview-canvas-layer |  | 325,45 1115x621
+div | separator | "Resize timeline" | resize-handle-timeline |  | 325,666 1115x4
+section | region | "«8 chars»" | panel-timeline |  | 325,670 1115x201
+div | region | "«8 chars»" | timeline-root |  | 325,671 1115x186
+canvas |  | "«0 chars»" | timeline-canvas |  | 325,671 23978x144
+button |  | "Snap" | timeline-snap-toggle |  | 325,815 47x21
+label |  | "Start" |  |  | 325,838 182x16
+input |  | "" | timeline-input-start | DISABLED type=text val=00:00.0 | 354,836 153x21
+label |  | "End" |  |  | 507,838 176x16
+input |  | "" | timeline-input-end | DISABLED type=text val=00:00.0 | 531,836 153x21
+footer | status | "Idle · no model · CPU · cache partial 1/5 · model downloads on first use" | status-bar | live=polite | 0,871 1440x29

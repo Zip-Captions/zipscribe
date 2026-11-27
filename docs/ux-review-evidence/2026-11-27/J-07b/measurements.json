@@ -1,0 +1,106 @@
+{
+  "retimeDialog": {
+    "name": "Shift / stretch timing",
+    "controls": [
+      "button:button:Offset:retime-mode-offset:",
+      "button:button:Two-point sync:retime-mode-two-point:",
+      "input:number:Offset in seconds:retime-offset:",
+      "button:button:Cancel:retime-cancel:",
+      "button:button:Apply:retime-apply:"
+    ]
+  },
+  "retime": {
+    "before": [
+      "00:00.1",
+      "00:08.7",
+      "00:17.3"
+    ],
+    "after": [
+      "00:01.1",
+      "00:09.7",
+      "00:18.3"
+    ],
+    "undone": [
+      "00:00.1",
+      "00:08.7",
+      "00:17.3"
+    ],
+    "dialogOpen": 0
+  },
+  "align": {
+    "before": {
+      "estimated": 72
+    },
+    "confirms": [],
+    "samples": [
+      {
+        "t": 1,
+        "kinds": {
+          "estimated": 72
+        },
+        "status": "Idle · no model · CPU · cache empty · models download on first use ENGINE_INTERNAL unsaved changes",
+        "alerts": []
+      },
+      {
+        "t": 3,
+        "kinds": {
+          "estimated": 72
+        },
+        "status": "Idle · no model · CPU · cache empty · models download on first use ENGINE_INTERNAL saved",
+        "alerts": []
+      }
+    ],
+    "after": {
+      "estimated": 72
+    }
+  },
+  "burnin": [
+    {
+      "t": 0,
+      "calls": 0,
+      "files": {},
+      "progress": [],
+      "hits": [
+        "Export"
+      ],
+      "dialog": false,
+      "status": "Idle · no model · CPU · cache empty · models download on first use ENGINE_INTERNAL saved"
+    }
+  ],
+  "newProj": {
+    "header": "speech-2min",
+    "choose": 0,
+    "dropZone": 0,
+    "list": [
+      "Untitled projectOpenDuplicateDelete",
+      "speech-2minOpenDuplicateDelete"
+    ]
+  },
+  "afterAudio": {
+    "header": "speech-2min",
+    "card": "speech-2min.m4a",
+    "list": [
+      "Untitled projectOpenDuplicateDelete",
+      "speech-2minOpenDuplicateDelete"
+    ]
+  },
+  "backToA": {
+    "header": "speech-2min",
+    "card": "speech-2min.mp4 Duration 01:59.9 Container video/mp4; codecs=\"avc1.42c00b, mp4a.40.2\" Audio aac Video avc Resolution 320×180 · 10 fps",
+    "video": {
+      "w": 0,
+      "h": 0,
+      "d": 119.9
+    }
+  },
+  "audioProject": {
+    "header": "Untitled project",
+    "card": "Duration 00:00.0 Container Audio — Sample rate — Channels —",
+    "exportEnabled": true,
+    "exportText": "Export × CAPTIONS FILE SRT VTT JSON TSV Track Source Speaker labels None VTT voice tags [Name]: prefix Save SRTExport all languages snapshot v1795742866823",
+    "burnin": {
+      "start": 0,
+      "disabled": null
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "card": "speech-2min.m4a Duration 01:59.9 Container audio/mp4; codecs=\"mp4a.40.2\" Audio aac Sample rate — Channels —",
+  "stage": {
+    "visualizer": 1,
+    "transport": 1
+  },
+  "export": {
+    "text": "Export × CAPTIONS FILE SRT VTT JSON TSV Track Source Speaker labels None VTT voice tags [Name]: prefix Save SRTExport all languages snapshot v1795742933259",
+    "burnin": 0
+  },
+  "play": {
+    "t0": 0,
+    "t1": 0,
+    "paused": true,
+    "visualizerHash": 23334
+  }
+}

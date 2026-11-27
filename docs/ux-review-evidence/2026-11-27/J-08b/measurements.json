@@ -1,0 +1,29 @@
+{
+  "baseDownload": [
+    {
+      "s": 0,
+      "row": "whisper-base_timestamped@608c49e6 210.6 MB Downloading… ",
+      "bars": []
+    }
+  ],
+  "statusAfter": "Idle · no model · CPU · cache empty · models download on first use\nsaved",
+  "storage": "Estimated device storage: 38.2 MB of 10.8 GB",
+  "offlineBase": {
+    "confirms": [],
+    "samples": [
+      {
+        "t": 1,
+        "status": "Idle · no model · CPU · cache partial 1/5 · model downloads on first use NETWORK saved",
+        "rows": 0,
+        "alerts": []
+      },
+      {
+        "t": 1,
+        "status": "Idle · no model · CPU · cache partial 1/5 · model downloads on first use NETWORK saved",
+        "rows": 0,
+        "alerts": []
+      }
+    ],
+    "rows": 0
+  }
+}

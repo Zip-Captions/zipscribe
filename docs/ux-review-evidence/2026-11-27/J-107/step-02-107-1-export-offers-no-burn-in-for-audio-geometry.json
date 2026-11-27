@@ -1,0 +1,176 @@
+{
+  "clipped": [
+    {
+      "tag": "off-viewport",
+      "cls": "ts-text",
+      "overflowPx": 17,
+      "text": "«42 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 15,
+      "text": "«7 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-text",
+      "overflowPx": 19,
+      "text": "«30 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 17,
+      "text": "«3 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-text",
+      "overflowPx": 77,
+      "text": "«42 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 18,
+      "text": "«7 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 37,
+      "text": "«5 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 56,
+      "text": "«6 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 75,
+      "text": "«7 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-text",
+      "overflowPx": 40,
+      "text": "«28 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 19,
+      "text": "«3 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 19,
+      "text": "«1 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 19,
+      "text": "«5 chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ts-word ts-word-estimated",
+      "overflowPx": 38,
+      "text": "«6 chars»"
+    }
+  ],
+  "occluded": [
+    {
+      "blocked": "Project name",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "⋯",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Transcribe",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Export",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Subtitles",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Media",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Style",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Issues (12)",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Shift / stretch timing…",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Align to audio",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Shown too long — 8.389 s",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Shown too long — 8.432 s",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Shown too long — 8.421 s",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Shown too long — 8.389 s",
+      "by": "div.zip-export-backdrop"
+    },
+    {
+      "blocked": "Shown too long — 8.432 s",
+      "by": "div.zip-export-backdrop"
+    }
+  ],
+  "panelOverlaps": [
+    {
+      "a": "SECTION.zip-export-section",
+      "b": "SECTION.ws-stage",
+      "ox": 560,
+      "oy": 182
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ws-transcript",
+      "ox": 304,
+      "oy": 354
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ts-panel",
+      "ox": 304,
+      "oy": 354
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "SECTION.lang-section",
+      "ox": 304,
+      "oy": 58
+    }
+  ]
+}

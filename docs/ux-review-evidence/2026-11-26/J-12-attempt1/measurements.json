@@ -1,0 +1,696 @@
+{
+  "keymap": [
+    {
+      "name": "Play/pause",
+      "key": "Space",
+      "changed": [
+        "t",
+        "paused"
+      ],
+      "delta": {
+        "t": [
+          "0",
+          "0.41"
+        ],
+        "paused": [
+          "true",
+          "false"
+        ]
+      }
+    },
+    {
+      "name": "Seek +5s",
+      "key": "l",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "0.45",
+          "5.6"
+        ]
+      }
+    },
+    {
+      "name": "Seek -5s",
+      "key": "j",
+      "changed": [
+        "t",
+        "save"
+      ],
+      "delta": {
+        "t": [
+          "5.6",
+          "1.23"
+        ],
+        "save": [
+          "unsaved changes",
+          "saving…"
+        ]
+      }
+    },
+    {
+      "name": "Seek +10s",
+      "key": "Shift+L",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "1.23",
+          "11.86"
+        ]
+      }
+    },
+    {
+      "name": "Frame +1",
+      "key": "ArrowRight",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "11.86",
+          "12.6"
+        ]
+      }
+    },
+    {
+      "name": "Frame -1",
+      "key": "ArrowLeft",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "12.6",
+          "13.13"
+        ]
+      }
+    },
+    {
+      "name": "+1 s",
+      "key": "Shift+ArrowRight",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "13.13",
+          "14.76"
+        ]
+      }
+    },
+    {
+      "name": "-1 s",
+      "key": "Shift+ArrowLeft",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "14.76",
+          "14.4"
+        ]
+      }
+    },
+    {
+      "name": "Go to end",
+      "key": "End",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "14.4",
+          "119.89"
+        ]
+      }
+    },
+    {
+      "name": "Go to start",
+      "key": "Home",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "119.89",
+          "0"
+        ]
+      }
+    },
+    {
+      "name": "Go to end ⌘→",
+      "key": "ControlOrMeta+ArrowRight",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "0",
+          "119.89"
+        ]
+      }
+    },
+    {
+      "name": "Go to start ⌘←",
+      "key": "ControlOrMeta+ArrowLeft",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "119.89",
+          "0"
+        ]
+      }
+    },
+    {
+      "name": "Loop Y",
+      "key": "y",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Set in I",
+      "key": "i",
+      "changed": [
+        "loop"
+      ],
+      "delta": {
+        "loop": [
+          "false/ws-button ws-transport-button",
+          "true/ws-button ws-transport-button"
+        ]
+      }
+    },
+    {
+      "name": "Set out O",
+      "key": "o",
+      "changed": [
+        "t"
+      ],
+      "delta": {
+        "t": [
+          "0",
+          "1.27"
+        ]
+      }
+    },
+    {
+      "name": "Clear in Shift+I",
+      "key": "Shift+I",
+      "changed": [
+        "loop"
+      ],
+      "delta": {
+        "loop": [
+          "true/ws-button ws-transport-button",
+          "false/ws-button ws-transport-button"
+        ]
+      }
+    },
+    {
+      "name": "Merge ⌘⇧M (m)",
+      "key": "ControlOrMeta+Shift+m",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Merge ⌘⇧M (M)",
+      "key": "ControlOrMeta+Shift+M",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Merge Ctrl+Shift+M",
+      "key": "Control+Shift+M",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Delete block",
+      "key": "Delete",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Undo",
+      "key": "ControlOrMeta+z",
+      "changed": [
+        "ids",
+        "focus",
+        "save"
+      ],
+      "delta": {
+        "ids": [
+          "blk-1,blk-2,blk-3,blk-4,blk-5,blk-6,blk-7,blk-8,blk-9,blk-10",
+          ""
+        ],
+        "focus": [
+          "BUTTON#transcript-row-chip@panel-sidebar",
+          "BODY#@"
+        ],
+        "save": [
+          "saved",
+          "unsaved changes"
+        ]
+      }
+    },
+    {
+      "name": "Delete+close gap",
+      "key": "Shift+Delete",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Undo 2",
+      "key": "ControlOrMeta+z",
+      "changed": [
+        "t",
+        "paused",
+        "rate",
+        "loop",
+        "loopIn",
+        "loopOut",
+        "tlCanvas",
+        "captionCanvas"
+      ],
+      "delta": {
+        "t": [
+          "1.27",
+          "null"
+        ],
+        "paused": [
+          "true",
+          "null"
+        ],
+        "rate": [
+          "1",
+          "null"
+        ],
+        "loop": [
+          "false/ws-button ws-transport-button",
+          "undefined/undefined"
+        ],
+        "loopIn": [
+          "ws-button ws-transport-button",
+          "undefined"
+        ],
+        "loopOut": [
+          "ws-button ws-transport-button",
+          "undefined"
+        ],
+        "tlCanvas": [
+          "23978x144",
+          "null"
+        ],
+        "captionCanvas": [
+          "visibleblock1",
+          "null"
+        ]
+      }
+    },
+    {
+      "name": "Redo ⌘Y",
+      "key": "ControlOrMeta+y",
+      "changed": [
+        "t",
+        "paused",
+        "rate",
+        "loop",
+        "loopIn",
+        "loopOut",
+        "tlCanvas",
+        "captionCanvas"
+      ],
+      "delta": {
+        "t": [
+          "null",
+          "0"
+        ],
+        "paused": [
+          "null",
+          "true"
+        ],
+        "rate": [
+          "null",
+          "1"
+        ],
+        "loop": [
+          "undefined/undefined",
+          "false/ws-button ws-transport-button"
+        ],
+        "loopIn": [
+          "undefined",
+          "ws-button ws-transport-button"
+        ],
+        "loopOut": [
+          "undefined",
+          "ws-button ws-transport-button"
+        ],
+        "tlCanvas": [
+          "null",
+          "23978x144"
+        ],
+        "captionCanvas": [
+          "null",
+          "visibleblock1"
+        ]
+      }
+    },
+    {
+      "name": "Undo 3",
+      "key": "ControlOrMeta+z",
+      "changed": [
+        "t",
+        "paused",
+        "rate",
+        "loop",
+        "loopIn",
+        "loopOut",
+        "tlCanvas",
+        "captionCanvas"
+      ],
+      "delta": {
+        "t": [
+          "0",
+          "null"
+        ],
+        "paused": [
+          "true",
+          "null"
+        ],
+        "rate": [
+          "1",
+          "null"
+        ],
+        "loop": [
+          "false/ws-button ws-transport-button",
+          "undefined/undefined"
+        ],
+        "loopIn": [
+          "ws-button ws-transport-button",
+          "undefined"
+        ],
+        "loopOut": [
+          "ws-button ws-transport-button",
+          "undefined"
+        ],
+        "tlCanvas": [
+          "23978x144",
+          "null"
+        ],
+        "captionCanvas": [
+          "visibleblock1",
+          "null"
+        ]
+      }
+    },
+    {
+      "name": "Find ⌘F",
+      "key": "ControlOrMeta+f",
+      "changed": [
+        "focus",
+        "search"
+      ],
+      "delta": {
+        "focus": [
+          "BODY#@",
+          "INPUT#transcript-search-input@panel-sidebar"
+        ],
+        "search": [
+          "false",
+          "true"
+        ]
+      }
+    },
+    {
+      "name": "Esc",
+      "key": "Escape",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Next QC ⌘'",
+      "key": "ControlOrMeta+'",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Zoom in ⌘=",
+      "key": "ControlOrMeta+=",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Zoom out ⌘-",
+      "key": "ControlOrMeta+-",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Zoom fit ⌘0",
+      "key": "ControlOrMeta+0",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Caption visibility ⌘\\",
+      "key": "ControlOrMeta+\\",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Caption visibility back",
+      "key": "ControlOrMeta+\\",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Collapse sidebar Ctrl+Alt+2",
+      "key": "Control+Alt+2",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Restore sidebar",
+      "key": "Control+Alt+2",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Collapse timeline Ctrl+Alt+3",
+      "key": "Control+Alt+3",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Restore timeline",
+      "key": "Control+Alt+3",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Focus stage Alt+2",
+      "key": "Alt+2",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Focus timeline Alt+3",
+      "key": "Alt+3",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Focus sidebar Alt+1",
+      "key": "Alt+1",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Cycle view ⌘⇧L",
+      "key": "ControlOrMeta+Shift+L",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Select all ⌘A",
+      "key": "ControlOrMeta+a",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Deselect Esc",
+      "key": "Escape",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Save ⌘S",
+      "key": "ControlOrMeta+s",
+      "changed": [],
+      "delta": {}
+    },
+    {
+      "name": "Overlay ⌘/",
+      "key": "ControlOrMeta+/",
+      "changed": [
+        "dialogs",
+        "focus"
+      ],
+      "delta": {
+        "dialogs": [
+          "",
+          "Keyboard shortcuts"
+        ],
+        "focus": [
+          "INPUT#transcript-search-input@panel-sidebar",
+          "INPUT#shortcuts-filter@"
+        ]
+      }
+    }
+  ],
+  "overlay": {
+    "label": "Keyboard shortcuts",
+    "rows": 0,
+    "text": "TRANSPORT Play / pause Space Seek backward 5 s J Seek forward 5 s L Seek backward 10 s ⇧J Seek forward 10 s ⇧L Playhead back 1 frame ← Playhead forward 1 frame → Playhead back 1 s ⇧← Playhead forward 1 s ⇧→ Loop region on/off Y Set loop in from playhead I Set loop out from playhead O Go to start ⌘← ⌃← Home Go to end ⌘→ ⌃→ End Clear loop region ⇧I ⇧O EDIT Undo ⌘Z ⌃Z Redo ⌘⇧Z ⌃⇧Z ⌘Y ⌃Y TIMELINE Split caption block at playhead S Merge selected with next block ⌘⇧M Merge selected with next block (Ctrl) ⌃⇧M Trim block start to playhead Z← Z→ Trim block end to playhead C← C→ Timeline zoom in ⌘= ⌃= Timeline zoom out ⌘- ⌃- Timeline zoom fit ⌘0 ⌃0 Move block focus to next → Move block focus to previous ← Toggle block selection Enter Delete selected block Delete Backspace Delete selected block and close gap ⇧Delete TRANSCRIPT Find in transcript ⌘F ⌃F Next search match F3 ⌘G ⌃G Previous search match ⇧F3 ⌘⇧G ⌃⇧G Next QC issue ⌘' ⌃' Previous QC issue ⌘⇧' ⌃⇧' Select all blocks ⌘A ⌃A Deselect Escape VIEW Focus sidebar ⌥1 Focus stage ⌥2 Focus timeline ⌥3 Collapse sidebar ⌃⌥2 Collapse timeline ⌃⌥3 Save snapshot ⌘S ⌃S Toggle caption visibility ⌘\\ ⌃\\ Shortcuts overlay ⌘/ ⌃/ Cycle transcript view ⌘⇧L ⌃⇧L",
+    "closedByEsc": true
+  },
+  "tab": {
+    "stops": 90,
+    "distinct": 19,
+    "noRing": [
+      "Zipscribe0.0.0+7819d70CPU⋯Tran"
+    ],
+    "offscreen": [],
+    "unreachable": [],
+    "order": [
+      "⋯",
+      "tab-subtitles",
+      "tab-media",
+      "tab-style",
+      "transcript-search-input",
+      "transcript-search-case",
+      "transcript-search-word",
+      "transcript-search-replace-input",
+      "transcript-replace-all",
+      "transcript-search-close",
+      "project-open-proj_853621e0-25da-4ebc-b1be-324e01ec0f5f",
+      "project-duplicate-proj_853621e0-25da-4ebc-b1be-324e01ec0f5f",
+      "project-delete-proj_853621e0-25da-4ebc-b1be-324e01ec0f5f",
+      "new-project-button",
+      "resize-handle-sidebar",
+      "Choose file…",
+      "sample-clip-button",
+      "resize-handle-timeline",
+      "Zipscribe0.0.0+7819d70CPU⋯Tran",
+      "⋯",
+      "tab-subtitles",
+      "tab-media",
+      "tab-style",
+      "transcript-search-input",
+      "transcript-search-case",
+      "transcript-search-word",
+      "transcript-search-replace-input",
+      "transcript-replace-all",
+      "transcript-search-close",
+      "project-open-proj_853621e0-25da-4ebc-b1be-324e01ec0f5f",
+      "project-duplicate-proj_853621e0-25da-4ebc-b1be-324e01ec0f5f",
+      "project-delete-proj_853621e0-25da-4ebc-b1be-324e01ec0f5f",
+      "new-project-button",
+      "resize-handle-sidebar",
+      "Choose file…",
+      "sample-clip-button",
+      "resize-handle-timeline",
+      "Zipscribe0.0.0+7819d70CPU⋯Tran",
+      "⋯",
+      "tab-subtitles",
+      "tab-media",
+      "tab-style",
+      "transcript-search-input",
+      "transcript-search-case",
+      "transcript-search-word",
+      "transcript-search-replace-input",
+      "transcript-replace-all",
+      "transcript-search-close",
+      "project-open-proj_853621e0-25da-4ebc-b1be-324e01ec0f5f",
+      "project-duplicate-proj_853621e0-25da-4ebc-b1be-324e01ec0f5f",
+      "project-delete-proj_853621e0-25da-4ebc-b1be-324e01ec0f5f",
+      "new-project-button",
+      "resize-handle-sidebar",
+      "Choose file…",
+      "sample-clip-button",
+      "resize-handle-timeline",
+      "Zipscribe0.0.0+7819d70CPU⋯Tran",
+      "⋯",
+      "tab-subtitles",
+      "tab-media",
+      "tab-style",
+      "transcript-search-input",
+      "transcript-search-case",
+      "transcript-search-word",
+      "transcript-search-replace-input",
+      "transcript-replace-all",
+      "transcript-search-close",
+      "project-open-proj_853621e0-25da-4ebc-b1be-324e01ec0f5f",
+      "project-duplicate-proj_853621e0-25da-4ebc-b1be-324e01ec0f5f",
+      "project-delete-proj_853621e0-25da-4ebc-b1be-324e01ec0f5f",
+      "new-project-button",
+      "resize-handle-sidebar",
+      "Choose file…",
+      "sample-clip-button",
+      "resize-handle-timeline",
+      "Zipscribe0.0.0+7819d70CPU⋯Tran",
+      "⋯",
+      "tab-subtitles",
+      "tab-media",
+      "tab-style",
+      "transcript-search-input",
+      "transcript-search-case",
+      "transcript-search-word",
+      "transcript-search-replace-input",
+      "transcript-replace-all",
+      "transcript-search-close",
+      "project-open-proj_853621e0-25da-4ebc-b1be-324e01ec0f5f",
+      "project-duplicate-proj_853621e0-25da-4ebc-b1be-324e01ec0f5f",
+      "project-delete-proj_853621e0-25da-4ebc-b1be-324e01ec0f5f",
+      "new-project-button"
+    ]
+  },
+  "live": [
+    {
+      "tid": "transcript-qc-live",
+      "role": "",
+      "live": "polite",
+      "inTranscript": false
+    },
+    {
+      "tid": "status-bar",
+      "role": "status",
+      "live": "polite",
+      "inTranscript": false
+    },
+    {
+      "tid": "save-state",
+      "role": "",
+      "live": "polite",
+      "inTranscript": false
+    }
+  ],
+  "unnamed": [
+    {
+      "tid": "",
+      "name": "⋯"
+    },
+    {
+      "tid": "transcript-search-word",
+      "name": "W"
+    }
+  ],
+  "longTasksMain": [
+    84
+  ]
+}

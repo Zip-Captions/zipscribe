@@ -1,0 +1,18 @@
+{
+  "clipped": [],
+  "occluded": [],
+  "panelOverlaps": [
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "P.ws-empty",
+      "ox": 304,
+      "oy": 56
+    },
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ws-project-list",
+      "ox": 304,
+      "oy": 146
+    }
+  ]
+}

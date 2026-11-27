@@ -1,0 +1,57 @@
+{
+  "before": {
+    "name": "speech-2min",
+    "rows": 12,
+    "selected": [
+      "blk-6"
+    ],
+    "playhead": "00:47.3",
+    "scrollTop": 60,
+    "edit": 1
+  },
+  "saveState": "saved",
+  "landing": {
+    "name": "",
+    "rows": 0,
+    "stage": 0,
+    "openButtons": 1
+  },
+  "reopen": {
+    "dialogs": [],
+    "relinkButtons": [],
+    "stage": 0,
+    "notices": []
+  },
+  "after": {
+    "name": "speech-2min",
+    "rows": 12,
+    "selected": [
+      "blk-6"
+    ],
+    "playhead": null,
+    "scrollTop": 0,
+    "edit": 1,
+    "stage": 0,
+    "autoRestored": false
+  },
+  "newProject": {
+    "name": "speech-2min",
+    "rows": 0,
+    "stage": 0,
+    "choose": 0
+  },
+  "projectB": {
+    "name": "speech-2min",
+    "rows": 0,
+    "list": [
+      "Untitled projectOpenDuplicateDelete",
+      "speech-2minOpenDuplicateDelete"
+    ]
+  },
+  "openAcount": 1,
+  "backToA": {
+    "name": "speech-2min",
+    "rows": 10,
+    "edit": 1
+  }
+}

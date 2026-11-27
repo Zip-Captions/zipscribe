@@ -1,0 +1,122 @@
+{
+  "presets": {
+    "base": "1104x621:-278796374:60774",
+    "list": [
+      {
+        "tid": "preset-karaoke",
+        "name": "Karaoke",
+        "pressed": null
+      },
+      {
+        "tid": "preset-broadcast-box",
+        "name": "Broadcast box",
+        "pressed": null
+      },
+      {
+        "tid": "preset-bold-lower",
+        "name": "Bold lowercase",
+        "pressed": null
+      },
+      {
+        "tid": "preset-minimal",
+        "name": "Minimal",
+        "pressed": null
+      }
+    ],
+    "applied": [
+      {
+        "preset": "Karaoke",
+        "pressed": null,
+        "canvas": "1104x621:-278796374:60774",
+        "textColor": "#ffffff",
+        "outline": "#0d0f12",
+        "box": false,
+        "font": "Inter"
+      },
+      {
+        "preset": "Broadcast box",
+        "pressed": null,
+        "canvas": "1104x621:-278796374:60774",
+        "textColor": "#ffffff",
+        "outline": "#0d0f12",
+        "box": true,
+        "font": "Inter"
+      },
+      {
+        "preset": "Bold lowercase",
+        "pressed": null,
+        "canvas": "1104x621:-278796374:60774",
+        "textColor": "#ffffff",
+        "outline": "#0d0f12",
+        "box": false,
+        "font": "Inter"
+      },
+      {
+        "preset": "Minimal",
+        "pressed": null,
+        "canvas": "1104x621:-278796374:60774",
+        "textColor": "#e8eaed",
+        "outline": "#0d0f12",
+        "box": false,
+        "font": "Inter"
+      }
+    ]
+  },
+  "presetContrast": [
+    {
+      "preset": "Karaoke",
+      "text": "#ffffff",
+      "outline": "#0d0f12",
+      "box": false,
+      "textVsOutline": 19.19
+    },
+    {
+      "preset": "Broadcast box",
+      "text": "#ffffff",
+      "outline": "#0d0f12",
+      "box": true,
+      "textVsOutline": 19.19
+    },
+    {
+      "preset": "Bold lowercase",
+      "text": "#ffffff",
+      "outline": "#0d0f12",
+      "box": false,
+      "textVsOutline": 19.19
+    },
+    {
+      "preset": "Minimal",
+      "text": "#e8eaed",
+      "outline": "#0d0f12",
+      "box": false,
+      "textVsOutline": 15.92
+    }
+  ],
+  "reloadLanding": {
+    "tab": "Subtitles",
+    "projectName": "",
+    "rows": 0,
+    "stage": 0,
+    "dialogs": [],
+    "toasts": []
+  },
+  "reopen": {
+    "dialogs": [],
+    "relinkButtons": [],
+    "stage": 0,
+    "notices": []
+  },
+  "stylePersist": {
+    "before": "8",
+    "set": "8.4",
+    "saveState": "saved",
+    "after": "8.4"
+  },
+  "exportDialog": {
+    "name": null,
+    "labelledby": null,
+    "modal": "true",
+    "text": "Export × CAPTIONS FILE SRT VTT JSON TSV Track Source Speaker labels None VTT voice tags [Name]: prefix Save SRTExport all languages BURN-IN MP4 Resolution 180p FPS 10 Track Source Export MP4 snapshot v1795739629520",
+    "allLangs": true
+  }
+}

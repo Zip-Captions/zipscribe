@@ -1,0 +1,98 @@
+{
+  "clipped": [
+    {
+      "tag": "off-viewport",
+      "cls": "ws-style-panel",
+      "overflowPx": 99,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-style-remote-row",
+      "overflowPx": 8,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "",
+      "overflowPx": 6,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-style-remote-row",
+      "overflowPx": 29,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "",
+      "overflowPx": 27,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-style-remote-row",
+      "overflowPx": 50,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "",
+      "overflowPx": 48,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-style-remote-row",
+      "overflowPx": 71,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "",
+      "overflowPx": 69,
+      "text": "«11+ chars»"
+    },
+    {
+      "tag": "off-viewport",
+      "cls": "ws-tabular",
+      "overflowPx": 95,
+      "text": "«11+ chars»"
+    }
+  ],
+  "occluded": [
+    {
+      "blocked": "Auto-detectenesfrdeitptnlplsvt",
+      "by": "button."
+    },
+    {
+      "blocked": "whisper-base_timestamped@608c4",
+      "by": "div.shell-pwa-menu"
+    },
+    {
+      "blocked": "Broadcast box",
+      "by": "div.ws-popover"
+    },
+    {
+      "blocked": "Minimal",
+      "by": "div.ws-popover"
+    },
+    {
+      "blocked": "Font",
+      "by": "button.ws-button ws-button-primary"
+    },
+    {
+      "blocked": "",
+      "by": "footer.ws-status"
+    }
+  ],
+  "panelOverlaps": [
+    {
+      "a": "SECTION.ws-sidebar",
+      "b": "DIV.ws-style-panel",
+      "ox": 304,
+      "oy": 773
+    }
+  ]
+}
