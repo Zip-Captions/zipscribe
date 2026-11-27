@@ -214,8 +214,29 @@ export function createJobsStore(deps: {
   mediaSource?: () => Promise<File>
   warmModelCache?: (modelId: string) => void
   translation?: { editorApp: EditorApp; engine: TranslationEngine }
+  /**
+   * unit-304 (FR-304.1, #51): the job-output seam `project.language` rides —
+   * the SAME `EditorApp` the transcribe-commit/translation services use.
+   * `applyWithoutHistory` only (M6/#66 ruling: job artifacts never enter the
+   * undo chain), never a command. Absent (frozen harnesses without an editor
+   * app), the language plumbing is inert. Defaults to `translation.editorApp`.
+   */
+  editorApp?: EditorApp
 }): JobsStore {
   const store = createStore<JobsState>()(immer(() => structuredClone(INITIAL_STATE)))
+
+  // The one editor-app the language plumbing writes through (the top-level
+  // dep wins; the translation wiring shares the same instance in production).
+  const editorApp = deps.editorApp ?? deps.translation?.editorApp ?? null
+
+  /** Record `project.language` as JOB OUTPUT (the transcribe-commit seam —
+   *  no history step, no undo surprise; M6/#66 ruling). */
+  function recordProjectLanguage(language: string): void {
+    if (editorApp === null) return
+    editorApp.applyWithoutHistory((draft) => {
+      if (draft.project !== null) draft.project.language = language
+    })
+  }
 
   // FR-302.1: one apply service (unit-301) + a per-language cancel registry.
   // The apply service adds the machine track and folds session batches as JOB
@@ -237,6 +258,13 @@ export function createJobsStore(deps: {
   // started a job; before the first start the slice folds events verbatim
   // (frozen L1 `job:segments accumulate` + L2 streaming pins).
   let lastStartedJobId: string | null = null
+
+  // unit-304 (CC-304.2): jobId of the last start dispatched in AUTO-DETECT
+  // (no explicit language). A `job:done` stores `stats.language` as job
+  // output only when the jobId-correlation AND this Auto-detect tag both
+  // match — foreign/superseded jobIds never store (the existing done-filter
+  // doctrine), and an explicit selection is never overwritten by detection.
+  let autoDetectJobId: string | null = null
 
   /**
    * Review r1 (finding 3): models whose > 100 MB `model:confirm-required`
@@ -357,11 +385,21 @@ export function createJobsStore(deps: {
           state.progress = { processedSec: event.processedSec, totalSec: event.totalSec }
         })
         return
-      case 'job:done':
+      case 'job:done': {
+        // unit-304 (CC-304.2): an Auto-detect run's reported language rides
+        // in as JOB OUTPUT. Correlation is EXACTLY the running-jobId filter
+        // the handler already applies — a foreign jobId (stale worker flush)
+        // or a superseded job's late done matches neither `running` nor the
+        // Auto-detect tag and stores nothing; `stats.language` absent stores
+        // nothing (the engine never spoke). An explicit-start job is not
+        // Auto-detect-tagged, so its differing detection never overwrites.
+        const detected = store.getState().running?.jobId === event.jobId && autoDetectJobId === event.jobId ? (event.stats?.language ?? null) : null
         store.setState((state) => {
           if (state.running?.jobId === event.jobId) state.running = null
         })
+        if (detected !== null) recordProjectLanguage(detected)
         return
+      }
       case 'job:error':
         store.setState((state) => {
           // SM.3 (adversary adjudication): only the running job may own the
@@ -457,6 +495,7 @@ export function createJobsStore(deps: {
       const jobId = newJobId()
       const device: Device = store.getState().capability?.tier === 'T1' ? 'webgpu' : 'wasm'
       lastStartedJobId = jobId
+      autoDetectJobId = options.language === null ? jobId : null
       store.setState((state) => {
         state.running = { kind: options.mode === 'align' ? 'align' : 'transcribe', jobId }
         state.segments = []
@@ -464,6 +503,10 @@ export function createJobsStore(deps: {
         state.error = null
         state.pendingConfirmDownload = null
       })
+      // CC-304.1 (#51): an explicit Language selection is recorded at Start —
+      // before any worker event — through the job-output seam (applyWithout-
+      // History, the transcribe-commit pattern). Never an undoable command.
+      if (options.language !== null) recordProjectLanguage(options.language)
       if (displaced !== null) {
         // SM.4 (adversary adjudication, FR-2.0.6): a displaced job must not
         // keep running on the worker uncancellable — post the same cancel

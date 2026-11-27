@@ -1,13 +1,17 @@
 // Transcribe popover (unit-101 slice C) — knowledge/design.md § Transcribe
-// popover. Language (last used → browser language when the model supports it →
-// auto-detect), model (size + offline-ready badge, `modelOptions` from the
-// jobs slice = registry × model cache) and the diarize toggle; Start dispatches
-// the exact job payload through `jobs.startTranscribe` (FR-2.0.6 injectable
-// engine — the frozen suite asserts the recorded requests). An uncached model
-// is selectable — the engine's `model:confirm-required` gate renders the
-// download confirmation (FR-2.0.2: never a disabled Start). With captions on
-// the project the popover offers Replace vs Align instead of silently
-// overwriting (US-2.0.4).
+// popover. Language (DEFAULT: Auto-detect — the unit-304 #63 ruling: the
+// sweep found a browser-language preselect made the honest auto-detect story
+// untestable from the popover; the engine detects), model (size +
+// offline-ready badge, `modelOptions` from the jobs slice = registry × model
+// cache) and the diarize toggle; Start dispatches the exact job payload
+// through `jobs.startTranscribe` (FR-2.0.6 injectable engine — the frozen
+// suite asserts the recorded requests). An uncached model is selectable — the
+// engine's `model:confirm-required` gate renders the download confirmation
+// (FR-2.0.2: never a disabled Start). With captions on the project the
+// popover offers Replace vs Align instead of silently overwriting (US-2.0.4).
+// Rows render FRIENDLY labels and HUMAN language names (unit-304 #63 — never
+// raw registry ids, revision hashes or bare ISO codes; the `src/ui/
+// language-labels.ts` module owns the copy).
 //
 // SECURITY-03: everything rendered here is canned/derived (ids, sizes, codes,
 // language tags) — no transcript or file-name strings, and nothing is logged.
@@ -16,17 +20,13 @@ import type { ReactNode } from 'react'
 import type { ModelId } from '../../engine/protocol'
 import { defaultModelForTier } from '../../state/jobs'
 import type { JobsState, JobsStore } from '../../state/jobs'
+import { languageLabel, modelLabel } from '../language-labels'
 
 // BCP-47 primary tags offered for multilingual ('*') models. The frozen
 // contract carries only per-model language support; the concrete offering is
 // the UI's (design.md "language" row). Specific-support models (e.g. en-only)
 // list exactly their own tags.
 const CURATED_LANGUAGES: readonly string[] = ['en', 'es', 'fr', 'de', 'it', 'pt', 'nl', 'pl', 'sv', 'tr', 'ru', 'ar', 'hi', 'id', 'vi', 'ja', 'ko', 'zh']
-
-function browserPrimaryLanguage(): string {
-  if (typeof navigator === 'undefined') return ''
-  return (navigator.language ?? '').split('-')[0]?.toLowerCase() ?? ''
-}
 
 export interface TranscribePopoverProps {
   jobs: JobsStore
@@ -51,8 +51,11 @@ export function TranscribePopover({ jobs, jobsState, hasCaptions, offlineSuggest
   const selected = options.find((option) => option.id === selectedModel) ?? null
   const supported = selected?.languages ?? ['*']
   const offered = supported.includes('*') ? CURATED_LANGUAGES : [...supported]
-  const defaultLanguage = offered.includes(browserPrimaryLanguage()) ? browserPrimaryLanguage() : ''
-  const effectiveLanguage = language !== null && offered.includes(language) ? language : defaultLanguage
+  // CC-304.5 (#63): Auto-detect is the DEFAULT — a supported browser language
+  // must not preselect (the engine reports what it heard, the jobs slice
+  // records it as job output). A selection the offered set no longer carries
+  // (model switched, e.g. en-only) falls back to Auto-detect, honestly.
+  const effectiveLanguage = language !== null && offered.includes(language) ? language : ''
 
   function resolveModel(): ModelId {
     return selected?.id ?? options.find((option) => option.offlineReady)?.id ?? options[0]?.id ?? defaultModelForTier(jobsState.capability?.tier)
@@ -76,7 +79,7 @@ export function TranscribePopover({ jobs, jobsState, hasCaptions, offlineSuggest
           <option value="">Auto-detect</option>
           {offered.map((code) => (
             <option key={code} value={code}>
-              {code}
+              {languageLabel(code)}
             </option>
           ))}
         </select>
@@ -96,7 +99,7 @@ export function TranscribePopover({ jobs, jobsState, hasCaptions, offlineSuggest
                 setSelectedModel(option.id)
               }}
             >
-              <span className="ws-model-name">{option.id}</span>
+              <span className="ws-model-name">{modelLabel(option.id)}</span>
               <span className="ws-model-size">{option.sizeLabel}</span>
               {option.offlineReady && (
                 <span data-testid="offline-badge" className="ws-offline-badge">
