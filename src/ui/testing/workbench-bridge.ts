@@ -48,4 +48,14 @@ export function installWorkbenchBridge(): void {
     },
   }
   ;(window as unknown as { __zipWorkbenchBridge?: WorkbenchBridge }).__zipWorkbenchBridge = bridge
+  // Page-side streaming seed (unit-110 single-surface contract): the L2
+  // helper `makeSegments` (tests/unit/workbench/helpers/fake-engine.ts) with
+  // IDENTICAL shape, callable from inside page.evaluate streaming legs.
+  // Synthetic filler words only (`segment <i>`) — SECURITY-03 safe.
+  ;(window as unknown as { makeSegments?: (count: number, textFor?: (index: number) => string) => unknown[] }).makeSegments = (count: number, textFor: (index: number) => string = (index) => `segment ${index}`) =>
+    Array.from({ length: count }, (_unused, index) => {
+      const start = index * 2
+      const text = textFor(index)
+      return { start, end: start + 1.5, text, words: [{ text, start, end: start + 1.5 }] }
+    })
 }

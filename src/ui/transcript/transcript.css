@@ -15,6 +15,11 @@
   display: flex;
   gap: 8px;
   align-items: center;
+  /* Boot CLS: the actions span mounts when the project lands one tick after
+     the empty toolbar — 0→28 growth pushed the whole root (and everything
+     below) down inside the CLS budget. Reserve the actions row's height so
+     the late mount costs nothing (CC-101.1 budget). */
+  min-height: 28px;
   flex: none;
   padding: 4px 8px;
 }
@@ -101,12 +106,17 @@
   color: var(--bg-app);
 }
 
+/* unit-110 row model (issue #48): the row box is state-driven —
+   data-row-state="clamped"  inactive → single-line clamp + ellipsis, compact
+   fixed box; overflow hidden so nothing ever paints outside the box.
+   data-row-state="expanded" active (playhead in span) | selected | under edit
+   → clamp off, height auto; the dynamic-size virtualizer re-measures via
+   measureElement and rows below shift by exactly the growth. */
 .ts-row {
   display: flex;
   align-items: baseline;
   gap: 8px;
   box-sizing: border-box;
-  height: 20px;
   padding: 0 8px;
   font-size: 12px;
   line-height: 19px;
@@ -114,6 +124,76 @@
   background-color: transparent;
   border-bottom: 1px solid var(--border-subtle);
   cursor: default;
+}
+
+.ts-row[data-row-state='clamped'] {
+  height: 20px;
+  overflow: hidden;
+}
+
+.ts-row[data-row-state='clamped'] .ts-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Clamped WORDS keep their box inside the text column too: an unclamped
+   inline word keeps its intrinsic (long) layout box even when the parent
+   clips it — its centre then sits over the row's trailing buttons and
+   steals their pointer events (and its own hit-testing). inline-block +
+   max-width keeps every word box within the column. */
+.ts-row[data-row-state='clamped'] .ts-word {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.ts-row[data-row-state='clamped'] .ts-translation-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ts-row[data-row-state='expanded'] {
+  min-height: 20px;
+}
+
+/* An unbreakable long token (one 50-char word) must wrap INSIDE the text
+   column when expanded — an overflowing word box reaches under the row's
+   trailing buttons and steals their pointer events (the #48 overflow class
+   again, now that the row clips properly). */
+.ts-row[data-row-state='expanded'] .ts-text,
+.ts-row[data-row-state='expanded'] .ts-translation-text {
+  overflow-wrap: anywhere;
+}
+
+/* unit-110 CC-110.8: the streaming-segment rows (frozen unit-101 contract)
+   mount inside this surface while a job streams — same posture as the old
+   ws-segment-row look. */
+.ts-stream-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  box-sizing: border-box;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ts-stream-time {
+  flex: none;
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.ts-stream-text {
+  min-width: 0;
 }
 
 .ts-row-selected {
@@ -131,6 +211,9 @@
   border: none;
   border-radius: 999px;
   font-size: 12px;
+  /* unit-110: keep the pill inside the 19 px clamped line box (baseline
+     aligned) — an over-tall chip painted past the row edge (#48 spill). */
+  line-height: 1;
   font-weight: 600;
   color: var(--bg-app);
   background-color: var(--accent);
@@ -377,6 +460,26 @@
   background-color: var(--warning);
 }
 
+.ts-issues-toggle {
+  flex: none;
+  padding: 2px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background-color: var(--bg-raised);
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.ts-issues-toggle:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+.ts-issues-count {
+  font-variant-numeric: tabular-nums;
+}
+
 .ts-issues {
   display: flex;
   flex-direction: column;
@@ -392,6 +495,14 @@
   padding: 4px 8px;
   border-bottom: 1px solid var(--border-subtle);
   background-color: var(--bg-panel);
+}
+
+/* unit-110 #52 posture: collapsed = `hidden` attribute (items stay MOUNTED —
+   the frozen adversarial DOM-count doctrine counts them in the DOM; never
+   unmounted). display:flex would beat the UA [hidden] rule, so it is pinned
+   off explicitly. */
+.ts-issues[hidden] {
+  display: none;
 }
 
 .ts-issue-item {
@@ -412,6 +523,17 @@
 .ts-issue-item:focus-visible {
   outline: 2px solid var(--border-focus);
   outline-offset: -1px;
+}
+
+/* #52 de-emphasis: raw-ASR lint items (block untouched since transcription —
+   a UI-side fact, checkCaptions untouched) stay quiet; post-edit items read
+   as actionable at full contrast. */
+.ts-issue-origin-raw {
+  color: var(--text-secondary);
+}
+
+.ts-issue-origin-edited {
+  color: var(--text-primary);
 }
 
 .ts-live {

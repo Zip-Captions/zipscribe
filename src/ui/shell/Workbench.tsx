@@ -947,9 +947,16 @@ export function Workbench(props: WorkbenchProps): ReactNode {
               </div>
               {tab === 'subtitles' && (
                 <div role="tabpanel" id="tabpanel-subtitles" aria-labelledby="tab-subtitles" className="ws-tabpanel">
-                  <TranscriptPane segments={jobsState.segments} />
-                  {/* Unit-104 slice B: the transcript panel mounts ALONGSIDE the unit-101 streaming pane (the frozen streaming-segment-row contract stays mounted where the 101 suites pin it). Needs the editor app + the rAF driver, else the reserved streaming-only view renders. */}
-                  {transport !== undefined && transport.rafs !== undefined && <Transcript app={transport.app} rafs={transport.rafs} jobs={jobs} settings={settings} />}
+                  {/* unit-110 CC-110.8 (#52): SINGLE transcript surface — the
+                      unit-104 dual mount (unit-101 TranscriptPane + unit-104
+                      Transcript, both role=list, mounted together) is collapsed
+                      to ONE list at a time. With the editor app + rAF driver
+                      present, `Transcript` IS the surface and streaming is a
+                      MODE of it (it renders the frozen unit-101
+                      `streaming-segment-row` rows + the FR-104.6 skeleton
+                      itself). Without the transport the reserved unit-101
+                      streaming-only pane renders alone, as before. */}
+                  {transport !== undefined && transport.rafs !== undefined ? <Transcript app={transport.app} rafs={transport.rafs} jobs={jobs} settings={settings} /> : <TranscriptPane segments={jobsState.segments} />}
                   {transport !== undefined && (
                     <LanguagesSection
                       app={transport.app}
