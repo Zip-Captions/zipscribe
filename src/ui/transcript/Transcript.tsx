@@ -79,7 +79,10 @@ export interface TranscriptProps {
   settings?: SettingsStore
 }
 
-const ROW_ESTIMATE_PX = 40
+// The clamped row box is 20 px (transcript.css) — the estimate IS the true
+// height, so first paint needs no estimate→measure correction and the
+// virtualizer's total size never races the CC-110.4 sample points (±2 px).
+const ROW_ESTIMATE_PX = 20
 /** Streaming-row box: 4+4 padding + 12px × 1.45 line + 1px border ≈ 26.4 —
  *  the ESTIMATE is the true height so first mount never jumps (the CLS
  *  doctrine: estimate→measure delta is layout shift; TranscriptPane's 40 px
