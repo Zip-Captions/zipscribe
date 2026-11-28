@@ -101,8 +101,8 @@ test.describe('CC-110.4: bounded virtualization with re-measure at 1000 blocks (
     const reject = await page.evaluate(([t]) => (window as unknown as { __zipEditorBridge?: EditorBridge }).__zipEditorBridge?.command('transport-seek', { time: t }), [mid] as const)
     if (reject !== null && reject !== undefined) throw new Error(`transport-seek rejected: ${reject.code}`)
 
-    // Long rows are estimate-positioned (40 px) until measured — sweep the
-    // scroll offsets covering both regimes until the target mounts.
+    // Long rows are estimate-positioned (20 px — ROW_ESTIMATE_PX) until measured — sweep
+    // the scroll offsets covering both regimes until the target mounts.
     const rowLocator = page.locator(`[data-testid=transcript-row][data-block-id=blk_k${EXPAND_INDEX}]`)
     let mounted = 0
     for (let attempt = 0; attempt < 36 && mounted === 0; attempt++) {
