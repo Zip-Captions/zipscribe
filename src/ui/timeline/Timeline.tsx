@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import type { PointerEvent as ReactPointerEvent, ReactElement } from 'react'
 import type { CaptionBlock } from '../../engine/model'
+import type { CommandReject } from '../../state/commands'
 import type { EditorApp } from '../../state/history'
 import type { RafDriver } from '../../state/services/playback/arbitrator'
 import type { Selection } from '../../state/editor'
@@ -392,15 +393,54 @@ export function Timeline(props: TimelineProps): ReactElement {
   // (useTransportCommands precedent), unregistered on unmount.
   useEffect(() => {
     const c = bundle.controller
+    // unit-111 FR-111.1 (issue #55): design.md spells ⌘⇧M / Ctrl+⇧M as
+    // "Merge selected with next block" — a transcript row click (and a
+    // timeline click) selects a SINGLE block (anchor === focus), which the
+    // frozen two-adjacent-blocks gate in controller.mergeSelected rejected
+    // pre-dispatch while the old handler discarded the CommandReject — the
+    // silent no-op of #55. Single selection (and the arrow-focus model with
+    // no selection) now merges the target block with its timeline-order
+    // next through the SAME undoable `block-merge` command the two-block
+    // path rides; genuine multi-block ranges keep the frozen controller
+    // semantics untouched. Rejects surface in the live region as CODES only
+    // (SECURITY-03) — never silently again.
+    const reportMergeReject = (reject: CommandReject | null): void => {
+      if (reject !== null) setAnnounce(`Merge rejected — ${reject.code} (${reject.token})`)
+    }
+    const mergeFromSurface = (): void => {
+      const selection = app.editor.getState().selection
+      const anchor = selection.anchorBlockId
+      const focus = selection.focusBlockId
+      const targetId = anchor !== null && anchor === focus ? anchor : anchor === null && focus === null ? c.focusedBlockId() : null
+      if (targetId === null) {
+        // range/marquee selection (or nothing) — frozen controller path.
+        reportMergeReject(c.mergeSelected())
+        return
+      }
+      const all = app.project.getState().project?.blocks ?? NO_BLOCKS
+      const i = all.findIndex((block) => block.id === targetId)
+      const first = all[i]
+      if (first === undefined) {
+        reportMergeReject({ code: 'DANGLING_BLOCK_REF', token: targetId })
+        return
+      }
+      const second = all[i + 1]
+      if (second === undefined) {
+        reportMergeReject({ code: 'INVALID_PAYLOAD', token: 'last-block' })
+        return
+      }
+      const blockIds: readonly [string, string] = [first.id, second.id]
+      reportMergeReject(app.dispatch('block-merge', { blockIds }))
+    }
     const unsubscribes = [
       registerCommandHandler('timeline.split', () => {
         c.splitAtPlayhead()
       }),
       registerCommandHandler('timeline.merge', () => {
-        c.mergeSelected()
+        mergeFromSurface()
       }),
       registerCommandHandler('timeline.merge-ctrl', () => {
-        c.mergeSelected()
+        mergeFromSurface()
       }),
       registerCommandHandler('timeline.trim-start', () => {
         c.trimStartToPlayhead()

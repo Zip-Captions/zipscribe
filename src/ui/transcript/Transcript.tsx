@@ -223,6 +223,19 @@ export function activeSpanIdAt(blocks: readonly CaptionBlock[], playhead: Second
   return id
 }
 
+/**
+ * unit-111 FR-111.3 (issue #55 pointer path): the block whose span STRICTLY
+ * contains the playhead — the exact `S` split gate (controller.splitAtPlayhead
+ * and the frozen block-split reducer both REJECT at === start / === end).
+ * Drives the row-split-at-playhead affordance gating; blocks are time-sorted.
+ */
+function strictSpanIdAt(blocks: readonly CaptionBlock[], playhead: Seconds): string | null {
+  for (const block of blocks) {
+    if (block.start < playhead && playhead < block.end) return block.id
+  }
+  return null
+}
+
 export function Transcript(props: TranscriptProps): ReactElement {
   const { app, rafs, jobs, heightPx, hiddenSpeakerIds, settings } = props
   const jobsStore = jobs ?? IDLE_JOBS
@@ -329,6 +342,10 @@ export function Transcript(props: TranscriptProps): ReactElement {
   issuesRef.current = orderedIssues
   const blocksRef = useRef(blocks)
   blocksRef.current = blocks
+  // unit-111 FR-111.2: block-id → timeline-order index (block-merge adjacency
+  // is PROJECT order, not the visible/filtered order — the merge affordance
+  // always targets the real next block). Memoized on the blocks REFERENCE.
+  const blockIndexById = useMemo(() => new Map(blocks.map((block, index) => [block.id, index] as const)), [blocks])
 
   // The "Issues (n)" filter narrows the rows to blocks that HAVE issues
   // (view-only — the data and the derivation are untouched).
@@ -349,6 +366,10 @@ export function Transcript(props: TranscriptProps): ReactElement {
   // is unchanged — re-renders therefore happen ONLY at time-boundary crossings
   // (the CC-110.5 50 ms long-task gate; never per-frame).
   const [activeRowId, setActiveRowId] = useState<string | null>(() => activeSpanIdAt(project?.blocks ?? NO_BLOCKS, app.editor.getState().playhead))
+  // unit-111 FR-111.3: id of the block the playhead is STRICTLY inside (the
+  // `S` gate) — per-row split affordance gating. Same event-driven/bail-out
+  // discipline as activeRowId: it only CHANGES at boundary crossings.
+  const [splitInsideId, setSplitInsideId] = useState<string | null>(() => strictSpanIdAt(project?.blocks ?? NO_BLOCKS, app.editor.getState().playhead))
   // Boundary-crossing expansion is batched to the NEXT animation frame in the
   // browser: at most one expansion re-layout per frame regardless of how fast
   // seeks arrive (the CC-110.5 50 ms doctrine — the re-layout never runs
@@ -358,24 +379,30 @@ export function Transcript(props: TranscriptProps): ReactElement {
   // assertable inside act(); selection/edit expansion never goes through
   // here — it is render-driven and immediate.
   const pendingActiveRef = useRef<string | null>(activeRowId)
+  const pendingSplitRef = useRef<string | null>(splitInsideId)
   const activeFrameRef = useRef<number | null>(null)
   const commitActiveRow = useCallback(
-    (id: string | null): void => {
+    (id: string | null, insideId: string | null): void => {
       if (activeFrameRef.current !== null) {
         cancelAnimationFrame(activeFrameRef.current)
         activeFrameRef.current = null
       }
       pendingActiveRef.current = id
+      pendingSplitRef.current = insideId
       if (import.meta.env.MODE === 'test') {
         setActiveRowId(id)
+        setSplitInsideId(insideId)
         return
       }
       activeFrameRef.current = requestAnimationFrame(() => {
         activeFrameRef.current = null
+        // One batched commit per frame: expansion + split gating re-render
+        // together (the CC-110.5 ≤ 1 re-layout/frame doctrine covers both).
         setActiveRowId(pendingActiveRef.current)
+        setSplitInsideId(pendingSplitRef.current)
       })
     },
-    [activeFrameRef, pendingActiveRef],
+    [activeFrameRef, pendingActiveRef, pendingSplitRef],
   )
   useEffect(
     () => () => {
@@ -384,7 +411,8 @@ export function Transcript(props: TranscriptProps): ReactElement {
     [activeFrameRef],
   )
   useEffect(() => {
-    commitActiveRow(activeSpanIdAt(visibleRef.current, app.editor.getState().playhead))
+    const playhead = app.editor.getState().playhead
+    commitActiveRow(activeSpanIdAt(visibleRef.current, playhead), strictSpanIdAt(visibleRef.current, playhead))
   }, [visible, app, commitActiveRow])
 
   // #52 de-emphasis: "edited since transcription" is a UI-side fact (the
@@ -620,7 +648,7 @@ export function Transcript(props: TranscriptProps): ReactElement {
       // rAF-batched (≤ 1 expansion re-layout per frame, CC-110.5). Runs
       // BEFORE the follow guards — expansion is independent of follow
       // pause/editing.
-      commitActiveRow(activeSpanIdAt(visibleRef.current, playhead))
+      commitActiveRow(activeSpanIdAt(visibleRef.current, playhead), strictSpanIdAt(visibleRef.current, playhead))
       if (playhead === lastPlayhead) return
       lastPlayhead = playhead
       if (editingRef.current !== null) return
@@ -1065,6 +1093,15 @@ export function Transcript(props: TranscriptProps): ReactElement {
             }
             const selected = selection.anchorBlockId === block.id || selection.focusBlockId === block.id
             const editing = editingBlockId === block.id
+            // unit-111 FR-111.2/.3 pinned affordance contract: merge rides the
+            // SAME undoable `block-merge` command the keyboard path runs (last
+            // row: DISABLED, never hidden, honest reason tooltip); split rides
+            // the SAME `block-split` command the `S` path runs, gated by the
+            // same strict-inside playhead rule (splitInsideId).
+            const blockIndex = blockIndexById.get(block.id) ?? -1
+            const nextBlock = blockIndex >= 0 ? blocks[blockIndex + 1] : undefined
+            const canMerge = nextBlock !== undefined
+            const canSplit = splitInsideId === block.id
             // unit-110 row model: active (playhead inside the span) ∪ selected
             // ∪ under-edit → expanded (auto height, re-measured); everything
             // else single-line clamped. Editing expands FIRST — the in-place
@@ -1237,6 +1274,53 @@ export function Transcript(props: TranscriptProps): ReactElement {
                       )}
                     </>
                   ))}
+                {/* unit-111 FR-111.2 (issue #55 pointer gap): merge/split are
+                    reachable by mouse alone, in the row-button family,
+                    dispatching through the SAME command seam as the keyboard
+                    paths (undoable, validator-gated). Disabled states are
+                    aria-disabled + a reason tooltip — never hidden. */}
+                <button
+                  type="button"
+                  data-testid="row-merge-next"
+                  className="ts-row-action"
+                  aria-label="Merge with next block"
+                  aria-disabled={canMerge ? undefined : 'true'}
+                  title={canMerge ? 'Merge this block with the next block' : 'Last block — there is no next block to merge with'}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    if (nextBlock === undefined) {
+                      setQcAnnounce('Merge rejected — INVALID_PAYLOAD (last-block)')
+                      return
+                    }
+                    const blockIds: readonly [string, string] = [block.id, nextBlock.id]
+                    const reject = app.dispatch('block-merge', { blockIds })
+                    if (reject !== null) setQcAnnounce(`Merge rejected — ${reject.code} (${reject.token})`)
+                  }}
+                >
+                  ⧉
+                </button>
+                <button
+                  type="button"
+                  data-testid="row-split-at-playhead"
+                  className="ts-row-action"
+                  aria-label="Split at playhead"
+                  aria-disabled={canSplit ? undefined : 'true'}
+                  title={canSplit ? 'Split this block at the playhead' : 'Playhead is outside this block — click a word (or seek) to place it inside first'}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    if (splitInsideId !== block.id) {
+                      setQcAnnounce('Split rejected — INVALID_PAYLOAD (playhead-outside)')
+                      return
+                    }
+                    // The SAME `block-split` command + playhead the `S` path
+                    // dispatches (controller.splitAtPlayhead); the frozen
+                    // reducer re-validates the strict-inside gate.
+                    const reject = app.dispatch('block-split', { blockId: block.id, at: app.editor.getState().playhead })
+                    if (reject !== null) setQcAnnounce(`Split rejected — ${reject.code} (${reject.token})`)
+                  }}
+                >
+                  ⫾
+                </button>
                 <button
                   type="button"
                   data-testid="transcript-close-gap"
