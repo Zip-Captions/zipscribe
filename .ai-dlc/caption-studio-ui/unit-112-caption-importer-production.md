@@ -2,7 +2,7 @@
 status: in_progress
 phase: mvp
 discipline: frontend
-depends_on: [caption-studio-ui/unit-102-shell-navigation, caption-studio-ui/unit-104-transcript-editor, caption-translation/unit-304-language-plumbing]
+depends_on: [caption-studio-ui/unit-102-editor-core-playback, caption-studio-ui/unit-104-transcript-editor, caption-translation/unit-304-language-plumbing]
 workflow: default
 mode: AHOTL
 ---
