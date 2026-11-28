@@ -142,6 +142,58 @@ async function measureOverflow(page: import('@playwright/test').Page): Promise<O
   }, TOL)
 }
 
+/** Bridge virtualizer total size (the review-r2 F1 suggested channel —
+ *  commits the measureElement pass into `item.size` before geometry moves). */
+async function bridgeTotalSize(page: import('@playwright/test').Page): Promise<number> {
+  const state = await page.evaluate(() => (window as unknown as { __zipTranscriptBridge?: TranscriptBridge }).__zipTranscriptBridge?.getTranscriptState())
+  if (state === undefined) throw new Error('transcript bridge missing')
+  return state.scrollHeight
+}
+
+/** Review-r2 F1 (deterministic quiescence, replacing the fixed-window read):
+ *  an expansion/collapse flips the row's OWN CSS box synchronously, but rows
+ *  below move only when measureElement's ResizeObserver re-measures
+ *  `item.size` — an async second pass whose window widens under contention
+ *  (observed Δ437-vs-Δ0). Before measuring Δ: (1) `bridgeTotalSize` has
+ *  committed the growth/shrink, then (2) the two affected rows' rects are
+ *  identical across two consecutive animation frames (the render that
+ *  repositions rows below has landed). Resolves on stability, rejects after
+ *  a 5 s budget — an honest timeout, never a weakening. Numbers only
+ *  (SECURITY-03). */
+async function waitForLayoutQuiescence(page: import('@playwright/test').Page, primaryId: string, neighbourId: string): Promise<void> {
+  await page.evaluate(
+    ([primary, neighbour]) =>
+      new Promise<void>((resolve, reject) => {
+        const primaryEl = document.querySelector(`[data-testid=transcript-row][data-block-id=${primary}]`)
+        const neighbourEl = document.querySelector(`[data-testid=transcript-row][data-block-id=${neighbour}]`)
+        if (primaryEl === null || neighbourEl === null) {
+          reject(new Error('quiescence probe: target rows missing'))
+          return
+        }
+        const deadline = performance.now() + 5_000
+        let prev: number[] | null = null
+        const sample = (): void => {
+          const a = primaryEl.getBoundingClientRect()
+          const b = neighbourEl.getBoundingClientRect()
+          const cur = [a.height, b.top]
+          const stable = prev !== null && cur.every((value, index) => Math.abs(value - (prev?.[index] ?? 0)) <= 0.5)
+          if (stable) {
+            resolve()
+            return
+          }
+          prev = cur
+          if (performance.now() > deadline) {
+            reject(new Error('quiescence probe: layout never settled'))
+            return
+          }
+          requestAnimationFrame(sample)
+        }
+        requestAnimationFrame(sample)
+      }),
+    [primaryId, neighbourId] as const,
+  )
+}
+
 /** Long-text seed (CC-110.2/.3): uniform clean shorts + one multi-line block
  *  with a known neighbour; synthetic words only, no assertion ever names text. */
 function expansionBlocks(): unknown[] {
@@ -271,22 +323,35 @@ test.describe('CC-110.1 CC-110.2 CC-110.3: transcript row model — zero overlap
     expect(text0.y + text0.height, 'clamped inactive row keeps its text inside the row box').toBeLessThanOrEqual((await longRow.boundingBox())!.y + h0 + TOL)
 
     // Playhead crosses INTO blk_long (5–8): the row expands, rows below shift
-    // EXACTLY by the growth.
+    // EXACTLY by the growth. Review-r2 F1: the Δ may only be measured after
+    // the async measureElement pass has committed (total-size channel) AND
+    // the rows are quiescent — never at the moment the row's own CSS box
+    // flips (that window measured Δ0 against an expected Δ437 under load).
+    const total0 = await bridgeTotalSize(page)
     await seek(page, 6.5)
     await expect
       .poll(async () => (await longRow.boundingBox())?.height ?? 0, { message: 'active row (playhead in span) expands beyond its clamp', timeout: 5_000 })
       .toBeGreaterThan(h0 + 20)
+    const hGrown = (await longRow.boundingBox())?.height ?? 0
+    await expect.poll((): Promise<number> => bridgeTotalSize(page), { message: 'virtualizer re-measured the grown row (total size includes the growth)', timeout: 5_000 }).toBeGreaterThanOrEqual(total0 + (hGrown - h0) - 2)
+    await waitForLayoutQuiescence(page, 'blk_long', 'blk_next')
     const h1 = (await longRow.boundingBox())?.height ?? 0
     const belowTop1 = (await below.boundingBox())?.y ?? 0
     const text1 = (await longRow.locator('[data-testid=transcript-row-text]').boundingBox()) ?? { height: 0, y: 0 }
     expect(text1.y + text1.height, 'expanded row shows the FULL text inside its own box').toBeLessThanOrEqual((await longRow.boundingBox())!.y + h1 + TOL)
     expect(Math.abs(belowTop1 - belowTop0 - (h1 - h0)), `rows below shift exactly by the growth (expected Δ ${h1 - h0}, measured Δ ${belowTop1 - belowTop0})`).toBeLessThanOrEqual(1)
 
-    // Playhead leaves the span → collapse back to the clamp.
+    // Playhead leaves the span → collapse back to the clamp. Review-r2 F1
+    // (same class as the expansion read): the CSS clamp lands synchronously
+    // but the collapsed row's RE-MEASURE (shrink) is the same async
+    // measureElement pass — wait for the total size to return to the
+    // pre-expansion value and the rows to quiesce before reading belowTop2.
     await seek(page, 12)
     await expect
       .poll(async () => (await longRow.boundingBox())?.height ?? 0, { message: 'row collapses when the playhead leaves', timeout: 5_000 })
       .toBeLessThanOrEqual(h0 + 1)
+    await expect.poll((): Promise<number> => bridgeTotalSize(page), { message: 'virtualizer re-measured the collapsed row (total size back at the pre-expansion total)', timeout: 5_000 }).toBeLessThanOrEqual(total0 + 2)
+    await waitForLayoutQuiescence(page, 'blk_long', 'blk_next')
     const belowTop2 = (await below.boundingBox())?.y ?? 0
     expect(Math.abs(belowTop2 - belowTop0), 'rows below return to their pre-expansion positions').toBeLessThanOrEqual(1)
   })
