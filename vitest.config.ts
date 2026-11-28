@@ -166,6 +166,21 @@ export default defineConfig({
             // are the slice-D deliverable. Parent `pnpm test` and
             // `verify:unit` (clears ZIPSCRIBE_CHILD) execute all of it.
             '**/contract.test.ts',
+            // unit-112 (CC-112.*, RED phase): the caption-import click-path
+            // suites fail until the builder replaces the unit-07 placeholder
+            // importer and wires the control/dialog/Languages branches, so
+            // they cannot sit in the gate-spawning child (their failure would
+            // mask the command-wiring proof — unit-04 media-worker-wiring /
+            // unit-101 workbench RED precedent). frozen-anchor additionally
+            // spawns `pnpm build` (buildOnce) — same child-safety rule as
+            // bundle-budget.test.ts. They run in the parent `pnpm test` and
+            // in `verify:unit`, which clears ZIPSCRIBE_CHILD. Retire these
+            // entries when unit-112 goes green.
+            '**/composition-importer.test.ts',
+            '**/frozen-anchor.test.ts',
+            '**/caption-import-language.test.tsx',
+            '**/languages-section-truth.test.tsx',
+            '**/media-caption-add.test.tsx',
             ...defaultExclude,
           ]
         : defaultExclude,
