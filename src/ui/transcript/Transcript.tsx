@@ -394,12 +394,19 @@ export function Transcript(props: TranscriptProps): ReactElement {
   // mutate `block.text`). Base entries are never rewritten, so an edited
   // block stays marked even if its text round-trips back.
   const baseTextsRef = useRef(new Map<string, string>())
+  // Sticky set (review-r2 F3 — behaviour aligned with the comment above):
+  // once a block's text has diverged from its baseline it STAYS marked,
+  // even if a later edit round-trips the text back to the original.
+  const editedSeenRef = useRef(new Set<string>())
   const editedBlockIds = useMemo(() => {
-    const edited = new Set<string>()
+    const edited = new Set<string>(editedSeenRef.current)
     for (const block of blocks) {
       const base = baseTextsRef.current.get(block.id)
       if (base === undefined) baseTextsRef.current.set(block.id, block.text)
-      else if (base !== block.text) edited.add(block.id)
+      else if (base !== block.text) {
+        editedSeenRef.current.add(block.id)
+        edited.add(block.id)
+      }
     }
     return edited
   }, [blocks])
