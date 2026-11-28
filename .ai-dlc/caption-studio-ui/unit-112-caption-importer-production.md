@@ -51,7 +51,8 @@ clicking**, and I see the rows immediately. (US-07.1 + US-109.1)
   the `.srt`, *then* the Import-captions dialog opens (same dialog as DnD) and Import lands
   12 rows.
 - *Given* a successful import, *then* the sidebar tab is **Subtitles** (rows visible).
-- *Given* a non-caption file (e.g. `fixtures/not-a-caption.bin`-style garbage), *then* a
+- *Given* a non-caption file (`fixtures/captions/garbage.txt` or `undecodable.bin`),
+  *then* a
   human-worded rejection toast/`role=alert` with the code only in a secondary line — never
   silent, never content-bearing (SECURITY-03).
 
