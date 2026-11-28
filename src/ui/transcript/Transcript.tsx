@@ -39,7 +39,7 @@
 // element's real client box, kept fresh by ResizeObserver — which the code
 // tolerates being absent (jsdom/SSR ⇒ LAYOUTLESS everything-visible).
 
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import type { MouseEvent as ReactMouseEvent, ReactElement, ReactNode } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -79,7 +79,19 @@ export interface TranscriptProps {
   settings?: SettingsStore
 }
 
-const ROW_ESTIMATE_PX = 40
+// The clamped row box is 20 px (transcript.css) — the estimate IS the true
+// height, so first paint needs no estimate→measure correction and the
+// virtualizer's total size never races the CC-110.4 sample points (±2 px).
+const ROW_ESTIMATE_PX = 20
+/** Streaming-row box: 4+4 padding + 12px × 1.45 line + 1px border ≈ 26.4 —
+ *  the ESTIMATE for a SINGLE-LINE row, so the common mount never jumps (the
+ *  CLS doctrine: estimate→measure delta is layout shift; TranscriptPane's
+ *  40 px estimate against 26 px rows was paid for by the halved pane it
+ *  lived in). Long utterances WRAP and grow past it via `measureElement` —
+ *  stream rows carry NO inline height (review-r2 F2: a pinned box made the
+ *  ResizeObserver read the pin, so wrapped text painted over the rows below
+ *  — the #48 class; auto height is the same owner model as committed rows). */
+const STREAM_ROW_ESTIMATE_PX = 26
 const OVERSCAN = 6
 /** FR-104.3: follow-scroll stays paused this long after a user scroll intent. */
 const IDLE_RESUME_MS = 30_000
@@ -195,6 +207,22 @@ function activeIndexAt(blocks: readonly CaptionBlock[], playhead: Seconds): numb
   return index
 }
 
+/**
+ * unit-110 row model (issue #48 owner design): the block whose TIME SPAN
+ * contains the playhead — ONLY that row is the expansion target from
+ * playback (half-open [start,end) so a boundary frame belongs to no row and
+ * the previous row collapses). Blocks are time-sorted; the scan stops at the
+ * first block starting after the playhead.
+ */
+export function activeSpanIdAt(blocks: readonly CaptionBlock[], playhead: Seconds): string | null {
+  let id: string | null = null
+  for (const block of blocks) {
+    if (block.start > playhead) break
+    if (playhead < block.end) id = block.id
+  }
+  return id
+}
+
 export function Transcript(props: TranscriptProps): ReactElement {
   const { app, rafs, jobs, heightPx, hiddenSpeakerIds, settings } = props
   const jobsStore = jobs ?? IDLE_JOBS
@@ -221,6 +249,12 @@ export function Transcript(props: TranscriptProps): ReactElement {
   // SECURITY-03). Errored align still applies nothing and adds no undo step.
   const [alignErrorCode, setAlignErrorCode] = useState<string | null>(null)
   const [qcAnnounce, setQcAnnounce] = useState('')
+  // unit-110 #52 posture: the Issues panel is a collapsed count-badge by
+  // DEFAULT (first-run flood gone); the user toggle opens/closes it and the
+  // FIRST post-edit (actionable) item reveals it without a toggle — the
+  // frozen import-qc-flow contract (issue item clickable right after an edit).
+  const [issuesExpanded, setIssuesExpanded] = useState(false)
+  const revealedIssuesRef = useRef(false)
   const alignJobRef = useRef<{ jobId: string; cancelled: boolean } | null>(null)
   const qcCursorIndexRef = useRef(-1)
 
@@ -304,6 +338,86 @@ export function Transcript(props: TranscriptProps): ReactElement {
   }, [blocks, hidden, issueFilterOn, issuesByBlock])
   const visibleRef = useRef(visible)
   visibleRef.current = visible
+
+  // ── unit-110 row model (issue #48 owner design) ────────────────────────────
+  // Inactive rows render as a single-line clamp + ellipsis; the row the
+  // PLAYHEAD IS INSIDE (active), the SELECTED row and the row UNDER EDIT are
+  // expanded (clamp off, height auto → the dynamic-size virtualizer
+  // re-measures via the existing `measureElement` ref and rows below shift by
+  // the growth). The active id is EVENT-DRIVEN state: the playhead
+  // subscription recomputes it every tick, but React bails out when the value
+  // is unchanged — re-renders therefore happen ONLY at time-boundary crossings
+  // (the CC-110.5 50 ms long-task gate; never per-frame).
+  const [activeRowId, setActiveRowId] = useState<string | null>(() => activeSpanIdAt(project?.blocks ?? NO_BLOCKS, app.editor.getState().playhead))
+  // Boundary-crossing expansion is batched to the NEXT animation frame in the
+  // browser: at most one expansion re-layout per frame regardless of how fast
+  // seeks arrive (the CC-110.5 50 ms doctrine — the re-layout never runs
+  // inside a seek/notify task), and the rAF-gated commit is what the
+  // longtask witness samples (clamped first, grown a frame later). Unit
+  // tests (MODE=test, vitest) commit synchronously so state transitions stay
+  // assertable inside act(); selection/edit expansion never goes through
+  // here — it is render-driven and immediate.
+  const pendingActiveRef = useRef<string | null>(activeRowId)
+  const activeFrameRef = useRef<number | null>(null)
+  const commitActiveRow = useCallback(
+    (id: string | null): void => {
+      if (activeFrameRef.current !== null) {
+        cancelAnimationFrame(activeFrameRef.current)
+        activeFrameRef.current = null
+      }
+      pendingActiveRef.current = id
+      if (import.meta.env.MODE === 'test') {
+        setActiveRowId(id)
+        return
+      }
+      activeFrameRef.current = requestAnimationFrame(() => {
+        activeFrameRef.current = null
+        setActiveRowId(pendingActiveRef.current)
+      })
+    },
+    [activeFrameRef, pendingActiveRef],
+  )
+  useEffect(
+    () => () => {
+      if (activeFrameRef.current !== null) cancelAnimationFrame(activeFrameRef.current)
+    },
+    [activeFrameRef],
+  )
+  useEffect(() => {
+    commitActiveRow(activeSpanIdAt(visibleRef.current, app.editor.getState().playhead))
+  }, [visible, app, commitActiveRow])
+
+  // #52 de-emphasis: "edited since transcription" is a UI-side fact (the
+  // [RULING] keeps checkCaptions frozen). The block's text is baselined at
+  // FIRST SIGHT (mount / import landing); a later divergence means a text
+  // edit happened this session (block-edit-text / replace-text paths — both
+  // mutate `block.text`). Base entries are never rewritten, so an edited
+  // block stays marked even if its text round-trips back.
+  const baseTextsRef = useRef(new Map<string, string>())
+  // Sticky set (review-r2 F3 — behaviour aligned with the comment above):
+  // once a block's text has diverged from its baseline it STAYS marked,
+  // even if a later edit round-trips the text back to the original.
+  const editedSeenRef = useRef(new Set<string>())
+  const editedBlockIds = useMemo(() => {
+    const edited = new Set<string>(editedSeenRef.current)
+    for (const block of blocks) {
+      const base = baseTextsRef.current.get(block.id)
+      if (base === undefined) baseTextsRef.current.set(block.id, block.text)
+      else if (base !== block.text) {
+        editedSeenRef.current.add(block.id)
+        edited.add(block.id)
+      }
+    }
+    return edited
+  }, [blocks])
+  if (editedBlockIds.size > 0 && !revealedIssuesRef.current) {
+    // Reveal WITHOUT a user toggle (frozen import-qc-flow.spec.ts:102 clicks
+    // an issue item right after an edit). One-shot; the user may collapse
+    // again afterwards.
+    revealedIssuesRef.current = true
+    setIssuesExpanded(true)
+  }
+  const showSpeakerChips = speakers.length >= 2
 
   // Matches span ALL blocks (US-2.1.6); the committed-query + blocks-reference
   // keyed memo IS the "rebuild lazily on block-version bump" (FR-104.5) —
@@ -418,7 +532,12 @@ export function Transcript(props: TranscriptProps): ReactElement {
   // committed block render as aria-hidden, textless skeleton rows.
   const lastCommittedEnd = blocks.length > 0 ? (blocks[blocks.length - 1]?.end ?? 0) : 0
   const skeletonCount = running === null ? 0 : segments.reduce((count, segment) => (segment.start >= lastCommittedEnd ? count + 1 : count), 0)
-  const rowCount = visible.length + skeletonCount
+  // unit-110 CC-110.8 single surface: streaming is a MODE of this component —
+  // one row per accumulated `job:segments` entry (the frozen unit-101
+  // streaming-segment-row contract) mounts BELOW the committed rows, then the
+  // FR-104.6 shimmer beyond the committed frontier.
+  const streamingCount = segments.length
+  const rowCount = visible.length + streamingCount + skeletonCount
 
   // LAYOUTLESS (FR-104.2 sanctioned escape hatch, Workbench TranscriptPane
   // precedent): with NO ResizeObserver in the realm (jsdom/SSR) nothing can
@@ -450,9 +569,9 @@ export function Transcript(props: TranscriptProps): ReactElement {
   const virtualizer = useVirtualizer({
     count: rowCount,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => ROW_ESTIMATE_PX,
+    estimateSize: (index: number) => (index >= visible.length && index < visible.length + streamingCount ? STREAM_ROW_ESTIMATE_PX : ROW_ESTIMATE_PX),
     overscan: OVERSCAN,
-    getItemKey: (index: number) => (index < visible.length ? (visible[index]?.id ?? index) : `ts-skeleton-${index}`),
+    getItemKey: (index: number) => (index < visible.length ? (visible[index]?.id ?? index) : index < visible.length + streamingCount ? `ts-stream-${index}` : `ts-skeleton-${index}`),
     observeElementRect: observeTranscriptRect,
   })
   const virtualizerRef = useRef(virtualizer)
@@ -495,6 +614,13 @@ export function Transcript(props: TranscriptProps): ReactElement {
     let lastPlayhead = app.editor.getState().playhead
     const unsubscribe = app.editor.subscribe(() => {
       const playhead = app.editor.getState().playhead
+      // unit-110: expansion state is recomputed on EVERY notification but the
+      // value only CHANGES at a time-boundary crossing (same string → React
+      // bails), so per-frame ticks never re-render the rows; the commit is
+      // rAF-batched (≤ 1 expansion re-layout per frame, CC-110.5). Runs
+      // BEFORE the follow guards — expansion is independent of follow
+      // pause/editing.
+      commitActiveRow(activeSpanIdAt(visibleRef.current, playhead))
       if (playhead === lastPlayhead) return
       lastPlayhead = playhead
       if (editingRef.current !== null) return
@@ -713,6 +839,28 @@ export function Transcript(props: TranscriptProps): ReactElement {
             {`Issues (${String(issues.length)})`}
           </button>
         )}
+        {/* unit-110 #52: collapsed-by-default Issues panel behind a count
+            badge. The accessible name carries the TRUE count (digits);
+            aria-expanded mirrors posture; the items stay mounted (hidden, not
+            unmounted) so the frozen DOM-count doctrine holds. */}
+        {issues.length > 0 && (
+          <button
+            type="button"
+            data-testid="transcript-issues-toggle"
+            className="ts-issues-toggle"
+            aria-expanded={issuesExpanded}
+            aria-controls="transcript-issues-list"
+            aria-label={`Caption quality issues (${String(issues.length)})`}
+            onClick={() => {
+              setIssuesExpanded((open) => !open)
+            }}
+          >
+            {issuesExpanded ? 'Hide issues' : 'Show issues'}
+            <span data-testid="transcript-issues-count" className="ts-issues-count">
+              {` (${String(issues.length)})`}
+            </span>
+          </button>
+        )}
         {project !== null && (
           <span className="ts-toolbar-actions">
             <button type="button" data-testid="transcript-retime-tool" className="ts-toolbar-button" disabled={blocks.length === 0} onClick={() => setRetimeOpen(true)}>
@@ -836,20 +984,24 @@ export function Transcript(props: TranscriptProps): ReactElement {
           filter chip additionally narrows the ROWS. Bounded DOM (numbers
           only, SECURITY-03). */}
       {orderedIssues.length > 0 && (
-        <div className="ts-issues" data-testid="transcript-issues" aria-label="Caption quality issues">
-          {orderedIssues.slice(0, MAX_ISSUE_ITEMS).map((issue, index) => (
-            <button
-              key={`${issue.code}:${issue.track}:${issue.blockId}:${String(index)}`}
-              type="button"
-              data-testid="transcript-issue"
-              data-code={issue.code}
-              data-block-id={issue.blockId}
-              className="ts-issue-item"
-              onClick={() => jumpToIssue(index)}
-            >
-              {QC_COPY[issue.code](issue)}
-            </button>
-          ))}
+        <div id="transcript-issues-list" className="ts-issues" data-testid="transcript-issues" aria-label="Caption quality issues" hidden={!issuesExpanded}>
+          {orderedIssues.slice(0, MAX_ISSUE_ITEMS).map((issue, index) => {
+            const origin = editedBlockIds.has(issue.blockId) ? 'edited' : 'raw'
+            return (
+              <button
+                key={`${issue.code}:${issue.track}:${issue.blockId}:${String(index)}`}
+                type="button"
+                data-testid="transcript-issue"
+                data-code={issue.code}
+                data-block-id={issue.blockId}
+                data-issue-origin={origin}
+                className={`ts-issue-item ts-issue-origin-${origin}`}
+                onClick={() => jumpToIssue(index)}
+              >
+                {QC_COPY[issue.code](issue)}
+              </button>
+            )
+          })}
         </div>
       )}
       <div data-testid="transcript-qc-live" className="ts-live" aria-live="polite">
@@ -868,6 +1020,34 @@ export function Transcript(props: TranscriptProps): ReactElement {
         <div style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
           {virtualizer.getVirtualItems().map((item) => {
             const block = item.index < visible.length ? visible[item.index] : undefined
+            if (block === undefined && item.index < visible.length + streamingCount) {
+              // unit-110 CC-110.8: the frozen unit-101 streaming rows live in
+              // THIS surface now — one row per accumulated `job:segments`
+              // entry, same testid + aria-label shape the 101 suites pin.
+              // NO inline height (review-r2 F2): CSS auto-height + the
+              // measureElement ref size wrapped utterances exactly like the
+              // committed rows do — the row box can never be shorter than
+              // its text, so nothing spills over the rows beneath.
+              const segment = segments[item.index - visible.length]
+              if (segment === undefined) return null
+              return (
+                <div
+                  key={item.key}
+                  data-index={item.index}
+                  ref={virtualizer.measureElement}
+                  data-testid="streaming-segment-row"
+                  role="listitem"
+                  aria-label={`${formatTimecode(segment.start)} to ${formatTimecode(segment.end)}: ${segment.text}`}
+                  className="ts-stream-row"
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${item.start}px)` }}
+                >
+                  <span className="ts-stream-time">
+                    {formatTimecode(segment.start)}–{formatTimecode(segment.end)}
+                  </span>
+                  <span className="ts-stream-text">{segment.text}</span>
+                </div>
+              )
+            }
             if (block === undefined) {
               // FR-104.6: shimmer beyond the frontier — aria-hidden and EMPTY
               // (no speculative text; the shimmer is a CSS pseudo-element).
@@ -885,6 +1065,11 @@ export function Transcript(props: TranscriptProps): ReactElement {
             }
             const selected = selection.anchorBlockId === block.id || selection.focusBlockId === block.id
             const editing = editingBlockId === block.id
+            // unit-110 row model: active (playhead inside the span) ∪ selected
+            // ∪ under-edit → expanded (auto height, re-measured); everything
+            // else single-line clamped. Editing expands FIRST — the in-place
+            // editor never renders inside clipped text (CC-110.3).
+            const expanded = selected || editing || block.id === activeRowId
             const label = speakerLabel(speakers, block.speakerId)
             const color = speakers.find((speaker) => speaker.id === block.speakerId)?.color
             // FR-302.2 / US-302.2: view-mode columns + the active track entry.
@@ -902,6 +1087,7 @@ export function Transcript(props: TranscriptProps): ReactElement {
                 ref={virtualizer.measureElement}
                 data-testid="transcript-row"
                 data-block-id={block.id}
+                data-row-state={expanded ? 'expanded' : 'clamped'}
                 role="listitem"
                 tabIndex={0}
                 aria-label={`${label}, ${formatTimecode(block.start)}, ${block.text}`}
@@ -917,19 +1103,25 @@ export function Transcript(props: TranscriptProps): ReactElement {
                   if (focusedRef.current === block.id) focusedRef.current = null
                 }}
               >
-                <button
-                  type="button"
-                  data-testid="transcript-row-chip"
-                  className="ts-chip"
-                  style={color === undefined ? undefined : { backgroundColor: color }}
-                  aria-label={`Speaker options for ${label}`}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    setPopoverBlockId(block.id)
-                  }}
-                >
-                  {label}
-                </button>
+                {/* #52: the chip renders only once the PROJECT has ≥ 2
+                    speakers — a one-voice clip gets no "Speaker 1" column
+                    (reactive: speaker add/remove re-renders through the
+                    project store). */}
+                {showSpeakerChips && (
+                  <button
+                    type="button"
+                    data-testid="transcript-row-chip"
+                    className="ts-chip"
+                    style={color === undefined ? undefined : { backgroundColor: color }}
+                    aria-label={`Speaker options for ${label}`}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setPopoverBlockId(block.id)
+                    }}
+                  >
+                    {label}
+                  </button>
+                )}
                 <span
                   data-testid="transcript-row-timecode"
                   className="ts-timecode"
