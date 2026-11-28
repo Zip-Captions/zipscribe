@@ -84,9 +84,13 @@ export interface TranscriptProps {
 // virtualizer's total size never races the CC-110.4 sample points (±2 px).
 const ROW_ESTIMATE_PX = 20
 /** Streaming-row box: 4+4 padding + 12px × 1.45 line + 1px border ≈ 26.4 —
- *  the ESTIMATE is the true height so first mount never jumps (the CLS
- *  doctrine: estimate→measure delta is layout shift; TranscriptPane's 40 px
- *  estimate against 26 px rows was paid for by the halved pane it lived in). */
+ *  the ESTIMATE for a SINGLE-LINE row, so the common mount never jumps (the
+ *  CLS doctrine: estimate→measure delta is layout shift; TranscriptPane's
+ *  40 px estimate against 26 px rows was paid for by the halved pane it
+ *  lived in). Long utterances WRAP and grow past it via `measureElement` —
+ *  stream rows carry NO inline height (review-r2 F2: a pinned box made the
+ *  ResizeObserver read the pin, so wrapped text painted over the rows below
+ *  — the #48 class; auto height is the same owner model as committed rows). */
 const STREAM_ROW_ESTIMATE_PX = 26
 const OVERSCAN = 6
 /** FR-104.3: follow-scroll stays paused this long after a user scroll intent. */
@@ -1013,6 +1017,10 @@ export function Transcript(props: TranscriptProps): ReactElement {
               // unit-110 CC-110.8: the frozen unit-101 streaming rows live in
               // THIS surface now — one row per accumulated `job:segments`
               // entry, same testid + aria-label shape the 101 suites pin.
+              // NO inline height (review-r2 F2): CSS auto-height + the
+              // measureElement ref size wrapped utterances exactly like the
+              // committed rows do — the row box can never be shorter than
+              // its text, so nothing spills over the rows beneath.
               const segment = segments[item.index - visible.length]
               if (segment === undefined) return null
               return (
@@ -1024,7 +1032,7 @@ export function Transcript(props: TranscriptProps): ReactElement {
                   role="listitem"
                   aria-label={`${formatTimecode(segment.start)} to ${formatTimecode(segment.end)}: ${segment.text}`}
                   className="ts-stream-row"
-                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: item.size, transform: `translateY(${item.start}px)` }}
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${item.start}px)` }}
                 >
                   <span className="ts-stream-time">
                     {formatTimecode(segment.start)}–{formatTimecode(segment.end)}

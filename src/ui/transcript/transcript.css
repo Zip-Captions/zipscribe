@@ -172,7 +172,10 @@
 
 /* unit-110 CC-110.8: the streaming-segment rows (frozen unit-101 contract)
    mount inside this surface while a job streams — same posture as the old
-   ws-segment-row look. */
+   ws-segment-row look. NO fixed height (review-r2 F2): long utterances wrap
+   and the box auto-grows, re-measured by measureElement exactly like the
+   expanded committed rows; overflow hidden is the belt-and-braces paint rule
+   so wrapped text can never leak over the rows below (the #48 class). */
 .ts-stream-row {
   display: flex;
   gap: 8px;
@@ -183,6 +186,7 @@
   line-height: 1.45;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-subtle);
+  overflow: hidden;
 }
 
 .ts-stream-time {
